@@ -81,7 +81,8 @@ model Employee {
 
   assetTypeTeamLeads        AssetTypeTeamLead[]        @relation("AssetTypeTeamLead")
   assetTypePreferredEditors AssetTypePreferredEditor[] @relation("AssetTypePreferredEditor")
-  assignedTickets           Ticket[]
+  assignedTickets           Ticket[]                   @relation("TicketAssignee")
+  requestedTickets          Ticket[]                   @relation("TicketRequester")
   ticketEvents              TicketEvent[]
   approvals                 Approval[]
 
@@ -209,9 +210,16 @@ model Ticket {
   audience      String? // 'cold' | 'warm'
   dueDate       DateTime? @map("due_date") @db.Date
 
-  eventTypeId String? @map("event_type_id") @db.Uuid
-  assetTypeId String? @map("asset_type_id") @db.Uuid
-  assigneeId  String? @map("assignee_id") @db.Uuid // ← Airtable "Assigned Creative"
+  eventTypeId        String? @map("event_type_id") @db.Uuid
+  assetTypeId        String? @map("asset_type_id") @db.Uuid
+  assigneeId         String? @map("assignee_id") @db.Uuid // ← Airtable "Assigned Creative"
+  requesterId        String? @map("requester_id") @db.Uuid // ← Airtable "Requested By" (drives downstream lookups)
+  officialCalendarId String? @map("official_calendar_id") @db.Uuid // ← Airtable "Official Calendar"
+
+  teamServiceLevel String? @map("team_service_level") // ← "Team/Service Level"
+  typeOfRequest    String? @map("type_of_request") // ← "Type of Request": Video | Design
+  sourceLinks      String? @map("source_links") // ← "Raw File/Source URL/Stage Talk Links"
+  notes            String? // ← "V's Notes"
 
   // Two status axes (live values from reconciliation 2026-06-25):
   prioStatus   String? @map("prio_status") // New Request | To be reviewed by Vishen | In Queue | Pending Information/Brief Not Clear | Rejected - No need to work | Assigned
@@ -227,14 +235,17 @@ model Ticket {
   updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   syncedAt  DateTime? @map("synced_at") @db.Timestamptz
 
-  eventType EventType? @relation(fields: [eventTypeId], references: [id])
-  assetType AssetType? @relation(fields: [assetTypeId], references: [id])
-  assignee  Employee?  @relation(fields: [assigneeId], references: [id])
+  eventType        EventType?        @relation(fields: [eventTypeId], references: [id])
+  assetType        AssetType?        @relation(fields: [assetTypeId], references: [id])
+  assignee         Employee?         @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  requester        Employee?         @relation("TicketRequester", fields: [requesterId], references: [id])
+  officialCalendar OfficialCalendar? @relation(fields: [officialCalendarId], references: [id])
 
   events    TicketEvent[]
   approvals Approval[]
   shoots    ShootTicket[]
   assets    Asset[]
+  authors   TicketAuthor[]
 
   @@index([priorityScore(sort: Desc), queueRank], map: "idx_tickets_queue")
   @@index([assigneeId], map: "idx_tickets_assignee")
@@ -325,4 +336,44 @@ model Performance {
   asset Asset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
   @@map("performance")
+}
+
+// Official Calendar (reference, synced from Airtable) — campaign start/end dates.
+model OfficialCalendar {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId  String?   @unique @map("airtable_id")
+  name        String // ← "Name of project"
+  status      String? // Proposal | Confirmed | Completed | …
+  startDate   DateTime? @map("start_date") @db.Date
+  endDate     DateTime? @map("end_date") @db.Date
+  syncedAt    DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  tickets Ticket[]
+
+  @@map("official_calendar")
+}
+
+// Authors / speakers (reference, synced from Airtable).
+model Author {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId String?  @unique @map("airtable_id")
+  name       String
+  title      String? // ← "Author's Title"
+  syncedAt   DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  tickets TicketAuthor[]
+
+  @@map("authors")
+}
+
+// Ticket ↔ authors/speakers (Airtable "Speakers/Authors" multi-link).
+model TicketAuthor {
+  ticketId String @map("ticket_id") @db.Uuid
+  authorId String @map("author_id") @db.Uuid
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, authorId])
+  @@map("ticket_authors")
 }

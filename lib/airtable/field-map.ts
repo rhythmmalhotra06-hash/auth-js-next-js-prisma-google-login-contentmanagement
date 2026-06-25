@@ -62,3 +62,23 @@ export const ASSET_TYPES = {
 // (not a record link), and the DNAs table (ads_creative_lib tbl0fsHkGxD6HZz6k) has
 // no requirements/feedback_standards fields — so asset_type↔dna can't be auto-resolved
 // by link. Revisit when DNA integration is designed.
+
+export const OFFICIAL_CALENDARS = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblwX47huc5xpkWyk', // 📆 Official Calendar
+  fields: {
+    name: 'fldjuF4S7ptf7LJvs', // "Name of project"
+    status: 'fldcMN9WdUJYlx0pp', // "Status"
+    startDate: 'fldtiPnk3piWUJ8sh', // "Start date"
+    endDate: 'fldDQ5wle0nFSQXBi', // "End Date"
+  },
+} as const;
+
+export const AUTHORS = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblGecx2i4ge9KYmU', // ✍🏻 Authors
+  fields: {
+    name: 'fldfg4etowAZ0V6Td', // "Name"
+    title: 'fld3oF6P49icz2zDT', // "Author's Title"
+  },
+} as const;
