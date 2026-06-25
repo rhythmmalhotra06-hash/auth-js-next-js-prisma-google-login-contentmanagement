@@ -19,9 +19,20 @@ export interface QueueTicket {
   dueDate: string | null;
 }
 
-export async function getQueueTickets(): Promise<QueueTicket[]> {
+export interface EmployeeOption {
+  id: string;
+  name: string;
+}
+
+/** Active employees, for the editor-view picker and (later) manager assignment. */
+export async function getActiveEmployees(): Promise<EmployeeOption[]> {
+  return prisma.employee.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+}
+
+export async function getQueueTickets(opts: { assigneeId?: string } = {}): Promise<QueueTicket[]> {
   // Order mirrors v_editor_queue: priority_score DESC NULLS LAST, then queue_rank.
   const rows = await prisma.ticket.findMany({
+    where: opts.assigneeId ? { assigneeId: opts.assigneeId } : undefined,
     orderBy: [{ priorityScore: { sort: 'desc', nulls: 'last' } }, { queueRank: 'asc' }, { createdAt: 'desc' }],
     select: {
       id: true,

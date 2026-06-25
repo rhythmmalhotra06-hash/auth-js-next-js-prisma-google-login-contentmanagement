@@ -10,7 +10,7 @@ function Badge({ value, kind }: { value: string | null; kind: 'ticket' | 'prio' 
   return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{value}</span>;
 }
 
-export function TicketTable({ tickets }: { tickets: QueueTicket[] }) {
+export function TicketTable({ tickets, readOnly = false }: { tickets: QueueTicket[]; readOnly?: boolean }) {
   if (tickets.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-500">
@@ -40,7 +40,11 @@ export function TicketTable({ tickets }: { tickets: QueueTicket[] }) {
           {tickets.map((t) => (
             <tr key={t.id} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
               <td className="px-4 py-3 font-medium">
-                <Link href={`/tickets/${t.id}`} className="text-[#572280] hover:underline">{t.title}</Link>
+                {readOnly ? (
+                  <span className="text-neutral-900">{t.title}</span>
+                ) : (
+                  <Link href={`/tickets/${t.id}`} className="text-[#572280] hover:underline">{t.title}</Link>
+                )}
               </td>
               <td className="px-4 py-3 text-neutral-700">{t.priorityScore ?? <span className="text-neutral-400">unscored</span>}</td>
               <td className="px-4 py-3 text-neutral-700">{t.assignee ?? <span className="text-neutral-400">unassigned</span>}</td>
