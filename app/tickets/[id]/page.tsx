@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getTicketDetail } from '@/lib/tickets/data';
+import { getTicketDetail, getActiveEmployees } from '@/lib/tickets/data';
 import { StatusUpdater } from '@/components/tickets/StatusUpdater';
+import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
+import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const t = await getTicketDetail(id);
   if (!t) notFound();
+  const employees = await getActiveEmployees();
 
   return (
     <main className="min-h-screen bg-neutral-50 py-10">
@@ -30,9 +33,19 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
         </div>
 
         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-neutral-200">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Ticket status</h2>
-            <StatusUpdater ticketId={t.id} current={t.ticketStatus} />
+          <div className="mb-5 grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">Ticket Status <span className="font-normal lowercase text-neutral-400">· editor</span></p>
+              <StatusUpdater ticketId={t.id} current={t.ticketStatus} />
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">Priority Status <span className="font-normal lowercase text-neutral-400">· manager</span></p>
+              <PrioStatusUpdater ticketId={t.id} current={t.prioStatus} />
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">Assigned <span className="font-normal lowercase text-neutral-400">· manager</span></p>
+              <AssigneeUpdater ticketId={t.id} current={t.assigneeId} employees={employees} />
+            </div>
           </div>
           <dl>
             <Row label="Event Type" value={t.eventType} />

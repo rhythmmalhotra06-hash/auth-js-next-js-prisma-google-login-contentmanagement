@@ -92,6 +92,7 @@ export interface TicketDetail {
   assetType: string | null;
   requester: string | null;
   assignee: string | null;
+  assigneeId: string | null;
   officialCalendar: string | null;
   authors: string[];
   events: TicketEventRow[];
@@ -103,7 +104,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     select: {
       id: true, title: true, creativeBrief: true, cta: true, dueDate: true,
       ticketStatus: true, prioStatus: true, typeOfRequest: true, teamServiceLevel: true,
-      sourceLinks: true, notes: true, priorityScore: true,
+      sourceLinks: true, notes: true, priorityScore: true, assigneeId: true,
       eventType: { select: { name: true } },
       assetType: { select: { name: true } },
       requester: { select: { name: true } },
@@ -127,6 +128,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     assetType: t.assetType?.name ?? null,
     requester: t.requester?.name ?? null,
     assignee: t.assignee?.name ?? null,
+    assigneeId: t.assigneeId,
     officialCalendar: t.officialCalendar?.name ?? null,
     authors: t.authors.map((a) => a.author.name),
     events: t.events.map((e) => ({
