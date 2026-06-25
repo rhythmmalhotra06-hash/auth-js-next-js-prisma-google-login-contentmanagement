@@ -1,7 +1,7 @@
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
-  runtime  = "edge-light"
+  runtime  = "nodejs"
 }
 
 datasource db {
