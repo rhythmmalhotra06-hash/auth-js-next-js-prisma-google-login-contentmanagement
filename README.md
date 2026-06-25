@@ -1,0 +1,1 @@
+# auth-js-next-js-prisma-google-login-contentmanagement
