@@ -12,8 +12,9 @@ export interface AirtableRecord {
 }
 
 function token(): string {
-  const t = process.env.AIRTABLE_TOKEN;
-  if (!t) throw new Error('AIRTABLE_TOKEN is not set (needs data.records:read scope).');
+  // Local dev uses AIRTABLE_TOKEN; the Kessel service has AIRTABLE_API_KEY. Accept either.
+  const t = process.env.AIRTABLE_TOKEN ?? process.env.AIRTABLE_API_KEY;
+  if (!t) throw new Error('No Airtable token (set AIRTABLE_TOKEN or AIRTABLE_API_KEY; needs data.records:read scope).');
   return t;
 }
 
