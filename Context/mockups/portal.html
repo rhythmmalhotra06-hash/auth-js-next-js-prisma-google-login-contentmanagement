@@ -1,0 +1,310 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Creative Services Portal — Mindvalley</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+<style>
+:root{
+--brand:#572280;--brand-strong:#3f1860;--brand-soft:#f1eaf7;--gold:#F5B000;--gold-soft:#fdf3da;--gold-ink:#7a5800;
+--color-background-primary:#fff;--color-background-secondary:#f6f4f9;--color-background-tertiary:#faf9fc;
+--color-background-info:var(--brand-soft);--color-background-danger:#FCEBEB;--color-background-success:#EAF3DE;--color-background-warning:var(--gold-soft);
+--color-text-primary:#16131c;--color-text-secondary:#6a6577;--color-text-tertiary:#9b96a6;
+--color-text-info:var(--brand);--color-text-danger:#A32D2D;--color-text-success:#27500A;--color-text-warning:var(--gold-ink);
+--color-border-tertiary:rgba(40,20,60,.12);--color-border-secondary:rgba(40,20,60,.22);--color-border-info:#c9b3de;
+--border-radius-md:8px;--border-radius-lg:12px;
+--font-sans:'Inter',system-ui,-apple-system,sans-serif;}
+@media(prefers-color-scheme:dark){:root{
+--brand:#b98fe0;--brand-strong:#cdb0ec;--brand-soft:#2b2138;--gold:#F5B000;--gold-soft:#3a2e10;--gold-ink:#f0c75a;
+--color-background-primary:#1f1b27;--color-background-secondary:#272231;--color-background-tertiary:#19161f;
+--color-text-primary:#f0eef4;--color-text-secondary:#ada7b8;--color-text-tertiary:#7d7889;
+--color-border-tertiary:rgba(255,255,255,.13);--color-border-secondary:rgba(255,255,255,.24);--color-border-info:#5a4775;}}
+*{box-sizing:border-box;}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);margin:0;line-height:1.5;}
+table{border-collapse:collapse;}
+button{font-family:inherit;font-size:13px;background:transparent;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 12px;cursor:pointer;color:var(--color-text-primary);}
+button:hover{background:var(--color-background-secondary);}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:8px 10px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);}
+a{color:var(--color-text-info);text-decoration:none;}
+.app{display:flex;min-height:100vh;}
+.side{width:230px;flex-shrink:0;background:var(--color-background-primary);border-right:.5px solid var(--color-border-tertiary);padding:18px 14px;display:flex;flex-direction:column;gap:4px;}
+.brand{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;position:relative;}
+.brand-mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:1.5px solid var(--color-background-primary);}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--border-radius-md);cursor:pointer;font-size:14px;color:var(--color-text-secondary);border:none;background:transparent;width:100%;text-align:left;}
+.nav:hover{background:var(--color-background-secondary);}
+.nav.active{background:var(--brand-soft);color:var(--brand-strong);font-weight:500;box-shadow:inset 2px 0 0 var(--brand);}
+.nav i{font-size:18px;}
+.nav-label{font-size:11px;color:var(--color-text-tertiary);padding:14px 11px 6px;letter-spacing:.03em;}
+.main{flex:1;min-width:0;padding:8px 28px 40px;overflow-x:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:4px;}
+.role-pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--color-text-secondary);}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;}
+.view{display:none;}
+.view.active{display:block;}
+@media(max-width:760px){.side{width:60px;}.side .txt{display:none;}.brand span{display:none;}.main{padding:8px 14px 40px;}}
+</style></head><body>
+<div class="app">
+  <nav class="side">
+    <div class="brand"><div class="brand-mark">CS</div><span style="font-weight:500;font-size:15px;">Creative Services</span></div>
+    <div class="nav-label txt">Workspaces</div>
+    <button class="nav active" data-view="manager" onclick="show('manager',this)"><i class="ti ti-list-numbers"></i><span class="txt">Prioritization queue</span></button>
+    <button class="nav" data-view="editor" onclick="show('editor',this)"><i class="ti ti-player-play"></i><span class="txt">My queue (editor)</span></button>
+    <button class="nav" data-view="stakeholder" onclick="show('stakeholder',this)"><i class="ti ti-chart-line"></i><span class="txt">Status & performance</span></button>
+    <button class="nav" data-view="library" onclick="show('library',this)"><i class="ti ti-photo"></i><span class="txt">Asset library</span></button>
+    <div class="nav-label txt">Actions</div>
+    <button class="nav" data-view="intake" onclick="show('intake',this)"><i class="ti ti-plus"></i><span class="txt">New request</span></button>
+    <div style="flex:1"></div>
+    <div class="nav-label txt">Source of truth</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;font-size:12px;color:var(--color-text-tertiary);"><i class="ti ti-refresh" style="font-size:16px;"></i><span class="txt">Synced from Airtable · 2 min ago</span></div>
+  </nav>
+  <main class="main">
+    <div class="topbar">
+      <div id="crumb" style="font-size:13px;color:var(--color-text-secondary);">Prioritization queue</div>
+      <div class="role-pill" id="rolepill"><span>Manager</span><span class="avatar">MO</span></div>
+    </div>
+
+<div class="view active" id="view-manager">
+<div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:18px; font-weight:500;">Creative services — prioritization queue</span>
+      <span style="background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:12px; padding:3px 10px; border-radius:var(--border-radius-md);">Manager view</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; font-size:13px; color:var(--color-text-secondary);">
+      <i class="ti ti-refresh" style="font-size:15px;"></i> synced from Airtable · 2 min ago
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px;">
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">In queue</div><div style="font-size:24px; font-weight:500;">47</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Unassigned</div><div style="font-size:24px; font-weight:500; color:var(--color-text-warning);">9</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Due ≤ 3 days</div><div style="font-size:24px; font-weight:500; color:var(--color-text-danger);">12</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">In review</div><div style="font-size:24px; font-weight:500;">6</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Blocked</div><div style="font-size:24px; font-weight:500;">2</div></div>
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <input type="text" placeholder="Search tickets…" style="flex:1; min-width:180px;" />
+    <select style="width:auto;"><option>All event types</option></select>
+    <select style="width:auto;"><option>All editors</option></select>
+    <button>Auto-rank</button>
+  </div>
+  <div style="border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); overflow:hidden; background:var(--color-background-primary);">
+    <table style="width:100%; table-layout:fixed; font-size:13px;">
+      <colgroup><col style="width:30px;"><col style="width:34px;"><col><col style="width:96px;"><col style="width:120px;"><col style="width:104px;"><col style="width:104px;"></colgroup>
+      <thead><tr style="background:var(--color-background-secondary); color:var(--color-text-secondary); text-align:left;">
+        <th style="padding:9px 6px;"></th><th style="padding:9px 6px;">#</th><th style="padding:9px 8px;">Title</th><th style="padding:9px 8px;">Priority</th><th style="padding:9px 8px;">Assigned</th><th style="padding:9px 8px;">Ticket status</th><th style="padding:9px 8px;">Priority status</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">1</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Masterclass trailer — Quest launch</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Masterclass</span> <span>Video trailer · shoot</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">1.08</span> <span style="background:#FCEBEB; color:#A32D2D; font-size:11px; padding:1px 6px; border-radius:8px;">due 4d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">MP</span>Millie P.</span></td>
+          <td style="padding:10px 8px;"><span style="background:#FAEEDA; color:#854F0B; padding:2px 8px; border-radius:8px;">In production</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">2</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Social promo reel — IG pathway</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#FBEAF0; color:#72243E; padding:1px 7px; border-radius:8px;">Social promo</span> <span>Short-form · 2 dims</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.87</span> <span style="background:#FCEBEB; color:#A32D2D; font-size:11px; padding:1px 6px; border-radius:8px;">due 1d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">JW</span>Jawan</span></td>
+          <td style="padding:10px 8px;"><span style="background:#FAEEDA; color:#854F0B; padding:2px 8px; border-radius:8px;">In production</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary); background:var(--color-background-warning);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">3</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Summit feature banner set</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#E1F5EE; color:#085041; padding:1px 7px; border-radius:8px;">Summit</span> <span>Banner · 6 dims · print</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.79</span> <span style="background:#FAEEDA; color:#854F0B; font-size:11px; padding:1px 6px; border-radius:8px;">due 6d</span></td>
+          <td style="padding:10px 8px;"><button style="font-size:12px; padding:3px 10px; color:var(--color-text-warning);">Assign</button></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Not started</span></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Queued</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">4</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mastery VSSL — cold audience</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Mastery</span> <span>VSSL · cold</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.71</span> <span style="background:#F1EFE8; color:#5F5E5A; font-size:11px; padding:1px 6px; border-radius:8px;">due 9d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">PA</span>Paul A.</span></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px;">In feedback</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">5</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">States ad banner — retargeting</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#F1EFE8; color:#444441; padding:1px 7px; border-radius:8px;">States</span> <span>Banner · 1 dim · warm</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.52</span> <span style="background:#F1EFE8; color:#5F5E5A; font-size:11px; padding:1px 6px; border-radius:8px;">due 12d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">ZG</span>Ziga</span></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Not started</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--color-text-secondary);">
+    <span><i class="ti ti-grip-vertical"></i> drag to override rank</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EEEDFE;"></span> high tier</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#E1F5EE;"></span> mid tier</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#F1EFE8;"></span> lower tier</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--color-background-warning);"></span> needs attention</span>
+  </div>
+</div>
+</div>
+<div class="view " id="view-editor">
+<div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:18px; font-weight:500;">My queue</span><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:12px; padding:3px 10px; border-radius:8px;">Millie P. · Content production</span></div>
+    <span style="font-size:13px; color:var(--color-text-secondary);">3 assigned · 1 in feedback</span>
+  </div>
+  <div style="border:2px solid var(--color-border-info); border-radius:12px; background:var(--color-background-primary); padding:1.1rem 1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="background:var(--color-background-info); color:var(--color-text-info); font-size:12px; padding:3px 10px; border-radius:8px;">Next up</span><span style="font-size:12px; color:var(--color-text-danger);"><i class="ti ti-clock"></i> due in 4 days</span></div>
+    <div style="font-size:16px; font-weight:500; margin-bottom:4px;">Masterclass trailer — Quest launch</div>
+    <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:14px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Masterclass</span> <span>Video trailer · shoot linked · 3 dimensions (9x16, 4x5, 16x9)</span></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px;">
+      <div style="background:var(--color-background-secondary); border-radius:8px; padding:8px 10px;"><div style="font-size:12px; color:var(--color-text-secondary);">CTA</div><div style="font-size:13px;">Sign up → masterclass</div></div>
+      <div style="background:var(--color-background-secondary); border-radius:8px; padding:8px 10px;"><div style="font-size:12px; color:var(--color-text-secondary);">Positioning</div><div style="font-size:13px;">Transformation angle</div></div>
+      <div style="background:var(--color-background-secondary); border-radius:8px; padding:8px 10px;"><div style="font-size:12px; color:var(--color-text-secondary);">Audience</div><div style="font-size:13px;">Cold</div></div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <button>View brief & DNA</button>
+      <button><i class="ti ti-folder"></i> Source material</button>
+      <select style="width:auto;"><option>In production</option><option>Not started</option><option>In feedback</option><option>Ready for review</option><option>Done</option></select>
+      <button style="color:var(--color-text-info);"><i class="ti ti-upload"></i> Upload final</button>
+    </div>
+  </div>
+  <div style="font-size:13px; color:var(--color-text-secondary); margin-top:4px;">Up next in my queue</div>
+  <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+    <table style="width:100%; table-layout:fixed; font-size:13px;">
+      <colgroup><col style="width:30px;"><col><col style="width:90px;"><col style="width:120px;"><col style="width:110px;"></colgroup>
+      <thead><tr style="background:var(--color-background-secondary); color:var(--color-text-secondary); text-align:left;"><th style="padding:9px 8px;">#</th><th style="padding:9px 8px;">Title</th><th style="padding:9px 8px;">Priority</th><th style="padding:9px 8px;">Ticket status</th><th style="padding:9px 8px;">Priority status</th></tr></thead>
+      <tbody>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px; color:var(--color-text-secondary);">2</td><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mastery VSSL — cold audience</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Mastery</span> VSSL</div></td><td style="padding:10px 8px;"><span style="font-weight:500;">0.71</span></td><td style="padding:10px 8px;"><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px;">In feedback</span></td><td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px; color:var(--color-text-secondary);">3</td><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Quest social cutdowns ×4</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#FBEAF0; color:#72243E; padding:1px 7px; border-radius:8px;">Social promo</span> Short-form</div></td><td style="padding:10px 8px;"><span style="font-weight:500;">0.63</span></td><td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Not started</span></td><td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:12px; color:var(--color-text-secondary);">Editors update ticket status only. Priority status is set by your manager.</div>
+</div>
+</div>
+<div class="view " id="view-stakeholder">
+<div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:18px; font-weight:500;">Creative status & performance</span><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:12px; padding:3px 10px; border-radius:8px;"><i class="ti ti-eye"></i> Stakeholder view · read-only</span></div>
+    <select style="width:auto;"><option>All campaigns</option></select>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px;">
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Published (30d)</div><div style="font-size:24px; font-weight:500;">38</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">In production</div><div style="font-size:24px; font-weight:500;">14</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Avg CTR</div><div style="font-size:24px; font-weight:500; color:var(--color-text-success);">2.4%</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Avg ROAS</div><div style="font-size:24px; font-weight:500; color:var(--color-text-success);">3.1×</div></div>
+  </div>
+  <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+    <table style="width:100%; table-layout:fixed; font-size:13px;">
+      <colgroup><col><col style="width:130px;"><col style="width:108px;"><col style="width:88px;"><col style="width:70px;"><col style="width:64px;"></colgroup>
+      <thead><tr style="background:var(--color-background-secondary); color:var(--color-text-secondary); text-align:left;"><th style="padding:9px 8px;">Asset</th><th style="padding:9px 8px;">Stage</th><th style="padding:9px 8px;">Edited by</th><th style="padding:9px 8px;">Channel</th><th style="padding:9px 8px;">CTR</th><th style="padding:9px 8px;">ROAS</th></tr></thead>
+      <tbody>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Quest hero reel 9x16</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Masterclass</span></div></td><td style="padding:10px 8px;"><span style="background:#EAF3DE; color:#27500A; padding:2px 8px; border-radius:8px;">Published</span></td><td style="padding:10px 8px;">Millie P.</td><td style="padding:10px 8px;"><a href="#" style="color:var(--color-text-info);">IG <i class="ti ti-external-link"></i></a></td><td style="padding:10px 8px; color:var(--color-text-success);">3.1%</td><td style="padding:10px 8px; color:var(--color-text-success);">4.2×</td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mastery VSSL cold</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Mastery</span></div></td><td style="padding:10px 8px;"><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px;">In review</span></td><td style="padding:10px 8px;">Paul A.</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Summit banner 16x9</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#E1F5EE; color:#085041; padding:1px 7px; border-radius:8px;">Summit</span></div></td><td style="padding:10px 8px;"><span style="background:#FAEEDA; color:#854F0B; padding:2px 8px; border-radius:8px;">In production</span></td><td style="padding:10px 8px;">Ziga</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Pathway promo reel</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#FBEAF0; color:#72243E; padding:1px 7px; border-radius:8px;">Social promo</span></div></td><td style="padding:10px 8px;"><span style="background:#EAF3DE; color:#27500A; padding:2px 8px; border-radius:8px;">Published</span></td><td style="padding:10px 8px;">Jawan</td><td style="padding:10px 8px;"><a href="#" style="color:var(--color-text-info);">TikTok <i class="ti ti-external-link"></i></a></td><td style="padding:10px 8px; color:var(--color-text-warning);">1.6%</td><td style="padding:10px 8px; color:var(--color-text-warning);">1.9×</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:12px; color:var(--color-text-secondary);">Performance pulled from Clarisights / Amplitude, keyed to each published asset. No editing — comment access only.</div>
+</div>
+</div>
+<div class="view " id="view-library">
+<div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:18px; font-weight:500;">Asset library</span><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:12px; padding:3px 10px; border-radius:8px;">1,284 assets · 312 source files</span></div>
+    <div style="display:flex; gap:6px;"><button style="background:var(--color-background-secondary);"><i class="ti ti-layout-grid"></i> Grid</button><button><i class="ti ti-list"></i> List</button></div>
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <input type="text" placeholder="Search assets — title, brief, editor…" style="flex:1; min-width:200px;" />
+    <select style="width:auto;"><option>All event types</option><option>Masterclass</option><option>Mastery</option><option>Summit</option><option>Social promo</option></select>
+    <select style="width:auto;"><option>All asset types</option><option>Video trailer</option><option>VSSL</option><option>Banner</option><option>Social cutdown</option></select>
+    <select style="width:auto;"><option>All dimensions</option><option>9x16</option><option>4x5</option><option>16x9</option></select>
+    <select style="width:auto;"><option>All stages</option><option>Final</option><option>Raw / source</option></select>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(208px,1fr)); gap:14px;">
+    <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+      <div style="position:relative; height:120px; background:#EEEDFE; display:flex; align-items:center; justify-content:center;"><i class="ti ti-player-play" style="font-size:30px; color:#534AB7;"></i><span style="position:absolute; top:8px; left:8px; background:#EAF3DE; color:#27500A; font-size:11px; padding:2px 8px; border-radius:8px;">Final</span><span style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;"><i class="ti ti-stack-2"></i> v3</span><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;">9x16</span></div>
+      <div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Quest hero reel</div><div style="font-size:12px; color:var(--color-text-secondary); margin:2px 0 8px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Masterclass</span> Millie P.</div><div style="display:flex; gap:10px; font-size:12px; color:var(--color-text-success);"><span><i class="ti ti-click"></i> 3.1%</span><span><i class="ti ti-coin"></i> 4.2×</span><span style="margin-left:auto; color:var(--color-text-info);"><i class="ti ti-brand-instagram"></i></span></div></div>
+    </div>
+    <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+      <div style="position:relative; height:120px; background:#E1F5EE; display:flex; align-items:center; justify-content:center;"><i class="ti ti-photo" style="font-size:30px; color:#0F6E56;"></i><span style="position:absolute; top:8px; left:8px; background:#FAEEDA; color:#854F0B; font-size:11px; padding:2px 8px; border-radius:8px;">In production</span><span style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;"><i class="ti ti-stack-2"></i> v1</span><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;">16x9</span></div>
+      <div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Summit feature banner</div><div style="font-size:12px; color:var(--color-text-secondary); margin:2px 0 8px;"><span style="background:#E1F5EE; color:#085041; padding:1px 7px; border-radius:8px;">Summit</span> Ziga</div><div style="display:flex; gap:10px; font-size:12px; color:var(--color-text-tertiary);"><span>Not yet published</span></div></div>
+    </div>
+    <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+      <div style="position:relative; height:120px; background:#FBEAF0; display:flex; align-items:center; justify-content:center;"><i class="ti ti-player-play" style="font-size:30px; color:#993556;"></i><span style="position:absolute; top:8px; left:8px; background:#EAF3DE; color:#27500A; font-size:11px; padding:2px 8px; border-radius:8px;">Final</span><span style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;"><i class="ti ti-stack-2"></i> v2</span><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;">9x16</span></div>
+      <div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Pathway promo reel</div><div style="font-size:12px; color:var(--color-text-secondary); margin:2px 0 8px;"><span style="background:#FBEAF0; color:#72243E; padding:1px 7px; border-radius:8px;">Social promo</span> Jawan</div><div style="display:flex; gap:10px; font-size:12px; color:var(--color-text-warning);"><span><i class="ti ti-click"></i> 1.6%</span><span><i class="ti ti-coin"></i> 1.9×</span><span style="margin-left:auto; color:var(--color-text-info);"><i class="ti ti-brand-tiktok"></i></span></div></div>
+    </div>
+    <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+      <div style="position:relative; height:120px; background:#EEEDFE; display:flex; align-items:center; justify-content:center;"><i class="ti ti-player-play" style="font-size:30px; color:#534AB7;"></i><span style="position:absolute; top:8px; left:8px; background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:11px; padding:2px 8px; border-radius:8px;">In review</span><span style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;"><i class="ti ti-stack-2"></i> v2</span><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;">16x9</span></div>
+      <div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mastery VSSL — cold</div><div style="font-size:12px; color:var(--color-text-secondary); margin:2px 0 8px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Mastery</span> Paul A.</div><div style="display:flex; gap:10px; font-size:12px; color:var(--color-text-tertiary);"><span>Awaiting approval</span></div></div>
+    </div>
+    <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+      <div style="position:relative; height:120px; background:#F1EFE8; display:flex; align-items:center; justify-content:center;"><i class="ti ti-folder" style="font-size:30px; color:#5F5E5A;"></i><span style="position:absolute; top:8px; left:8px; background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:11px; padding:2px 8px; border-radius:8px;">Raw / source</span><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;">Shoot</span></div>
+      <div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Quest launch shoot</div><div style="font-size:12px; color:var(--color-text-secondary); margin:2px 0 8px;">Source · feeds 3 tickets</div><div style="display:flex; gap:10px; font-size:12px; color:var(--color-text-info);"><span><i class="ti ti-link"></i> Linked</span></div></div>
+    </div>
+    <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+      <div style="position:relative; height:120px; background:#E1F5EE; display:flex; align-items:center; justify-content:center;"><i class="ti ti-photo" style="font-size:30px; color:#0F6E56;"></i><span style="position:absolute; top:8px; left:8px; background:#EAF3DE; color:#27500A; font-size:11px; padding:2px 8px; border-radius:8px;">Final</span><span style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;"><i class="ti ti-stack-2"></i> v4</span><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 7px; border-radius:8px;">4x5</span></div>
+      <div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">MBU onboarding banner</div><div style="font-size:12px; color:var(--color-text-secondary); margin:2px 0 8px;"><span style="background:#E1F5EE; color:#085041; padding:1px 7px; border-radius:8px;">MBU</span> Chee Ling</div><div style="display:flex; gap:10px; font-size:12px; color:var(--color-text-success);"><span><i class="ti ti-click"></i> 2.7%</span><span><i class="ti ti-coin"></i> 3.4×</span><span style="margin-left:auto; color:var(--color-text-info);"><i class="ti ti-brand-meta"></i></span></div></div>
+    </div>
+  </div>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--color-text-secondary); padding-top:2px;">
+    <span><i class="ti ti-stack-2"></i> version-stacked (raw → final under one asset)</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EAF3DE;"></span> final · published carries live CTR / ROAS</span>
+    <span><i class="ti ti-link"></i> source feeds multiple tickets</span>
+  </div>
+</div>
+
+</div>
+<div class="view " id="view-intake">
+<div style="background:var(--color-background-secondary); border-radius:12px; padding:1.25rem;">
+<div style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:12px; padding:1.25rem 1.4rem; max-width:560px; margin:0 auto;">
+  <div style="font-size:18px; font-weight:500; margin-bottom:2px;">New creative request</div>
+  <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:18px;">Pick the event, then the asset — the rest fills in automatically.</div>
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">1 · Event type</label><select><option>Masterclass</option><option>Mastery</option><option>Summit</option><option>MBU</option><option>States</option><option>Social media promotion</option><option>Pathway</option></select></div>
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">2 · Asset type <span style="color:var(--color-text-secondary); font-weight:400;">— filtered by event</span></label><select><option>Video trailer</option><option>Short ad</option><option>VSSL</option><option>Social cutdown</option></select></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:10px 12px;">
+      <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px;"><i class="ti ti-lock"></i> auto-filled from asset type</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px 14px;">
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Team lead</div><div style="font-size:13px;">Titus</div></div>
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Preferred editor</div><div style="font-size:13px;">Millie P.</div></div>
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Dimensions</div><div style="font-size:13px;">9x16, 4x5, 16x9</div></div>
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Category</div><div style="font-size:13px;">Digital</div></div>
+      </div>
+    </div>
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Title</label><input type="text" placeholder="e.g. Masterclass trailer — Quest launch" /></div>
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Creative brief</label><textarea rows="3" placeholder="What's the goal, the message, any references…"></textarea></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Call to action</label><input type="text" placeholder="Sign up → masterclass" /></div>
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Positioning</label><input type="text" placeholder="Messaging angle" /></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Audience</label><select><option>Cold</option><option>Warm</option></select></div>
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Due date</label><input type="text" placeholder="dd / mm / yyyy" /></div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;"><button>Cancel</button><button style="border-color:var(--color-border-info); color:var(--color-text-info);">Submit request</button></div>
+  </div>
+</div>
+</div>
+</div>
+  </main>
+</div>
+<script>
+var crumbs={manager:'Prioritization queue',editor:'My queue · editor',stakeholder:'Status & performance',library:'Asset library',intake:'New creative request'};
+var roles={manager:['Manager','MO'],editor:['Editor','MP'],stakeholder:['Stakeholder · read-only','VI'],library:['Library','RM'],intake:['Requester','RM']};
+function show(v,el){
+  document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav').forEach(function(x){x.classList.remove('active');});
+  if(el)el.classList.add('active');
+  document.getElementById('crumb').textContent=crumbs[v];
+  var r=roles[v];
+  document.getElementById('rolepill').innerHTML='<span>'+r[0]+'</span><span class="avatar">'+r[1]+'</span>';
+  window.scrollTo(0,0);
+}
+</script>
+</body></html>

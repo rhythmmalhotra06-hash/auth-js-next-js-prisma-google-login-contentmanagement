@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css"><style>
+:root{
+--brand:#572280;--brand-strong:#3f1860;--brand-soft:#f1eaf7;--gold:#F5B000;--gold-soft:#fdf3da;--gold-ink:#7a5800;
+--color-background-primary:#fff;--color-background-secondary:#f6f4f9;--color-background-tertiary:#faf9fc;
+--color-background-info:var(--brand-soft);--color-background-danger:#FCEBEB;--color-background-success:#EAF3DE;--color-background-warning:var(--gold-soft);
+--color-text-primary:#16131c;--color-text-secondary:#6a6577;--color-text-tertiary:#9b96a6;
+--color-text-info:var(--brand);--color-text-danger:#A32D2D;--color-text-success:#27500A;--color-text-warning:var(--gold-ink);
+--color-border-tertiary:rgba(40,20,60,.12);--color-border-secondary:rgba(40,20,60,.22);--color-border-info:#c9b3de;
+--border-radius-md:8px;--border-radius-lg:12px;
+--font-sans:'Inter',system-ui,-apple-system,sans-serif;}
+@media(prefers-color-scheme:dark){:root{
+--brand:#b98fe0;--brand-strong:#cdb0ec;--brand-soft:#2b2138;--gold:#F5B000;--gold-soft:#3a2e10;--gold-ink:#f0c75a;
+--color-background-primary:#1f1b27;--color-background-secondary:#272231;--color-background-tertiary:#19161f;
+--color-text-primary:#f0eef4;--color-text-secondary:#ada7b8;--color-text-tertiary:#7d7889;
+--color-border-tertiary:rgba(255,255,255,.13);--color-border-secondary:rgba(255,255,255,.24);--color-border-info:#5a4775;}}
+*{box-sizing:border-box;}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);margin:0;line-height:1.5;}
+table{border-collapse:collapse;}
+button{font-family:inherit;font-size:13px;background:transparent;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 12px;cursor:pointer;color:var(--color-text-primary);}
+button:hover{background:var(--color-background-secondary);}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:8px 10px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);}
+a{color:var(--color-text-info);text-decoration:none;}
+.app{display:flex;min-height:100vh;}
+.side{width:230px;flex-shrink:0;background:var(--color-background-primary);border-right:.5px solid var(--color-border-tertiary);padding:18px 14px;display:flex;flex-direction:column;gap:4px;}
+.brand{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;position:relative;}
+.brand-mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:1.5px solid var(--color-background-primary);}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--border-radius-md);cursor:pointer;font-size:14px;color:var(--color-text-secondary);border:none;background:transparent;width:100%;text-align:left;}
+.nav:hover{background:var(--color-background-secondary);}
+.nav.active{background:var(--brand-soft);color:var(--brand-strong);font-weight:500;box-shadow:inset 2px 0 0 var(--brand);}
+.nav i{font-size:18px;}
+.nav-label{font-size:11px;color:var(--color-text-tertiary);padding:14px 11px 6px;letter-spacing:.03em;}
+.main{flex:1;min-width:0;padding:8px 28px 40px;overflow-x:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:4px;}
+.role-pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--color-text-secondary);}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;}
+.view{display:none;}
+.view.active{display:block;}
+@media(max-width:760px){.side{width:60px;}.side .txt{display:none;}.brand span{display:none;}.main{padding:8px 14px 40px;}}
+</style></head><body style="padding:24px;"><div style="max-width:920px;margin:0 auto;">
+<div style="background:var(--color-background-secondary); border-radius:12px; padding:1.25rem;">
+<div style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:12px; padding:1.25rem 1.4rem; max-width:560px; margin:0 auto;">
+  <div style="font-size:18px; font-weight:500; margin-bottom:2px;">New creative request</div>
+  <div style="font-size:13px; color:var(--color-text-secondary); margin-bottom:18px;">Pick the event, then the asset — the rest fills in automatically.</div>
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">1 · Event type</label><select><option>Masterclass</option><option>Mastery</option><option>Summit</option><option>MBU</option><option>States</option><option>Social media promotion</option><option>Pathway</option></select></div>
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">2 · Asset type <span style="color:var(--color-text-secondary); font-weight:400;">— filtered by event</span></label><select><option>Video trailer</option><option>Short ad</option><option>VSSL</option><option>Social cutdown</option></select></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:10px 12px;">
+      <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px;"><i class="ti ti-lock"></i> auto-filled from asset type</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px 14px;">
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Team lead</div><div style="font-size:13px;">Titus</div></div>
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Preferred editor</div><div style="font-size:13px;">Millie P.</div></div>
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Dimensions</div><div style="font-size:13px;">9x16, 4x5, 16x9</div></div>
+        <div><div style="font-size:12px; color:var(--color-text-secondary);">Category</div><div style="font-size:13px;">Digital</div></div>
+      </div>
+    </div>
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Title</label><input type="text" placeholder="e.g. Masterclass trailer — Quest launch" /></div>
+    <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Creative brief</label><textarea rows="3" placeholder="What's the goal, the message, any references…"></textarea></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Call to action</label><input type="text" placeholder="Sign up → masterclass" /></div>
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Positioning</label><input type="text" placeholder="Messaging angle" /></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Audience</label><select><option>Cold</option><option>Warm</option></select></div>
+      <div><label style="font-size:13px; font-weight:500; display:block; margin-bottom:5px;">Due date</label><input type="text" placeholder="dd / mm / yyyy" /></div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;"><button>Cancel</button><button style="border-color:var(--color-border-info); color:var(--color-text-info);">Submit request</button></div>
+  </div>
+</div>
+</div>
+</div></body></html>

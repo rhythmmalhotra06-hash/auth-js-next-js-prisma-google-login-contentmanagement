@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css"><style>
+:root{
+--brand:#572280;--brand-strong:#3f1860;--brand-soft:#f1eaf7;--gold:#F5B000;--gold-soft:#fdf3da;--gold-ink:#7a5800;
+--color-background-primary:#fff;--color-background-secondary:#f6f4f9;--color-background-tertiary:#faf9fc;
+--color-background-info:var(--brand-soft);--color-background-danger:#FCEBEB;--color-background-success:#EAF3DE;--color-background-warning:var(--gold-soft);
+--color-text-primary:#16131c;--color-text-secondary:#6a6577;--color-text-tertiary:#9b96a6;
+--color-text-info:var(--brand);--color-text-danger:#A32D2D;--color-text-success:#27500A;--color-text-warning:var(--gold-ink);
+--color-border-tertiary:rgba(40,20,60,.12);--color-border-secondary:rgba(40,20,60,.22);--color-border-info:#c9b3de;
+--border-radius-md:8px;--border-radius-lg:12px;
+--font-sans:'Inter',system-ui,-apple-system,sans-serif;}
+@media(prefers-color-scheme:dark){:root{
+--brand:#b98fe0;--brand-strong:#cdb0ec;--brand-soft:#2b2138;--gold:#F5B000;--gold-soft:#3a2e10;--gold-ink:#f0c75a;
+--color-background-primary:#1f1b27;--color-background-secondary:#272231;--color-background-tertiary:#19161f;
+--color-text-primary:#f0eef4;--color-text-secondary:#ada7b8;--color-text-tertiary:#7d7889;
+--color-border-tertiary:rgba(255,255,255,.13);--color-border-secondary:rgba(255,255,255,.24);--color-border-info:#5a4775;}}
+*{box-sizing:border-box;}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);margin:0;line-height:1.5;}
+table{border-collapse:collapse;}
+button{font-family:inherit;font-size:13px;background:transparent;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 12px;cursor:pointer;color:var(--color-text-primary);}
+button:hover{background:var(--color-background-secondary);}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:8px 10px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);}
+a{color:var(--color-text-info);text-decoration:none;}
+.app{display:flex;min-height:100vh;}
+.side{width:230px;flex-shrink:0;background:var(--color-background-primary);border-right:.5px solid var(--color-border-tertiary);padding:18px 14px;display:flex;flex-direction:column;gap:4px;}
+.brand{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;position:relative;}
+.brand-mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:1.5px solid var(--color-background-primary);}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--border-radius-md);cursor:pointer;font-size:14px;color:var(--color-text-secondary);border:none;background:transparent;width:100%;text-align:left;}
+.nav:hover{background:var(--color-background-secondary);}
+.nav.active{background:var(--brand-soft);color:var(--brand-strong);font-weight:500;box-shadow:inset 2px 0 0 var(--brand);}
+.nav i{font-size:18px;}
+.nav-label{font-size:11px;color:var(--color-text-tertiary);padding:14px 11px 6px;letter-spacing:.03em;}
+.main{flex:1;min-width:0;padding:8px 28px 40px;overflow-x:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:4px;}
+.role-pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--color-text-secondary);}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;}
+.view{display:none;}
+.view.active{display:block;}
+@media(max-width:760px){.side{width:60px;}.side .txt{display:none;}.brand span{display:none;}.main{padding:8px 14px 40px;}}
+</style></head><body style="padding:24px;"><div style="max-width:920px;margin:0 auto;">
+<div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:18px; font-weight:500;">Creative services — prioritization queue</span>
+      <span style="background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:12px; padding:3px 10px; border-radius:var(--border-radius-md);">Manager view</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center; font-size:13px; color:var(--color-text-secondary);">
+      <i class="ti ti-refresh" style="font-size:15px;"></i> synced from Airtable · 2 min ago
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px;">
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">In queue</div><div style="font-size:24px; font-weight:500;">47</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Unassigned</div><div style="font-size:24px; font-weight:500; color:var(--color-text-warning);">9</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Due ≤ 3 days</div><div style="font-size:24px; font-weight:500; color:var(--color-text-danger);">12</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">In review</div><div style="font-size:24px; font-weight:500;">6</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Blocked</div><div style="font-size:24px; font-weight:500;">2</div></div>
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <input type="text" placeholder="Search tickets…" style="flex:1; min-width:180px;" />
+    <select style="width:auto;"><option>All event types</option></select>
+    <select style="width:auto;"><option>All editors</option></select>
+    <button>Auto-rank</button>
+  </div>
+  <div style="border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); overflow:hidden; background:var(--color-background-primary);">
+    <table style="width:100%; table-layout:fixed; font-size:13px;">
+      <colgroup><col style="width:30px;"><col style="width:34px;"><col><col style="width:96px;"><col style="width:120px;"><col style="width:104px;"><col style="width:104px;"></colgroup>
+      <thead><tr style="background:var(--color-background-secondary); color:var(--color-text-secondary); text-align:left;">
+        <th style="padding:9px 6px;"></th><th style="padding:9px 6px;">#</th><th style="padding:9px 8px;">Title</th><th style="padding:9px 8px;">Priority</th><th style="padding:9px 8px;">Assigned</th><th style="padding:9px 8px;">Ticket status</th><th style="padding:9px 8px;">Priority status</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">1</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Masterclass trailer — Quest launch</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Masterclass</span> <span>Video trailer · shoot</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">1.08</span> <span style="background:#FCEBEB; color:#A32D2D; font-size:11px; padding:1px 6px; border-radius:8px;">due 4d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">MP</span>Millie P.</span></td>
+          <td style="padding:10px 8px;"><span style="background:#FAEEDA; color:#854F0B; padding:2px 8px; border-radius:8px;">In production</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">2</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Social promo reel — IG pathway</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#FBEAF0; color:#72243E; padding:1px 7px; border-radius:8px;">Social promo</span> <span>Short-form · 2 dims</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.87</span> <span style="background:#FCEBEB; color:#A32D2D; font-size:11px; padding:1px 6px; border-radius:8px;">due 1d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">JW</span>Jawan</span></td>
+          <td style="padding:10px 8px;"><span style="background:#FAEEDA; color:#854F0B; padding:2px 8px; border-radius:8px;">In production</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary); background:var(--color-background-warning);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">3</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Summit feature banner set</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#E1F5EE; color:#085041; padding:1px 7px; border-radius:8px;">Summit</span> <span>Banner · 6 dims · print</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.79</span> <span style="background:#FAEEDA; color:#854F0B; font-size:11px; padding:1px 6px; border-radius:8px;">due 6d</span></td>
+          <td style="padding:10px 8px;"><button style="font-size:12px; padding:3px 10px; color:var(--color-text-warning);">Assign</button></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Not started</span></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Queued</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">4</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mastery VSSL — cold audience</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Mastery</span> <span>VSSL · cold</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.71</span> <span style="background:#F1EFE8; color:#5F5E5A; font-size:11px; padding:1px 6px; border-radius:8px;">due 9d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">PA</span>Paul A.</span></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px;">In feedback</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);">
+          <td style="text-align:center; color:var(--color-text-tertiary); cursor:grab;"><i class="ti ti-grip-vertical"></i></td>
+          <td style="padding:10px 6px; color:var(--color-text-secondary);">5</td>
+          <td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">States ad banner — retargeting</div><div style="color:var(--color-text-secondary); font-size:12px;"><span style="background:#F1EFE8; color:#444441; padding:1px 7px; border-radius:8px;">States</span> <span>Banner · 1 dim · warm</span></div></td>
+          <td style="padding:10px 8px;"><span style="font-weight:500;">0.52</span> <span style="background:#F1EFE8; color:#5F5E5A; font-size:11px; padding:1px 6px; border-radius:8px;">due 12d</span></td>
+          <td style="padding:10px 8px;"><span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-background-info); color:var(--color-text-info); font-size:10px; display:inline-flex; align-items:center; justify-content:center;">ZG</span>Ziga</span></td>
+          <td style="padding:10px 8px;"><span style="background:var(--color-background-primary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px; border:0.5px solid var(--color-border-tertiary);">Not started</span></td>
+          <td style="padding:10px 8px;"><span style="background:#E6F1FB; color:#0C447C; padding:2px 8px; border-radius:8px;">On track</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--color-text-secondary);">
+    <span><i class="ti ti-grip-vertical"></i> drag to override rank</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EEEDFE;"></span> high tier</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#E1F5EE;"></span> mid tier</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#F1EFE8;"></span> lower tier</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--color-background-warning);"></span> needs attention</span>
+  </div>
+</div>
+</div></body></html>

@@ -8,6 +8,8 @@ children: []
 created: 2026-06-25
 updated: 2026-06-25
 resolution: 7/7
+build-status: built
+build-date: 2026-06-25
 ---
 
 # Foundation & Data Layer

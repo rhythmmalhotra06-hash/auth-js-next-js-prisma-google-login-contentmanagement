@@ -35,7 +35,7 @@ const BASES = {
   // brain:          "appXXXXXXXXXXXXXX",  // TODO: confirm Brain base id
 };
 
-const OUT_DIR = path.join(__dirname, "context", "airtable-schema");
+const OUT_DIR = path.join(__dirname, "airtable-schema");
 
 async function fetchSchema(baseId) {
   const url = `https://api.airtable.com/v0/meta/bases/${baseId}/tables`;

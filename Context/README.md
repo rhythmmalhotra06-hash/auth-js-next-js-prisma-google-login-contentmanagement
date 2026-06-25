@@ -11,6 +11,8 @@ context/
 ├── README.md                       ← you are here
 ├── export-airtable-schema.js       ← RUN FIRST: pulls live schema for all bases
 ├── prioritization-algorithm.md     ← the urgency×complexity scoring spec + examples
+├── intelligence-layer.md           ← the "smarter path": 5 propose-only AI capabilities
+├── productization.md               ← how this becomes a reusable Blinkwork app others enable
 ├── decisions/
 │   └── decision-log.md             ← settled decisions (treat as fixed) + open items
 ├── airtable-schema/                ← (generated) live schema JSON per base
@@ -66,3 +68,14 @@ Build first, validate against live data — never theorize from schema alone.
 Define the workflow before fitting it to a tool. The three meetings already did
 the workflow definition; sections 3–6 of CLAUDE.md and the decision log are the
 output. Respect them.
+
+## Architecture note (important)
+
+`CLAUDE.md` + `schema.sql` describe a **standalone** build (Airtable → Postgres
+mirror). `productization.md` **supersedes that architecture**: the system is
+better built as a **Blinkwork app on the shared brain**, with Airtable as a
+connector rather than the system of record. The workflow decisions, the
+prioritization algorithm, and all UI mockups stay valid either way — only the
+data-home and auth model change. Decide this fork before scaffolding:
+standalone (faster, isolated) vs. Blinkwork app (reusable by other entities, and
+the intelligence layer comes nearly free on the shared brain).

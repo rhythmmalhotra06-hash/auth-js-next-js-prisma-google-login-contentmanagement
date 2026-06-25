@@ -131,6 +131,12 @@ These are Phase 2 candidates *only if* the manual-assisted queue proves insuffic
 
 ## Open Questions
 
+**Architecture fork — DECIDED: HYBRID (2026-06-25).** Build the workflow surfaces (intake, queue, role views — valid under either architecture) now in this standalone repo; migrate the *nouns* to brain nodes + an app manifest later, referencing the BlinkWork monorepo (`github.com/mindvalley-ai/BlinkWork`, INTERNAL, accessible via `gh`). Only workflow state (tickets/queue/approvals) stays app-owned permanently. The standalone Postgres model (E1) holds for now and is reframed — not discarded — at migration. `context/productization.md` is the migration target spec.
+
+Still open under the hybrid:
+- **Intelligence layer** (`context/intelligence-layer.md`): 5 propose-only capabilities — a likely new epic (E8), build order 1→2 first. Largely free under the Blinkwork-app fork, more work under standalone.
+- **UI mockups** (`context/mockups/`): the agreed visual target for E3/E5 surfaces — rebuild in `@mindvalley-ai-advanced/ui` (shadcn/CVA), do not restyle the HTML.
+
 **Decisions explicitly NOT yet settled (from decision-log — do not guess):**
 
 - **Event-tier ranking** for the urgency score — the exact ordering (notes suggest Mastery / Summit / MBU high > Academy > States lower; Social/Pathway depends on campaign window). Owner: **Moniek**.
