@@ -43,3 +43,6 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Airtable raw schema dumps (bulky + regenerable via context/export-airtable-schema.js; summaries are committed)
+Context/airtable-schema/*.raw.json

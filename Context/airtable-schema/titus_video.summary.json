@@ -1,0 +1,2103 @@
+[
+  {
+    "id": "tblbz7p9DN1xRYNXA",
+    "name": "Video Tickets",
+    "primaryFieldId": "fldZSJYlh1iaWC2KM",
+    "fields": [
+      {
+        "id": "fldZSJYlh1iaWC2KM",
+        "name": "Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld4IYUA5Pg8T25Vn",
+        "name": "CSV Source",
+        "type": "singleSelect",
+        "choices": [
+          "Ads Creative Library",
+          "Creative Services",
+          "Program Production",
+          "Social Media Tracker"
+        ]
+      },
+      {
+        "id": "fldNs27ffFWzxpnDj",
+        "name": "Tag: Team",
+        "type": "singleSelect",
+        "choices": [
+          "Ads Creatives",
+          "Social Media",
+          "Content Production",
+          "Film Production",
+          "Social Media - Pathways",
+          "Social Media - Campaign",
+          "Events & Campaign"
+        ]
+      },
+      {
+        "id": "fldSxQKZtYmCExPoF",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldcs2lyyrYMjixjr",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldw2CHHsekOqblDM",
+        "name": "Video Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldqKq4tG9UuTGHEU",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "In Progress",
+          "Review",
+          "In Revision",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldFM1hsxEnanv17K",
+        "name": "Editor",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldsi69havplx0KKC",
+        "name": "Video Brief",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld8ZWf48oZO9qDN1",
+        "name": "Ad Asset Code [Final Asset]",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldpRjMlIoE1aY7D2",
+        "name": "Format",
+        "type": "multipleSelects",
+        "choices": [
+          "4x5",
+          "16x9",
+          "9x16",
+          "1x1"
+        ]
+      },
+      {
+        "id": "fldcdPFCXDYEZqkNb",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldqhktIW18732bHp",
+        "name": "4x5 Folder",
+        "type": "url"
+      },
+      {
+        "id": "flddRy5xdKr14dqUt",
+        "name": "9x16 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fld15SVGGlOGCd64v",
+        "name": "16x9 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldp3ON2jLAu0BdlO",
+        "name": "4x5 Final Link",
+        "type": "url"
+      },
+      {
+        "id": "fldYMR4m7i9wXtliO",
+        "name": "9x16 Final Link",
+        "type": "url"
+      },
+      {
+        "id": "fldDfIQHlZm7icy39",
+        "name": "16x9 Final Link",
+        "type": "url"
+      },
+      {
+        "id": "fldP5MZyaomZ0mWRX",
+        "name": "Working File",
+        "type": "url"
+      },
+      {
+        "id": "fldE7swsuiOXlhGHO",
+        "name": "Ad Creative Test Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldWEQRLXOeVCCVc1",
+        "name": "Transcript: Lead",
+        "type": "richText"
+      },
+      {
+        "id": "fldI2xqMSSDiJy9Xx",
+        "name": "Transcript: VSL",
+        "type": "richText"
+      },
+      {
+        "id": "fldKgUul75ey49yqj",
+        "name": "Lead Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldiTEOZBvnnUKrnt",
+        "name": "VSL Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldMBqrekL8n5rSL2",
+        "name": "Close Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fld85O2MdRP70sJHv",
+        "name": "Created By",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld7zcubRyKEWBE6y",
+        "name": "Created Date",
+        "type": "createdTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fldcktUxgSLRAi9FR",
+        "name": "Event Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldMimWVot9TYvdZ4",
+        "name": "Lesson Textless",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldHwAgSekHnJtcEX",
+        "name": "Program Lesson",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZJMCn9g9qFBhmb",
+        "name": "Add. Summary [From Jira]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldmnrklnCknGRqJH",
+        "name": "Attachments",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldNoFUAsYc5cer1g",
+        "name": "Cover",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldxYByZWAELftQXm",
+        "name": "URL",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldcKuJQI7q3dhoPJ",
+        "name": "🧩 Event Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldaf45Y8I1lNurBt",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldMM3gSoRyydHxnU",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldVTjFtIivrKJkcH",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldPPOtRnB3PSHqLJ",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldlLTAkNLFEdpqNZ",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwlCqia5cNjGLEy",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldaljrU4MqGHENWz",
+        "name": "Transcript [Social Media Video]",
+        "type": "richText"
+      }
+    ]
+  },
+  {
+    "id": "tblnPxTGl1QfJJDgr",
+    "name": "Raw Shoots",
+    "primaryFieldId": "fldmEPsCFn0yI9ZTY",
+    "fields": [
+      {
+        "id": "fldmEPsCFn0yI9ZTY",
+        "name": "﻿Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldE8RjbpZqGaQ795",
+        "name": "Talent",
+        "type": "multipleSelects",
+        "choices": [
+          "Regan",
+          "Kaitlin",
+          "Vishen",
+          "Paul McKenna",
+          "Niraj",
+          "Ken Honda",
+          "Charlie Morley",
+          "John Lee",
+          "Marisa Peer",
+          "Donna Eden",
+          "David Feinstein"
+        ]
+      },
+      {
+        "id": "fldZv3Lc7aVgt2oyy",
+        "name": "Link to Raw",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldv983NlHa0tv0kH",
+        "name": "Short Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldEluLUryBfPWzvU",
+        "name": "Program",
+        "type": "singleSelect",
+        "choices": [
+          "The Art of Manifesting",
+          "Everyday Bliss",
+          "Breathwork for Life",
+          "Money EQ",
+          "Lucid Dreaming",
+          "Quantum Jumping",
+          "Silva Ultramind",
+          "Be Extraordinary",
+          "Amplify with AI",
+          "7-Figure Creator",
+          "Rapid Transformational Hypnotherapy for Abundance",
+          "Energy Medicine"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblavt6SR8cJSvL1Q",
+    "name": "Brolls",
+    "primaryFieldId": "fldWgFR9S2TLH8du3",
+    "fields": [
+      {
+        "id": "fldWgFR9S2TLH8du3",
+        "name": "﻿Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldKpO2GrXpuGwNs0",
+        "name": "Tags",
+        "type": "multipleSelects",
+        "choices": [
+          "Regan Hillyer",
+          "Charlie Morley",
+          "Donna Eden",
+          "David Feinstein",
+          "Jeffrey Allen",
+          "Marisa Peer",
+          "Vishen",
+          "Event",
+          "Eric Edmeades",
+          "Vykintas",
+          "Marisha",
+          "Ken Honda",
+          "Paul McKenna",
+          "Niraj Naik",
+          "John Lee",
+          "Testimonials",
+          "Kaitlin",
+          "Gwyneth Paltrow",
+          "Steven Bartlett",
+          "Jay Shetty"
+        ]
+      },
+      {
+        "id": "fldtlTzU3bjML0dQr",
+        "name": "Link to Footages",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldWb8tgnPXgwLf6s",
+        "name": "Short Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld6G9tPgjM4U02cr",
+        "name": "Type",
+        "type": "singleSelect",
+        "choices": [
+          "Videos"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblI7TfcIuMY5pOCe",
+    "name": "Stage Talks",
+    "primaryFieldId": "fldfikBmSbZnW9WzC",
+    "fields": [
+      {
+        "id": "fldfikBmSbZnW9WzC",
+        "name": "Talk Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLqiHtT5w8qQYW6",
+        "name": "Speaker Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8Qc5K3imbDFcxC",
+        "name": "Rating",
+        "type": "number"
+      },
+      {
+        "id": "fldGVLaJdRJfwTwMo",
+        "name": "Session Category",
+        "type": "singleSelect",
+        "choices": [
+          "Main Stage",
+          "Workshop Stage",
+          "Tribe Stage",
+          "Interview",
+          "Sales",
+          "Orientation",
+          "Closing"
+        ]
+      },
+      {
+        "id": "fld8Bb3kCd3j70gJK",
+        "name": "Outcome",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldk90qjKblzW1rbq",
+        "name": "Outcome 2",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBCh1VEs0EXkOz1",
+        "name": "AreaGrowth 1",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldWJ0pftwLaU2n0b",
+        "name": "AreaGrowth 2",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldjGUVyOGKU0vzlR",
+        "name": "Cat 1",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLLVqyjCyZsuC4Z",
+        "name": "Cat 2",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld9rRHbAFIfGWF8O",
+        "name": "URL",
+        "type": "richText"
+      },
+      {
+        "id": "fld00QCgoh9r2D33X",
+        "name": "URL Status",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLba2OvTdOoezMa",
+        "name": "Event Brand",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldMGcxFXHETYZgvt",
+        "name": "Event Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkMjy8ivhRn98dZ",
+        "name": "Year (from Event Name)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldrpNjgOq6zhjfZd",
+        "name": "Dropbox Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldiPF8H7m0akZj2E",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldms4J0IWlcEtsxN",
+        "name": "Newsletter",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld4QKtRqGR2mKzs2",
+        "name": "Author Photos",
+        "type": "url"
+      },
+      {
+        "id": "fld1WJ3jzKdWQJckw",
+        "name": "# Votes",
+        "type": "number"
+      },
+      {
+        "id": "fldsYwTpIuHJ4aCps",
+        "name": "Desc",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldkPukwBtiUGSgas",
+        "name": "Uploaded",
+        "type": "checkbox"
+      },
+      {
+        "id": "fld07F4BCOIN83DYx",
+        "name": "Transcript",
+        "type": "richText"
+      }
+    ]
+  },
+  {
+    "id": "tblfijc416d0HZCfg",
+    "name": "VIDEOS - Ads Creatives [Active]",
+    "primaryFieldId": "fldjnkchPZTTuxPYB",
+    "fields": [
+      {
+        "id": "fldjnkchPZTTuxPYB",
+        "name": "﻿Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld9YCiGPLoEX5SI5",
+        "name": "CSV Source",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldfXfdoK2DX75PzK",
+        "name": "Tag: Team",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZocdMaQBI87qSJ",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldemZaTiJPZsuvSb",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldQCQF5igHEr7egW",
+        "name": "Video Type",
+        "type": "singleSelect",
+        "choices": [
+          "Video - VSL Leads",
+          "Video - Short Ads",
+          "Video - VSL",
+          "Video - Ad Hooks",
+          "Video - Masterclass",
+          "Video - Consolidated Files",
+          "Video - Close or CTA",
+          "Video - Direct to Sales"
+        ]
+      },
+      {
+        "id": "fldd026RYfOXGj4MC",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Placeholder",
+          "Backlog",
+          "In Progress",
+          "Review",
+          "Adaptation",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldUg2b5qwqBGiI6D",
+        "name": "Editor",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldZGpcr2e4ubktB9",
+        "name": "Editor [External/Inactive]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldXseL876Vri2Hs1",
+        "name": "Video Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fld3xTe25Qm6cWgQ1",
+        "name": "Ad Asset Code [Final Asset]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldGPMJkOok78YFBS",
+        "name": "Format",
+        "type": "multipleSelects",
+        "choices": [
+          "4x5",
+          "16x9",
+          "9x16",
+          "1x1"
+        ]
+      },
+      {
+        "id": "fldGO4zoE02hCyJ1f",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld4YHJdYpAdCVnwf",
+        "name": "4x5 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldQD4GOXZH23MvwL",
+        "name": "9x16 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldWsduDsNrIJBWqS",
+        "name": "16x9 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldz3O9XXJ1eqM352",
+        "name": "4x5 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldEruU0B1Y2Oi1J9",
+        "name": "9x16 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldyqTOxy5OQNQ3YY",
+        "name": "16x9 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldSYn6Pz6xFhIGbU",
+        "name": "Working File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld4bo44dWBd6vk8m",
+        "name": "Ad Creative Test Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldRwwaCsxPc4xvXA",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldcrAF66xMhD3PRM",
+        "name": "Lead Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fld9SgzjnernOlxoN",
+        "name": "VSL/MC Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fld1ujYFpzKL5yDON",
+        "name": "Close Conso File",
+        "type": "url"
+      },
+      {
+        "id": "flddLt1iE1VOgbmrW",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldoHYs2ZHnNwKWv4",
+        "name": "Created Date",
+        "type": "createdTime",
+        "resultType": "date"
+      }
+    ]
+  },
+  {
+    "id": "tbl75tcwlzWa6pu1B",
+    "name": "VIDEOS - Pathway Organic [Active - July 2026 posts onwards]",
+    "primaryFieldId": "fldDzuK7ZlXoSeiek",
+    "fields": [
+      {
+        "id": "fldDzuK7ZlXoSeiek",
+        "name": "﻿Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwHwKuut2FwDdrv",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld0hVus8kSFLMDoV",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldA2RIdXPwLe8Skr",
+        "name": "Video Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldIKnSyplLonO9Ia",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "In Progress",
+          "Review",
+          "Review Given",
+          "In Revision",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldSU5gJsuQwtv2FK",
+        "name": "Editor",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldWowgWMIyNLkTl2",
+        "name": "Video Brief",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3MVjdQmiF5rYeO",
+        "name": "Format",
+        "type": "multipleSelects",
+        "choices": [
+          "9x16",
+          "4x5",
+          "16x9"
+        ]
+      },
+      {
+        "id": "fldrv0Nz34uMqJs6K",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldkXWVHS54cEQiU6",
+        "name": "9x16 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldcEDp2O0mV0Bar0",
+        "name": "9x16 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld5mf0nrTETjnb84",
+        "name": "Working File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldHPelA5onXqTXQR",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldy3WYAK54L4xc0N",
+        "name": "Created By",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldhuaR0Cti64P9Jr",
+        "name": "Created Date",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldorASPmwtB99wFs",
+        "name": "Month of Posting",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldykYgjp89B3HcGB",
+        "name": "Year of Posting",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldlydcOppRAsErvk",
+        "name": "CSV Source",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldLjgPhvjnJ8iFN1",
+        "name": "Tag: Team",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldOR1nyWvlDYK95h",
+        "name": "Event Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldNlhYvL5Dhlr6TU",
+        "name": "Add. Summary [From Jira]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldVctul8tIx5KACx",
+        "name": "Attachments",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldS5P4tfMcfbjFvO",
+        "name": "4x5 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld0TcXj6SQI0Ua5x",
+        "name": "16x9 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldJGOZRM9EKweM2U",
+        "name": "4x5 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldCVfiTydvNQYDiz",
+        "name": "16x9 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld8h3lsvN52Vao2C",
+        "name": "URL",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldau8VH9CnEjQDkT",
+        "name": "🧩 Event Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldpbJfxElw2CzqRu",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld0NvHg1cOFiV9v8",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldhefzzZTXRpj1qn",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldeQVFeYLipAXunQ",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1Xt2YRBrY41OrI",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldyoXgxDkxx6QKQK",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblS0Jgm7eZr6Cdvg",
+    "name": "VIDEOS - Events & Campaign",
+    "primaryFieldId": "fldGoGakKT60jQifZ",
+    "fields": [
+      {
+        "id": "fldGoGakKT60jQifZ",
+        "name": "﻿Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldeA3sd674skZii8",
+        "name": "Event Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldcqhYHE7Nlwz9CT",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldogF0sFw6xqQqFx",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld9zcgqgQBsMHlfn",
+        "name": "Video Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldROksP6A1DlqmuM",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "In Progress",
+          "Review",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldgT2DVfKZlpjZhc",
+        "name": "Editor",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldvEVIr2gosEpnKe",
+        "name": "Video Brief",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwXP430KwzsOiMX",
+        "name": "Lesson Textless",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld5gS5de6mz3S9aP",
+        "name": "Program Lesson",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldMfCiXBe71pcbiz",
+        "name": "Add. Summary [From Jira]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldsIkDxyv0WxfZoO",
+        "name": "Attachments",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldRF9jbCscStzcYI",
+        "name": "Cover",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld5ktrV2unpymCVf",
+        "name": "Format",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldVtZpuhh2SGmjs2",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldO0lCtfq3eagwD3",
+        "name": "4x5 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldXvQ3HGXK477u88",
+        "name": "9x16 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldFIgPU5FahtluoF",
+        "name": "16x9 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldigkOl9JvNy4CsI",
+        "name": "4x5 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1uqmNCKbbncpp0",
+        "name": "9x16 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldIAspDDLMMQ86A9",
+        "name": "16x9 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldJtzvvpgSW8bsXf",
+        "name": "Working File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldhlinRe4yeKkkLd",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fld5Fn2kqGronvaoT",
+        "name": "URL",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldRen85iXOCeL9g1",
+        "name": "Created By",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldLMihldpQYHTUVj",
+        "name": "Created Date",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldUFJcBGZifCZnTU",
+        "name": "CSV Source",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3mAyTzhml3qdGp",
+        "name": "Tag: Team",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldYDIuwfPCUS3iWX",
+        "name": "🧩 Event Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld65PBPkoBwJmNlZ",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldoqdIVu3fMc11vK",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldvDr7F6fNY6dsqV",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldchhZBYpyCjpgG4",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldWtShhlSGD9yxBF",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldb0P9mi2LWU4OcJ",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblSJLhBad9uerWGS",
+    "name": "VIDEOS - Social Media too?",
+    "primaryFieldId": "fld5czZtgD44VOazc",
+    "fields": [
+      {
+        "id": "fld5czZtgD44VOazc",
+        "name": "﻿Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1JZV2R5r5vKXxj",
+        "name": "Event Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldKuJ0EfvmAefjQo",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldQFhGztapyXQJuO",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldSoJfPh5t2QM8Qx",
+        "name": "Video Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldEPWxqnSB9z5nWU",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "In Progress",
+          "Review",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldTXqfIoKjtsTKcF",
+        "name": "Editor",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldeT6PdpAYsWon1I",
+        "name": "Video Brief",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldLxjJUJkBCgTGoD",
+        "name": "Add. Summary [From Jira]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld0P9Og2nk5WTvbv",
+        "name": "Attachments",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldzxK1yaYNEUCVHY",
+        "name": "Cover",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldlzNQ0fhjwfSub3",
+        "name": "Format",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldz4yaY2WPbbrnkh",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldVA9Ok5b3LPgRHH",
+        "name": "4x5 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld5Jx6Temru4Q0lN",
+        "name": "9x16 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldjCFmxUBI9JfThS",
+        "name": "16x9 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldgObexxc4u4rmhG",
+        "name": "4x5 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwtil5zDwBPPtMT",
+        "name": "9x16 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1SGzXc04p4MoYl",
+        "name": "16x9 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld5YseLdqUTvh1eN",
+        "name": "Working File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld7U0QmEs1LKI1Z5",
+        "name": "Transcript",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldU644rKWGzMaTnt",
+        "name": "URL",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldgYrtFrvzOTgG6t",
+        "name": "Created By",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldfGwT3eMeAJCl1n",
+        "name": "Created Date",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3QCVAXOFkdZDOi",
+        "name": "CSV Source",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldhg9cy0QXmsYFNt",
+        "name": "Tag: Team",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld6csAtqu6M2QDox",
+        "name": "🧩 Event Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld2tlFKlD3NwYpQb",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldm1yZrqOaikHiPP",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldujBet8efMPQPsb",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld4WjDC1qDNbPAK8",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldyYhhtzZ5J684ID",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldUi5MsrqQZTXYW5",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblM7K2t623lXzCXb",
+    "name": "VIDEOS - Content & Film",
+    "primaryFieldId": "fldB43626V5a19GDp",
+    "fields": [
+      {
+        "id": "fldB43626V5a19GDp",
+        "name": "﻿Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldddW4uXCdaOFZyE",
+        "name": "Event Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldxIyS4vxF8IaWNx",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldX7e4oSdWsh8fJK",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldIAFmO5wbFxcsCZ",
+        "name": "Video Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldumzFhwWwMDR3J9",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "In Progress",
+          "Review",
+          "In Revision",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldphq32xGWa1drAU",
+        "name": "Editor",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldketWaiQjIJ5PEb",
+        "name": "Video Brief",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldJTADGWl9zzbnN0",
+        "name": "Lesson Textless",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldU1CcaKP0wHQkbM",
+        "name": "Program Lesson",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldidYRWUHSrYuBmH",
+        "name": "Add. Summary [From Jira]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldKFNmlVmuS6xtrZ",
+        "name": "Cover",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldVZyCmubkmvbpES",
+        "name": "Format",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldetgePq3GWs9add",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldmCBbgyqtDgLFjq",
+        "name": "4x5 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldfDlHhchp9sPX0g",
+        "name": "9x16 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldP3bibVi5fTt5Jr",
+        "name": "16x9 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldNXsX40Uoujbq3A",
+        "name": "4x5 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld35U9QBmotYkqhw",
+        "name": "9x16 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZfWVzj10saYzgB",
+        "name": "16x9 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldaaLdcJ7WvEq7cW",
+        "name": "Working File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldHg7Lw80kwXQnZh",
+        "name": "URL",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld9kLhYFSSFWZJlO",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldXkuKgRvr0RCMz3",
+        "name": "Created By",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldsxM4adA92vPSC5",
+        "name": "Created Date",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldC26Xh541zcVPOV",
+        "name": "CSV Source",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldmGm9WK6mHeCIHu",
+        "name": "Tag: Team",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldiRudwGvM7aiEhq",
+        "name": "🧩 Event Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldF92JMokYQQTzJV",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3eSinc3nFmv0cl",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwqHNiYJzjGGlZU",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldM00ZEp8Qq6VtP7",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldr06YrhuydvYIn8",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldJDbilgYFujlsPm",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblJDelzKgtZxkfea",
+    "name": "Ads Creatives & Pathway Organic [Jun 24 2026]",
+    "primaryFieldId": "fldBmsplyLvMrU7QH",
+    "fields": [
+      {
+        "id": "fldBmsplyLvMrU7QH",
+        "name": "Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld9g1u8v6TVf6UdP",
+        "name": "Programs",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl321IdE9sm3aJQV",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldEhdccB2WLriYQK",
+        "name": "Pathways (from Programs)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fld7jKknIxxAptOlY",
+        "name": "Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblpOGSQZWTtuXCI3",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldfMOe1rcnQcoSBi",
+        "name": "Ticket Status",
+        "type": "singleSelect",
+        "choices": [
+          "Done",
+          "Backlog",
+          "To Do",
+          "In Progress",
+          "Review",
+          "In Revision",
+          "Approved",
+          "Won't Do",
+          "Shipping",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fldsN9PnNdwPuq3G5",
+        "name": "Editor (Contractors)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldhnfgX9GQpJQRVd",
+        "name": "Editor (Employee)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblODNYAFTYvLddD1",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldHGywNEwKFwIPi9",
+        "name": "Video Brief",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldFmiONNy3mqVkLK",
+        "name": "Ad Asset Code [Final Asset]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldxLXvkrhlCM4Zb8",
+        "name": "Format",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldrG1GMghOhHIyPa",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldeL5MwG2PMgHjXo",
+        "name": "4x5 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldK3U5Cy8tfsfbzQ",
+        "name": "9x16 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldHVHUt1ASx3WC1X",
+        "name": "16x9 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldHBBCXjkD0ZWAMY",
+        "name": "4x5 Final Link",
+        "type": "url"
+      },
+      {
+        "id": "fld8myRMtinKIEoC3",
+        "name": "9x16 Final Link",
+        "type": "url"
+      },
+      {
+        "id": "fldskL40eBr0dbmbg",
+        "name": "16x9 Final Link",
+        "type": "url"
+      },
+      {
+        "id": "fldBYdK7omTeo4Oea",
+        "name": "Working File",
+        "type": "url"
+      },
+      {
+        "id": "fldBPPMpe4D8ObBYG",
+        "name": "Ad Creative Test Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3duudxrR9AlIzc",
+        "name": "Transcript",
+        "type": "multilineText"
+      },
+      {
+        "id": "flduKJ5Fqv8RdDEFV",
+        "name": "Lead Conso File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldB6wgY7hqE8KhKf",
+        "name": "VSL/MC Conso File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldqevaW3ikYDR8J1",
+        "name": "Close Conso File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldThUJ5Nw3gRloeA",
+        "name": "Created By",
+        "type": "multilineText"
+      },
+      {
+        "id": "flduDQmVuuxGhJIDe",
+        "name": "Created Date",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldkJR53CsrhffFHT",
+        "name": "Month of Posting [Pathway]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldolIVfLYV4E4KeL",
+        "name": "Year of Posting [Pathway]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3wzhe22w45PvWB",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldIfTDcf51PWsGHI",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldGOzr13CqnkZYD8",
+        "name": "Team/Service Level (from Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "singleSelect"
+      },
+      {
+        "id": "fld3v0LNIzotidlYp",
+        "name": "Dimensions (from Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "flduXDOMASrQxmacX",
+        "name": "Preferred Editors (from Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldnZZpB5dsYqfHpU",
+        "name": "Team Lead (from Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldEADWcNkKisWpDW",
+        "name": "Event Type (from Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblpOGSQZWTtuXCI3",
+    "name": "Asset Type: 🎥 Video copy",
+    "primaryFieldId": "fldl4ow7MIko3JIKA",
+    "fields": [
+      {
+        "id": "fldl4ow7MIko3JIKA",
+        "name": "Asset Type (Full title)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1Yi67PST8LroUx",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Inactive"
+        ]
+      },
+      {
+        "id": "fldbPNWMGQ8Zbdm8M",
+        "name": "Asset type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldra88JK2sO5vw36",
+        "name": "To Track Baseline",
+        "type": "checkbox"
+      },
+      {
+        "id": "fld0IsAxbDxVB4GMr",
+        "name": "Importance",
+        "type": "rating"
+      },
+      {
+        "id": "fld9h5ARluRKlQqQV",
+        "name": "Complexity",
+        "type": "rating"
+      },
+      {
+        "id": "fldy6x3cln8kIQLlN",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fld39qUPPjDzDikTi",
+        "name": "DNA",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldo5CbsO5sSKPRLc",
+        "name": "Thumbnail (from Best Videos)",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fld1pjN5XvcjEYGlv",
+        "name": "Best Video URL",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkF5H5xZCQfr8w6",
+        "name": "Sync Source",
+        "type": "singleSelect",
+        "choices": [
+          "Sync: 🛎 Video Assets Type - Creative Services",
+          "Sync: 🛎️ All Design Asset Type - Creative Services"
+        ]
+      },
+      {
+        "id": "fldCvIXdPU6jifxGj",
+        "name": "Prioritization",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzcC0gn9YsK97cm",
+        "name": "Shoots",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHJ4HfM6UNpkQ5R",
+        "name": "Team",
+        "type": "singleSelect",
+        "choices": [
+          "Content",
+          "Social Media",
+          "Ad Creatives"
+        ]
+      },
+      {
+        "id": "fldJg8cyMbgnoEDiC",
+        "name": "Sign-Off",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldGcJe2MLZGOkyvC",
+        "name": "Type of Asset",
+        "type": "singleSelect",
+        "choices": [
+          "Print",
+          "Digital"
+        ]
+      },
+      {
+        "id": "fld4snpHcA4wQLsyS",
+        "name": "Ads Creatives & Pathway Organic [Jun 24 2026]",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblJDelzKgtZxkfea",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld9fzzdedMKmV4LK",
+        "name": "Service Type",
+        "type": "multipleSelects",
+        "choices": [
+          "Content",
+          "Marketing"
+        ]
+      },
+      {
+        "id": "fldc8tiCA5InY5ZqS",
+        "name": "Event Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFiavONU0VdxqLh",
+        "name": "Team Lead",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld4k0hPno5t8BN9I",
+        "name": "Preferred Editors",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7PJIVt25DP3bpe",
+        "name": "Dimensions",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld5OIsiWsiREK8vM",
+        "name": "Team/Service Level",
+        "type": "singleSelect",
+        "choices": [
+          "Content Video",
+          "Ad Creatives Video",
+          "Social Media Video",
+          "Event Design Graphic",
+          "Brand Design Graphic"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tbl321IdE9sm3aJQV",
+    "name": "Programs",
+    "primaryFieldId": "fldgYqB7UlaoU5wTi",
+    "fields": [
+      {
+        "id": "fldgYqB7UlaoU5wTi",
+        "name": "Program Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldDq8EqX0QoAtrwZ",
+        "name": "Cover",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldnBxD1y86sE1w9s",
+        "name": "Release",
+        "type": "date"
+      },
+      {
+        "id": "fldK3xnVVIHZjbszq",
+        "name": "Membership",
+        "type": "checkbox"
+      },
+      {
+        "id": "fld8jkRmqoM2mYOKp",
+        "name": "Coming Soon",
+        "type": "checkbox"
+      },
+      {
+        "id": "fld7LrBChloG2wecj",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "In Discussion",
+          "Approved",
+          "Approached",
+          "Signed",
+          "Pre-Production",
+          "Filmed",
+          "Post-Production",
+          "Product QA",
+          "CN1 Ready",
+          "Completed",
+          "Ready to Publish",
+          "Published",
+          "Cancelled",
+          "On Hold",
+          "Unpublished"
+        ]
+      },
+      {
+        "id": "fldpedffkaeAUN0J8",
+        "name": "Category",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldte6ggwwSUgNgdL",
+        "name": "Product Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzD8eYfajHiF1RI",
+        "name": "Languages",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldZgqrWbfspt5uqF",
+        "name": "Author",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldILdJ7QuTNZmTl3",
+        "name": "Brands",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHZeBol9v0CMt51",
+        "name": "Outcomes",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldjs2LQp89KPdJDq",
+        "name": "Areas of Growth",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldI3vO4YYiwqmFnX",
+        "name": "Lessons",
+        "type": "number"
+      },
+      {
+        "id": "fldjvTlOjwJ8W4Hl4",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fldg95PduWZrgMXdV",
+        "name": "Prod Abbreviation",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldk6P0dZlBgvg3vX",
+        "name": "Slug",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldnyuJ8F8RViRCPq",
+        "name": "Length",
+        "type": "singleSelect",
+        "choices": [
+          "1 Week",
+          "2 Weeks",
+          "3 Weeks",
+          "4 Weeks",
+          "≤ 6 Weeks",
+          "≤ 8 Weeks",
+          "≤ 12 Weeks",
+          "≤ 24 Weeks",
+          "> 24 Weeks"
+        ]
+      },
+      {
+        "id": "fldwxLuJV2R5ttIdH",
+        "name": "# of products in a specific language",
+        "type": "number"
+      },
+      {
+        "id": "fldx7QLAjW0nU8vZ7",
+        "name": "# of products per languages (-1)",
+        "type": "number"
+      },
+      {
+        "id": "fldL0ovjQmfAswgpH",
+        "name": "Pathways",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0JI2EMTgs3dbj9",
+        "name": "Pathway",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld9z2PNn3PgmSl2p",
+        "name": "Ads Creatives & Pathway Organic [Jun 24 2026]",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblJDelzKgtZxkfea",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblODNYAFTYvLddD1",
+    "name": "EMPLOYEES",
+    "primaryFieldId": "fldD59brDQ1uo5qbQ",
+    "fields": [
+      {
+        "id": "fldD59brDQ1uo5qbQ",
+        "name": "Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldRzY7kbV5mIafeI",
+        "name": "Employee #",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkO7bdeLjm2tHOg",
+        "name": "Hiring Status",
+        "type": "singleSelect",
+        "choices": [
+          "Joining Soon",
+          "Probation",
+          "Active",
+          "Leaving Soon",
+          "Ex-Team",
+          "Contract Ended",
+          "Offer Declined"
+        ]
+      },
+      {
+        "id": "fldN9FnU5NWcrxhTx",
+        "name": "Division Executive",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldONkpmHflFiR44S",
+        "name": "Department Manager",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld5ldaOsAjRb18af",
+        "name": "Airtable Record ID",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1ACcj1NDVffjOf",
+        "name": "Team Lead",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzbDmfZ8XEV5X4n",
+        "name": "Active Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Not Active"
+        ]
+      },
+      {
+        "id": "fldTj0IqEB3s4pQMX",
+        "name": "Employment Status",
+        "type": "singleSelect",
+        "choices": [
+          "Full-Time",
+          "Full-Time EOR",
+          "Part-Time ",
+          "Part-Time EOR",
+          "Contractor",
+          "Advisor",
+          "Service Provider",
+          "Intern",
+          "Owner (Shareholder)",
+          "Other",
+          "Terminated",
+          "Maternity Leave",
+          "Full-Time (Maternity Cover)"
+        ]
+      },
+      {
+        "id": "fld6OEjLw56LEYsoj",
+        "name": "MV Entity",
+        "type": "singleSelect",
+        "choices": [
+          "MV Labs (Malaysia)",
+          "Remote",
+          "MV Inc (USA)",
+          "MV OU (Estonia)",
+          "MV UK",
+          "MV ME (UAE)"
+        ]
+      },
+      {
+        "id": "fldEWxDqU87Ckbjk2",
+        "name": "Working Location",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldPX7vhshCj8GKFM",
+        "name": "Job Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld6JehYDCATUbUTE",
+        "name": "Work Email",
+        "type": "email"
+      },
+      {
+        "id": "flde81xBSEGuGdMhy",
+        "name": "Reporting To (Supervisor)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldMHJEciD4VLIF2J",
+        "name": "Supervisor Emails",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLBI94CaH6Qf6HI",
+        "name": "Profile Pic",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldXuA615gjZb2O8w",
+        "name": "Division",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld4SJ5KIWGR9vC1P",
+        "name": "Leads DIVISION",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldo8aJZspZJh8vMX",
+        "name": "Department",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkHTCGsRfKkNBuv",
+        "name": "Leads DEPARTMENT",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcws1UTxP32cLoY",
+        "name": "Slack Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldUgRK4Rwlhfbj9T",
+        "name": "Last modified",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldGJiMSjqAbNpo4j",
+        "name": "Direct Reports",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldUWp5CyMG2m0gwU",
+        "name": "# Direct Reports",
+        "type": "number"
+      },
+      {
+        "id": "fldkBpkuPSdMlwiNS",
+        "name": "Leads TEAM",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldb6bNnLfBN8JBOm",
+        "name": "Active under TEAM",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldmrBaUic8bOCVN7",
+        "name": "Business Units",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldjS8SYnaDj8rSb9",
+        "name": "Is Executive?",
+        "type": "checkbox"
+      },
+      {
+        "id": "fld17mh7QH5XE72NW",
+        "name": "Ads Creatives & Pathway Organic [Jun 24 2026]",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblJDelzKgtZxkfea",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  }
+]

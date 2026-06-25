@@ -72,18 +72,18 @@ model Employee {
   airtableId     String?  @unique @map("airtable_id")
   name           String
   email          String?  @unique
-  team           String? // [VERIFY] e.g. Social Media, Content Production, Campaigns
-  division       String? // [VERIFY]
+  team           String? // ← Airtable "Creative Team (Editors)": Content Production Video | Marketing Video | Organic Social Video | Design
+  division       String? // ← Airtable "MV Entity"
   isTeamLead     Boolean  @default(false) @map("is_team_lead")
-  employmentType String   @default("employee") @map("employment_type") // employee | contractor | freelancer
-  active         Boolean  @default(true)
+  employmentType String   @default("employee") @map("employment_type") // ← Airtable "Employment Status"
+  active         Boolean  @default(true) // ← Airtable "Active Status": Active | Not Active
   syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
-  assetTypesAsTeamLead        AssetType[]   @relation("AssetTypeTeamLead")
-  assetTypesAsPreferredEditor AssetType[]   @relation("AssetTypePreferredEditor")
-  assignedTickets             Ticket[]
-  ticketEvents                TicketEvent[]
-  approvals                   Approval[]
+  assetTypeTeamLeads        AssetTypeTeamLead[]        @relation("AssetTypeTeamLead")
+  assetTypePreferredEditors AssetTypePreferredEditor[] @relation("AssetTypePreferredEditor")
+  assignedTickets           Ticket[]
+  ticketEvents              TicketEvent[]
+  approvals                 Approval[]
 
   @@map("employees")
 }
@@ -91,7 +91,7 @@ model Employee {
 model Dimension {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   airtableId String?  @unique @map("airtable_id")
-  label      String // e.g. "9x16"
+  label      String // e.g. "9x16" — ← Airtable "Name" field
   syncedAt   DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
   assetTypes AssetTypeDimension[]
@@ -107,7 +107,7 @@ model EventType {
   active         Boolean  @default(true)
   syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
-  assetTypes AssetType[]
+  assetTypes AssetTypeEventType[]
   tickets    Ticket[]
 
   @@map("event_types")
@@ -130,18 +130,17 @@ model AssetType {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   airtableId        String?  @unique @map("airtable_id")
   name              String // e.g. "Masterclass Trailer"
-  category          String? // digital | print
-  eventTypeId       String?  @map("event_type_id") @db.Uuid
-  teamLeadId        String?  @map("team_lead_id") @db.Uuid
-  preferredEditorId String?  @map("preferred_editor_id") @db.Uuid
-  dnaId             String?  @map("dna_id") @db.Uuid
-  active            Boolean  @default(true)
+  category          String? // ← Airtable "Type of Asset": Print | Digital
+  dnaId             String?  @map("dna_id") @db.Uuid // DNA records live in the Ads Creative Library base
+  active            Boolean  @default(true) // ← Airtable "Status": Active | Inactive
   syncedAt          DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
-  eventType       EventType? @relation(fields: [eventTypeId], references: [id])
-  teamLead        Employee?  @relation("AssetTypeTeamLead", fields: [teamLeadId], references: [id])
-  preferredEditor Employee?  @relation("AssetTypePreferredEditor", fields: [preferredEditorId], references: [id])
-  dna             Dna?       @relation(fields: [dnaId], references: [id])
+  dna Dna? @relation(fields: [dnaId], references: [id])
+
+  // Airtable models these as MULTIPLE record links → many-to-many (reconciliation 2026-06-25)
+  eventTypes       AssetTypeEventType[]
+  teamLeads        AssetTypeTeamLead[]
+  preferredEditors AssetTypePreferredEditor[]
 
   dimensions AssetTypeDimension[]
   tickets    Ticket[]
@@ -160,6 +159,42 @@ model AssetTypeDimension {
   @@map("asset_type_dimensions")
 }
 
+// Asset type ↔ event type (Airtable "Event Type" multi-link)
+model AssetTypeEventType {
+  assetTypeId String @map("asset_type_id") @db.Uuid
+  eventTypeId String @map("event_type_id") @db.Uuid
+
+  assetType AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+
+  @@id([assetTypeId, eventTypeId])
+  @@map("asset_type_event_types")
+}
+
+// Asset type ↔ team lead employees (Airtable "Team Lead" multi-link)
+model AssetTypeTeamLead {
+  assetTypeId String @map("asset_type_id") @db.Uuid
+  employeeId  String @map("employee_id") @db.Uuid
+
+  assetType AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  employee  Employee  @relation("AssetTypeTeamLead", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([assetTypeId, employeeId])
+  @@map("asset_type_team_leads")
+}
+
+// Asset type ↔ preferred editor employees (Airtable "Preferred Editors" multi-link)
+model AssetTypePreferredEditor {
+  assetTypeId String @map("asset_type_id") @db.Uuid
+  employeeId  String @map("employee_id") @db.Uuid
+
+  assetType AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  employee  Employee  @relation("AssetTypePreferredEditor", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([assetTypeId, employeeId])
+  @@map("asset_type_preferred_editors")
+}
+
 // ===========================================================================
 // TRANSACTIONAL DATA  (two-way: app is primary, pushed back to Airtable)
 // ===========================================================================
@@ -169,22 +204,23 @@ model Ticket {
   airtableId    String?   @unique @map("airtable_id")
   title         String // renamed from "Summary" for Dropbox searchability
   creativeBrief String?   @map("creative_brief")
-  cta           String? // Call to Action: URL / sign-up / social instruction
+  cta           String? // ← Airtable "Call to action"
   positioning   String? // messaging angle
   audience      String? // 'cold' | 'warm'
   dueDate       DateTime? @map("due_date") @db.Date
 
   eventTypeId String? @map("event_type_id") @db.Uuid
   assetTypeId String? @map("asset_type_id") @db.Uuid
-  assigneeId  String? @map("assignee_id") @db.Uuid
+  assigneeId  String? @map("assignee_id") @db.Uuid // ← Airtable "Assigned Creative"
 
-  prioStatus   String? @map("prio_status") // manager-set, external-facing  [VERIFY enum]
-  ticketStatus String? @map("ticket_status") // editor/designer-set, internal  [VERIFY enum]
+  // Two status axes (live values from reconciliation 2026-06-25):
+  prioStatus   String? @map("prio_status") // New Request | To be reviewed by Vishen | In Queue | Pending Information/Brief Not Clear | Rejected - No need to work | Assigned
+  ticketStatus String? @map("ticket_status") // Backlog | To Do | In Progress | Review | In Revision | Approved | Done | Won't Do | Shipping | Request on Hold
 
   urgency       Int?
   complexity    Int?
   priorityScore Decimal? @map("priority_score") @db.Decimal // derived; ranks the queue
-  queueRank     Int?     @map("queue_rank") // manager-orderable position
+  queueRank     Int?     @map("queue_rank") // ← Airtable "Priority ranking (Manual)"
 
   source    String    @default("app") // app | jira_migration | airtable
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -240,7 +276,7 @@ model Shoot {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   airtableId String?   @unique @map("airtable_id")
   title      String
-  status     String? // [VERIFY] shoot status enum
+  status     String? // New Requests - Approved by Vishen | New Requests - Needs Vishen's Review | To Film | Done - Filmed | Cancelled
   shootDate  DateTime? @map("shoot_date") @db.Date
   location   String?
   notes      String?

@@ -1,0 +1,7338 @@
+[
+  {
+    "id": "tbl0fsHkGxD6HZz6k",
+    "name": "DNAs",
+    "primaryFieldId": "fldZbsAkNgGh2xBPB",
+    "fields": [
+      {
+        "id": "fldZbsAkNgGh2xBPB",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8SEFRNYxX8BS03",
+        "name": "DNA Link",
+        "type": "url"
+      },
+      {
+        "id": "fldJ5rzspKDbG0xSl",
+        "name": "Category",
+        "type": "multipleSelects",
+        "choices": [
+          "Advertising",
+          "Process",
+          "VSL Video",
+          "Upsell Video",
+          "Funnel",
+          "Ad Image"
+        ]
+      },
+      {
+        "id": "fldT3cEmPqyaCQ2M5",
+        "name": "Attachment",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldgaNXac7dJIdiJl",
+        "name": "URL",
+        "type": "url"
+      }
+    ]
+  },
+  {
+    "id": "tbl372UOX7zYnu2Gx",
+    "name": "🧬 Video DNA",
+    "primaryFieldId": "fldXc0SGojiwi7mz4",
+    "fields": [
+      {
+        "id": "fldXc0SGojiwi7mz4",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldybHZYgVRMbiXsd",
+        "name": "Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldMHfuO6IYiVKklX",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Official",
+          "Suggestion",
+          "To be Tested"
+        ]
+      },
+      {
+        "id": "fldyZUML8LBj1Bygc",
+        "name": "✔️ Yes Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldTBRz1LWF5p76D9",
+        "name": "❌ No  Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldcBRIrRJvSzviMi",
+        "name": "Component",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgWjLNERxpaZRmr",
+        "name": "Type (from Component)",
+        "type": "multipleSelects",
+        "choices": [
+          "Script",
+          "Video",
+          "Text",
+          "Talent",
+          "Music",
+          "Voice",
+          "B-Rolls & Imagery"
+        ]
+      },
+      {
+        "id": "fld3CaN1YRem9bhg0",
+        "name": "Good Example",
+        "type": "url"
+      },
+      {
+        "id": "fldcrOQ0eJrrbLa9I",
+        "name": "Bad Example",
+        "type": "url"
+      },
+      {
+        "id": "fldbDujEo6uzWxzFU",
+        "name": "Social",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldUMl4QcRilAePv5",
+        "name": "Ad",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldCWH7vWY4fSlRXL",
+        "name": "Brand",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldoQF9muoDiPct87",
+        "name": "VSL",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldgz7FQJMOciHXkv",
+        "name": "🛎️ Asset Types",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblGK4I6v6KSvHiaY",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldSlt2mK68wQWkTU",
+        "name": "Podcast",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldy33LYMzj4AyxHz",
+        "name": "🎉 Best Videos",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldP4dvUSH0vQEDrX",
+        "name": "Masterclass",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldmOqLdUXEy5fiki",
+        "name": "Created",
+        "type": "date"
+      }
+    ]
+  },
+  {
+    "id": "tblcCwTyeOMq09YoH",
+    "name": "📣 Virality DNA",
+    "primaryFieldId": "fldLaOxQR0KpQZn8B",
+    "fields": [
+      {
+        "id": "fldLaOxQR0KpQZn8B",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkcNcTgUOJ6HDLq",
+        "name": "Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldCIkj7A8uj1yfHd",
+        "name": "Best Videos",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl1oTzzum1OX2VKz",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld4gqa2Z7fmc4ZK1",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Opener",
+          "Mid-Video",
+          "Music",
+          "Aesthetics",
+          "Closing",
+          "Story-Telling"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tbl1oTzzum1OX2VKz",
+    "name": "🎉 Best Videos",
+    "primaryFieldId": "fldli3Jq9OSacePju",
+    "fields": [
+      {
+        "id": "fldli3Jq9OSacePju",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBoi3ix1UnG2Nl6",
+        "name": "Thumbnail",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldHfRJzdJVr3vPDj",
+        "name": "Why is this Good?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldrg12tOBIDv6yiK",
+        "name": "Video DNA",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl372UOX7zYnu2Gx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldCcw9ANw3mDCXbU",
+        "name": "Virality DNA",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcCwTyeOMq09YoH",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldr4UFRQF6VGqzYp",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldXO96iHLRbBnV2T",
+        "name": "File",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldQT2yoDDQEtGJDc",
+        "name": "Video URL",
+        "type": "url"
+      },
+      {
+        "id": "fldrjdQozZmSZ3nbM",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldxp5Acsrn15KkIb",
+        "name": "Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblGK4I6v6KSvHiaY",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldPLPP4sYRdyP5Kt",
+        "name": "Release Date",
+        "type": "date"
+      },
+      {
+        "id": "fld9c0uMDQtST3QqW",
+        "name": "Team",
+        "type": "multipleSelects",
+        "choices": [
+          "Content",
+          "Social Media",
+          "Ad Creatives"
+        ]
+      },
+      {
+        "id": "fld9wyDLmDx3eNY5O",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Todo",
+          "In progress",
+          "Done"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblGK4I6v6KSvHiaY",
+    "name": "🛎 Video Assets Type",
+    "primaryFieldId": "fldNrhqOUysFiU12Z",
+    "fields": [
+      {
+        "id": "fldNrhqOUysFiU12Z",
+        "name": "Asset Type (Full title)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldySeDawCvJmeUko",
+        "name": "Type Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldJd0b8ScEAPDHEg",
+        "name": "Team",
+        "type": "singleSelect",
+        "choices": [
+          "Content",
+          "Social Media",
+          "Ad Creatives"
+        ]
+      },
+      {
+        "id": "fldTtguFmXvfZarOW",
+        "name": "🔗 DNA Document",
+        "type": "url"
+      },
+      {
+        "id": "fldA1xmlN6ksK1woj",
+        "name": "Virality DNA",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl372UOX7zYnu2Gx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldlJCRIjaHBB8KvQ",
+        "name": "Importance score",
+        "type": "rating"
+      },
+      {
+        "id": "fldNvFrHNTVfcdBhz",
+        "name": "Complexity Score",
+        "type": "rating"
+      },
+      {
+        "id": "fld66qtQYhsvIcVFw",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fldZ6yipGadvMS3ph",
+        "name": "Best Videos",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl1oTzzum1OX2VKz",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldAaxoi1qpDFEZQl",
+        "name": "Thumbnail (from Best Videos)",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldeGm5QBBTrU3Ft6",
+        "name": "Best Video URL",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldPOcyucUO6fUcz5",
+        "name": "Name (from DNA)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld41al1jJSqq9wwc",
+        "name": "Notes (from DNA)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldPYe1G6aQro5ora",
+        "name": "💡 Ad Ideation",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldZCX8LIJJgB3zqA",
+        "name": "💡 Ideation / Briefs copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsyFxN3WPB1pbpk",
+        "name": "💡 Ideation / Briefs copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldirZrhe5GBPuKQQ",
+        "name": "All Funnels",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBLid07uS7yHmAa",
+        "name": "Category",
+        "type": "singleSelect",
+        "choices": [
+          "Video",
+          "Audio"
+        ]
+      },
+      {
+        "id": "fldxAqnzP6iYL84Gn",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Inactive"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblyw3oxGuBIVPrM4",
+    "name": "Video Tickets",
+    "primaryFieldId": "fldnztBgGIRb5CJnB",
+    "fields": [
+      {
+        "id": "fldnztBgGIRb5CJnB",
+        "name": "Ticket Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFseOn5wCezHsmR",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Placeholder/Brief Pending",
+          "Backlog",
+          "Editor Assigned",
+          "In Progress",
+          "Feedback Requested",
+          "Feedback Given",
+          "Adaptation/Stitch to VSL",
+          "Done by Editor",
+          "Video Ready",
+          "Running",
+          "Tested/Live",
+          "Killed",
+          "On Hold",
+          "Backfills"
+        ]
+      },
+      {
+        "id": "fldKBjOojJxsO3C5s",
+        "name": "Final Asset Link (4x5)",
+        "type": "url"
+      },
+      {
+        "id": "fldODw1krYrUAsWR7",
+        "name": "Video Type",
+        "type": "singleSelect",
+        "choices": [
+          "Hook",
+          "VSL Lead",
+          "Shorts",
+          "VSL",
+          "Close/CTA",
+          "Masterclass",
+          "Final VSL",
+          "Size Adaptation",
+          "Video Page",
+          "Retargeting"
+        ]
+      },
+      {
+        "id": "fldwJri67rGqYauIh",
+        "name": "Creative Tests (Record)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldzCW6vhcuJulXGd",
+        "name": "Editor Assigned",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldnUoLmEiC9Cjhdf",
+        "name": "Standalone Asset Only (VSL LEAD)",
+        "type": "url"
+      },
+      {
+        "id": "fldndXf2iWkmZheBd",
+        "name": "Description",
+        "type": "richText"
+      },
+      {
+        "id": "fldOZ9uqJuld2LoSM",
+        "name": "Review/Feedback Folder Link",
+        "type": "url"
+      },
+      {
+        "id": "fldFR4KnXzY317t25",
+        "name": "4x5 Export Folder",
+        "type": "url"
+      },
+      {
+        "id": "fld0zAzyQmMJiX5aU",
+        "name": "16x9 Export Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldyJH09fGURXLpjv",
+        "name": "Working Files Folder (VSL)",
+        "type": "url"
+      },
+      {
+        "id": "fldgwQEOKc7MGcFbC",
+        "name": "Created Date",
+        "type": "createdTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fldFAb6wVQnGkBbvc",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld5Vcx9uyRhHcIHz",
+        "name": "Hook",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbla3QyRTRdOqZ5Um",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldCV1BUPwdMcXw13",
+        "name": "VSL Lead",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldJCVN7FJ4EPQo1R",
+        "name": "VSL",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblkZqL7bxcXnf3mC",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld3VcRBz0Z7TS5r5",
+        "name": "Close/CTA",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMPKTUOjf0Z2Wlc",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld8wj4I1K8ogEKT9",
+        "name": "Format",
+        "type": "multipleSelects",
+        "choices": [
+          "4x5",
+          "16x9",
+          "9x16",
+          "1x1"
+        ]
+      },
+      {
+        "id": "fldo5Py9DEbFz9Z8L",
+        "name": "Final Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldlEZDr9WYRdiYJ8",
+        "name": "Start Automation",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldblI7YoRAT7F4ug",
+        "name": "Last Modified",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "flduaxWOfIkWQ1zjq",
+        "name": "Marked \"Ready to launch\"",
+        "type": "date"
+      },
+      {
+        "id": "fldvxCqPSBiLG4DyM",
+        "name": "Final Asset Link (16x9)",
+        "type": "url"
+      },
+      {
+        "id": "fld80TD8o5PesWaIz",
+        "name": "Created By",
+        "type": "createdBy"
+      },
+      {
+        "id": "fldPWBzfLDVLMTBti",
+        "name": "Final Asset Link (9x16)",
+        "type": "url"
+      },
+      {
+        "id": "fldtMgyu6ImQ8Gxjm",
+        "name": "9x16 Export Folder",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldB38WQ6Nrgt5nc2",
+        "name": "Standalone Asset Only (HOOK)",
+        "type": "url"
+      },
+      {
+        "id": "fldc61mvvacSjPnAh",
+        "name": "Standalone Asset Only (VSL)",
+        "type": "url"
+      },
+      {
+        "id": "fldUBGu9yvZugi9Cq",
+        "name": "Editor (External)",
+        "type": "singleSelect",
+        "choices": [
+          "Kimberly",
+          "Natasha",
+          "Maulana",
+          "AdsRx",
+          "Jawad"
+        ]
+      },
+      {
+        "id": "fldjAtxAFUmY6A4m1",
+        "name": "Creative Test Hypothesis",
+        "type": "richText"
+      },
+      {
+        "id": "fld70IvbLSTNOahIu",
+        "name": "Standalone Asset Only (CLOSE/CTA)",
+        "type": "url"
+      },
+      {
+        "id": "fld69twrZ7QHelLjr",
+        "name": "Manual sort",
+        "type": "manualSort"
+      },
+      {
+        "id": "fldGFNu7mc0WM3elL",
+        "name": "Short Description / Notes (from Hook)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fldRmRDKWlSD92vOF",
+        "name": "Creative Test Status",
+        "type": "multipleLookupValues",
+        "resultType": "singleSelect"
+      },
+      {
+        "id": "fldj0h1rLwTu2oJJp",
+        "name": "Pathway",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldEMonChPHpwVaTy",
+        "name": "✍️ Transcripts (from Lead)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fld1hGG5MkSnyFKAp",
+        "name": "Masterclass",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblzHKUxlthVjE8aP",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldd5gN2djufuozvV",
+        "name": "Standalone (MASTERCLASS)",
+        "type": "url"
+      },
+      {
+        "id": "fldiJ01n7p9bL4vM9",
+        "name": "Standalone Asset Only (SHORTS)",
+        "type": "url"
+      },
+      {
+        "id": "fldgl9RUWlax7Cups",
+        "name": "Shorts",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl2eJdDR3tiUtRyR",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldayA4wNt7fhkoT9",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldtNjsNHPxGP05s8",
+        "name": "Video Sync (Temp)",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldxesoeU4cVRHjbY",
+        "name": "Transcripts (Collated)",
+        "type": "richText"
+      },
+      {
+        "id": "fld4KNMzxmPaOjNOy",
+        "name": "Other Funnel Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldAdqEkNuI86iP9d",
+        "name": "✍️ FB Headlines (<40) (from Other Funnel Assets)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fld4njo9DwJXmIA6x",
+        "name": "✍️ FB Primary Text 1 (from Other Funnel Assets)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fld0iUJFeDF4fX4IE",
+        "name": "Transcript (from VSL)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fldo1UCa0GY3Iz36R",
+        "name": "Lead Conso File (from VSL Lead)",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldVIc1KXr316q0FD",
+        "name": "VSL Conso File (from VSL)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldllC1LQMx9id5hk",
+        "name": "Close Conso File (from Close/CTA)",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      }
+    ]
+  },
+  {
+    "id": "tblnKCuWH39RBRonJ",
+    "name": "Creative Tests",
+    "primaryFieldId": "fldXqJckURkhzUc5w",
+    "fields": [
+      {
+        "id": "fldXqJckURkhzUc5w",
+        "name": "Test Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldaDvHXoZxVCMYTn",
+        "name": "Campaign Status",
+        "type": "singleSelect",
+        "choices": [
+          "Idea",
+          "Idea approved",
+          "Idea rejected",
+          "Ticket raised",
+          "Ready to launch",
+          "Running",
+          "Won",
+          "Lost",
+          "Breakeven",
+          "Completed: Poorly executed - Retest",
+          "Completed",
+          "Completed: Retest for More Data",
+          "Completed: Analysis Pending",
+          "Back Log"
+        ]
+      },
+      {
+        "id": "fldfg4lR7JTrIXmjm",
+        "name": "Hypothesis",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldfuCquQ73wWrSSR",
+        "name": "Priority",
+        "type": "rating"
+      },
+      {
+        "id": "fld3s4mdWeU4sMuWJ",
+        "name": "Funnel Type",
+        "type": "singleSelect",
+        "choices": [
+          "Sales",
+          "Video",
+          "Hybrid",
+          "Lead"
+        ]
+      },
+      {
+        "id": "fldZyWNKMdPD6XZb0",
+        "name": "Days Running",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "DATETIME_DIFF(TODAY(),{fldR5sKWKC48npPcO},\"days\")"
+      },
+      {
+        "id": "fldR5sKWKC48npPcO",
+        "name": "Launch Date",
+        "type": "date"
+      },
+      {
+        "id": "fldwv8cF5RIb5Hfx5",
+        "name": "End Date",
+        "type": "date"
+      },
+      {
+        "id": "fldAvYvlRy7td1ijd",
+        "name": "Channel",
+        "type": "multipleSelects",
+        "choices": [
+          "Facebook",
+          "Google"
+        ]
+      },
+      {
+        "id": "fld0ZUfQpDfsFJiWM",
+        "name": "Created date",
+        "type": "createdTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fld8WIDAEyXlEGRxa",
+        "name": "Test Category - Level 1",
+        "type": "singleSelect",
+        "choices": [
+          "Creative",
+          "Media Buying",
+          "funnel (page)"
+        ]
+      },
+      {
+        "id": "fldrgFEZu0bIGC3JX",
+        "name": "Test Category - Level 2",
+        "type": "singleSelect",
+        "choices": [
+          "Hook",
+          "Lead",
+          "Main VSL",
+          "Close",
+          "Video Funnel",
+          "Opener",
+          "Author's Story",
+          "Root Problem",
+          "Root Solution",
+          "Testimonials",
+          "Landing Page Test",
+          "Full-Funnel Expansion "
+        ]
+      },
+      {
+        "id": "fldCzEaGV6q9jiLkd",
+        "name": "Advertising Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldzAJUud4iv15aBv",
+        "name": "Result Overview",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldJ5uYANmJapC7Ip",
+        "name": "Main Learnings",
+        "type": "richText"
+      },
+      {
+        "id": "fldWyvErvcmBsRYT9",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldy5lmqlaNSP23Cl",
+        "name": "Created by",
+        "type": "createdBy"
+      },
+      {
+        "id": "fld20DGx6M11mzRla",
+        "name": "Final Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldtAoDdZTByXxpk0",
+        "name": "Sprint",
+        "type": "singleSelect",
+        "choices": [
+          "Sprint 1 - Feb 28 - March 6",
+          "Sprint 2 - March 6 - 13",
+          "Sprint 3 - March 13 - 20",
+          "Sprint 4 - March 20 - 27",
+          "Sprint 5 - March 27 - April 3",
+          "Sprint 6 - April 3 - 10",
+          "Sprint 7 - April 10 - 17",
+          "Sprint 8 - April 18 - 23",
+          "Sprint 9 - April 24 - April 30",
+          "Sprint 10 - May 1 - 7",
+          "Sprint 11 May 8 - 14",
+          "Sprint 12 May 15 - 22",
+          "Sprint 14 - June 5 - 12",
+          "Sprint 15 - June 12 -19",
+          "Sprint 16 June 19 - 26",
+          "Sprint 17 June 26 - July 3",
+          "Sprint 18 July 3 - 10",
+          "Sprint 19 July 10 - 17",
+          "Sprint 20 July 17 - 24",
+          "Sprint 21 July 24 - 31",
+          "Sprint 22 July 31 - August 7",
+          "Sprint 23 (August 7 - 14)",
+          "Sprint 24 (August 14 - 21)",
+          "Sprint - Oct 9",
+          "Sprint - Oct 3",
+          "Sprint - Sep 25",
+          "Oct24"
+        ]
+      },
+      {
+        "id": "fldfpIvKQBCzbXxkj",
+        "name": "Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldtwzSXMnBJ8P292",
+        "name": "Idea Attachment",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldNB8bkXMTBbkdZz",
+        "name": "Based on winning test",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldqxuilriCkkqyuD",
+        "name": "Video Ticket",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldKvekafJZnhlJ8j",
+        "name": "Editor",
+        "type": "multipleLookupValues",
+        "resultType": "singleCollaborator"
+      },
+      {
+        "id": "fldNrIZ8F7CREAphH",
+        "name": "launch_year",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "DATETIME_FORMAT({fldR5sKWKC48npPcO},\"YYYY\")"
+      },
+      {
+        "id": "fldBPQsEzUhUObW79",
+        "name": "Date Concluded",
+        "type": "date"
+      },
+      {
+        "id": "fldWJ2vHBDgD6FvFX",
+        "name": "Results Link",
+        "type": "url"
+      },
+      {
+        "id": "fldNWlfyElTzwGzC9",
+        "name": "Last Modified",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldct8UwYwfTEGOFn",
+        "name": "Upload Automation",
+        "type": "singleSelect",
+        "choices": [
+          "Pending",
+          "Upload Now",
+          "Upload In-Progress",
+          "Done Uploading"
+        ]
+      },
+      {
+        "id": "fldn3pGnlEK0lJ9Fx",
+        "name": "Final Asset Link (4x5) (from Video Ticket)",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldD3lGh0HC6H3r2i",
+        "name": "Final Asset Link (16x9) (from Video Ticket)",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldgaYkZpevlMTbdg",
+        "name": "Final Asset Link (9x16) (from Video Ticket)",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fld9mYVKpAwqhgB2Q",
+        "name": "💡 Ideation / Creative Briefs",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblW7uunqSxkLPDIP",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldPAsQxTdeOOdug5",
+        "name": "Funnel",
+        "type": "singleSelect",
+        "choices": [
+          "Direct Sales",
+          "Masterclass"
+        ]
+      },
+      {
+        "id": "fldtea7h4i0QxPfQv",
+        "name": "Number of Videos",
+        "type": "count"
+      },
+      {
+        "id": "fldL2DK0CR9T4oZ3k",
+        "name": "Pathway",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldIcgTePxQnie5OK",
+        "name": "Marketing Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblAfOXMUTYevw5tD",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldEMfm8Hk4OS7tJS",
+        "name": "BUSINESS UNITS",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblkmgIwsibryPiUS",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld8sTZpEmzbAbZfS",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld7wnm50q6cGYlop",
+        "name": "Video Ticket [Sync Test from new base]",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tbl4ILfx3QOc4e8RB",
+    "name": "Other Funnel Assets",
+    "primaryFieldId": "fldLI4WZwUQRjrvr8",
+    "fields": [
+      {
+        "id": "fldLI4WZwUQRjrvr8",
+        "name": "Asset Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldvCPp5nf5k8N3DU",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Ideation",
+          "Brief Complete",
+          "In Production",
+          "Review",
+          "Disapproved & Requires Update",
+          "Video Ready",
+          "Copy Required",
+          "Ready To Launch",
+          "Live",
+          "To Stop",
+          "Stopped",
+          "Rejected or Disapproved  "
+        ]
+      },
+      {
+        "id": "fldt2GlVhoKH0KoCP",
+        "name": "Ref Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldSMZqkIn82yvzed",
+        "name": "30D Spend",
+        "type": "currency"
+      },
+      {
+        "id": "fldMP7AHFZferrg3w",
+        "name": "30D Revenue",
+        "type": "currency"
+      },
+      {
+        "id": "fld0Qgk1LAqzsPnnB",
+        "name": "ROAS",
+        "type": "formula",
+        "resultType": "percent",
+        "formula": "IF({fldSMZqkIn82yvzed} = 0, BLANK(), {fldMP7AHFZferrg3w} / {fldSMZqkIn82yvzed})"
+      },
+      {
+        "id": "fldnOvy2spdGZlBJX",
+        "name": "CTR",
+        "type": "percent"
+      },
+      {
+        "id": "fld3cg73DTFFzROPB",
+        "name": "Ad Leads",
+        "type": "number"
+      },
+      {
+        "id": "fldauFF9CSpTCL8Jn",
+        "name": "Ad Name (Ad Platform)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldRptff9KA3KWwyp",
+        "name": "Sign up rate",
+        "type": "percent"
+      },
+      {
+        "id": "fldE2E296t1jQ1TZk",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld5KP5RICifRsLMS",
+        "name": "Author",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fld3RfZAzvllGM4yF",
+        "name": "Asset Type",
+        "type": "singleSelect",
+        "choices": [
+          "Static ",
+          "Video - Short Ad",
+          "Animated Banner",
+          "Video (read caption)"
+        ]
+      },
+      {
+        "id": "fldFxQBeddjtBEW92",
+        "name": "Asset Link (9:16) (Reel size)",
+        "type": "url"
+      },
+      {
+        "id": "fld1YNnkcRe90H7iw",
+        "name": "Asset Link (4:5)",
+        "type": "url"
+      },
+      {
+        "id": "fldr6VgPLiArUiipv",
+        "name": "Asset Link (16:9)",
+        "type": "url"
+      },
+      {
+        "id": "fldAfeXAe7b4CY5WL",
+        "name": "Working Files",
+        "type": "url"
+      },
+      {
+        "id": "fld3RatVSOjeBtzOF",
+        "name": "FB/ GG Link",
+        "type": "url"
+      },
+      {
+        "id": "fld0E5sLAasAiRRKr",
+        "name": "Advertiser",
+        "type": "multipleCollaborators"
+      },
+      {
+        "id": "fldyuRWZDUrFCjEgf",
+        "name": "Landing Page URL",
+        "type": "url"
+      },
+      {
+        "id": "fldtu84GlyP3hX5kC",
+        "name": "PW Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldpQASStFuJD2A0W",
+        "name": "Marketing Principles (Pillars)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbliDuf0IfTU6Cywa",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldMuMTLyQBCTtDO0",
+        "name": "❌ Pathway",
+        "type": "singleSelect",
+        "choices": [
+          "Manifesting",
+          "Exponential Entrepreneur",
+          "Longevity",
+          "Love",
+          "Manifesting",
+          "Parenting",
+          "Speaking & Authorship"
+        ]
+      },
+      {
+        "id": "fldnFJ9zLjg5q6dJg",
+        "name": "🌆 Banner Headline",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld9gysCh0qh48gb7",
+        "name": "🌆 Banner Subheadline",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldxzIWbKLzn6bbPG",
+        "name": "✍️ FB Headlines (<40)",
+        "type": "richText"
+      },
+      {
+        "id": "fldyuQtjBqslLyCuq",
+        "name": "✍️ FB Primary Text 1",
+        "type": "richText"
+      },
+      {
+        "id": "fldHBXTKrO8pP5SAj",
+        "name": "Short hand (from Program)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fld7qrk1j3Ozl7rAs",
+        "name": "❌ Project Pathway",
+        "type": "singleSelect",
+        "choices": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "fldtFssLElLwhNOUF",
+        "name": "Cost Per Leads",
+        "type": "formula",
+        "resultType": "currency",
+        "formula": " {fldSMZqkIn82yvzed}/ {fld3cg73DTFFzROPB}"
+      },
+      {
+        "id": "fldSsARqMXhr1tG3i",
+        "name": "❌ Asset Copy",
+        "type": "richText"
+      },
+      {
+        "id": "fldTrwzbfT3K5jnQE",
+        "name": "Buisness Division",
+        "type": "singleSelect",
+        "choices": [
+          "Membership",
+          "Certs",
+          "Mastery",
+          "Campaigns",
+          "Events",
+          "Audiowaves",
+          "Others"
+        ]
+      },
+      {
+        "id": "fldfFpIIkE3RwJkTM",
+        "name": "Funnel",
+        "type": "singleSelect",
+        "choices": [
+          "Masterclass",
+          "VSL",
+          "Lead gen",
+          "Promo",
+          "Webinar",
+          "Direct Sales",
+          "Retargeting",
+          "Live Seminar",
+          "Live Webinar",
+          "Live Summit ",
+          "Highlights",
+          "Audiowaves",
+          "MVX",
+          "awareness",
+          "MC Manifesting Pathway",
+          "MC Entrepreneurship Pathway",
+          "Black Friday",
+          "MVU"
+        ]
+      },
+      {
+        "id": "fldO1ekQvnKtwhxVB",
+        "name": "Abbreviation",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkapncVFajbNuOJ",
+        "name": "JIRA Ticket link",
+        "type": "url"
+      },
+      {
+        "id": "flds7RgNWA3EmYCKg",
+        "name": "Editor",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldN938ajI7c6HQuO",
+        "name": "Created Date",
+        "type": "date"
+      },
+      {
+        "id": "fldX2YWm3zre3yIzW",
+        "name": "Channel",
+        "type": "multipleSelects",
+        "choices": [
+          "YouTube",
+          "Meta",
+          "Google Performance Max",
+          "me"
+        ]
+      },
+      {
+        "id": "fldsYXvXJNV7WAnFC",
+        "name": "Live Date",
+        "type": "date"
+      },
+      {
+        "id": "fldM6v9VjrBkwDYGa",
+        "name": "Ad Copy (Doc Version)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld6jij0jpwGEk9gc",
+        "name": "Asset Link",
+        "type": "url"
+      },
+      {
+        "id": "fldNsI7L6QQKEi7iZ",
+        "name": "Above Baseline Metrics",
+        "type": "multipleSelects",
+        "choices": [
+          "3 Sec Video View Rate ",
+          "Lead Retention Rate",
+          "FB: CTR",
+          "3 sec Video View CTR",
+          "25% View Rate",
+          "50% View Rate",
+          "75% View Rate",
+          "Purchase Conversion Rate",
+          "CPM"
+        ]
+      },
+      {
+        "id": "fld0g6M8J6G80XHrF",
+        "name": "Below Baseline Metrics copy",
+        "type": "multipleSelects",
+        "choices": [
+          "FB 3 Sec Video View Rate ",
+          "Lead Retention Rate",
+          "FB: CTR",
+          "FB: 3 sec VV CTR",
+          "FB 25% View Rate",
+          "FB 50% View Rate",
+          "FB 75% View Rate",
+          "Purchase Conversion Rate",
+          "FB: CPM"
+        ]
+      },
+      {
+        "id": "fldkTfMABHSHplJuV",
+        "name": "Last Updated",
+        "type": "lastModifiedTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fldio3yHjUIGiGD3q",
+        "name": "Require Localisation",
+        "type": "rating"
+      },
+      {
+        "id": "fldfgkI52pvDIv0FI",
+        "name": "Transcripts",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldkEzzXNO32T3Kvj",
+        "name": "To Localize",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldOCCtyAM0lXhjrL",
+        "name": "Jay Shetty",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldWD9LOdSpL5zcPm",
+        "name": "[INT] Consol files",
+        "type": "url"
+      },
+      {
+        "id": "fldPVoYq4yP9gMDoc",
+        "name": "Localisation Status",
+        "type": "singleSelect",
+        "choices": [
+          "Ready to localise",
+          "Localised",
+          "In progress",
+          "Consol files not available"
+        ]
+      },
+      {
+        "id": "fldfzvwR9JsnGkKC8",
+        "name": "Ticket name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldb0pLveOM4z6ASY",
+        "name": "💡 Ideation Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldfTW5RvNVXZKPyu",
+        "name": "💡Visual Direction",
+        "type": "richText"
+      },
+      {
+        "id": "fldtsddIDCEh3XxYs",
+        "name": "🎟️ Ticket Type (Events)",
+        "type": "singleSelect",
+        "choices": [
+          "In Person",
+          "Virtual"
+        ]
+      },
+      {
+        "id": "fldBgonJoZvT2eCni",
+        "name": "Launch Date",
+        "type": "lastModifiedTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fldUWgQgRebalH3jF",
+        "name": "Year (Events)",
+        "type": "singleSelect",
+        "choices": [
+          "2026",
+          "2025",
+          "2024",
+          "2023"
+        ]
+      },
+      {
+        "id": "fldz3KWJuZ18YBDAr",
+        "name": "QA / CA Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldQU67NAYmNzLXhv",
+        "name": "Notes by Media Buyer",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldg7UDCysRs7qaBv",
+        "name": "Campaign / Event Name",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblr1aKR7R9QfG9bJ",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldo9iCgAV45RPL3o",
+        "name": "Brainstorm Meeting",
+        "type": "date"
+      },
+      {
+        "id": "fld9YZD6BIRA01QK0",
+        "name": "❌ Ad Theme",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldg2GBMuJCjoZTIz",
+        "name": "❌ Ad Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldp3xNqtH60FZ5Kh",
+        "name": "🌆Banner CTA Button Text",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldeSD6KgiPskZ5gG",
+        "name": "Creative Brief / Description",
+        "type": "richText"
+      },
+      {
+        "id": "fldtJhEPFF7aKwLUV",
+        "name": "Video Sync",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldXhZyfQP7xkaRuF",
+        "name": "CPL",
+        "type": "formula",
+        "resultType": "number",
+        "formula": " {fldSMZqkIn82yvzed}/{fld3cg73DTFFzROPB}"
+      },
+      {
+        "id": "fldJ9DzSV77S8rwr4",
+        "name": "Last Modified By",
+        "type": "lastModifiedBy"
+      },
+      {
+        "id": "fldDpP7P7mQ2sCZUt",
+        "name": "✍️ FB Primary Text 2",
+        "type": "richText"
+      },
+      {
+        "id": "fldOuQbg7k0UTRuPR",
+        "name": "Created By",
+        "type": "createdBy"
+      },
+      {
+        "id": "fldJk4WTghyJsD2oJ",
+        "name": "Created",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldLR5eA4BVeH9ANk",
+        "name": "Video Ticket",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldILipvNBTvTXxWc",
+        "name": "Pathways",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblQjqy2hLH6ucs7v",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldCuFy7tQOyXV2yR",
+        "name": "AI assist",
+        "type": "aiText"
+      },
+      {
+        "id": "fldx0A42lLA67FKo9",
+        "name": "(VSL) Final Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld0ta5gq447z27EZ",
+        "name": "Video Ticket [Sync Test from new base]",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXDF9qlTTsabyUv",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldgT46rexejUWu5N",
+        "name": "BPG",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldijSS2WSzYyhguV",
+        "name": "VID ASSET CODE copy",
+        "type": "multipleLookupValues",
+        "resultType": "multilineText"
+      },
+      {
+        "id": "fldp3HqjRAfJRTbbK",
+        "name": "Primary Outcome (from Video Ticket)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      }
+    ]
+  },
+  {
+    "id": "tbla3QyRTRdOqZ5Um",
+    "name": "Hooks",
+    "primaryFieldId": "fldtHo74UHxq0Esfu",
+    "fields": [
+      {
+        "id": "fldtHo74UHxq0Esfu",
+        "name": "Hook Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"H\",{fldfNHyaldqLjDLK9},\" - \",{fldxVq4SOZtbA7HXc})"
+      },
+      {
+        "id": "fldE9nvLseGLvTlTN",
+        "name": "Hook Preview",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldfNHyaldqLjDLK9",
+        "name": "Hook Number",
+        "type": "number"
+      },
+      {
+        "id": "fldxx8cA7ROs0uM2I",
+        "name": "Short Description / Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fldu5fPUZ08tdS96P",
+        "name": "Screenshot",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "flddmzcdlzgIGcovU",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldxVq4SOZtbA7HXc",
+        "name": "Program Shortname",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fld0IZseeQxQudgNA",
+        "name": "Final Ad Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7zWnUDnDZxZHM3",
+        "name": "Video Ticket",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldePQhvfknoA4GQl",
+        "name": "Created Date",
+        "type": "date"
+      },
+      {
+        "id": "fld80r1LtlBAVcldA",
+        "name": "LOC - Recommended [do not delete]",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldjJ0OxfLfGc0QyV",
+        "name": "Hook Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldz3E8tw8yyxhbI8",
+        "name": "Created by",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldWs72Pf390PI4nj",
+        "name": "Category",
+        "type": "multipleSelects",
+        "choices": [
+          "Mid-Story",
+          "Qualifier",
+          "Question",
+          "Contrarian",
+          "Confession",
+          "Call-Out",
+          "Stat/Proof",
+          "Cultural Reference",
+          "Visual/Action",
+          "Reframe"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tbl2eJdDR3tiUtRyR",
+    "name": "❌ Short Ads <3min (Migrated to OFA)",
+    "primaryFieldId": "fldUp6rMdhArdVRmr",
+    "fields": [
+      {
+        "id": "fldUp6rMdhArdVRmr",
+        "name": "Shorts Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"S\",{fldqTE0yAFALuvhHL},\" - \",{fld9WpJCbu2RDVM5G})"
+      },
+      {
+        "id": "fldwBwBgJN5ZYrQLM",
+        "name": "Pathway",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fld8gl9DLIGsUoiWi",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldnvxr0taMSAKxmp",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld5momVIDRnij4tU",
+        "name": "Short Description/Notes",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldc0PgZQx08MEhxF",
+        "name": "Transcripts",
+        "type": "richText"
+      },
+      {
+        "id": "fldaaPcGuSrjBhcMp",
+        "name": "Preview",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldCrAKoKtuJZUEC3",
+        "name": "Final Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldJw3BB4cDA1uzBh",
+        "name": "Video Ticket",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldqTE0yAFALuvhHL",
+        "name": "Num.",
+        "type": "number"
+      },
+      {
+        "id": "fld9WpJCbu2RDVM5G",
+        "name": "Code",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblXBngytqXm5xlGx",
+    "name": "Leads [VSL]",
+    "primaryFieldId": "fldgfVPLughYFcI1F",
+    "fields": [
+      {
+        "id": "fldgfVPLughYFcI1F",
+        "name": "Lead Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"L\",{fldf7ArlYkEG1khDk},\" - \",{flddLh7wu3a7gY0BK})"
+      },
+      {
+        "id": "fld2ORIvyUVJ9XNbt",
+        "name": "Short Description / Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fld0SDJyiER7o152l",
+        "name": "*Angle",
+        "type": "multipleSelects",
+        "choices": [
+          "Social Proof",
+          "Science-backed",
+          "Results in Advance / Demonstration",
+          "Personal Story",
+          "Trending",
+          "Love/Relationship",
+          "Money/Finance",
+          "Mythbusters",
+          "Stage Interaction",
+          "Questions",
+          "Emotional Healing",
+          "Curiosity",
+          "Interesting Facts",
+          "Paradigm Shift",
+          "Promo Offer",
+          "Fear Based",
+          "Demo",
+          "Wealth",
+          "Humor",
+          "Spirituality",
+          "Problem / Pain"
+        ]
+      },
+      {
+        "id": "fldJ45sTVVW3zZ5hf",
+        "name": "✍️ Transcripts",
+        "type": "richText"
+      },
+      {
+        "id": "fldbtGvBLDh9UJSXS",
+        "name": "Lead Preview",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fld50WvJHQJA5zuN6",
+        "name": "Video Setting / Type",
+        "type": "singleSelect",
+        "choices": [
+          "Stage Talk",
+          "Studio",
+          "Outdoor",
+          "Skit",
+          "Visual Metaphor",
+          "Vlog",
+          "Podcast",
+          "Zoom Video",
+          "Phone Selfie",
+          "Walking on Street",
+          "B-roll & V/O"
+        ]
+      },
+      {
+        "id": "fldf7ArlYkEG1khDk",
+        "name": "Lead Number",
+        "type": "number"
+      },
+      {
+        "id": "fldYVTet3zXcDwaBz",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldg1TlbdrQ1GTCxu",
+        "name": "*Creative Tests (from Video Tickets)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldNCF08RaRHFT0EM",
+        "name": "*shortlist",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldyOeW1pkHwXTosz",
+        "name": "Marketing Principles",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbliDuf0IfTU6Cywa",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldib0B07cxjTn5rK",
+        "name": "Primary Funnel Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblWY9WqZL1YyYZqD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldSDpyKpjJwe1lPp",
+        "name": "Secondary Outcomes",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblWyBK9vLcZxpic7",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldETlwcQ3wAvHoBl",
+        "name": "Claude Rating (/100)",
+        "type": "number"
+      },
+      {
+        "id": "fldAg0JioUyNwFyXm",
+        "name": "CTR",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldVuHgJxdJBc7c5U",
+        "name": "*Keep for KB",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldrgtCOMUtvAhvNl",
+        "name": "Screenshot",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldViInRRTNgW5PbD",
+        "name": "Final  VSL Ad Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldu6WrtXVBeDwQ7r",
+        "name": "Ad Type",
+        "type": "singleSelect",
+        "choices": [
+          "VSL Lead ",
+          "Retargeting Ad",
+          "Video Page Ad",
+          "Direct to SP Short Ad (sales)",
+          "Direct to LP Short Ad (lead gen)"
+        ]
+      },
+      {
+        "id": "fldDjF2SfZyppGauP",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "flddLh7wu3a7gY0BK",
+        "name": "Program Shortname",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldaRKSz3CTeV30JG",
+        "name": "LOC - Recommended [do not delete]",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fld5ALVUfMY50P790",
+        "name": "Lead Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldsiyrVDNyfLVaS2",
+        "name": "*Use as Awareness Ads",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldGwIGrxpDMvx0hR",
+        "name": "*2025 Top performing Lead",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldPvwmO0YUtkt7EY",
+        "name": "*Ad Spend",
+        "type": "currency"
+      },
+      {
+        "id": "fldIlopjP99Aj8T8r",
+        "name": "*Revenue",
+        "type": "currency"
+      },
+      {
+        "id": "fldzhMFe9EgZ6ueKS",
+        "name": "*ROAS",
+        "type": "formula",
+        "resultType": "percent",
+        "formula": "({fldIlopjP99Aj8T8r}/ {fldPvwmO0YUtkt7EY})"
+      },
+      {
+        "id": "fldCMjdiiQjL45ify",
+        "name": "*Hook Refinement Selection",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldKcvb7VHW23NHKs",
+        "name": "*Category Structure - Hook Options",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldkl3BWDl9ggPfUM",
+        "name": "Claude Insights",
+        "type": "richText"
+      },
+      {
+        "id": "fldz2ndJX6uskzwyp",
+        "name": "Confidence",
+        "type": "singleSelect",
+        "choices": [
+          "High",
+          "Medium",
+          "Low"
+        ]
+      },
+      {
+        "id": "fld5g5aVdM5ItNSrs",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldBpYtM2M5Ggp07l",
+        "name": "Ad Creative Sync",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblTeYiyp8NQJ52lb",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldFt1m9afeBWdWOO",
+        "name": "Other Funnel Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldR1UyDQb8tQxHix",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "DON'T USE/KILL"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblkZqL7bxcXnf3mC",
+    "name": "VSL",
+    "primaryFieldId": "fldGZeu1KIATedV8s",
+    "fields": [
+      {
+        "id": "fldGZeu1KIATedV8s",
+        "name": "VSL Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"VSL\",{fldvoWWt10W1ny2Fg},\" - \",{fldBMRuPZydTFRKnG}) & \" \" & {fldeBH1btrSjRibiP}"
+      },
+      {
+        "id": "fldvoWWt10W1ny2Fg",
+        "name": "VSL Number",
+        "type": "number"
+      },
+      {
+        "id": "fldeBH1btrSjRibiP",
+        "name": "Short description",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcMNCg127UWChuq",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldnHkE7AG5IrNya4",
+        "name": "VSL Preview",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldBMRuPZydTFRKnG",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldFToduShoYadEGi",
+        "name": "Screenshot",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fld0oFtgkRAivylEy",
+        "name": "Program Shortname",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldO42KmkaUQgN76n",
+        "name": "VSL Creator",
+        "type": "singleSelect",
+        "choices": [
+          "Peter Kell: Scripted, Shot, Edited by Kell",
+          "Internal: Scripted, Shot, Edited Internally",
+          "Collab: Only consulted with Peter"
+        ]
+      },
+      {
+        "id": "fldZqvJ1kiMwNv1kx",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldBq7swa4Cedb19I",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Ticket raised",
+          "Ready for release",
+          "Released",
+          "Stopped",
+          "Killed"
+        ]
+      },
+      {
+        "id": "fld8uVDCocGIdZZPw",
+        "name": "Created Date",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldJX1kiIrsWkPMWN",
+        "name": "VSL Conso File",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldd7yv6GOhI4Zkoi",
+        "name": "Link to Final VSL Ad Asset",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldS68jsiR99PaWAA",
+        "name": "Original VSL",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldT4vbVLTnJNkMiL",
+        "name": "15%+ edited Internally",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldMcOS73o4IPIGQN",
+        "name": "Last modified",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldxO5FKnALj8qgtx",
+        "name": "Transcript (text)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZO0dKHVmTlVthY",
+        "name": "Transcript (TXT)",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldSRkh6YKxV0hbb2",
+        "name": "LOC - Recommended [do not delete]",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldYTWVwovbQw5o2u",
+        "name": "VSL / Masterclass",
+        "type": "singleSelect",
+        "choices": [
+          "VSL",
+          "Masterclass"
+        ]
+      },
+      {
+        "id": "fldtUROArN0DKz8TW",
+        "name": "Standalone Link",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldDtq3TcCXdCTDlm",
+        "name": "Pathway",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblzHKUxlthVjE8aP",
+    "name": "Masterclass",
+    "primaryFieldId": "fldE5YL6IEhkUJ6zP",
+    "fields": [
+      {
+        "id": "fldE5YL6IEhkUJ6zP",
+        "name": "Masterclass Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhmVJD8R1MkOYZb",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldN4aoFNojVwWsJM",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Ticket Raised",
+          "In Progress",
+          "Video Delivered",
+          "Live"
+        ]
+      },
+      {
+        "id": "fld9iwsPZOkLLp9O6",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldcyswpUmo1DhdNx",
+        "name": "Video",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldQi8ZaO0tsi7ECz",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldNPNyTavHwXGyO7",
+        "name": "Pathway",
+        "type": "singleSelect",
+        "choices": [
+          "Manifesting",
+          "Exponential Entrepreneur",
+          "Speaking & Authorship",
+          "Longevity"
+        ]
+      },
+      {
+        "id": "fldxcuqSL1nKu9WGt",
+        "name": "Pathway Close",
+        "type": "checkbox"
+      }
+    ]
+  },
+  {
+    "id": "tblMPKTUOjf0Z2Wlc",
+    "name": "Close / CTA",
+    "primaryFieldId": "fld5tis7P9zCzHjGk",
+    "fields": [
+      {
+        "id": "fld5tis7P9zCzHjGk",
+        "name": "Close Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"C\",{fldtU3zGi93mGeFhk},\" - \",{fldqncJL9ZhheW9Ag})"
+      },
+      {
+        "id": "fldtU3zGi93mGeFhk",
+        "name": "Close Number",
+        "type": "number"
+      },
+      {
+        "id": "fldsx2FeASQ3jbL9u",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldJ9gDrdfSRchtIs",
+        "name": "Short Description",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldW2zRTXypNH8y5I",
+        "name": "Link to Final VSL Ad Asset",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldN0iBVtAd1F4AWP",
+        "name": "Close Preview",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldGEum3BOuaKfHAC",
+        "name": "Close Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldhUTtFxQQcn6FY8",
+        "name": "Recommended to localise (from Final Asset)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldqncJL9ZhheW9Ag",
+        "name": "Program Shortname",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldi7NG3d7Wtn5T24",
+        "name": "Screenshot",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldGnqPoexlvh6KWN",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldP5DaiaJEamsUTn",
+        "name": "Created Date",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fld0NuQSYC01XGh2A",
+        "name": "Script/Leads Doc",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzkCt09zTdZcYtx",
+        "name": "Created by",
+        "type": "createdBy"
+      },
+      {
+        "id": "fld7Xsdsr43PAOdZM",
+        "name": "Close Transcript",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblgiW8VvCt2J68FD",
+    "name": "(VSL) Final Ad Asset",
+    "primaryFieldId": "fldOgO5ZdJH5uynyq",
+    "fields": [
+      {
+        "id": "fldOgO5ZdJH5uynyq",
+        "name": "Video Sale Asset Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldscIv9Rrab8hJAO",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld3XdLXLGERNxSB6",
+        "name": "**Final Asset Record",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldIuMoRGzVghUtKD",
+        "name": "Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldLcWq7kT8CUeecu",
+        "name": "Ad Status - Facebook",
+        "type": "singleSelect",
+        "choices": [
+          "Ticket in Progress",
+          "Ready For Launch",
+          "Active Ad",
+          "Paused Ad",
+          "Canceled (Never Launched)",
+          "Backlog"
+        ]
+      },
+      {
+        "id": "fldKeBQzM5LA06Y1l",
+        "name": "Ad Status - Google",
+        "type": "singleSelect",
+        "choices": [
+          "Ticket in Progress",
+          "Ready For Launch",
+          "Active Ad",
+          "Paused Ad",
+          "Canceled (Never Launched)",
+          "Backlog"
+        ]
+      },
+      {
+        "id": "fldtlJpliA94hlTGj",
+        "name": "Video Ticket Status",
+        "type": "multipleLookupValues",
+        "resultType": "singleSelect"
+      },
+      {
+        "id": "fldGAsCprnek3Ly2N",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld3Hv3q1AfoxeJPW",
+        "name": "Creative Batch",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldCaTnsOggoGZx63",
+        "name": "Creative Test Status",
+        "type": "multipleLookupValues",
+        "resultType": "singleSelect"
+      },
+      {
+        "id": "fldMs3DYLqgAHwDpr",
+        "name": "Hook",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldP67rlt7zoA8v0A",
+        "name": "Lead Link",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fld6XuIseawFTxi3a",
+        "name": "✍️ Lead Transcript",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fldYWCOR50WT8Nx1n",
+        "name": "Main VSL",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldLqlM9frdsroiEP",
+        "name": "Main VSL Transcript",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fldzk6JymmrCeC8JP",
+        "name": "Main VSL Link",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldMJBF5iAQiXPBKD",
+        "name": "Lead",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fld2p8wcXNLel3bo9",
+        "name": "Shorts",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl2eJdDR3tiUtRyR",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldGJ6twsgAWPbLxg",
+        "name": "Close",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldnoBRvQYyoau322",
+        "name": "**Advertiser",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldHOfllUIXRSseGN",
+        "name": "Created",
+        "type": "createdTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fldBDYdHuleuy63dp",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldxJ2ElFcAmb15Xa",
+        "name": "Recommended to localise [do not delete]",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldE3gSQ0FPWgQaI3",
+        "name": "Status Localization",
+        "type": "singleSelect",
+        "choices": [
+          "Ready to localize",
+          "Localised",
+          "In progress",
+          "Consol files requested",
+          "Consol files not available",
+          "Production cancelled"
+        ]
+      },
+      {
+        "id": "fldY3R2vv8xrYfKbW",
+        "name": "Localisation Prioritisation",
+        "type": "rating"
+      },
+      {
+        "id": "fldzn32y3eNvP1v5V",
+        "name": "Localisation Blocker",
+        "type": "singleSelect",
+        "choices": [
+          "Hook is over 30 min",
+          "Done only for ES",
+          "Done only for DE"
+        ]
+      },
+      {
+        "id": "fldQbqFoVqfg4jjxs",
+        "name": "Notes by Edit Team for LOC team",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldO5qbeULBS5hUkH",
+        "name": "Hook Conso File",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldZldMjiac0HVlF1",
+        "name": "Lead Conso File",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldFobfQ3yhYBHpSF",
+        "name": "VSL Conso File",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldDflipo42rTtgfg",
+        "name": "Close Conso File",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldRZAQ4jhrVgBs8f",
+        "name": "Ad Spend",
+        "type": "currency"
+      },
+      {
+        "id": "fld2H6cmHR9F5aJed",
+        "name": "Revenue",
+        "type": "currency"
+      },
+      {
+        "id": "fldenupycFn2oNGJW",
+        "name": "ROAS",
+        "type": "formula",
+        "resultType": "percent",
+        "formula": "{fld2H6cmHR9F5aJed}/{fldRZAQ4jhrVgBs8f}"
+      },
+      {
+        "id": "flducZDFbRYKfp1x3",
+        "name": "CTR",
+        "type": "percent"
+      },
+      {
+        "id": "fld6NCZDYsRsM48NR",
+        "name": "ROAS '26",
+        "type": "percent"
+      },
+      {
+        "id": "fldHlVr4FThtdNG5a",
+        "name": "👀 3s View Rate",
+        "type": "percent"
+      },
+      {
+        "id": "fldad8Jskoye6Dl98",
+        "name": "PCR",
+        "type": "percent"
+      },
+      {
+        "id": "fldBJs5v1t96nIDSS",
+        "name": "✍️ Ad Copy (FB/GG)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblmkc85dsr1TA31I",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldItQ9rGexwpuKDm",
+        "name": "FB Headline",
+        "type": "multipleLookupValues",
+        "resultType": "multilineText"
+      },
+      {
+        "id": "fldJiIK5HYM9EH0DA",
+        "name": "FB Primary Text",
+        "type": "multipleLookupValues",
+        "resultType": "multilineText"
+      },
+      {
+        "id": "fldpfJ18DVPzjSpRD",
+        "name": "Facebook Post",
+        "type": "url"
+      },
+      {
+        "id": "fldx62XB9FZqfTvJm",
+        "name": "Short Description / Notes (from Lead)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldh3VTdhDR3hj0UB",
+        "name": "Add To Cart",
+        "type": "number"
+      },
+      {
+        "id": "fldqBF2BedIpo9oBR",
+        "name": "CPM",
+        "type": "currency"
+      },
+      {
+        "id": "fldBQe5cExpzjdpAP",
+        "name": "Primary Funnel Outcome (from Lead)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldd9gYGYgo1FyS82",
+        "name": "FB 30s View Rate",
+        "type": "percent"
+      },
+      {
+        "id": "fldMZpcAUT6MDivmb",
+        "name": "CPL",
+        "type": "currency"
+      },
+      {
+        "id": "fldBZ6f2IPreY5HoT",
+        "name": "Data Lead Strength",
+        "type": "formula",
+        "resultType": "number",
+        "formula": " IF({fldRZAQ4jhrVgBs8f} > 500, 1, 0)                                                                                                                                        \n  +\n  IF(AND({fldRZAQ4jhrVgBs8f} > 0, {fld2H6cmHR9F5aJed} / {fldRZAQ4jhrVgBs8f} > 1), 2, IF(AND({fldRZAQ4jhrVgBs8f} > 0, {fld2H6cmHR9F5aJed} / {fldRZAQ4jhrVgBs8f} > 0.75), 1, 0))                                              \n  +                                                                                                                                                                 \n  IF({fldd9gYGYgo1FyS82} > 0.08, 2, IF({fldd9gYGYgo1FyS82} > 0.05, 1, 0))\n  +                                                                                                                                                                 \n  IF({fldHlVr4FThtdNG5a} > 0.32, 2, IF({fldHlVr4FThtdNG5a} > 0.25, 1, 0))\n  +                                                                                                                                                                 \n  IF({flducZDFbRYKfp1x3} > 0.02, 2, IF({flducZDFbRYKfp1x3} > 0.013, 1, 0))"
+      },
+      {
+        "id": "fldqLhIhVnmxD3J43",
+        "name": "Claude Rating (/100) (from Lead)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldwliotMpD0hetTH",
+        "name": "Add to MC Lead ideation",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldt4LafRw8HezDJF",
+        "name": "Short Description / Notes (from Lead) 2",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldoYb87Yz4R9Mgc6",
+        "name": "Marketing Principles (from Lead)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fld65O6Qb12wDQpKs",
+        "name": "💡 Ideation / Briefs",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblW7uunqSxkLPDIP",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld6LTB1g1OmAzwKC",
+        "name": "Shorts Transcript",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fld7TAclvnde5SiCS",
+        "name": "VIDEO LINK",
+        "type": "multipleLookupValues",
+        "resultType": "url"
+      },
+      {
+        "id": "fldcMPWJSANOe2H1b",
+        "name": "Marketing Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblAfOXMUTYevw5tD",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldIXoNdGjmv2MId8",
+        "name": "BUSINESS UNITS",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblkmgIwsibryPiUS",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldi266OUBeD5Ykec",
+        "name": "Ad Name (Ad Platform)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldtet67c1PsmeJ6w",
+        "name": "Other Funnel Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldGBiyoZZnn0LTqZ",
+        "name": "✍️ FB Headlines (<40) (from Other Funnel Assets) (from Video Tickets)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fld7hgOUFsNbfjfTP",
+        "name": "✍️ FB Primary Text 1 (from Other Funnel Assets) (from Video Tickets)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      },
+      {
+        "id": "fldqNbpXN1DAO1dBE",
+        "name": "Other Funnel Assets 2",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblSigxHS7nr9FFQy",
+    "name": "VSL FB Best-Performing Leads",
+    "primaryFieldId": "fldo9h17oLyESTr2R",
+    "fields": [
+      {
+        "id": "fldo9h17oLyESTr2R",
+        "name": "Ad",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld9G8GDw4EDUs0tn",
+        "name": "Facebook Post",
+        "type": "url"
+      },
+      {
+        "id": "fldZQ52FhWciEaCkD",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldQ15i7UTKy8Bn8b",
+        "name": "Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldk79aJXtb7s05Fl",
+        "name": "Advertising Spend",
+        "type": "number"
+      },
+      {
+        "id": "fldOYhRViD6TTqlN6",
+        "name": "Direct Sales (fact_sales_web_v2)",
+        "type": "number"
+      },
+      {
+        "id": "fldL4eKwVRoFC6TFz",
+        "name": "TROAS [New]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldYfAynxXw3cGJpV",
+        "name": "Customer (All Time)",
+        "type": "number"
+      },
+      {
+        "id": "fldKj32vlPODF8fJB",
+        "name": "CAC (new)",
+        "type": "number"
+      },
+      {
+        "id": "fldsVm6vNZP2jTwQ4",
+        "name": "Purchase Conversion Rate [New]",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgLx9fJzlfIEn0j",
+        "name": "FB: Link Clicks",
+        "type": "number"
+      },
+      {
+        "id": "fld7jq96Cn045ylBl",
+        "name": "FB: CTR",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldwokAYa80WHqaLF",
+        "name": "CTR - All (Tyler)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldl1ukfMj3qnuBbm",
+        "name": "FB Pixel: Add to Cart",
+        "type": "number"
+      },
+      {
+        "id": "fldNjMNsRscmTTZaI",
+        "name": "FB 3 Sec Video View Rate",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld4eXbtZeReqGWmG",
+        "name": "FB 30 Seconds View Rate (Estrella)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldywzBMBn05qL7d9",
+        "name": "FB 25% View Rate (Estrella)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldlgJftkp6CJuCvM",
+        "name": "FB 50% View Rate (Estrella)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldToNXegsqvNuWE8",
+        "name": "FB 75% View Rate (Estrella)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld9Z9bmOB1Gp1DY4",
+        "name": "FB 100% View Rate (Estrella)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldOsFaddWaQXWytT",
+        "name": "P/L (VSL)-CA 2",
+        "type": "number"
+      },
+      {
+        "id": "fldm7Sv453GYMKPhM",
+        "name": "ROI (VSL) % - CA 2",
+        "type": "number"
+      },
+      {
+        "id": "fld7qN6XJishy4nvQ",
+        "name": "Customer (30D)",
+        "type": "number"
+      },
+      {
+        "id": "fldBYrAyy2IeVQDeG",
+        "name": "Created Time",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldUBcnSsk2sDY9vu",
+        "name": "Program",
+        "type": "singleSelect",
+        "choices": [
+          "The Art of Manifesting",
+          "Silva Ultramind System",
+          "Superbrain",
+          "Everyday Bliss",
+          "Duality",
+          "7-figure Creator",
+          "Breathwork",
+          "Quantum Jumping"
+        ]
+      },
+      {
+        "id": "fldmWO3c4B4tHLbDQ",
+        "name": "Lead Format",
+        "type": "multipleSelects",
+        "choices": [
+          "Stage Talk Snippet",
+          "Studio Talking Head"
+        ]
+      },
+      {
+        "id": "fldfPHvhWm0HYtGsD",
+        "name": "Qualitative Analysis ",
+        "type": "richText"
+      },
+      {
+        "id": "fld3ZGoB5TrXiWyCC",
+        "name": "Last Modified",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      }
+    ]
+  },
+  {
+    "id": "tblXgZ2I34nOP1Nma",
+    "name": "VSL GG Best-Performing Leads",
+    "primaryFieldId": "fldOltXSSZWif7D3X",
+    "fields": [
+      {
+        "id": "fldOltXSSZWif7D3X",
+        "name": "Ad",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldHzO5SgyRgWZzPu",
+        "name": "Video URL",
+        "type": "url"
+      },
+      {
+        "id": "fldvUR4lb5YJ5Tj3o",
+        "name": "Ad Group",
+        "type": "singleSelect",
+        "choices": [
+          "vid-broad-25up-fm-sums",
+          "vid-mv-yt-viewer-25up-fm-sums",
+          "vid-ca-rich-roll-25up-fm-sums",
+          "im-healthinsurance-25up-fm-sb",
+          "vid-broad-25up-fm-sb",
+          "vid-top-self-help-spirituality-25up-fm-sums",
+          "vid-mv-leads-25up-fm-sb",
+          "vid-warm-leads-sums",
+          "vid-broad-25up-fm-dl",
+          "vid-ca-businessinfluencerig-25up-fm-sb",
+          "vid-ca-transform-festival-urlsx35-sums",
+          "vid-broad-25up-fm-lbo",
+          "vid-ca-yoga-related-25up-fm-sums",
+          "vid-business-25up-fm-sb",
+          "vid-cold-kw-brand-sums",
+          "vid-top-selfhelp-25up-fm-sb",
+          "vid-broad-25up-fm-tam",
+          "vid-ca-brand-25up-fm-sb",
+          "vid-cold-ca-ythandle-richroll-sums",
+          "vid-mv-yt-viewer-25up-fm-sb",
+          "vid-aff-tv&movielover-25up-fm-sums",
+          "vid-kw-brand-25up-fm-sb",
+          "vid-ca-stayfocus-25up-fm-sb",
+          "vid-im-investmentservice-25up-fm-sb",
+          "vid-im-music-related-25up-fm-sums",
+          "vid-ca-education-website-25up-fm-sb",
+          "vid-broad-25up-fm-qj",
+          "vid-kw-getrich-sums",
+          "vid-broad-25up-fm-eb",
+          "rsa-mindvalley-brand-usen",
+          "vid-sportsfitness-25up-fm-sb",
+          "top-selfhelp-25up-fm-dl",
+          "vid-mv-yt-viewer-25up-fm-tam",
+          "vid-books-25up-fm-tam",
+          "tom-bilyeu-25up-fm-sums"
+        ]
+      },
+      {
+        "id": "fldcc5G3kGpQK5X1F",
+        "name": "Campaign",
+        "type": "singleSelect",
+        "choices": [
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-purchase-creativetest-2",
+          "mv-vsl-sums-all-warm-mv-yt-viewer-ww-purchase",
+          "mv-vsl-sums-cold-ca-motivational-ythandle-usen-purchase-2",
+          "mv-vsl-sb-cold-lead-im-healthinsurance-usen-pur-includetv",
+          "mv-vsl-sums-cold-ca-motivational-ythandle-ww-purchase-2",
+          "mv-vsl-sums-warm-mv-leads-usen-purchase",
+          "mv-vsl-sums-cold-kw-altered-states-usen-purchase",
+          "mv-vsl-sums-cold-kw-financialauthor-ww-purchase-vsltag",
+          "mv-vsl-tam-cold-ca-manifest-usen-pur-l0-vsl2",
+          "mv-vsl-sb-cold-lead-kw-learnfaster-usen-all",
+          "mv-vsl-sb-cold-lead-kw-stayfocus-usen-all",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-creativetest-l0-vsl2",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-vstage24",
+          "mv-vsl-all-warm-mv-leads-usen-purchase",
+          "vb-vsl-sums-warm-mv-leads-ww-gat-de",
+          "mv-vsl-sums-cold-lead-kw-spiritualauthor2-usen-purchase",
+          "mv-vsl-tam-cold-ca-manifest-ww-pur-l0-vsl2",
+          "mv-vsl-sums-cold-lead-kw-lawofattraction-ww-purchase",
+          "mv-vsl-dl-cold-lead-kw-spiritual-synchronicity-usen-pur-vishen-2-l46",
+          "mv-vsl-sb-cold-lead-kw-learnfaster-usen-pur-creativetest-l161",
+          "mv-vsl-sums-cold-lead-video-kw-spiritualauthor-usen-purchase",
+          "mv-vsl-sb-cold-ca-businessinfluencerig-usen-purchase",
+          "vb-vsl-sums-cold-ca-transform-festival-website-usen-purchase",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-purchase-creativetest-3",
+          "mv-vsl-sums-cold-ca-manifest-usen-purchase",
+          "mv-vsl-lbo-cold-ca-couplestherapy-usen-pur",
+          "mv-vsl-sums-cold-kw-brand-silva-usen-purchase-2",
+          "mv-vsl-sums-cold-lead-kw-esp-usen-purchase",
+          "mv-vsl-sums-cold-im-yoga-usen-pur",
+          "mv-vsl-sums-cold-lead-top-self-help-spirituality-usen-pur",
+          "mv-vsl-sb-cold-lead-im-business-usen-pur-includetvonaug5",
+          "mv-vsl-tam-cold-ca-manifest-eea-pur-l18-vsl2",
+          "vb-vsl-sums-cold-kw-brand-usen",
+          "mv-vsl-sb-cold-top-selfhelp-usen-purchase",
+          "mv-vsl-tam-cold-ca-manifest-eea-pur-vsl-sha-includetv31july",
+          "mv-vsl-sb-cold-ca-brand-usen-all-vac-arm-a-test",
+          "mv-vsl-tam-cold-top-self-help-spirituality-usen-pur-vsl2",
+          "mv-vsl-sb-cold-top-selfhelp-usen-all-vac-arm-b-test",
+          "mv-vsl-sb-cold-lead-top-selfhelp-ww-pur",
+          "mv-vsl-tam-cold-ca-manifest-eea-pur-l14-vsl2",
+          "mv-vsl-lbo-cold-top-self-help-spirituality-ww-purchase-creativetest-l0-vsl4",
+          "mv-vsl-sb-cold-lead-kw-learnfaster-eea-purchase",
+          "vb-vsl-sums-cold-ca-motivational-ythandle-usen-gat-de",
+          "mv-vsl-sums-cold-top-spirituality-usen-purchase-3",
+          "mv-vsl-dl-cold-lead-kw-spiritual-synchronicity-usen-pur-vishen-2-l0",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-creativetest-l18-vsl2",
+          "mv-vsl-sb-cold-ca-brand-usen-purchase",
+          "mv-vsl-sums-cold-lead-video-kw-manifest-usen-purchase-2",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-tier1",
+          "mv-vsl-sums-cold-lead-video-kw-psychology-usen-purchase",
+          "mv-vsl-sb-cold-kw-news-usen-purchase",
+          "mv-vsl-dl-cold-lead-kw-spiritual-synchronicity-usen-pur-vishen-2-l48",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-creativetest-l14-vsl2",
+          "mv-vsl-sb-cold-aff-documentary-usen-purchase",
+          "mv-vsl-all-warm-mv-yt-viewer-usen-purchase",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-vtrim-1-l230.4",
+          "mv-vsl-lbo-cold-top-self-help-spirituality-ww-pur-vsl4.3",
+          "mv-vsl-sums-cold-aff-tv&movielover-tier1-pur",
+          "mv-vsl-sums-cold-kw-brand-us-purchase-l220",
+          "mv-vsl-dl-cold-ca-groundingtechnique-tier1-pur-includetv-13aug",
+          "mv-vsl-sums-cold-kw-altered-states-ww-purchase",
+          "mv-vsl-tam-cold-ca-dreamjob-ww-pur-vsl-sha",
+          "mv-vsl-sb-cold-kw-brand-ww-all",
+          "mv-vsl-tam-cold-ca-manifest-usen-pur-l14-vsl2",
+          "mv-vsl-dl-cold-ca-energyhealingchakras-usen-pur",
+          "mv-vsl-sb-cold-lead-im-business-ww-pur",
+          "mv-vsl-sb-cold-lead-kw-learnfaster-ww-pur-creativetest-l161",
+          "mv-vsl-sb-cold-kw-brand-usen-all",
+          "mv-vsl-sums-warm-mv-yt-viewer-usen-purchase",
+          "mv-vsl-lbo-cold-top-self-help-spirituality-usen-purchase-creativetest-l0-vsl4",
+          "mv-vsl-sb-cold-ca-stayfocus-usen-purchase",
+          "mv-vsl-sb-cold-im-books-usen-purchase",
+          "mv-vsl-sb-cold-im-investmentservice-usen-all-vac-arm-b-test",
+          "mv-vsl-sums-cold-lead-demo-healthcareindustry-usen-purchase",
+          "mv-vsl-sums-cold-im-ca-hobby&sport-usen-pur",
+          "mv-vsl-sb-cold-ca-education-website-usen-purchase",
+          "mv-vsl-tam-cold-ca-manifest-abundance-ww-reganstage-1-l45",
+          "mv-vsl-lbo-cold-top-self-help-spirituality-usen-purchase-creativetest-l38-vsl4",
+          "mv-vsl-sb-cold-kw-brand-eea-all",
+          "mv-vsl-sums-cold-ca-fashion-website-usen-purchase",
+          "mv-vsl-dl-cold-kw-spiritual-synchronicity-usen-pur",
+          "mv-vsl-sb-cold-ca-tvshows-usen-pur",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-creativetest-l0-vsl2.1",
+          "mv-vsl-tam-cold-ca-manifest-abundance-eea-reganstage-1-l45",
+          "mv-vsl-sums-cold-im-yoga-usen-pur-intuition-ctl",
+          "mv-vsl-qj-cold-top-self-help-spirituality-usen-pur-vsl1test",
+          "vb-vsl-sums-cold-lead-video-kw-getrich-usen",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-hybridfunnel-relaunch-1-l0",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-mvu2-l25",
+          "vb-vsl-sums-warm-mv-leads-usen-gat-de",
+          "mv-vsl-sums-cold-im-realestate-usen-pur",
+          "mv-vsl-sums-cold-kw-news-usen-purchase",
+          "mv-vsl-eb-cold-kw-brand-top-selfhelp-usen-pur",
+          "mv-vsl-dl-cold-ca-energyhealingchakras-eea-pur-l35,l24",
+          "mv-vsl-tam-cold-video-kw-manifest-usen-pur-personal-l32",
+          "mv-vsl-sums-cold-lead-top-spirituality-usen-pur-hybridfunnel-var20",
+          "mv-vsl-mindvalleybrand-cold-search-usen-pur",
+          "mv-vsl-sums-cold-im-yoga-ww-pur",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-festivalxstudent-1-l241",
+          "mv-vsl-qj-cold-top-self-help-spirituality-usen-pur-vsl1.1test-l0",
+          "mv-vsl-sb-cold-lead-im-retirement-usen-pur-includetv",
+          "mv-vslen02-sums-cold-lead-top-spirituality-usen-pur-abctest-control",
+          "mv-vsl-dl-cold-lead-kw-spiritual-synchronicity-usen-pur-vishen-2-l47",
+          "mv-vsl-tam-cold-im-datingservices-tier1-pur-includetv",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-festivalxstudent-1-l243",
+          "mv-vsl-sums-cold-lead-video-kw-getrich-usen-purchase",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-mvu2-l27",
+          "mv-vsl-sb-cold-lead-kw-learnfaster-usen-pur-refresh-l161",
+          "mv-vsl-sb-cold-lead-aff-sports-usen-pur",
+          "mv-vsl-sums-cold-im-financialplanning-usen-pur",
+          "mv-vsl-dl-cold-ca-alternativehealing-reikihealer-usen-pur-disabledtv",
+          "mv-vsl-sums-all-warm-mv-yt-viewer-tier1-purchase",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-creativetest-l16-vsl2",
+          "mv-vsl-qj-cold-top-self-help-spirituality-eea-pur-vsl1test-l1",
+          "mv-vsl-tam-cold-top-self-help-spirituality-usen-pur-vsl2.1",
+          "mv-vsl-sb-cold-lead-kw-nootropic-usen-all",
+          "mv-vsl-dl-cold-ca-top-selfhelp-usen-pur-l24-prius-l35.3-bodyspirit",
+          "mv-vsl-qj-cold-top-self-help-spirituality-usen-pur-batch3",
+          "mv-vsl-tam-cold-ca-manifest-ww-pur-l18-vsl2",
+          "mv-vsl-qj-cold-top-self-help-spirituality-eea-pur-vsl1test",
+          "mv-vsl-lbo-cold-top-self-help-spirituality-usen-pur-vsl4.3",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-forgiveness-l229.5",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-vsl2.2test-l0",
+          "mv-vsl-sb-warm-mv-yt-viewer-ww-purchase",
+          "mv-vsl-sb-cold-kw-learnfaster-usen-pur",
+          "mv-vsl-sums-cold-lead-video-kw-spiritualauthor-ww-purchase",
+          "mv-vsl-sb-cold-im-investmentservice-usen-purchase",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-forgiveness-l229.7",
+          "mv-vsl-sums-cold-top-self-help-spirituality-usen-pur-vstudio-1-l255",
+          "mv-vsl-tam-cold-top-self-help-spirituality-usen-pur",
+          "mv-vsl-tam-cold-aff-avid-news-usen-pur",
+          "mv-vsl-tam-cold-ca-manifest-ww-vsl-includetv",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-usen-pur-creativetest-l16-vsl2.1",
+          "mv-vsl-sums-cold-video-kw-meditation-usen-pur",
+          "mv-vslen02-tam-warm-mv-yt-viewer-ww-purchase-sha",
+          "mv-vsl-sums-cold-kw-altered-states-usen-pur-shortleads-video-l223",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-eea-pur-creativetest-l0-vsl2",
+          "mv-vsl-lbo-cold-top-self-help-spirituality-usen-pur-l0-vsl4.1",
+          "mv-vsl-tam-cold-video-im-books-ww-pur",
+          "mv-vsl-tam-cold-lead-video-kw-manifest-ww-pur-mvu1-l37",
+          "mv-vsl-dl-cold-ca-manifest-usen-pur-jeffstage-mar2024-l51.2"
+        ]
+      },
+      {
+        "id": "fldC7lcTGhR7mtHOQ",
+        "name": "Advertising Spend",
+        "type": "number"
+      },
+      {
+        "id": "fldcEdkEFHN4ycD70",
+        "name": "Direct Sales (fact_sales_web_v2)",
+        "type": "number"
+      },
+      {
+        "id": "fldbO63ERhgnskgCm",
+        "name": "CAC (new)",
+        "type": "number"
+      },
+      {
+        "id": "fldzafyMjf24bzpRX",
+        "name": "TROAS [New]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldlSOaEbaOZ7xZGO",
+        "name": "AW: Clicks",
+        "type": "number"
+      },
+      {
+        "id": "fldrjmwmVKQzZOiZ2",
+        "name": "AW: Impressions",
+        "type": "number"
+      },
+      {
+        "id": "fldhfmMpvu8p2n1lI",
+        "name": "CTR [All]",
+        "type": "singleSelect",
+        "choices": [
+          "0.27%",
+          "0.44%",
+          "0.92%",
+          "0.56%",
+          "1.02%",
+          "1.34%",
+          "0.23%",
+          "0.36%",
+          "0.73%",
+          "0.74%",
+          "1.42%",
+          "2.02%",
+          "1.50%",
+          "0.95%",
+          "1.76%",
+          "1.15%",
+          "1.93%",
+          "0.38%",
+          "1.54%",
+          "0.86%",
+          "0.34%",
+          "1.48%",
+          "2.04%",
+          "2.17%",
+          "1.70%",
+          "0.72%",
+          "1.63%",
+          "0.31%",
+          "1.10%",
+          "0.47%",
+          "0.62%",
+          "1.22%",
+          "0.64%",
+          "1.53%",
+          "1.12%",
+          "1.33%",
+          "1.06%",
+          "1.40%",
+          "0.82%",
+          "1.59%",
+          "1.26%",
+          "1.01%",
+          "1.23%",
+          "1.86%",
+          "0.60%",
+          "1.31%",
+          "1.77%",
+          "2.06%",
+          "1.09%",
+          "0.98%",
+          "1.72%",
+          "1.11%",
+          "0.70%",
+          "1.61%",
+          "1.45%",
+          "1.66%",
+          "1.80%",
+          "2.11%",
+          "1.19%",
+          "1.16%",
+          "2.18%",
+          "1.75%",
+          "0.21%",
+          "1.92%",
+          "0.78%",
+          "0.61%",
+          "1.97%",
+          "0.65%",
+          "1.47%",
+          "1.28%",
+          "1.82%",
+          "2.93%",
+          "1.58%",
+          "1.00%",
+          "0.67%",
+          "0.89%",
+          "1.44%",
+          "0.81%",
+          "1.73%",
+          "2.03%",
+          "1.67%",
+          "2.66%",
+          "1.35%",
+          "0.84%",
+          "3.09%",
+          "0.16%",
+          "0.32%",
+          "3.88%",
+          "1.13%",
+          "1.83%",
+          "1.36%",
+          "1.85%",
+          "2.39%",
+          "2.00%",
+          "1.46%",
+          "0.68%",
+          "0.99%",
+          "0.83%",
+          "1.04%",
+          "1.84%",
+          "0.80%",
+          "1.79%",
+          "0.57%",
+          "1.17%",
+          "2.55%",
+          "1.25%",
+          "25.01%",
+          "0.76%",
+          "0.91%",
+          "1.55%",
+          "1.69%",
+          "0.63%",
+          "0.90%",
+          "1.56%",
+          "1.98%",
+          "1.38%",
+          "2.01%",
+          "1.05%",
+          "1.30%",
+          "1.14%",
+          "1.49%",
+          "1.65%",
+          "0.66%",
+          "2.10%",
+          "1.95%",
+          "1.94%",
+          "1.57%",
+          "0.69%",
+          "2.74%",
+          "1.20%",
+          "1.51%",
+          "0.94%",
+          "1.43%",
+          "0.88%",
+          "0.03%",
+          "2.25%",
+          "0.87%",
+          "1.32%",
+          "2.71%",
+          "1.60%",
+          "1.24%",
+          "0.59%"
+        ]
+      },
+      {
+        "id": "fldIc6G8qsfTf95Fc",
+        "name": "AOV [New]",
+        "type": "number"
+      },
+      {
+        "id": "fldglRJ25PZfF8kJ1",
+        "name": "AW: Conversions",
+        "type": "number"
+      },
+      {
+        "id": "flduAhtFYRsCElUAC",
+        "name": "AW: Conv. rate",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldMcL8rasJHXROao",
+        "name": "AW: Video View rate",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld68PUkB61NQDAGk",
+        "name": "AW: Video Views",
+        "type": "number"
+      },
+      {
+        "id": "fldiInBXO9J6nN6DM",
+        "name": "AW: Video Impressions",
+        "type": "number"
+      },
+      {
+        "id": "fldCH2D9HeEYGY1T9",
+        "name": "AW: Video Quartile 25% rate",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldN0J5fbcTGg3o9X",
+        "name": "AW: Video Quartile 100% rate",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldy14CXBEj8q1a3m",
+        "name": "P/L (VSL)-CA 2",
+        "type": "number"
+      },
+      {
+        "id": "fldaort14zcEJn5dv",
+        "name": "AW: Avg. CPC",
+        "type": "number"
+      },
+      {
+        "id": "fld3BajBTgt5SRIIq",
+        "name": "AW: Avg. CPM",
+        "type": "number"
+      },
+      {
+        "id": "fldRAQVttbRHt7pvy",
+        "name": "ROI (VSL) % - CA 2",
+        "type": "singleSelect",
+        "choices": [
+          "-18%",
+          "-17%",
+          "-21%",
+          "-14%",
+          "-23%",
+          "-13%",
+          "-31%",
+          "-16%",
+          "-30%",
+          "5%",
+          "-20%",
+          "-12%",
+          "-25%",
+          "-19%",
+          "-28%",
+          "-15%",
+          "-26%",
+          "-22%",
+          "-8%",
+          "-4%",
+          "-24%",
+          "-29%",
+          "-32%",
+          "-10%",
+          "1%",
+          "-27%",
+          "-7%",
+          "-5%",
+          "8%",
+          "-33%",
+          "-9%",
+          "-2%",
+          "4%",
+          "-36%",
+          "-38%",
+          "10%",
+          "-34%",
+          "-35%",
+          "0%",
+          "2%",
+          "23%",
+          "22%",
+          "28%",
+          "34%",
+          "11%",
+          "13%",
+          "45%"
+        ]
+      },
+      {
+        "id": "fldxBZ2sxbfP4IRpR",
+        "name": "AW: Video Quartile 50% rate",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldoU6YMCZ8XgKAnh",
+        "name": "AW: Video Quartile 75% rate",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZ7ZnnNMjjXfEkC",
+        "name": "Customer (All Time)",
+        "type": "number"
+      },
+      {
+        "id": "fldrWdyTYDV6JO5M6",
+        "name": "Transcript",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3qTTYCD4B3ffG0",
+        "name": "Created Time",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldRiGgaf7YnsnGPi",
+        "name": "Program",
+        "type": "singleSelect",
+        "choices": [
+          "Breathwork for Life",
+          "Silva Ultramind System",
+          "The Art of Manifesting",
+          "Everyday Bliss",
+          "Duality",
+          "Quantum Jumping",
+          "7-figure Creator",
+          "Superbrain"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tbl5rSB0qdj3coHIX",
+    "name": "Blocks",
+    "primaryFieldId": "fld0siP7sf5NGzRVF",
+    "fields": [
+      {
+        "id": "fld0siP7sf5NGzRVF",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0OzFWGF3ZBALqq",
+        "name": "Brick Identifier",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE('B', \" - \",{fld7ASgVM5YrWfnYC})\r\n"
+      },
+      {
+        "id": "fldr7edNU57R33jCb",
+        "name": "VSL",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld76CdVZz2VD2pmb",
+        "name": "Program",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldToPR41YbXVKiCa",
+        "name": "Brick",
+        "type": "singleSelect",
+        "choices": [
+          "Pre-Opener",
+          "Leads",
+          "Opener",
+          "Author's Intro/Dream Flex",
+          "Author's Struggle Story",
+          "Author's Turning Point",
+          "Accomplishment Story",
+          "Root Problem",
+          "Root Solution",
+          "Program Intro",
+          "Program information",
+          "Vishen's Story",
+          "Testimonials",
+          "Close",
+          "Optionals",
+          "Objections"
+        ]
+      },
+      {
+        "id": "fldfM0sDMjcdDOTVn",
+        "name": "Variation",
+        "type": "singleSelect",
+        "choices": [
+          "#1",
+          "#2",
+          "#3",
+          "#4",
+          "#5",
+          "#6",
+          "#7",
+          "#8"
+        ]
+      },
+      {
+        "id": "fldAryCYs3JQyUTQ6",
+        "name": "Status",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldTneQHxjQSXeFsV",
+        "name": "Script Link",
+        "type": "url"
+      },
+      {
+        "id": "fld8i3zT7iTDFyYrE",
+        "name": "Dropbox Link",
+        "type": "url"
+      },
+      {
+        "id": "fldjDVcpUnHHBIISA",
+        "name": "Description",
+        "type": "richText"
+      },
+      {
+        "id": "fld0SF7EHoAX77ycS",
+        "name": "Final Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7ASgVM5YrWfnYC",
+        "name": "Brick Number",
+        "type": "number"
+      },
+      {
+        "id": "fldgzamhe9C4lWUod",
+        "name": "Program Name",
+        "type": "singleSelect",
+        "choices": [
+          "WildFit",
+          "Sixth Sense Superpower",
+          "Be extraordinary",
+          "RTHA",
+          "mindvalley Certified Life Coach",
+          "AI QUEST",
+          "",
+          "Mindvalley Certified Business Coach",
+          "Lifebook",
+          "Art of Manifesting",
+          "Duality"
+        ]
+      },
+      {
+        "id": "fldwztRihO3r3ijka",
+        "name": "Internal/External",
+        "type": "singleSelect",
+        "choices": [
+          "Internal",
+          "External"
+        ]
+      },
+      {
+        "id": "fldtWHagxo038q4v7",
+        "name": "Programs",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldmTUeIuuNgmovLT",
+        "name": "✍️ Brick Script (Pre-Filming)",
+        "type": "richText"
+      },
+      {
+        "id": "fldSvkhrFt3OoOWr3",
+        "name": "Main Speaker",
+        "type": "multipleSelects",
+        "choices": [
+          "Vishen",
+          "Eric Edmeades",
+          "Sonia Choquette",
+          "Marisa Peer",
+          "Ajit"
+        ]
+      },
+      {
+        "id": "fldSnDKCw76cDU3WE",
+        "name": "Scripted By",
+        "type": "multipleSelects",
+        "choices": [
+          "Rafay",
+          "Matt",
+          "Mehreen",
+          "Peter"
+        ]
+      },
+      {
+        "id": "fldOaAw088oyb9yRr",
+        "name": "Filmed",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldiq5hr5mwZKIBQi",
+        "name": "🎬 ✍️ Footage 'Script' (Post-Filming)",
+        "type": "richText"
+      },
+      {
+        "id": "fld6lMpF8BdyvBkcB",
+        "name": "Descript Link",
+        "type": "url"
+      }
+    ]
+  },
+  {
+    "id": "tblB5lH2Dp2p0Cgsj",
+    "name": "Page Tests",
+    "primaryFieldId": "fldLCEr7onY6znVy7",
+    "fields": [
+      {
+        "id": "fldLCEr7onY6znVy7",
+        "name": "Short Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldh7gt3VUsfRV5Kr",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Idea",
+          "Prioritised",
+          "Ready for QA",
+          "Preparation",
+          "Running",
+          "Implemented",
+          "Lost",
+          "Won",
+          "Completed - To Analyze",
+          "Completed - To Validate",
+          "Completed: Retest for more data",
+          "Poorly Executed: Retest",
+          "On hold",
+          "Duplicate",
+          "Won't Do",
+          "Voided"
+        ]
+      },
+      {
+        "id": "fldvnhPZPgSNrPIiS",
+        "name": "Rating",
+        "type": "rating"
+      },
+      {
+        "id": "fldVXwebAY59a7gaR",
+        "name": "Test Link",
+        "type": "url"
+      },
+      {
+        "id": "fldc53v62I7qaCp8d",
+        "name": "VWO Link",
+        "type": "url"
+      },
+      {
+        "id": "fldFAadWqhqbjafbI",
+        "name": "Priority",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldQ3YA0XTB3BFs8J",
+        "name": "Start Date",
+        "type": "date"
+      },
+      {
+        "id": "fldlInSzWZ5iQnxhw",
+        "name": "End Date",
+        "type": "date"
+      },
+      {
+        "id": "fld4FNsHpwBcBbWiB",
+        "name": "Product",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldxbcQQ444zycYEu",
+        "name": "Gain",
+        "type": "percent"
+      },
+      {
+        "id": "fldhRRsTMFwi2x8pL",
+        "name": "Metric",
+        "type": "singleSelect",
+        "choices": [
+          "VPC",
+          "VPL",
+          "VPA",
+          "Subscription %",
+          "Upsell Take Rate",
+          "Predicted 2 Year Lifetime $",
+          "Overall Revenue",
+          "SP Conversion Rate",
+          "Landing Page CR",
+          "App Downloads"
+        ]
+      },
+      {
+        "id": "fldr04wXLRy9xPOoi",
+        "name": "Attachment (Design/Results)",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldpyRtq7Kqv62Kw3",
+        "name": "Language",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldZdXIN0Lyay9GlS",
+        "name": "Description",
+        "type": "richText"
+      },
+      {
+        "id": "fldkzFVzGEUzVhIns",
+        "name": "Hypothesis",
+        "type": "richText"
+      },
+      {
+        "id": "fldlbLPhqmJwCSiV3",
+        "name": "Confidence",
+        "type": "singleSelect",
+        "choices": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "7"
+        ]
+      },
+      {
+        "id": "fldTmbEF2GtjBnodn",
+        "name": "Impact",
+        "type": "singleSelect",
+        "choices": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "8"
+        ]
+      },
+      {
+        "id": "fldBWFcaQMBKiCsIZ",
+        "name": "Ease",
+        "type": "singleSelect",
+        "choices": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "4\\",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "id": "fldySDfG62PGxDRhk",
+        "name": "🧑‍🤝‍🧑Team Members",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldYRb6tIY2bU1qX6",
+        "name": "Outcome Measurement",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldbZ73YAMYbacjlO",
+        "name": "Result",
+        "type": "singleSelect",
+        "choices": [
+          "Inconclusive",
+          "Failure - Valuable to Tweak",
+          "Failure - Not Valuable to Tweak",
+          "Success - Continue Exploring",
+          "Success - Scale",
+          "Test Lost"
+        ]
+      },
+      {
+        "id": "fldxHmLIalxJ0vOYk",
+        "name": "⛏ Component",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKMZJONANGBqUsm",
+        "name": "Year ",
+        "type": "singleSelect",
+        "choices": [
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024",
+          "6/14/2020",
+          "6/30/2020",
+          "7/13/2020",
+          "7/14/2020",
+          "7/16/2020",
+          "7/17/2020",
+          "7/27/2020",
+          "8/14/2020",
+          "9/11/2020",
+          "9/14/2020",
+          "9/16/2020",
+          "9/22/2020",
+          "10/20/2020",
+          "11/17/2020",
+          "11/28/2020",
+          "2/1/2021",
+          "2/9/2021",
+          "3/7/2021",
+          "1/20/2021",
+          "1/21/2021",
+          "9/7/2020",
+          "10/9/2020",
+          "11/3/2020",
+          "12/15/2020",
+          "2/22/2021",
+          "7/28/2020",
+          "8/17/2020",
+          "9/21/2020",
+          "9/24/2020",
+          "9/30/2020",
+          "10/22/2020",
+          "10/27/2020",
+          "11/9/2020",
+          "1/26/2021",
+          "2/16/2021",
+          "2/17/2021",
+          "3/3/2021",
+          "12/16/2020",
+          "12/17/2020",
+          "12/23/2020",
+          "12/29/2020",
+          "10/16/2020",
+          "10/29/2020",
+          "11/12/2020",
+          "2/23/2021",
+          "3/2/2021",
+          "2/4/2021",
+          "7/2/2020",
+          "8/25/2020",
+          "1/25/2021",
+          "7/8/2020",
+          "9/28/2020",
+          "7/29/2020",
+          "8/12/2020",
+          "9/3/2020",
+          "2/19/2021",
+          "10/26/2020",
+          "6/16/2020",
+          "9/23/2020",
+          "6/17/2020",
+          "8/6/2020",
+          "10/21/2020",
+          "10/24/2020",
+          "11/24/2020",
+          "11/27/2020",
+          "12/4/2020",
+          "1/5/2021",
+          "9/18/2020",
+          "1/19/2021",
+          "11/5/2020",
+          "8/3/2020",
+          "9/25/2020",
+          "6/8/2020",
+          "9/10/2020",
+          "10/4/2020",
+          "10/6/2020",
+          "10/12/2020",
+          "2/2/2021",
+          "11/30/2020",
+          "12/10/2020",
+          "1/18/2021",
+          "1/29/2021",
+          "1/30/2021",
+          "8/4/2020",
+          "11/26/2020",
+          "9/1/2020",
+          "3/8/2021",
+          "3/9/2021",
+          "3/10/2021",
+          "3/11/2021",
+          "3/12/2021"
+        ]
+      },
+      {
+        "id": "fldcm63HkC9K8EEkh",
+        "name": "Date of Entry",
+        "type": "date"
+      },
+      {
+        "id": "fldsd7iUTI5bm3DVO",
+        "name": "Copy Ticket",
+        "type": "url"
+      },
+      {
+        "id": "fldQZDkurrTPYlDIB",
+        "name": "Initiatives",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0Qi9i6I0jGEMr6",
+        "name": "Conclusions",
+        "type": "richText"
+      },
+      {
+        "id": "fldqf9aAlto77X9QQ",
+        "name": "Test ID",
+        "type": "number"
+      },
+      {
+        "id": "fldKtDw70gV7eKNsw",
+        "name": "Created",
+        "type": "date"
+      },
+      {
+        "id": "fldUsU57DhU7SBrHr",
+        "name": "Type",
+        "type": "singleSelect",
+        "choices": [
+          "Keystone",
+          "Global",
+          "Single"
+        ]
+      },
+      {
+        "id": "fldaSKGKMFbTshztK",
+        "name": "Duration of the masterclass",
+        "type": "duration"
+      },
+      {
+        "id": "fld3ArSSrGgWN9M68",
+        "name": "Dropdown time",
+        "type": "duration"
+      },
+      {
+        "id": "fldWVcJLpqTfVT0ds",
+        "name": "Masterclass link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldmQwCDoW3jQgObd",
+        "name": "Test Meeting",
+        "type": "singleSelect",
+        "choices": [
+          "14th March, 2022",
+          "30th March, 2022",
+          "20th April, 2022",
+          "22nd June, 2022",
+          "27th July, 2022",
+          "17th August, 2022",
+          "28th September, 2022",
+          "23rd November, 2022"
+        ]
+      },
+      {
+        "id": "fld9SIisXHa71cVoB",
+        "name": "Applications (from ⛏ Component)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldRFXZNEIUmBFZmy",
+        "name": "📄 Pages",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldvQN8hYTVe95pbP",
+        "name": "Team",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcijoIAgzinnmx0",
+        "name": "Overall Rating ",
+        "type": "number"
+      },
+      {
+        "id": "fldQfLYOnCVtfP7eN",
+        "name": "Not-Shark Tank Meeting",
+        "type": "singleSelect",
+        "choices": [
+          "19th October, 2022",
+          "16th November, 2022"
+        ]
+      },
+      {
+        "id": "fldZLR53srw2p9SBY",
+        "name": "Page",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldawxtXzE3mFGQ3v",
+        "name": "Planned Start Date",
+        "type": "date"
+      },
+      {
+        "id": "fldfJHEYGZLXVkfQP",
+        "name": "Duration",
+        "type": "number"
+      },
+      {
+        "id": "flduMU1Hf8R7vp2aM",
+        "name": "Planned End Date",
+        "type": "formula",
+        "resultType": "date",
+        "formula": "DATEADD({fldawxtXzE3mFGQ3v},{fldfJHEYGZLXVkfQP},\"days\")"
+      },
+      {
+        "id": "fldYae0o7sWf4Z9BX",
+        "name": "Page Type",
+        "type": "rollup"
+      },
+      {
+        "id": "fldU8rCs7FkN8pJbJ",
+        "name": "Open Test Results",
+        "type": "button"
+      },
+      {
+        "id": "fldwuHWRDjwjrMivh",
+        "name": "Open VWO",
+        "type": "button"
+      },
+      {
+        "id": "fldfq6blv60A6vDuW",
+        "name": "Record ID",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldDAXDRAXJrhCtoG",
+        "name": "URL Original Record",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"https://airtable.com/appsp2jMADF52XFkc/tbliQzGygapWhtuuh/viwGekFLbvwWvUN6t/\",{fldfq6blv60A6vDuW},\"/fldKNYmGXGXJ7am4y\")"
+      },
+      {
+        "id": "fldrKadqNActE3q3M",
+        "name": "Go to Original Record",
+        "type": "button"
+      },
+      {
+        "id": "fld6jIH1UKspDbA72",
+        "name": "DNA Rollouts",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tbl8gW3ErjS3AvFDS",
+    "name": "[Synced] Campaign Calendar",
+    "primaryFieldId": "fldhVogoeK23UGeUq",
+    "fields": [
+      {
+        "id": "fldhVogoeK23UGeUq",
+        "name": "⚡️Campaign Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldemHlpFBgPxNtv6",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Idea",
+          "Proposal",
+          "Approved: Product Not Ready",
+          "Approved",
+          "In Progress",
+          "Done",
+          "Rejected",
+          "On Hold",
+          "Cancelled"
+        ]
+      },
+      {
+        "id": "fld6pcmlkXEqKv9kw",
+        "name": "Type / Format",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldtWJhLJWCXnThPx",
+        "name": "Final MC Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBf5sLpxD5urfia",
+        "name": "Year",
+        "type": "singleSelect",
+        "choices": [
+          "2023",
+          "2024",
+          "2025",
+          "2026",
+          "2022",
+          "2020",
+          "2021"
+        ]
+      },
+      {
+        "id": "fldXn4od5eDwIPi1Y",
+        "name": "Month",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldn9YJkBQx1ihHNA",
+        "name": "Event",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldiTpbEr6n38U49E",
+        "name": "Scheduled Month [To Archive]",
+        "type": "multipleSelects",
+        "choices": [
+          "01/2023",
+          "02/2023",
+          "03/2023",
+          "04/2023",
+          "05/2023",
+          "06/2023",
+          "07/2023 ",
+          "08/2023",
+          "09/2023",
+          "10/2023",
+          "11/2023",
+          "12/2023",
+          "01/2022",
+          "02/2022",
+          "03/2022",
+          "04/2022",
+          "05/2022",
+          "06/2022",
+          "07/2022",
+          "08/2022",
+          "09/2022",
+          "10/2022",
+          "11/2022",
+          "12/2022",
+          "0 /2021",
+          "01/2024",
+          "02/2024",
+          "03/2024",
+          "04/2024",
+          "05/2024",
+          "06/2024",
+          "07/2024",
+          "08/2024",
+          "09/2024",
+          "10/2024",
+          "11/2024",
+          "12/2024",
+          "01/2025",
+          "02/2025",
+          "03/2025",
+          "04/2025",
+          "05/2025",
+          "06/2025",
+          "07/2025",
+          "08/2025",
+          "09/2025",
+          "10/2025",
+          "11/2025",
+          "12/2025",
+          "Jan 2026",
+          "Feb 2026",
+          "Mar 2026",
+          "Apr 2026",
+          "May 2026",
+          "Jun 2026",
+          "Jul 2026",
+          "Aug 2026",
+          "Sep 2026",
+          "Oct 2026",
+          "Nov 2026",
+          "Dec 2026"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblr1aKR7R9QfG9bJ",
+    "name": "[Synced] Actual Events",
+    "primaryFieldId": "fldqMT98hihO6m1RQ",
+    "fields": [
+      {
+        "id": "fldqMT98hihO6m1RQ",
+        "name": "⚡️Campaign Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldu3y4sauuJZmAh0",
+        "name": "📆 Planning Cal",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzgprLcFftpACWI",
+        "name": "Event",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldaPWnZzbT4yNj0Y",
+        "name": "Type / Format",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldG0wm0TsTaJjdPL",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Idea",
+          "Proposal",
+          "Approved: Product Not Ready",
+          "Approved",
+          "In Progress",
+          "Done",
+          "Rejected",
+          "On Hold",
+          "Cancelled"
+        ]
+      },
+      {
+        "id": "fldEv98WKmJI3BO7S",
+        "name": "Actual Rev",
+        "type": "currency"
+      },
+      {
+        "id": "fldozvec95S886K8j",
+        "name": "Created",
+        "type": "date"
+      },
+      {
+        "id": "fldF1EcZISmAKw9NJ",
+        "name": "Campaign Brief",
+        "type": "url"
+      },
+      {
+        "id": "fldeqAVvC1KFdDsFr",
+        "name": "Final MC Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblUV1a4pOk5QEptE",
+    "name": "Programs",
+    "primaryFieldId": "fldPOzf9xpBL7aZJS",
+    "fields": [
+      {
+        "id": "fldPOzf9xpBL7aZJS",
+        "name": "Program Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldVwspfxndPpuvP4",
+        "name": "Release",
+        "type": "date"
+      },
+      {
+        "id": "fldkhboyXaeX3oWPu",
+        "name": "Priority",
+        "type": "rating"
+      },
+      {
+        "id": "fldGhjK7c6mJbxG3B",
+        "name": "Used in Ads",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldZPLJjl9pAcs4U7",
+        "name": "All Access",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldSTkXw85GN6CU2p",
+        "name": "Coming Soon",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldm1oXrbt1J6Crlg",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "In Discussion",
+          "Approved",
+          "Approached",
+          "Signed",
+          "Pre-Production",
+          "Filmed",
+          "Post-Production",
+          "Product QA",
+          "CN1 Ready",
+          "Completed",
+          "Ready to Publish",
+          "Published",
+          "Cancelled",
+          "On Hold",
+          "Unpublished"
+        ]
+      },
+      {
+        "id": "fldi4cRd6z993wAWg",
+        "name": "Category",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBnRwHQvRvgvSpr",
+        "name": "Program Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldjrMYwiSG9BfSSQ",
+        "name": "Languages",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFQTAW1oM8jMkuK",
+        "name": "Author",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldpWmzzjQBsLSUR5",
+        "name": "Brands",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldu8qbS9fk9Nuk7z",
+        "name": "Outcomes",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldiVcvoaT8qm318M",
+        "name": "Areas of Growth",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldYPR0j1hNUO6iHu",
+        "name": "Lessons",
+        "type": "number"
+      },
+      {
+        "id": "fldJ5XQWFCtAZNeMM",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fldSIlZ2BycVAlH2P",
+        "name": "VSL Campaign",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKAL4bmSeSmL6Gy",
+        "name": "VSL Package",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld6syu730fnpbd7f",
+        "name": "Short hand",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcz9qMdgprPEVKz",
+        "name": "Hooks",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbla3QyRTRdOqZ5Um",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldfqYVPAdEFVqbFe",
+        "name": "Leads",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld1SIOoyxKeOkjuw",
+        "name": "VSL",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblkZqL7bxcXnf3mC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldr7pbKsxdV049L4",
+        "name": "Close",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMPKTUOjf0Z2Wlc",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld78l3l0iQVFzOky",
+        "name": "Copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsyJTIfItkDUOQQ",
+        "name": "Thumbnail",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldoIWhwljIiAU93l",
+        "name": "Imported table",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldSBeSqIkMPuxUEL",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldj7ZKyfdJBEAKMZ",
+        "name": "Final Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldZ03emYorcazNvl",
+        "name": "DNA Rollouts",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldjMAN3TSR0GOuDE",
+        "name": "Final Assets 2",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldNi89ffSPdTCl1n",
+        "name": "Creative Tests (TBD)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldIczVN3wO2vWOMw",
+        "name": "URL",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldyUx5EWU9i4ogeS",
+        "name": "Journey Tiers",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldDOyCG2qCgnA2gq",
+        "name": "Journey Delivery Methods",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldYK8JqGhVdkAXXu",
+        "name": "Pathway",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldXcrt1xK4KXkGWd",
+        "name": "Cover",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldNZfz07uksoEgzB",
+        "name": "Hooks copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldYyfs6LQ0OIVZ9Z",
+        "name": "Components",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5rSB0qdj3coHIX",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldeod6TGfAkM50KU",
+        "name": "Ads Optimization",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhapkFC4lwHDcUa",
+        "name": "Table 29",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgVdp2UibAjFez2",
+        "name": "Table 29 (2)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFuyiYizbUl8qUf",
+        "name": "Short Lead Ads - CTA",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldW8Ijp3TPG0ZYXl",
+        "name": "Launches",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld9Kqe7iP3az8c0m",
+        "name": "Descript",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsgtV6Ypqf9VjSn",
+        "name": "Production copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHPCHAaeFNq01ve",
+        "name": "VSL Raw Files",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldTH6ucJbsMwowpW",
+        "name": "VSL Raw Files copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldSXQIitC8PvMO6P",
+        "name": "Tasks",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldW6BaGmf9Rr3Cu5",
+        "name": "Masterclass Scripts",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld96mAu7rC6BovdC",
+        "name": "Masterclass Scripts copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHqQaD8eRi7RQfU",
+        "name": "Final VSL",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldUVAOhwtTxC4Mqe",
+        "name": "VSL Retargeting Ads",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLe3lht5FEma3Vq",
+        "name": "🥊 Competitor Analysis",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhsDQ4PgtbPJeL1",
+        "name": "Mini-VSL Production",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldlB5KgXfdaaLB4R",
+        "name": "Imported table 2",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldkfu6Bhvd8AP8Jp",
+        "name": "*💬 Mindvalley Stories",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldPnILt7868xKpr9",
+        "name": "Technique / Method",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldrstnEEmJ6OK4uh",
+        "name": "Table 52",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzmNqRiqVRkNoTH",
+        "name": "Table 32",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblWY9WqZL1YyYZqD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldH4sah4uEN0RbRi",
+        "name": "💡 Ideation / Briefs",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3WJrgpxkm7U4oX",
+        "name": "💡 Ideation / Briefs 2",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblW7uunqSxkLPDIP",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldVqltOlt7P0dXyi",
+        "name": "Masterclass",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblzHKUxlthVjE8aP",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldki8V3bdGkuHKna",
+        "name": "Shorts",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl2eJdDR3tiUtRyR",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldj6le2MRbFbQ8vX",
+        "name": "Pathways",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldc94b2hi1kypfIm",
+        "name": "All Funnels",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldk3la2kTlMCa4SR",
+        "name": "Final Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblWY9WqZL1YyYZqD",
+    "name": "❌ PRIMARY OUTCOME",
+    "primaryFieldId": "fldotEoWTTkMBBR7g",
+    "fields": [
+      {
+        "id": "fldotEoWTTkMBBR7g",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKVFcykq9kx5hMg",
+        "name": "Description",
+        "type": "richText"
+      },
+      {
+        "id": "fld8CbV2bIJaulj0Y",
+        "name": "Programs",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldfoMIMHUydSqu3W",
+        "name": "Pathway",
+        "type": "multipleSelects",
+        "choices": [
+          "Manifesting",
+          "Entrepreneur & AI",
+          "Speaking and Influence",
+          "Longevity",
+          "Mindset",
+          "Relationships"
+        ]
+      },
+      {
+        "id": "fldOMWzR4ilNRBALV",
+        "name": "Leads",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld2tf6mmkHNHfR3u",
+        "name": "💡 Creative Briefs",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhVImksgBiDADzX",
+        "name": "Other Funnel Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7H6AaDfSPHJaVA",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Kill",
+          "Scale",
+          "Watch",
+          "Launched"
+        ]
+      },
+      {
+        "id": "flda45fICpmNnSbtR",
+        "name": "Outcome = Banner?",
+        "type": "richText"
+      },
+      {
+        "id": "fldTzEQI1WHZQS642",
+        "name": "Creative Tests",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgQGptpOwq1tTye",
+        "name": "Video Tickets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8sVt8rl1qbeMj7",
+        "name": "Shorts",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldMWLTsCZO6km0Zz",
+        "name": "Sync to Soc Med",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblxOvqE63j80qidM",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldT1fdScLoa16tjV",
+        "name": "💡 Ideation / Briefs",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8VcHX2gZl2PyoM",
+        "name": "Shorts copy",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblQjqy2hLH6ucs7v",
+    "name": "PATHWAY",
+    "primaryFieldId": "fldYYGBWRjLKXEI5X",
+    "fields": [
+      {
+        "id": "fldYYGBWRjLKXEI5X",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldDyOp8yIWT7VxIj",
+        "name": "Collection Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldaJx0XmhkqOqCaY",
+        "name": "Pathway Summary",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldYOkzTrCLefqkqj",
+        "name": "Messaging",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7BNZhTuhm9rVWE",
+        "name": "Messaging Doc URL",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldiaHOalNOmzZuWC",
+        "name": "MKT Owner",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldS4DihRs32VeBkG",
+        "name": "Ads Owner",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldeWqV1MNyaaWr2Y",
+        "name": "Customer Experience Owner",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldUmmv8oZbLReGyy",
+        "name": "🔵 Areas of Growth",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKUSXWavMgtdWm3",
+        "name": "Pixel ID (Paid Ads)",
+        "type": "number"
+      },
+      {
+        "id": "fldhcOsETlmTO0u8X",
+        "name": "Osiris ID",
+        "type": "number"
+      },
+      {
+        "id": "fld7qehGDfgmrL8pT",
+        "name": "URL",
+        "type": "url"
+      },
+      {
+        "id": "fldL5GHz6x5mEOjZX",
+        "name": "Label",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldeTdtRZQf5D584g",
+        "name": "Pathway Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3e4YLCdLOfXMqj",
+        "name": "2nd Upsell Slug",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldmEv2pchpVpOVlp",
+        "name": "Design Owner",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldbzMwQ14y7wBTsb",
+        "name": "Social Owner",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldT09hhdcqhE8bOa",
+        "name": "# Areas of Growth",
+        "type": "number"
+      },
+      {
+        "id": "flduGjU5Osqt9LaZE",
+        "name": "Rating",
+        "type": "rating"
+      },
+      {
+        "id": "fldhdro0fEoJfFUrt",
+        "name": "Secondary Outcomes",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblTeYiyp8NQJ52lb",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldAQOn9I3iq1wqLa",
+        "name": "Quizzes",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldtrNC3bScN7t1nv",
+        "name": "Pathway URLs",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldRXYxSZrUCVbTKq",
+        "name": "Instagram Handle",
+        "type": "url"
+      },
+      {
+        "id": "fldalKxrQ9TCyp9pd",
+        "name": "Other Funnel Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblMqGb2D1qy2pmli",
+    "name": "Primary Outcome",
+    "primaryFieldId": "fldUUzYwUKvNSPUZs",
+    "fields": [
+      {
+        "id": "fldUUzYwUKvNSPUZs",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldTnCGlPusaDajZz",
+        "name": "Landing Page (from Funnels)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldmnAgfsnN9BUJqd",
+        "name": "Ads Platform Outcome",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldMvH6JZScj0mkL3",
+        "name": "Slug",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldE66LijBqOhc6qS",
+        "name": "Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fldLhRSurDihFdS1h",
+        "name": "Program",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldL9fdvO00EUXXwA",
+        "name": "Pathway (from Program)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldCCFqEk2tR5sMdB",
+        "name": "Leads",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldilBwZB7mUTuz7m",
+        "name": "💡 Ideation",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblW7uunqSxkLPDIP",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldT5WCqtSNhST9kX",
+        "name": "Other Funnel Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldjiR9QU7ulTmpR7",
+        "name": "Creative Tests",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldY8gyBtEkzbRQ4X",
+        "name": "Video Tickets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblyw3oxGuBIVPrM4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldZiiaMCBNEoPC5X",
+        "name": "Shorts",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl2eJdDR3tiUtRyR",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldBPeGHgF2V7tsJu",
+        "name": "Sync to Soc Med",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblxOvqE63j80qidM",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldwh6mKSs0PIQ8m0",
+        "name": "Select",
+        "type": "singleSelect",
+        "choices": [
+          "Watch",
+          "Kill",
+          "Scale"
+        ]
+      },
+      {
+        "id": "fldCArUAVkRp8aooq",
+        "name": "Outcome = Banner?",
+        "type": "richText"
+      },
+      {
+        "id": "fldpHEdF4arKosDog",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Todo",
+          "In progress",
+          "Done"
+        ]
+      },
+      {
+        "id": "fldYiE8tVOxSufbm3",
+        "name": "Select 2",
+        "type": "singleSelect",
+        "choices": [
+          "To check",
+          "To fix - data problem"
+        ]
+      },
+      {
+        "id": "fldQnekKvajnFmpAk",
+        "name": "Funnels",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldoYzqKpsvVtJxEF",
+        "name": "Final Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblTeYiyp8NQJ52lb",
+    "name": "Secondary Outcome",
+    "primaryFieldId": "fldDouFWEqSXnOfTR",
+    "fields": [
+      {
+        "id": "fldDouFWEqSXnOfTR",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldtOs33vJe8220Me",
+        "name": "Category",
+        "type": "singleSelect",
+        "choices": [
+          "Todo",
+          "In progress",
+          "Done",
+          "Wealth",
+          "Health",
+          "Career/ Entrepreneurship",
+          "Love",
+          "Mind",
+          "Spiritual"
+        ]
+      },
+      {
+        "id": "fldrvLVqhH28rVTqf",
+        "name": "Leads",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldTR4oVdfzx1ST22",
+        "name": "Funnels",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldaebiwzSopr138j",
+        "name": "Ꙍ Pathways",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldbtd19WFxkFOqBr",
+        "name": "Notes",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblWyBK9vLcZxpic7",
+    "name": "Secondary Outcomes (migrated to pathways AT)",
+    "primaryFieldId": "fldsEuUurgceCR3GF",
+    "fields": [
+      {
+        "id": "fldsEuUurgceCR3GF",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhdsq0GGDjaHbad",
+        "name": "Leads",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld0U3174DuJL25pv",
+        "name": "Pathway",
+        "type": "singleSelect",
+        "choices": [
+          "Love",
+          "Wealth",
+          "Health",
+          "Career/ Entrepreneurship",
+          "Spiritual",
+          "Emotions",
+          "Mind"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblmkc85dsr1TA31I",
+    "name": "✍️ Ad Copy",
+    "primaryFieldId": "fldMC0swZRF8uMpjL",
+    "fields": [
+      {
+        "id": "fldMC0swZRF8uMpjL",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldpTf308XoOqr2Dn",
+        "name": "FB Headline",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwoEZunvsXT2ow8",
+        "name": "FB Primary Text",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldioYGZl7hm6qeH9",
+        "name": "FB Description (30)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldTTG6k3ecBQHBiz",
+        "name": "Google Headlines (40)",
+        "type": "richText"
+      },
+      {
+        "id": "fld8D11bBScFFZWTE",
+        "name": "Google Long Headline (90)",
+        "type": "richText"
+      },
+      {
+        "id": "fldAV2KuX7DEIYnac",
+        "name": "Google Descriptions (90)",
+        "type": "richText"
+      },
+      {
+        "id": "fldAemgbyfS4QV8E3",
+        "name": "Product",
+        "type": "singleSelect",
+        "choices": [
+          "7 Figure Creator",
+          "Duality",
+          "Everyday Bliss",
+          "Silva Ultramind System",
+          "The Art of Manifesting",
+          "Wildfit",
+          "Be Extraordinary",
+          "RTT",
+          "Experience Lucid Dreaming",
+          "Amplify with Ai",
+          "Sixth Sense SuperPower",
+          "AUDIOWAVES",
+          "Mindvalley Membership",
+          ""
+        ]
+      },
+      {
+        "id": "flddcDKcGNpTCX1BU",
+        "name": "Copy Style",
+        "type": "singleSelect",
+        "choices": [
+          "Broad - generic",
+          "Direct Offer",
+          "Short - Direct Offer",
+          "Editorial (News)",
+          "Short - Watch Video",
+          "Nightmare - Away from pain",
+          "Dream - Toward goal",
+          "Keep watching - content takeaways",
+          "Lead Specific",
+          "Social Proof/ Authority",
+          "Counter-intuitive / Shock",
+          "Curiosity/Intrigue",
+          "Mini LP",
+          "FREE TRIAL"
+        ]
+      },
+      {
+        "id": "fldFbtaCRVnXplUVw",
+        "name": "Funnel Type",
+        "type": "singleSelect",
+        "choices": [
+          "VSL",
+          "Masterclass",
+          "Campaigns (Summit, Coach, Cert)",
+          "Single Product"
+        ]
+      },
+      {
+        "id": "fld42IyBPKDpEOhAr",
+        "name": "In-Use / Used",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldVUxmoagYep6XKf",
+        "name": "FB HL Character Count",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "LEN({fldpTf308XoOqr2Dn})"
+      },
+      {
+        "id": "flddts3y2JESm7Jex",
+        "name": "FB PT Character Count",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "LEN({fldwoEZunvsXT2ow8})"
+      },
+      {
+        "id": "fld46NS6SmupHOn6X",
+        "name": "FB Dsc Character Count c",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "LEN({fldioYGZl7hm6qeH9})"
+      },
+      {
+        "id": "fldsmxe6b2V53gFsC",
+        "name": "FB /GG",
+        "type": "singleSelect",
+        "choices": [
+          "Facebook",
+          "Google"
+        ]
+      },
+      {
+        "id": "fld19LuQiXz8KdWFo",
+        "name": "GG H/L - LEN",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "LEN({fldTTG6k3ecBQHBiz})"
+      },
+      {
+        "id": "fldtbFQUmsSoKVLeo",
+        "name": "GG Long H/L LEN",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "LEN({fld8D11bBScFFZWTE})"
+      },
+      {
+        "id": "fld7BC6K7KUouPiVZ",
+        "name": "GG Desc LEN",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "LEN({fldAV2KuX7DEIYnac})"
+      },
+      {
+        "id": "fldKKv7bFcTyvLkcK",
+        "name": "Internal Rating",
+        "type": "rating"
+      },
+      {
+        "id": "fldP0eDnWIeTfFm1Q",
+        "name": "Link to Other Funnel Assets",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldbK5p8QOJ7MjuLB",
+        "name": "Banner Image",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldFNEc4dJuvNvtAk",
+        "name": "Final Image (from Link to Other Funnel Assets)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldEvs8Bd0prxPcut",
+        "name": "Video Link",
+        "type": "url"
+      },
+      {
+        "id": "fldCAjjRfjfoIOCdL",
+        "name": "Created Time",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldnCWzI8ishK13qq",
+        "name": "Not by Matt",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldZff3ipCkpToYw1",
+        "name": "Final VSL Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld9X8IyW0okj8s5L",
+        "name": "✍️ Lead Transcripts (from Lead) (from Final VSL Ad Asset)",
+        "type": "multipleLookupValues",
+        "resultType": "richText"
+      }
+    ]
+  },
+  {
+    "id": "tblfHLrYIE2hs1P7z",
+    "name": "❌ Ad Asset Type",
+    "primaryFieldId": "fldtvRTRnoDff6aV4",
+    "fields": [
+      {
+        "id": "fldtvRTRnoDff6aV4",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKGnnL2sjUPX5Au",
+        "name": "Length",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldJZeSRip4hmA8tJ",
+        "name": "Temperature",
+        "type": "multipleSelects",
+        "choices": [
+          "COLD",
+          "LUKE WARM",
+          "WARM",
+          "HOT",
+          "WARM/HOT"
+        ]
+      },
+      {
+        "id": "fldPsEBgazwqbNxr9",
+        "name": "Short Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldDAuCDA0rPGVCMA",
+        "name": "Structure / Creative DNA",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldxhmyocoCE0TX4D",
+        "name": "CTA options",
+        "type": "singleSelect",
+        "choices": [
+          "ALL / ANY",
+          "Lead Gen (Masterclass)",
+          "Page VSL",
+          "Single Quest / Collection Sale ",
+          "Collection Sale"
+        ]
+      },
+      {
+        "id": "fldhuMNLCekPy5lOe",
+        "name": "Static / Video",
+        "type": "singleSelect",
+        "choices": [
+          "Static",
+          "Carousel",
+          "Video",
+          "Animated"
+        ]
+      },
+      {
+        "id": "fldcSp47IJCpB5PvG",
+        "name": "Good Examples",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldzosbYkNg8EKyAl",
+        "name": "Camapign Structures",
+        "type": "singleLineText"
+      },
+      {
+        "id": "flda9HPqfowMQsLjn",
+        "name": "Camapign Structures copy",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblAfOXMUTYevw5tD",
+    "name": "❌ Marketing Type",
+    "primaryFieldId": "fld1Wl2AF68cZXy77",
+    "fields": [
+      {
+        "id": "fld1Wl2AF68cZXy77",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldk2ByIaTAn6nWDs",
+        "name": "Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldt9YU5ldiCQEqhE",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Todo",
+          "In progress",
+          "Done"
+        ]
+      },
+      {
+        "id": "fldRT4cOY3SQkDxrj",
+        "name": "Attachments",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldhMgZZcWIqZyT87",
+        "name": "Attachment Summary",
+        "type": "aiText"
+      },
+      {
+        "id": "fldnNcePOrub8HkCH",
+        "name": "Creative Tests",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldW4L9OZBtx6LXWR",
+        "name": "Final Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldmpzEzSEACFjg81",
+        "name": "All Funnels",
+        "type": "singleLineText"
+      },
+      {
+        "id": "flds4B9l3Ym5K1FfF",
+        "name": "Last Modified By",
+        "type": "lastModifiedBy"
+      }
+    ]
+  },
+  {
+    "id": "tblc0d1VnkWgpi0Lm",
+    "name": "EMPLOYEES",
+    "primaryFieldId": "fldATqeuCYejh7OTB",
+    "fields": [
+      {
+        "id": "fldATqeuCYejh7OTB",
+        "name": "Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld2PmJRjLJvjV78q",
+        "name": "Employee #",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldxlkB16RXwLYfd1",
+        "name": "Hiring Status",
+        "type": "singleSelect",
+        "choices": [
+          "Joining Soon",
+          "Probation",
+          "Active",
+          "Leaving Soon",
+          "Ex-Team",
+          "Contract Ended",
+          "Offer Declined"
+        ]
+      },
+      {
+        "id": "fldzAdO2CBf7gqawk",
+        "name": "Division Executive",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcVOOk4NnAnustt",
+        "name": "Department Manager",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldclWJVIl3PCOh7m",
+        "name": "Airtable Record ID",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZjGvrQGl79ikIr",
+        "name": "Team Lead",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7sw4qRIsj0cx6I",
+        "name": "Active Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Not Active"
+        ]
+      },
+      {
+        "id": "fld9ZcrxJ1ngRX60C",
+        "name": "Employment Status",
+        "type": "singleSelect",
+        "choices": [
+          "Full-Time",
+          "Full-Time EOR",
+          "Part-Time ",
+          "Part-Time EOR",
+          "Contractor",
+          "Advisor",
+          "Service Provider",
+          "Intern",
+          "Owner (Shareholder)",
+          "Other",
+          "Terminated",
+          "Maternity Leave",
+          "Full-Time (Maternity Cover)"
+        ]
+      },
+      {
+        "id": "fld6X2KUrXAPeJfNY",
+        "name": "MV Entity",
+        "type": "singleSelect",
+        "choices": [
+          "MV Labs (Malaysia)",
+          "Remote",
+          "MV Inc (USA)",
+          "MV OU (Estonia)",
+          "MV UK",
+          "MV ME (UAE)"
+        ]
+      },
+      {
+        "id": "fldDknQatD9uaZFiC",
+        "name": "Working Location",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8DrgSUMCY0LIgQ",
+        "name": "Job Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldL3ztFEFXjrXhQX",
+        "name": "Work Email",
+        "type": "email"
+      },
+      {
+        "id": "fldMlYJAWll9Nruce",
+        "name": "Reporting To (Supervisor)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldGI3miLScywEamZ",
+        "name": "Supervisor Emails",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldWNRYWbpBS4gocI",
+        "name": "Profile Pic",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldSLsQOoiYulgSo4",
+        "name": "Division",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFj2QGJHDe8nFU1",
+        "name": "Leads DIVISION",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldM5Ms3p4M7WU4RS",
+        "name": "Department",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldwI0NOrHULsEVjU",
+        "name": "Leads DEPARTMENT",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHNK7hDPTPJrxRg",
+        "name": "Slack Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKe6G4oWF6GCg20",
+        "name": "Last modified",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldUgseGhfIiFkETX",
+        "name": "Direct Reports",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldX6nffuRDQFAZum",
+        "name": "# Direct Reports",
+        "type": "number"
+      },
+      {
+        "id": "fldgkIhQF0Hm86vYu",
+        "name": "Leads TEAM",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldpr5GpP6ZzvBjA5",
+        "name": "Active Under TEAM",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0uSRsXSHyfb7hO",
+        "name": "Business Units",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld1GrLv7EC75TcVV",
+        "name": "Is Executive?",
+        "type": "checkbox"
+      }
+    ]
+  },
+  {
+    "id": "tblkmgIwsibryPiUS",
+    "name": "BUSINESS UNITS",
+    "primaryFieldId": "fldSUqH6cTlFvKkHG",
+    "fields": [
+      {
+        "id": "fldSUqH6cTlFvKkHG",
+        "name": "Business Unit (BU) Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld1mJyrJzpCYCmW1",
+        "name": "Head of BU",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldyfrrghu5h7Mwio",
+        "name": "Product",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKqCidGQXhnq1gd",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "To create",
+          "Active",
+          "To deactivate",
+          "Deactivated"
+        ]
+      },
+      {
+        "id": "fldJcAJuRQnBZyX2j",
+        "name": "Creative Tests",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld5YupnADKzXbFir",
+        "name": "Final Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldjk3Th9RRAxiAgZ",
+        "name": "All Funnels",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldV9lPvvVeOQ0UPE",
+        "name": "Email Group",
+        "type": "email"
+      }
+    ]
+  },
+  {
+    "id": "tblCpib1cFACJEg6p",
+    "name": "Imported Funnel Ads [?]",
+    "primaryFieldId": "fldGWBWq72ufN8zcZ",
+    "fields": [
+      {
+        "id": "fldGWBWq72ufN8zcZ",
+        "name": "Ad name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhZMIK5codZQ50C",
+        "name": "Funnel Model [Overall]",
+        "type": "singleSelect",
+        "choices": [
+          "Funnel Model [Overall]",
+          "Masterclass (All)",
+          "VSL (Overall)"
+        ]
+      },
+      {
+        "id": "fldqMU2ldPZVajTAY",
+        "name": "Advertising Spend",
+        "type": "currency"
+      },
+      {
+        "id": "fldkMoYCpm3RSdWUT",
+        "name": "Ad Revenue [New] V3",
+        "type": "currency"
+      },
+      {
+        "id": "fld16IlEcHq5WkWGx",
+        "name": "ROAS [New] V3",
+        "type": "percent"
+      },
+      {
+        "id": "fldEj7bpq94Yclril",
+        "name": "Leads/MC Transcription",
+        "type": "richText"
+      },
+      {
+        "id": "fld8GJnuYRZ4M1G9a",
+        "name": "Main VSL Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fld0yyWCwBH7YVx1g",
+        "name": "Last Modified By",
+        "type": "lastModifiedBy"
+      },
+      {
+        "id": "fldd5rZnJh692blbK",
+        "name": "Last Modified",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      }
+    ]
+  },
+  {
+    "id": "tbl1AcKpMQvnF05YJ",
+    "name": "Ad Creatives",
+    "primaryFieldId": "fldSFSHNV8lnxhzqi",
+    "fields": [
+      {
+        "id": "fldSFSHNV8lnxhzqi",
+        "name": "Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld3jxtoIk8uHOe2M",
+        "name": "Live Date",
+        "type": "date"
+      },
+      {
+        "id": "fldJPyPeEMiZzb6Sm",
+        "name": "📣 Post Dates",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsoSbmXl8B6yqTV",
+        "name": "Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldTKJnxnXoVX2A5F",
+        "name": "Reference",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldD2KyLmbvu3THey",
+        "name": "Priority",
+        "type": "rating"
+      },
+      {
+        "id": "fldLFc5AZlCbXs2F3",
+        "name": "MV Author",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldeWlm9l7vOpw28h",
+        "name": "🛎️ Content Type",
+        "type": "singleSelect",
+        "choices": [
+          "Social",
+          "Ad"
+        ]
+      },
+      {
+        "id": "fldsAJ82joOxv5LA2",
+        "name": "🧭 Purpose",
+        "type": "singleSelect",
+        "choices": [
+          "🎺 Announcement",
+          "💡 Educate",
+          "🚀 Launch"
+        ]
+      },
+      {
+        "id": "fldWEDO6UOwUtaGSO",
+        "name": "💿 Social Format",
+        "type": "singleSelect",
+        "choices": [
+          "1. Video",
+          "2. Email",
+          "3a. Insta: Post/Carousel",
+          "3b. Insta: Snippet / Long Reel",
+          "3c. Insta: Stories",
+          "3d. Insta: Static Image",
+          "3e. Insta: Long Carousel",
+          "4. Reel < 1 min",
+          "5a. YT: Full Talk",
+          "5b. YT: Shorts",
+          "5c. YT  < 20m",
+          "7. Meditation/Sounds",
+          "8. Blog Post",
+          "9. Live Stream",
+          "10. MV Show Full Episode",
+          "11: Tweet Body/Text Only",
+          "13. Cover or Banner",
+          "14. FB: Photo Album",
+          "16. Poll",
+          "17. LinkedIn Text Post",
+          "18. Broadcast Message",
+          "2: Approved"
+        ]
+      },
+      {
+        "id": "fldNh9GqWzLjzcibr",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "1: Proposal",
+          "2: Approved",
+          "2A. Ticket Raised",
+          "3: In Progress",
+          "4: To Refine",
+          "5: Video Ready",
+          "6: Copy Request",
+          "7: Copy Ready",
+          "8: Final Asset Review",
+          "9: Ready to Release",
+          "10: Scheduled",
+          "11: Released",
+          "12: Parked for later",
+          "13: Reject",
+          "Used in Prev Launch"
+        ]
+      },
+      {
+        "id": "fldFy2xJOIztN7U6m",
+        "name": "📣 Posts",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldfaWAFKpXYKlKCL",
+        "name": "📣 % Posts Live",
+        "type": "percent"
+      },
+      {
+        "id": "fldcAc3oLn1Ky8Gf0",
+        "name": "📣 Posts Live",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFWiIdGyFQQAM9l",
+        "name": "🏳️‍🌈 Channels",
+        "type": "multipleSelects",
+        "choices": [
+          "Email",
+          "FB: MV",
+          "FB: VL",
+          "IG: MV",
+          "IG: VL",
+          "IG: Events",
+          "IG: Lifebook",
+          "IG: Coach",
+          "LI: MV",
+          "LI: VL",
+          "X: MV",
+          "X: VL",
+          "YT: MV",
+          "YT: MV Talks",
+          "YT: VL",
+          "TT: MV",
+          "TT: VL",
+          "IG: MV Es",
+          "IG: MV De",
+          "IG: MV Fr",
+          "IG: MV Coach",
+          "IG: States",
+          "FB: States",
+          "YT: States",
+          "IG: MV Members",
+          "FB: MV Members",
+          "YT: MV Members",
+          "WA: MV Members",
+          "IG: BookClub",
+          "FB: BookClub",
+          "YT: BookClub",
+          "IG: Kristina",
+          "FB: Kristina",
+          "IG: Future Human",
+          "IG: Broadcast",
+          "YT Mastery",
+          "YT MV Shorts",
+          "FB: Events",
+          "IG: MV Manifesting",
+          " FB: MV Manifesting",
+          "IG: MV Speaking ",
+          "FB: MV Speaking ",
+          "IG: MV Entrepreneurship",
+          " FB: MV Entrepreneurship",
+          "IG: MV Longevity ",
+          "FB: MV Longevity"
+        ]
+      },
+      {
+        "id": "fldJr4DxGPEz2jPAC",
+        "name": "✉️ Audience",
+        "type": "multipleSelects",
+        "choices": [
+          "Everyone",
+          "1,2: Public",
+          "3: Lifebook",
+          "3: Members",
+          "4: Pro",
+          "5: Coach",
+          "5: Events",
+          "6: Mastery",
+          "Sublist (Any)"
+        ]
+      },
+      {
+        "id": "fldIjWPgjCMltlMNo",
+        "name": "Notes / Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fld4TYRfiA7v1PnTJ",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldpogh0xVvQmSTGa",
+        "name": "Created Date",
+        "type": "date"
+      },
+      {
+        "id": "fldpRfARatoqoQWmp",
+        "name": "📯 Campaign",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl8gW3ErjS3AvFDS",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldS8rsh2ZGtehNK5",
+        "name": "✍️ Social Media Captions",
+        "type": "richText"
+      },
+      {
+        "id": "fld7d0Vnjf0varkYx",
+        "name": "▶️ ✍️ YouTube Caption",
+        "type": "richText"
+      },
+      {
+        "id": "fldNOf0cOkytnFW9C",
+        "name": "► Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldHra4Ah0u36wbIj",
+        "name": "► Final Asset",
+        "type": "richText"
+      },
+      {
+        "id": "fldNAXZ5xPAPlaz0z",
+        "name": "► Draft",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgjNxE5csFAcDXj",
+        "name": "📣 Live",
+        "type": "number"
+      },
+      {
+        "id": "fldkQ5DS3LXen63hJ",
+        "name": "📣 Scheduled",
+        "type": "number"
+      },
+      {
+        "id": "fldm6Yo7V44BGkZBw",
+        "name": "📣 Total",
+        "type": "number"
+      },
+      {
+        "id": "fld7wKgkiPdGbkLds",
+        "name": "📣 Post Status",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldnSie6oybcLmmcl",
+        "name": "Speaker Name (from 🎤 Talks 2)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgQxhqz42HqJcf1",
+        "name": "Imported table",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tbl1wYSrJAFbxqLsr",
+    "name": "Campaigns Calendar - Official",
+    "primaryFieldId": "fldlFvSw1WYMSqBqh",
+    "fields": [
+      {
+        "id": "fldlFvSw1WYMSqBqh",
+        "name": "Name of project",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldjZ4OzHjX7JJtHX",
+        "name": "Unique Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldiIfxhVfwUHXOrw",
+        "name": "Month",
+        "type": "singleSelect",
+        "choices": [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+          "?"
+        ]
+      },
+      {
+        "id": "fldetlJuNFOCMJNE2",
+        "name": "Year",
+        "type": "singleSelect",
+        "choices": [
+          "2026",
+          "2024",
+          "2025",
+          "2023"
+        ]
+      },
+      {
+        "id": "fldFJRRMIqng2mNmq",
+        "name": "Ticket",
+        "type": "multipleSelects",
+        "choices": [
+          "Free",
+          "Paid"
+        ]
+      },
+      {
+        "id": "fldVBiT9cUY1PXEQO",
+        "name": "Event type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldqzNPA3SThdDHXq",
+        "name": "Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fldjjM3yEwobpUvdu",
+        "name": "Start date",
+        "type": "date"
+      },
+      {
+        "id": "fldvUL6fCnwRsLBDR",
+        "name": "End Date",
+        "type": "date"
+      },
+      {
+        "id": "fldMhC7UFyCSHmqWt",
+        "name": "Medium",
+        "type": "multipleSelects",
+        "choices": [
+          "🎥 Studio",
+          "📺 Zoom",
+          "💃 Large Event (> 500)",
+          "🏖️ Small Event (< 500)",
+          "📧 Email",
+          "📹 Video"
+        ]
+      },
+      {
+        "id": "fldcSIjLahppcaNGj",
+        "name": "💿 Production Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldEU0fSu4kQWS4V7",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Proposal",
+          "Confirmed",
+          "Completed",
+          "Fine-Tuning Needed",
+          "Dates to be Confirmed",
+          "Rejected/Cancelled"
+        ]
+      },
+      {
+        "id": "fldfao26qiVBxKDip",
+        "name": "Promotions Start Date",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldjgXKgplfzMazRF",
+        "name": "Promotions Duration",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldJEzbII16DBzIlw",
+        "name": "Responsible",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld6tYu2zaxWV8kJz",
+        "name": "Average revenue (from Event type)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldOdb9ixftOIM7rg",
+        "name": "All Funnels",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblxOvqE63j80qidM",
+    "name": "Sync to Soc Med",
+    "primaryFieldId": "fldec9MDJIeKvktV1",
+    "fields": [
+      {
+        "id": "fldec9MDJIeKvktV1",
+        "name": "Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldGngROjJC046Mrj",
+        "name": "🧭 Purpose",
+        "type": "singleSelect",
+        "choices": [
+          "🎺 Announcement",
+          "💡 Educate",
+          "🚀 Launch"
+        ]
+      },
+      {
+        "id": "fldrSjR9TPC20thFW",
+        "name": "💿 Social Format",
+        "type": "singleSelect",
+        "choices": [
+          "1. Video",
+          "2. Email",
+          "3a. Insta: Post/Carousel",
+          "3b. Insta: Snippet / Long Reel",
+          "3c. Insta: Stories",
+          "3d. Insta: Static Image",
+          "3e. Insta: Long Carousel",
+          "4. Reel < 1 min",
+          "5a. YT: Full Talk",
+          "5b. YT: Shorts",
+          "5c. YT  < 20m",
+          "7. Meditation/Sounds",
+          "8. Blog Post",
+          "9. Live Stream",
+          "10. MV Show Full Episode",
+          "11: Tweet Body/Text Only",
+          "13. Cover or Banner",
+          "14. FB: Photo Album",
+          "16. Poll",
+          "17. LinkedIn Text Post",
+          "18. Broadcast Message",
+          "2: Approved"
+        ]
+      },
+      {
+        "id": "fldQmDJAz1gmACnHV",
+        "name": "🛎️ Content Type",
+        "type": "singleSelect",
+        "choices": [
+          "Social",
+          "Ad"
+        ]
+      },
+      {
+        "id": "fldOE3M4PylGwwUwI",
+        "name": "DROPBOX",
+        "type": "aiText"
+      },
+      {
+        "id": "fldMQ7BMO28USDlFF",
+        "name": "Full Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldQq6ivjU8N8pJL6",
+        "name": "Add to ideation",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldkFfZHZZksThvd3",
+        "name": "MV Author",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld12dWqFxb2qiNXY",
+        "name": "Notes / Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fldnfV51WWjDrbiut",
+        "name": "Reference",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldOB8ULXo9ix0t0d",
+        "name": "Created Date",
+        "type": "date"
+      },
+      {
+        "id": "fldtfDFdZnSPcSGjC",
+        "name": "Author / Speaker",
+        "type": "singleSelect",
+        "choices": [
+          "Adam Roa",
+          "Adriana Gallardo",
+          "Agapi Stassinopoulos",
+          "Aidan Hutchinson",
+          "Aislinn Derbez",
+          "Ajit Nawalkha",
+          "Alan Turing",
+          "Alan Watts",
+          "Alex Zagrebelny",
+          "Alfio Bardolla",
+          "Alison Escalante",
+          "Allan & Barbara Pease",
+          "Alyssa Nobriga",
+          "Amy Killen",
+          "Andrew Huberman",
+          "Andri",
+          "Anthony Smith",
+          "AP",
+          "Arianna Huffington, Agapi Stassinopoulos",
+          "Armine Shahnazaryan",
+          "Arvin Khamseh",
+          "Austin Mao",
+          "Bärbel Bläser",
+          "Barton Scott, Shawn Wells",
+          "Ben Greenfield",
+          "Bernard Hiller",
+          "Bianca Andreescu",
+          "Bibi Brzozka",
+          "Bill Campbell",
+          "Billie",
+          "Bob Parsons",
+          "Bob Proctor",
+          "Bradley Morris",
+          "Brendan Kane",
+          "Bruce Lee",
+          "Buddha",
+          "Burt Goldman",
+          "Cameron Herold",
+          "Camilla Hansson",
+          "Charlie Houpert",
+          "Charlie Morley",
+          "Chris Do",
+          "Chris McDonald",
+          "Christie Marie Sheldon",
+          "Christine Hassler",
+          "Cloè Sommadossi",
+          "Codie Sanchez",
+          "Dan Savage",
+          "Danette",
+          "Daniel Priestley",
+          "Dariush Soudi",
+          "Dave Asprey",
+          "David Ghiyam",
+          "David Perry",
+          "Dawn Hoang",
+          "Dawn Hoang, Eve",
+          "Dawson Church",
+          "Deepika Bhoolabhai",
+          "Denise Schonwald",
+          "DJ Bliss",
+          "Domenic Ashburn",
+          "Donna Eden",
+          "Dorie Clark",
+          "Dr. Adeel Khan",
+          "Dr. Amanda Hanson",
+          "Dr. Barry",
+          "Dr. Caroline Leaf",
+          "Dr. Jill",
+          "Dr. Joe Dispenza",
+          "Dr. Kalpana Sundar",
+          "Dr. Laura Berman",
+          "Dr. Lisa",
+          "Dr. Megan Rossi",
+          "Dr. Michael Breus",
+          "Dr. Michael Norton",
+          "Dr. Mindy Pelz",
+          "Dr. Romie Mushtaq",
+          "Dr. Sara Al Madani",
+          "Dr. Sheen Gurrib",
+          "Dr. Shefali Tsabary",
+          "Dr. Srikumar Rao",
+          "Dr. Tara Swart",
+          "Dr. Umair Qureshi",
+          "Dr. Zach Bush",
+          "Dror Levy",
+          "Egypt Sherrod",
+          "Elif Hürdoğan, Phil Geelhoed",
+          "Emily Fletcher",
+          "Eric Edmeades",
+          "Esther Perel",
+          "Esther Perel, Dan Savage, Marisa Peer",
+          "Eve",
+          "Eve AI",
+          "Florencia Andrés",
+          "Frank Elaridi",
+          "Gabby Bernstein",
+          "Gautam",
+          "Gelong Thubten",
+          "Gerard Adams",
+          "Greg Louganis",
+          "Greg Louganis Silva",
+          "Gretchen Rubin",
+          "Guy Kawasaki",
+          "Gwyneth Paltrow",
+          "Hafiz",
+          "Helen Hadsell",
+          "Hikmat Wehbi",
+          "Iman Oubou",
+          "Itay Talgam",
+          "Jade Shaw",
+          "Jamie Wheal",
+          "Jamie Wheal, John Lilly",
+          "Jason Goldberg",
+          "Jason Prall",
+          "Jason Silva",
+          "Jason Young Stiles",
+          "Jaspreet Singh",
+          "Jay Shetty",
+          "Jeffrey Allen",
+          "Jeffrey Perlman",
+          "Jennifer Partridge",
+          "Jenny Gordienko",
+          "Jim Kwik",
+          "Jimmy Naraine",
+          "JJ Virgin",
+          "Joan Gallares",
+          "Joel Madden",
+          "John Lee",
+          "John Lennon",
+          "Jon & Missy Butcher",
+          "Jon Butcher",
+          "Jon Jacques",
+          "Jon Polish",
+          "Jorge Perez",
+          "Jose Silva",
+          "Joseph Cronin",
+          "Josh",
+          "Josh Peck",
+          "Juan Pablo",
+          "Justin Baldoni",
+          "Justyna Zubrycka",
+          "Katherine Woodward Thomas",
+          "Kathy Lien",
+          "Katia Kulyk",
+          "Kayla Barnes",
+          "Keith Ferrazzi",
+          "Ken Honda",
+          "Kerry Fisher",
+          "Kim Perell",
+          "Kristina Mand-Lakhiani",
+          "Kuhan",
+          "Kumail Nanjiani",
+          "Kwame Christian",
+          "Lawrence",
+          "Layla Martin",
+          "Leah Marville",
+          "Lee Holden",
+          "Lewis Howes",
+          "Linda Clemons",
+          "Linda K. Knaus",
+          "Lindsey Vonn",
+          "Lisa Bilyeu",
+          "Lisa Nichols",
+          "Lorenzo Delano, Jelena Lakic",
+          "Lucy Hale",
+          "Mahatria Ra",
+          "Mahendra Singh Chouhan",
+          "Manon Dave",
+          "Mara Almeida",
+          "Marco Perego Saldana",
+          "Maria",
+          "Maria Conceição",
+          "Maria Menounos",
+          "Marie",
+          "Marie Diamond",
+          "Marie Diamond, Big Sean",
+          "Marie Forleo",
+          "Marisa Peer",
+          "Mark Cuban",
+          "Mark Hyman",
+          "Mary Christine",
+          "Mathew Knowles",
+          "Mathew Knowles, Kobe Bryant",
+          "Matthew McConaughey",
+          "Maye Musk",
+          "Mayim Bialik",
+          "Michael Beckwith",
+          "Michael Beckwith, Oprah",
+          "Michelle Yeoh",
+          "Mike Chang",
+          "Miki Agrawal",
+          "Milan",
+          "Milo",
+          "Mindvalley",
+          "Monty Moran",
+          "Mr. Grateful",
+          "Muhammad Ali",
+          "Mukhti",
+          "Nabila Rind",
+          "Namita Mankad",
+          "Nas",
+          "Nassim Haramein",
+          "Natalie Ellis",
+          "Naveen Jain",
+          "Neale Donald Walsch",
+          "Neelam Verma",
+          "Neeta Bhushan",
+          "Neil Strauss",
+          "Nick Hobson",
+          "Nir Eyal",
+          "Niraj Naik",
+          "Noelle Russell",
+          "Noyko Stanilov",
+          "Nuseir Yassin",
+          "Paul McKenna",
+          "Paul McKenna, Ajit Nawalkha",
+          "Paulius Staniunas",
+          "Payal Kadakia",
+          "Prince EA",
+          "Priyanka",
+          "Rachel Pringle",
+          "Rachel Pringle, Emily Fletcher",
+          "Rames",
+          "Regan Hillyer",
+          "Rhea Lalla",
+          "Robert Allen",
+          "Robin Sharma",
+          "Rola Diab",
+          "Rolene Strauss",
+          "Ronan Diego",
+          "Roxie Nafousi",
+          "Rumi",
+          "Ryan Holiday",
+          "Sabrina Stocker",
+          "Sadhguru",
+          "Sadhvi Bhagawati Saraswati",
+          "Sahara Rose",
+          "Sahil Bloom",
+          "Sandy Grigsby",
+          "Sara Davison, Tyler Fisk",
+          "Sarah Breskman Cosme",
+          "Sarah Prout",
+          "SB",
+          "Sean Kanan",
+          "Seif El Hakim",
+          "Sensei Zen Takai",
+          "Shadé Zahrai",
+          "Shally Singh",
+          "Shawn Kanungo",
+          "Shawn Wells",
+          "Sheila Kelley",
+          "Shelly Lefkoe, Dr. Shefali Tsabary",
+          "Shi Heng Yi",
+          "Sima Ved, Mona Kattan",
+          "Simon Zutshi",
+          "Skip Kelly",
+          "Sonia Choquette",
+          "Sri Sri Ravi Shankar",
+          "Steve Cotter",
+          "Steven Bartlett",
+          "Steven Kotler",
+          "Stew Langer",
+          "Susan David",
+          "Susannah Pringle",
+          "Tara Emad",
+          "The Monroe Institute",
+          "Tim Storey",
+          "Tom Bilyeu",
+          "Tony Robbins",
+          "Unknown",
+          "Vishen Lakhiani",
+          "Vykintas Glodenis",
+          "Wayne Dyer",
+          "William Murray",
+          "Zain"
+        ]
+      },
+      {
+        "id": "fldtnupHfmnKokhme",
+        "name": "► Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fld5KdjmcGnTFpz8R",
+        "name": "► Final Asset",
+        "type": "richText"
+      },
+      {
+        "id": "fldEwZfrqeUwTtscs",
+        "name": "Final Published Link",
+        "type": "url"
+      },
+      {
+        "id": "fldul9zl29GFQLhaO",
+        "name": "🎫 Video Ticket (JIRA)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3w5BiTjqTuuWH9",
+        "name": "🔗 Video Output",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldCl2IqdimETRwgB",
+        "name": "Final Asset",
+        "type": "url"
+      },
+      {
+        "id": "fldDikn66QPABf2SX",
+        "name": "► Working Files",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFS0ZNBSlOOLxgB",
+        "name": "🔗 Video Ticket",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldVuZAP0MR9IF0qM",
+        "name": "File or Folder",
+        "type": "aiText"
+      },
+      {
+        "id": "fldFdxbcDfiN0yTKX",
+        "name": "Primary Outcome / Audience",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblWY9WqZL1YyYZqD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldhyelNCRgMvIrMk",
+        "name": "Impressions",
+        "type": "number"
+      },
+      {
+        "id": "fld87F7Ph1YMntGl6",
+        "name": "Engagement ",
+        "type": "number"
+      },
+      {
+        "id": "fldzMJ4K9J8pf4hu5",
+        "name": "Engagement Rate",
+        "type": "number"
+      },
+      {
+        "id": "fldKda5BOKuATE3TZ",
+        "name": "Airtable ID",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "RECORD_ID()"
+      },
+      {
+        "id": "fld33hocf78ObIh4t",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tbl89WOOXO0i2FhT5",
+    "name": "SYNC: Ad Creatives",
+    "primaryFieldId": "fldUtpo8ip1h2PgZ8",
+    "fields": [
+      {
+        "id": "fldUtpo8ip1h2PgZ8",
+        "name": "Issue Key",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldb3i5iafzXAEQqR",
+        "name": "Summary",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldrZQ2UxUF2vtGpS",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "To Do",
+          "In Progress",
+          "Review",
+          "In Revision",
+          "Approved",
+          "Done",
+          "Won't Do",
+          "Shipping"
+        ]
+      },
+      {
+        "id": "fldhB5Yt0kuZkXi7V",
+        "name": "Review Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldUaCEInmT2tqk9N",
+        "name": "16x9 Asset Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldYm6G4yV0NUoaj3",
+        "name": "9x16 Asset Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldo7mH98JqhSX5d8",
+        "name": "4x5 Asset Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcMgFXaSXQtPaOE",
+        "name": "Asset Folder Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldH1NLEU1ZOdspQk",
+        "name": "Working Files",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldNOpzOeYlCKKB4h",
+        "name": "Pathways",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld9TEcaSBHAUTdyR",
+        "name": "Requester",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLfoFfxiIvQrI3V",
+        "name": "Created",
+        "type": "dateTime"
+      }
+    ]
+  },
+  {
+    "id": "tbliDuf0IfTU6Cywa",
+    "name": "Marketing Principles",
+    "primaryFieldId": "fldy8aTWLFy639Ov8",
+    "fields": [
+      {
+        "id": "fldy8aTWLFy639Ov8",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldqHW6DWAAVO2ZbI",
+        "name": "Description",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldbUNm7G9Bx2vsEP",
+        "name": "Psychology",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldfp7twhN7HZZ6t8",
+        "name": "Short Hook Example",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldAKK2vmWkz7IR2W",
+        "name": "Leads",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblXBngytqXm5xlGx",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldep0XeK6kU1tZqu",
+        "name": "💡 Ideation / Creative Briefs",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblW7uunqSxkLPDIP",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldOzud1l5PCZixEG",
+        "name": "Other Funnel Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblTcSVtY6RsClG8l",
+    "name": "🥊 Competitor Analysis",
+    "primaryFieldId": "fldGQYAskbPq0bgOR",
+    "fields": [
+      {
+        "id": "fldGQYAskbPq0bgOR",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldbeKvWMEemXXu4v",
+        "name": "Screenshot",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldP4WRvfzNBAxEUD",
+        "name": "Duration (secs)",
+        "type": "number"
+      },
+      {
+        "id": "fldf0iVUsE2Okl5So",
+        "name": "Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fldx5Xtj4toW1liif",
+        "name": "Advertiser",
+        "type": "singleSelect",
+        "choices": [
+          "Alex Hormozi",
+          "Brain FM",
+          "Click Up",
+          "ContentCreator.com",
+          "Dan Brule",
+          "External Example",
+          "Gym Shark",
+          "Jumpspeak",
+          "Marmedia",
+          "Mindvalley",
+          "Mindvalley Affiliate",
+          "new",
+          "One Peak Creative",
+          "Russel Brunson",
+          "Steal Our Winners",
+          "TMS Productions",
+          "Tony Robbins",
+          "Harmon Brothers",
+          "Ryze",
+          "$500 Affiliate Funnel",
+          "Athletic Greens",
+          "V-Shred",
+          "Duo Lingo",
+          "Wisey",
+          "Vishen",
+          "Michael Hunter / Upspiral",
+          "Gary Vee",
+          "Madison Knows Best",
+          "Jay Shetty",
+          "Chase Hughes / Marc The Beginning",
+          "Whyson Studio",
+          "NEXT MBA",
+          "Kiana Nadine",
+          "Pubity",
+          "Chelsea Anderson / Chelsea Explains",
+          "Emilie Leyes",
+          "Richness Rises / Femke",
+          "Aeina P / The Neo of Earth",
+          "Benjamin Messelbeck",
+          "Zache Seno / imzache",
+          "Epigenetic Tips",
+          "CJ / cj.filmed.it",
+          "Justin Joseph Espejo",
+          "John Buoog / @johnbuoog",
+          "Justin Espejo",
+          "John Bucog / @johnbucog",
+          "Kevin Horton / kevinhortn",
+          "Lex / lexjanell",
+          "Richard Ens Jr",
+          "Profit Singularity"
+        ]
+      },
+      {
+        "id": "fld29FKmY0enxatg4",
+        "name": "Ad Asset Link",
+        "type": "url"
+      },
+      {
+        "id": "fldu4pe7VKHjgypoR",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "flddU50HoJHfnWk39",
+        "name": "FB Headline",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld2sG2L4AM9ExLCs",
+        "name": "FB Primary text",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld1cMrD1AEDv5MlX",
+        "name": "FB Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld8arAGKOAMJVReI",
+        "name": "LP Top Fold",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldLc46GG1imsjWDY",
+        "name": "Landing Page",
+        "type": "url"
+      },
+      {
+        "id": "fld63JiliLiFKiCqj",
+        "name": "Funnel Type",
+        "type": "singleSelect",
+        "choices": [
+          "Free Trial",
+          "Trip Wire",
+          "Direct Sales",
+          "Masterclass",
+          "Event",
+          "Lead to VSL Page",
+          "Free Download",
+          "Quiz"
+        ]
+      },
+      {
+        "id": "fldjAkBEE1GcmnkHb",
+        "name": "Asset Type",
+        "type": "singleSelect",
+        "choices": [
+          "🎥 90 - 120 Sec Ad",
+          "🌆 Static Ad",
+          "🎬 Full VSL (20 - 40 mins)",
+          "▶️ Carousel Ad",
+          "Email",
+          "🎬 120 - 240 sec VSL Lead",
+          "Page Design",
+          "Webinar / Event",
+          "'UGC' Short <30s",
+          "Direct Response Short Ad",
+          "90 - 120 Sec Ad",
+          "120 - 240 sec VSL Lead",
+          "Static Ad",
+          "Organic Reel"
+        ]
+      },
+      {
+        "id": "fldWsLzN3XnwjCQrv",
+        "name": "Niche ",
+        "type": "singleSelect",
+        "choices": [
+          "Marketing",
+          "productivity",
+          "Viral Videos",
+          "Breathwork",
+          "Coaching",
+          "AI",
+          "Entrepreneurship",
+          "Language Learning",
+          "E-Commerce",
+          "Finance",
+          "Health & Wellness"
+        ]
+      },
+      {
+        "id": "fldDT5pe5uCFTtf5y",
+        "name": "Transcript txt file",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldqsVnvDKuhA6wwe",
+        "name": "Likes",
+        "type": "number"
+      },
+      {
+        "id": "fldQP6j6ESSeGlA86",
+        "name": "Comments",
+        "type": "number"
+      },
+      {
+        "id": "flddMHCz001M43xzC",
+        "name": "Post Date",
+        "type": "date"
+      },
+      {
+        "id": "fldvr1YuSLX4HitKy",
+        "name": "Audience Sentiment",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldZ79vERcURFRTHc",
+        "name": "Hashtags",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldKYHZEqcaifB3W0",
+        "name": "Platform",
+        "type": "singleSelect",
+        "choices": [
+          "Instagram",
+          "TikTok",
+          "YouTube",
+          "Facebook",
+          "Twitter/X"
+        ]
+      },
+      {
+        "id": "fldyW6C9nClUvQBZG",
+        "name": "Created",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldH7Eks5HLbj8uzo",
+        "name": "Source Type",
+        "type": "singleSelect",
+        "choices": [
+          "Organic",
+          "Paid Ad"
+        ]
+      },
+      {
+        "id": "fldqD3G5rXBkBBPaL",
+        "name": "Submitted By",
+        "type": "singleSelect",
+        "choices": [
+          "Matt",
+          "Titus",
+          "Marwah",
+          "Ariel"
+        ]
+      },
+      {
+        "id": "fldYf97pO1FjfbQdS",
+        "name": "Views",
+        "type": "number"
+      }
+    ]
+  },
+  {
+    "id": "tblW7uunqSxkLPDIP",
+    "name": "💡 Ideation",
+    "primaryFieldId": "fldNWxtTZ1JM4E6fs",
+    "fields": [
+      {
+        "id": "fldNWxtTZ1JM4E6fs",
+        "name": "Script Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldMffXkbyXYoVSED",
+        "name": "Video Ticket Linked Record",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldUTs2oUIMgfj5HN",
+        "name": "Creative Brief / Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fld3QeCmFWC0tIYLk",
+        "name": "✍️ Transcripts (from Lead)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldY71T1lNsOh4Soe",
+        "name": "Final Asset Link (4x5) (from Video Ticket Linked Record?)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldwD2hCzYCdTJAMI",
+        "name": "Ref / Winning Banners",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldcSc7iBQSowZtEn",
+        "name": "To redo",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldR2bwtDBw4WV4cp",
+        "name": "Status / Select",
+        "type": "singleSelect",
+        "choices": [
+          "Ideation",
+          "Idea Approved By Vishen",
+          "To Raise Video Ticket (Editors)",
+          "Tickets Raised",
+          "TO FILM",
+          "Filmed",
+          "Backlog",
+          "Edit In Progress",
+          "Video Ready",
+          "KILL",
+          "Matt (repurpose) [Keep this Status Please]"
+        ]
+      },
+      {
+        "id": "fldsmolcDrl1cqcQd",
+        "name": "🎭 Talent",
+        "type": "singleSelect",
+        "choices": [
+          "Vishen",
+          "Quest Host",
+          "UGC ",
+          "AI",
+          "V/O",
+          "ugc",
+          "Read Caption",
+          "Animation"
+        ]
+      },
+      {
+        "id": "fldk8mxleB62Uok8l",
+        "name": "Asset Type",
+        "type": "singleSelect",
+        "choices": [
+          "Animated Banner",
+          "✍️ New Script",
+          "🎬 Repurpose Video"
+        ]
+      },
+      {
+        "id": "fld6Gp2WYSI6x0oyZ",
+        "name": "Primary Outcome",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblMqGb2D1qy2pmli",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldHp4YtcZT1tJBak",
+        "name": "Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblUV1a4pOk5QEptE",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldzK5OrovDcglJpF",
+        "name": "Marketing Principles",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbliDuf0IfTU6Cywa",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldImrb51AyEiVzfv",
+        "name": "🎥 Final VSL Ad Asset",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblgiW8VvCt2J68FD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldC8xJ5vq2TKRW3t",
+        "name": "✍️ Script (new)",
+        "type": "richText"
+      },
+      {
+        "id": "fldKNiT4nivgSKbuG",
+        "name": "Doc URL for Teleprompter",
+        "type": "url"
+      },
+      {
+        "id": "fldU5M5ngkX1y6U6G",
+        "name": "Link to Creative Tests",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnKCuWH39RBRonJ",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldw1pJDKkqcvbDSa",
+        "name": "Rating of teams",
+        "type": "rating"
+      },
+      {
+        "id": "fldcUMxx7F7I9BWDH",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "1. Idea",
+          "2. Idea Confirmed",
+          "3. ⚡️To Shoot",
+          "4: 🎥 Filmed",
+          "5. In Editing",
+          "6. Published",
+          "Rejected",
+          "Repurpose (Matt)"
+        ]
+      },
+      {
+        "id": "fldfdHa6auAi59Fkl",
+        "name": "Source",
+        "type": "singleSelect",
+        "choices": [
+          "VSL/Masterclass Ads"
+        ]
+      },
+      {
+        "id": "fldvjHP6NvY2pcfw4",
+        "name": "Shoot Due date",
+        "type": "date"
+      },
+      {
+        "id": "fld5d647BmnxK5RLY",
+        "name": "Created",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fld0BtoD078KdG4D1",
+        "name": "MIGRATE TO OTA",
+        "type": "checkbox"
+      }
+    ]
+  },
+  {
+    "id": "tblmsVLywus8dfmKN",
+    "name": "Photos",
+    "primaryFieldId": "fld1WVqQpuwGoTLsM",
+    "fields": [
+      {
+        "id": "fld1WVqQpuwGoTLsM",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldSCJ97n7J2x8F1A",
+        "name": "Attachments",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldSV1l2m8UtAFjgE",
+        "name": "Attachment Summary",
+        "type": "aiText"
+      },
+      {
+        "id": "fldd3E2olUtJL8Dta",
+        "name": "Size",
+        "type": "singleSelect",
+        "choices": [
+          "16 x9",
+          "9x 16",
+          "4 x5"
+        ]
+      },
+      {
+        "id": "fldB3gXBypL4vew80",
+        "name": "Author",
+        "type": "singleSelect",
+        "choices": [
+          "Vishen Lakhiani"
+        ]
+      },
+      {
+        "id": "fldjv77mhzezMBSpN",
+        "name": "Banners",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldgMKZWDIzj9BDnw",
+        "name": "Website",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldO6oUQOF9VL08Gj",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Approved",
+          "Rejected",
+          "Suggestion"
+        ]
+      },
+      {
+        "id": "fldlCTOQqPSUuHaEo",
+        "name": "Original (Drive Link)",
+        "type": "url"
+      }
+    ]
+  },
+  {
+    "id": "tblXDF9qlTTsabyUv",
+    "name": "Video Ticket [Sync Test from new base]",
+    "primaryFieldId": "fldaEUN4GOjAeECZU",
+    "fields": [
+      {
+        "id": "fldaEUN4GOjAeECZU",
+        "name": "﻿Video Ticket Title",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld8iX9OuIlyIUKw9",
+        "name": "Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld2vwPFwfg3ZvkCc",
+        "name": "Pathway",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldlxqEymkuJY5A6o",
+        "name": "Video Type",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldL5HcqUBnk5m9Qa",
+        "name": "Video Status",
+        "type": "singleSelect",
+        "choices": [
+          "Placeholder",
+          "Backlog",
+          "In Progress",
+          "Review",
+          "Adaptation",
+          "Video Done",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fld9DsrguP0eMJ314",
+        "name": "Editor",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldjoiD4IofsZWWPh",
+        "name": "Editor [External/Inactive]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldpH0jeLpkRHDgpX",
+        "name": "Video Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fldQd7dqEcbblTxMp",
+        "name": "Ad Asset Code [Final Asset]",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldexZS6kUI5gFcmV",
+        "name": "Format",
+        "type": "multipleSelects",
+        "choices": [
+          "4x5",
+          "16x9",
+          "9x16",
+          "1x1"
+        ]
+      },
+      {
+        "id": "fldDHh3ar6FSJ7Yag",
+        "name": "Feedback Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldjBnXsXV7bezLNX",
+        "name": "4x5 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldRBBhoeuySWIhW6",
+        "name": "9x16 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldTmKNON9wCbY46T",
+        "name": "16x9 Folder",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld94KvqTyCAs8Uli",
+        "name": "4x5 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldylM76j4WTHYBxf",
+        "name": "9x16 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldjyiwINHMMaqHNm",
+        "name": "16x9 Final Link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldsIvA5UVGJ6wBTp",
+        "name": "Working File",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldtYdR3V0AyUZMM3",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldgcYCnNJjP6lJkW",
+        "name": "Lead Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldErKgZa8aiFp6Wl",
+        "name": "VSL Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldEUIx9ulv7rv9kj",
+        "name": "Close Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldJA9kqfKdY0CFqT",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldZV7ZIpZL73u6GT",
+        "name": "Created Date",
+        "type": "date"
+      },
+      {
+        "id": "fldkprLvDqto0uLGa",
+        "name": "Other Funnel Assets",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4ILfx3QOc4e8RB",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldJD6RnXkGFKACe0",
+        "name": "Ad Creative Test Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldSY8EDfr4J95eAy",
+        "name": "CSV Source",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldFyplMlHUpK1xPb",
+        "name": "Tag: Team",
+        "type": "multilineText"
+      }
+    ]
+  }
+]

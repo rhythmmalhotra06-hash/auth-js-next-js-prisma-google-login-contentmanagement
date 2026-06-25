@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css"><style>
+:root{
+--brand:#572280;--brand-strong:#3f1860;--brand-soft:#f1eaf7;--gold:#F5B000;--gold-soft:#fdf3da;--gold-ink:#7a5800;
+--color-background-primary:#fff;--color-background-secondary:#f6f4f9;--color-background-tertiary:#faf9fc;
+--color-background-info:var(--brand-soft);--color-background-danger:#FCEBEB;--color-background-success:#EAF3DE;--color-background-warning:var(--gold-soft);
+--color-text-primary:#16131c;--color-text-secondary:#6a6577;--color-text-tertiary:#9b96a6;
+--color-text-info:var(--brand);--color-text-danger:#A32D2D;--color-text-success:#27500A;--color-text-warning:var(--gold-ink);
+--color-border-tertiary:rgba(40,20,60,.12);--color-border-secondary:rgba(40,20,60,.22);--color-border-info:#c9b3de;
+--border-radius-md:8px;--border-radius-lg:12px;
+--font-sans:'Inter',system-ui,-apple-system,sans-serif;}
+@media(prefers-color-scheme:dark){:root{
+--brand:#b98fe0;--brand-strong:#cdb0ec;--brand-soft:#2b2138;--gold:#F5B000;--gold-soft:#3a2e10;--gold-ink:#f0c75a;
+--color-background-primary:#1f1b27;--color-background-secondary:#272231;--color-background-tertiary:#19161f;
+--color-text-primary:#f0eef4;--color-text-secondary:#ada7b8;--color-text-tertiary:#7d7889;
+--color-border-tertiary:rgba(255,255,255,.13);--color-border-secondary:rgba(255,255,255,.24);--color-border-info:#5a4775;}}
+*{box-sizing:border-box;}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);margin:0;line-height:1.5;}
+table{border-collapse:collapse;}
+button{font-family:inherit;font-size:13px;background:transparent;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:7px 12px;cursor:pointer;color:var(--color-text-primary);}
+button:hover{background:var(--color-background-secondary);}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:8px 10px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);}
+a{color:var(--color-text-info);text-decoration:none;}
+.app{display:flex;min-height:100vh;}
+.side{width:230px;flex-shrink:0;background:var(--color-background-primary);border-right:.5px solid var(--color-border-tertiary);padding:18px 14px;display:flex;flex-direction:column;gap:4px;}
+.brand{display:flex;align-items:center;gap:9px;padding:6px 8px 16px;}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;position:relative;}
+.brand-mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:1.5px solid var(--color-background-primary);}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--border-radius-md);cursor:pointer;font-size:14px;color:var(--color-text-secondary);border:none;background:transparent;width:100%;text-align:left;}
+.nav:hover{background:var(--color-background-secondary);}
+.nav.active{background:var(--brand-soft);color:var(--brand-strong);font-weight:500;box-shadow:inset 2px 0 0 var(--brand);}
+.nav i{font-size:18px;}
+.nav-label{font-size:11px;color:var(--color-text-tertiary);padding:14px 11px 6px;letter-spacing:.03em;}
+.main{flex:1;min-width:0;padding:8px 28px 40px;overflow-x:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:4px;}
+.role-pill{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--color-text-secondary);}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--color-background-info);color:var(--color-text-info);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;}
+.view{display:none;}
+.view.active{display:block;}
+@media(max-width:760px){.side{width:60px;}.side .txt{display:none;}.brand span{display:none;}.main{padding:8px 14px 40px;}}
+</style></head><body style="padding:24px;"><div style="max-width:920px;margin:0 auto;">
+<div style="display:flex; flex-direction:column; gap:1rem; padding:1rem 0;">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:18px; font-weight:500;">Creative status & performance</span><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); font-size:12px; padding:3px 10px; border-radius:8px;"><i class="ti ti-eye"></i> Stakeholder view · read-only</span></div>
+    <select style="width:auto;"><option>All campaigns</option></select>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px;">
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Published (30d)</div><div style="font-size:24px; font-weight:500;">38</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">In production</div><div style="font-size:24px; font-weight:500;">14</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Avg CTR</div><div style="font-size:24px; font-weight:500; color:var(--color-text-success);">2.4%</div></div>
+    <div style="background:var(--color-background-secondary); border-radius:8px; padding:0.9rem 1rem;"><div style="font-size:13px; color:var(--color-text-secondary);">Avg ROAS</div><div style="font-size:24px; font-weight:500; color:var(--color-text-success);">3.1×</div></div>
+  </div>
+  <div style="border:0.5px solid var(--color-border-tertiary); border-radius:12px; overflow:hidden; background:var(--color-background-primary);">
+    <table style="width:100%; table-layout:fixed; font-size:13px;">
+      <colgroup><col><col style="width:130px;"><col style="width:108px;"><col style="width:88px;"><col style="width:70px;"><col style="width:64px;"></colgroup>
+      <thead><tr style="background:var(--color-background-secondary); color:var(--color-text-secondary); text-align:left;"><th style="padding:9px 8px;">Asset</th><th style="padding:9px 8px;">Stage</th><th style="padding:9px 8px;">Edited by</th><th style="padding:9px 8px;">Channel</th><th style="padding:9px 8px;">CTR</th><th style="padding:9px 8px;">ROAS</th></tr></thead>
+      <tbody>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Quest hero reel 9x16</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Masterclass</span></div></td><td style="padding:10px 8px;"><span style="background:#EAF3DE; color:#27500A; padding:2px 8px; border-radius:8px;">Published</span></td><td style="padding:10px 8px;">Millie P.</td><td style="padding:10px 8px;"><a href="#" style="color:var(--color-text-info);">IG <i class="ti ti-external-link"></i></a></td><td style="padding:10px 8px; color:var(--color-text-success);">3.1%</td><td style="padding:10px 8px; color:var(--color-text-success);">4.2×</td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Mastery VSSL cold</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#EEEDFE; color:#3C3489; padding:1px 7px; border-radius:8px;">Mastery</span></div></td><td style="padding:10px 8px;"><span style="background:var(--color-background-secondary); color:var(--color-text-secondary); padding:2px 8px; border-radius:8px;">In review</span></td><td style="padding:10px 8px;">Paul A.</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Summit banner 16x9</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#E1F5EE; color:#085041; padding:1px 7px; border-radius:8px;">Summit</span></div></td><td style="padding:10px 8px;"><span style="background:#FAEEDA; color:#854F0B; padding:2px 8px; border-radius:8px;">In production</span></td><td style="padding:10px 8px;">Ziga</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td><td style="padding:10px 8px; color:var(--color-text-tertiary);">—</td></tr>
+        <tr style="border-top:0.5px solid var(--color-border-tertiary);"><td style="padding:10px 8px;"><div style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Pathway promo reel</div><div style="font-size:12px; color:var(--color-text-secondary);"><span style="background:#FBEAF0; color:#72243E; padding:1px 7px; border-radius:8px;">Social promo</span></div></td><td style="padding:10px 8px;"><span style="background:#EAF3DE; color:#27500A; padding:2px 8px; border-radius:8px;">Published</span></td><td style="padding:10px 8px;">Jawan</td><td style="padding:10px 8px;"><a href="#" style="color:var(--color-text-info);">TikTok <i class="ti ti-external-link"></i></a></td><td style="padding:10px 8px; color:var(--color-text-warning);">1.6%</td><td style="padding:10px 8px; color:var(--color-text-warning);">1.9×</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:12px; color:var(--color-text-secondary);">Performance pulled from Clarisights / Amplitude, keyed to each published asset. No editing — comment access only.</div>
+</div>
+</div></body></html>

@@ -4,6 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Architecture direction — HYBRID (decided 2026-06-25; read first)
+
+**Decision: HYBRID.** Build the workflow surfaces now in this standalone repo (they're valid under either architecture), and migrate the *nouns* to brain nodes + an app manifest later. Reference for that migration: the **BlinkWork monorepo** at `github.com/mindvalley-ai/BlinkWork` (INTERNAL, accessible via `gh`) — apps-framework manifest format, brain-node API, and `packages/ui` (shadcn/CVA).
+
+The two architectures the hybrid bridges (see `context/productization.md`):
+
+1. **Standalone** (what §1–§11 below + `schema.sql` describe): Next.js + Postgres mirror of Airtable, app-built auth. **E1 was already built this way** (full Prisma schema deployed to Kessel managed Postgres). Faster, isolated. We build the workflow here now.
+2. **Blinkwork app** (`context/productization.md`, supersedes the standalone *architecture* eventually): manifested, multi-tenant app on the **shared brain**. The brain becomes system of record for the *nouns* (Asset, Person, Event, Channel, Metric, Insight, Rule…); only *workflow state* (tickets, queue_rank, ticket_status/prio_status, approvals) stays app-owned permanently. Airtable becomes a **connector**, not source of truth. Auth = platform identity/permissions. All API over MCP, secrets server-side. Intelligence layer nearly free. Reusable by other entities. This is the migration target, not the immediate build.
+
+**What stays valid in both:** the workflow decisions (event→asset chain, two status axes, queue model, raw/final, 5-column header), the prioritization algorithm, and all UI mockups (`context/mockups/`).
+
+**Implication for E1:** under the Blinkwork model, the reference nouns (`employees`, `event_types`, `asset_types`, `assets`, `performance`) move to brain nodes; the ticket/queue/approval tables E1 built remain app state. E1 is not wasted, but its reference tables may be reframed.
+
+Related new context:
+- `context/intelligence-layer.md` — 5 propose-only AI capabilities (performance insight, brief generation, learning prioritization, DNA feedback, conversational layer). Build order 1→2→3→4, 5 emergent. Always propose→human-approves.
+- `context/mockups/` — HTML mockups of all role surfaces + portal. **Visual target, not production code** — rebuild as React using Blinkwork's `@mindvalley-ai-advanced/ui` (shadcn/CVA), do not restyle the HTML. Brand: primary `#572280` (purple), accent `#F5B000` (gold, attention only), Inter, 8/12px radii, dark mode.
+
+---
+
 ## Development commands
 
 ```bash

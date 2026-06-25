@@ -1,0 +1,4517 @@
+[
+  {
+    "id": "tbl5kg8HS5DuEUqr8",
+    "name": "Prioritization: Creatives",
+    "primaryFieldId": "fldKFOh7zxWnaXTTQ",
+    "fields": [
+      {
+        "id": "fldKFOh7zxWnaXTTQ",
+        "name": "Issue Key",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld21bvLTCQy1RkOo",
+        "name": "Created",
+        "type": "dateTime"
+      },
+      {
+        "id": "fld8pOKaJkYg4kMEB",
+        "name": "Asset Sub-Type",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF({fldqfCTKwYEnujA1a}, {fldqfCTKwYEnujA1a},\r\nIF({fldap50VdJ7F2dS55}, {fldap50VdJ7F2dS55},\r\nIF({fldxotdULoq4E2eIb}, {fldxotdULoq4E2eIb},\r\nIF({fldchLFQWCbugbnes}, {fldchLFQWCbugbnes},\r\n\"\"))))"
+      },
+      {
+        "id": "fldVJ8Dl1I8LgFRzm",
+        "name": "Team",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF(FIND(\"Social Media Tasks\", ARRAYJOIN({fldW9GSQY2qVqVG5l}, \",\")), \"Social Media\",\r\nIF(FIND(\"Films Tasks\", ARRAYJOIN({fldW9GSQY2qVqVG5l}, \",\")), \"Films\",\r\nIF(FIND(\"Design Tasks\", ARRAYJOIN({fldW9GSQY2qVqVG5l}, \",\")), \"Design\",\r\nIF(FIND(\"VSL Tasks\", ARRAYJOIN({fldW9GSQY2qVqVG5l}, \",\")), \"VSL\",\r\n\"—\"))))"
+      },
+      {
+        "id": "fld3Y60QJzMJwmDtu",
+        "name": "Requester",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldl3S9R8Bi8NjbXs",
+        "name": "Summary",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldYzsGpUjCrTBzLv",
+        "name": "Priority ranking (Manual)",
+        "type": "rating"
+      },
+      {
+        "id": "fldHSntl90sFiTiG1",
+        "name": "Assignee",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldA4YMrARmMFZHus",
+        "name": "Due date",
+        "type": "date"
+      },
+      {
+        "id": "fldTBcwwRdNca00yt",
+        "name": "Creative Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fldavLvwMMlgIA9Pf",
+        "name": "Open in Jira",
+        "type": "button"
+      },
+      {
+        "id": "fldYgdgTtIz8IANyw",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "To Do",
+          "In Progress",
+          "Review",
+          "In Revision",
+          "Approved",
+          "Done",
+          "Won't Do",
+          "Shipping"
+        ]
+      },
+      {
+        "id": "fldD97ocV8FAfFxyw",
+        "name": "🛎️ Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldqfCTKwYEnujA1a",
+        "name": "Creative Video Type",
+        "type": "singleSelect",
+        "choices": [
+          "Video - Aftermovies",
+          "Video - Brand: Campaign",
+          "Video - Meditation Looping",
+          "Video - Podcast Episode",
+          "Video - Podcast Snippet",
+          "Video - Shorts",
+          "Video - Quote reel",
+          "Video - Recap of Events",
+          "Video - Stage Talks",
+          "Video - Testimonials",
+          "Video - Trailer",
+          "Video - Vishen Stories (Newsletter)",
+          "Video - VSL",
+          "Video - VSL Leads",
+          "Video - Teaser",
+          "Video - Quest",
+          "Video - Author Story",
+          "Video - Advice and How To's in Steps",
+          "Video - Inspirational Video",
+          "Video - Direct to Sales",
+          "Video - Brand: Product Features",
+          "Video - Masterclass or Webinar",
+          "Video - Campaign Content",
+          "Video - Membership",
+          "Video - Consolidated Files",
+          "Video - Stage Talks: Viral",
+          "Video - Speaker Reel",
+          "Video - Stage Talks: Snippet (No B-Roll)",
+          "Video - Entertain and Engage Content",
+          "Video - Campaign Content: Invite",
+          "Video - Campaign Ad",
+          "Video - Accelerator",
+          "Video - Short Ads",
+          "Video - Close or CTA",
+          "Video - Pitch",
+          "Video - Humor Content",
+          "Video - Other",
+          "Video - Sounds",
+          "Video - Blog",
+          "Marketing Video - All"
+        ]
+      },
+      {
+        "id": "fldap50VdJ7F2dS55",
+        "name": "Creatives Brand Design Type",
+        "type": "singleSelect",
+        "choices": [
+          "Brand Design - Infographic/Illustration",
+          "Brand Design - Membership Pro Covers",
+          "Brand Design - Social Media",
+          "Brand Design - Quest Design",
+          "Brand Design - Ads Banners",
+          "Brand Design - Feature Banner",
+          "Brand Design - Localization",
+          "Brand Design - Physical/ Hybrid Event",
+          "Brand Design - Online Event",
+          "Brand Design - Presentation Deck",
+          "Brand Design - Author Image",
+          "Brand Design - Template Creation/ Documentation",
+          "Brand Design - Brochure",
+          "Brand Design - Product",
+          "Brand Design - Emails",
+          "Brand Design - Omvana - Sound Covers",
+          "Brand Design - Omvana - Meditation Covers",
+          "Brand Design - B2B",
+          "Design - Launch Banners ",
+          "Brand Design - Ad hoc: Translation, Feature Banners, Others",
+          "Design - Omvana",
+          "Design - Masterclass Banners "
+        ]
+      },
+      {
+        "id": "fldxotdULoq4E2eIb",
+        "name": "Creative Event Design Type",
+        "type": "singleSelect",
+        "choices": [
+          "Event Design - Digital: 2nd Stage",
+          "Event Design - Digital: Agenda Digital Totems",
+          "Event Design - Digital: Bumper",
+          "Event Design - Digital: Digital Screens",
+          "Event Design - Digital: Holding Slides",
+          "Event Design - Digital: Invite Deck",
+          "Event Design - Digital: Keynote Slides",
+          "Event Design - Digital: Next-On Stage Banners",
+          "Event Design - Digital: Signage",
+          "Event Design - Digital: Venue Map",
+          "Event Design - Digital: Wayfinding  Screens",
+          "Event Design - Print: A3 Signs",
+          "Event Design - Print: Flag",
+          "Event Design - Print: Lightbox",
+          "Event Design - Print: Media Wall",
+          "Event Design - Print: Nametags",
+          "Event Design - Print: Notebook",
+          "Event Design - Print: Pens",
+          "Event Design - Print: Photo Backdrop",
+          "Event Design - Print: Pull-Up Banners",
+          "Event Design - Print: Registration Arches",
+          "Event Design - Print: Registration Desk",
+          "Event Design - Print: Sales Booth",
+          "Event Design - Print: Signage",
+          "Event Design - Print: Stage Design",
+          "Event Design - Print: Stickers",
+          "Event Design - Print: T-Shirt",
+          "Event Design - Print: Totebag",
+          "Event Design - Print: Wristbands"
+        ]
+      },
+      {
+        "id": "fldyz5MlG4BexwGDD",
+        "name": "🧩 Event Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblzTFTZ2ttEvi2j1",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldW9GSQY2qVqVG5l",
+        "name": "Components",
+        "type": "multipleSelects",
+        "choices": [
+          "Ad Creatives",
+          "Brand Design",
+          "Content Production",
+          "Events & Campaign",
+          "Social Media",
+          "Film Production"
+        ]
+      },
+      {
+        "id": "fldchLFQWCbugbnes",
+        "name": "Creative Quest Video Type",
+        "type": "singleSelect",
+        "choices": [
+          "Quest video - Audio mixing and mastering",
+          "Quest video - B-Roll Consolidation",
+          "Quest video - Bumper / Lower - Third Creation",
+          "Quest video - Colour Correction",
+          "Quest video - Footage / Content Asset Transfer",
+          "Quest video - Green screen compositing",
+          "Quest video - Meditation track edits",
+          "Quest video - Motion Custom Animation",
+          "Quest video - Motion Style Frame",
+          "Quest video - Motion Template",
+          "Quest video - Other",
+          "Quest video - Quest / Asset / Bug Fixes",
+          "Quest video - Video edit"
+        ]
+      },
+      {
+        "id": "fldk0363AmsOpUDvr",
+        "name": "Parent",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld7RtIOUAffyLTin",
+        "name": "SCORE",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "AVERAGE({fldCXHHfUf16vOhBD},{fldOG34SWV9rfrLQb},{fld4TgPTR4oAZpxk1})"
+      },
+      {
+        "id": "fldb3c1ClmBH2te3s",
+        "name": "Labels",
+        "type": "multipleSelects",
+        "choices": [
+          "web",
+          "SocialMediaVideo",
+          "Pathways",
+          "Event",
+          "Quest",
+          "Unplanned",
+          "Meditations",
+          "SocialMediaDesign",
+          "Accelerator",
+          "MindvalleyUniversity",
+          "Mastery",
+          "Certifications",
+          "Testimonials",
+          "Masterclass",
+          "MindvalleyStates",
+          "BookClub",
+          "VSL",
+          "Audiowaves",
+          "MindvalleyBlog",
+          "Podcast",
+          "SocialMediaSummit",
+          "BlackFriday",
+          "B2B",
+          "VideoAds",
+          "MindvalleyMembership",
+          "EntrepreneurshipSummit",
+          "Platform",
+          "MindvalleyBusiness",
+          "MindvalleyPro",
+          "MindvalleyExperience",
+          "Upsell",
+          "BrandVideo",
+          "AISummit",
+          "ManifestingSummit",
+          "WildFit",
+          "FutureHuman",
+          "Brandfolder",
+          "Funnel",
+          "Textless",
+          "MVU",
+          "Culture",
+          "Localization",
+          "MindvalleyCoach",
+          "event"
+        ]
+      },
+      {
+        "id": "fldxhZWhxTPLnDXkc",
+        "name": "Best Video",
+        "type": "multipleLookupValues",
+        "resultType": "multipleAttachments"
+      },
+      {
+        "id": "fld4uPIzapwDxStjh",
+        "name": "Best Video URL",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldgak7qaiI94swpu",
+        "name": "🔗 Asset Link",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF(\r\n    {fldFJgpi9mhLWhazV},\r\n    IF(\r\n        FIND(\"|\", {fldFJgpi9mhLWhazV}),\r\n        TRIM(SUBSTITUTE(\r\n            LEFT({fldFJgpi9mhLWhazV}, FIND(\"|\", {fldFJgpi9mhLWhazV}) - 1),\r\n            \"[\", \"\"\r\n        )),\r\n        TRIM(SUBSTITUTE({fldFJgpi9mhLWhazV}, \"[\", \"\"))\r\n    ),\r\n    IF(\r\n        {fld7IsdTVNmQsPHU7},\r\n        IF(\r\n            FIND(\"|\", {fld7IsdTVNmQsPHU7}),\r\n            TRIM(SUBSTITUTE(\r\n                LEFT({fld7IsdTVNmQsPHU7}, FIND(\"|\", {fld7IsdTVNmQsPHU7}) - 1),\r\n                \"[\", \"\"\r\n            )),\r\n            TRIM(SUBSTITUTE({fld7IsdTVNmQsPHU7}, \"[\", \"\"))\r\n        ),\r\n        \"N/A\"\r\n    )\r\n)"
+      },
+      {
+        "id": "fld7IsdTVNmQsPHU7",
+        "name": "Output link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldFJgpi9mhLWhazV",
+        "name": "Asset Folder Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldJh3pf8OOiGGBoY",
+        "name": "V's Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldeKynaKk8hfOvKq",
+        "name": "Quest Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblZAOXgat3jmN3qK",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldrj0bZN37Wo1XcJ",
+        "name": "Quest: Release Quarter",
+        "type": "multipleLookupValues",
+        "resultType": "multipleSelects"
+      },
+      {
+        "id": "fld0C0FX7Hgr7Picx",
+        "name": "Quest: Completion Date",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldZCviYEKCKqKBJY",
+        "name": "Quest Release Date",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldRIpzkIvcBpkGZo",
+        "name": "Open Request",
+        "type": "button"
+      },
+      {
+        "id": "fldXE4pU4Q4bSXo0H",
+        "name": "Portal URL",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\"https://mindvalley.atlassian.net/servicedesk/customer/portal/28/\", {fldKFOh7zxWnaXTTQ})"
+      },
+      {
+        "id": "fldQxlSMGunQn6ZfH",
+        "name": "Jira Project Type",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "SWITCH(\r\n    LEFT({fldKFOh7zxWnaXTTQ}, 3),\r\n    \"CST\", \"Creative Services Team\",\r\n    \"CSR\", \"Creative Services Requests\", \"ASD\", \"Acquire Service Desk\"\r\n)"
+      },
+      {
+        "id": "flddGFRG42XI2UYRn",
+        "name": "Events",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblA6jZSHNYfyXwbF",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldJdKPIr6VG7syRo",
+        "name": "Event Date",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF(\r\n  AND({fldptDXKOuSH0AKZF}, {fld2GajjHZHHU4nEn}),\r\n  DATETIME_FORMAT({fldptDXKOuSH0AKZF}, 'MMM D, YYYY') & \" – \" & DATETIME_FORMAT({fld2GajjHZHHU4nEn}, 'MMM D, YYYY'),\r\n  IF(\r\n    {fldptDXKOuSH0AKZF},\r\n    DATETIME_FORMAT({fldptDXKOuSH0AKZF}, 'MMM D, YYYY'),\r\n    \"N/A\"\r\n  )\r\n)"
+      },
+      {
+        "id": "fld2GajjHZHHU4nEn",
+        "name": "Events (End)",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldptDXKOuSH0AKZF",
+        "name": "Events (Start)",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldRH47bJdVlLaqZc",
+        "name": "Issue Type",
+        "type": "singleSelect",
+        "choices": [
+          "Epic",
+          "Task",
+          "Sub-task",
+          "Bug"
+        ]
+      },
+      {
+        "id": "fldPfE9elf3br9UZP",
+        "name": "Department",
+        "type": "singleSelect",
+        "choices": [
+          "Acquisition",
+          "Advertising ",
+          "Affiliates",
+          "Author Relations",
+          "B2B",
+          "Brand & PR",
+          "CEO Office",
+          "Certification Marketing",
+          "Communications",
+          "Communications - Copywriting",
+          "Communications - Podcast",
+          "Communications - Social Media",
+          "Community",
+          "Connections",
+          "Customer Experience",
+          "Customer Success - Costa Rica",
+          "Customer Support",
+          "Customer Support - Kuala Lumpur",
+          "Data Analytics",
+          "Data Engineering",
+          "Data Program Management",
+          "Data Science",
+          "Finance",
+          "Global Events & Seminars",
+          "Information Security and IT",
+          "International Expansion",
+          "Learning Experience Producers",
+          "Legal",
+          "Live Experiences",
+          "Marketing",
+          "Marketing Creatives",
+          "Marketing Operations",
+          "Marketing Platform Management",
+          "Marketing Technology",
+          "Media Design",
+          "Mindvalley Regions",
+          "Mindvalley Russian",
+          "Mindvalley Teach",
+          "Mindvalley University Global",
+          "Mobile Android",
+          "Mobile iOS",
+          "MV Base",
+          "MV Home",
+          "People & Culture",
+          "People Operations",
+          "Platform Engineering",
+          "Product Design",
+          "Product Management",
+          "Product Operations",
+          "Quest Production",
+          "SEO",
+          "Soulvana",
+          "SRE",
+          "Studio & Content Ops",
+          "Subscription Marketing",
+          "Talent Acquisition",
+          "Technology",
+          "User Accounts & Payment",
+          "Workspace"
+        ]
+      },
+      {
+        "id": "fld4TgPTR4oAZpxk1",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldvmIim5CNqdbUXB}=BLANK(),1,{fldvmIim5CNqdbUXB})"
+      },
+      {
+        "id": "fldOG34SWV9rfrLQb",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldKras453YQbbZzO}=5,1,\nIF({fldKras453YQbbZzO}=4,2,\nIF({fldKras453YQbbZzO}=3,3,\nIF({fldKras453YQbbZzO}=2,4,\nIF({fldKras453YQbbZzO}=1,5,\nBLANK())))))"
+      },
+      {
+        "id": "fldKras453YQbbZzO",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "rollup",
+        "resultType": "number"
+      },
+      {
+        "id": "fldvmIim5CNqdbUXB",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "rollup",
+        "resultType": "number"
+      },
+      {
+        "id": "fldwEOocqpa5YF8eY",
+        "name": "🛎️ Hours_Asset Type",
+        "type": "multipleLookupValues",
+        "resultType": "number"
+      },
+      {
+        "id": "fldxdZsDzEh7CMjiV",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multipleLookupValues",
+        "resultType": "currency"
+      },
+      {
+        "id": "fldCXHHfUf16vOhBD",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldxdZsDzEh7CMjiV}>2000000,5,\nIF({fldxdZsDzEh7CMjiV}>1000000,4,\nIF({fldxdZsDzEh7CMjiV}>600000,3,\nIF({fldxdZsDzEh7CMjiV}>400000,2,1))))\n\n\n\n\n\n"
+      },
+      {
+        "id": "fldd5lmIu6k9uPkgg",
+        "name": "Event Calendar (Official Calendar)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblwX47huc5xpkWyk",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldO2zfNyzvmmKOxs",
+        "name": "End Date (from Event Calendar (Official Calendar))",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldYWYNdQWXkvqK78",
+        "name": "Start date (from Event Calendar (Official Calendar))",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldv3USmjLiIhHqWl",
+        "name": "Creative Service Type",
+        "type": "multipleSelects",
+        "choices": [
+          "Event Design",
+          "Brand Design",
+          "Brand Video",
+          "Marketing Video",
+          "Content Video",
+          "Events & Campaign Video",
+          "Copy",
+          "Podcast Video"
+        ]
+      },
+      {
+        "id": "fldRPQwqQhqIU5ZoU",
+        "name": "Event Calendar",
+        "type": "singleSelect",
+        "choices": [
+          "AI Summit | 🌐 Mastery Online Summit | Mar 2026",
+          "Entrepreneurship Summit | 🌐 Mastery Hybrid Summit | Sep 2026",
+          "Future Human Dubai | 🎉 Festival | Nov 2026",
+          "Longevity Summit | 🌐 Mastery Hybrid Summit | Jun 2026",
+          "Manifesting Cert (Seville) | Certification Event | Jan 2026",
+          "Manifesting Summit | 🌐 Mastery Hybrid Summit | May 2026",
+          "MVU Estonia | 🎓 Mindvalley U | Jul 2026",
+          "Social Media Summit at 1BFS | 🌐 Mastery Hybrid Summit | Jan 2026",
+          "Speaking & Influence Summit  | 🌐 Mastery Hybrid Summit | Jul 2026",
+          "Spiritual Summit | 🌐 Mastery Hybrid Summit | Oct 2026",
+          "Supercoach Summit | 🌐 Supercoach Summit | Jul 2026",
+          "Spiritual Summit 2025"
+        ]
+      },
+      {
+        "id": "fldtcPh18dT0RU5Os",
+        "name": "🧩 Event Type (Linked to Jira)",
+        "type": "singleSelect",
+        "choices": [
+          "Certification Event",
+          "Challenge Series",
+          "Membership Promo Campaign",
+          "♻️ Quest Re-Release",
+          "♾️ Guild Class",
+          "❤️ Vishen's Newsletter",
+          "🆕 Tech Release",
+          "🌐 Mastery Hybrid Summit",
+          "🌐 Mastery Online Summit",
+          "🌐 Supercoach Summit",
+          "🌱 Wildfit Class",
+          "🎉 Festival",
+          "🎓 Mindvalley U",
+          "🎤 Live Workshop",
+          "🎫 Event Campaign",
+          "🎫 Live Seminar",
+          "🎫 Release New Event Site",
+          "🏆 Mastery Program",
+          "🏖 Luxury Retreat",
+          "🏝️ Lifebook Virtual Retreat",
+          "👟 Cert Class",
+          "💊 Mindvalley States",
+          "💻 Cert Online 1 Day Seminar",
+          "💻 Guild Webinar",
+          "💻 Lifebook Live Webinar",
+          "💻 Mastery Highlights Webinar",
+          "💻 Mastery Introduction Webinar",
+          "💻 Quest Release Webinar",
+          "💻 Wildfit Live Webinar",
+          "📈 Accelerator",
+          "📖 Book Promotion",
+          "📖 Lifebook Class",
+          "📚 Quest Bundle Release",
+          "📜 Cert Presentation Webinar",
+          "📢 Major Announcement",
+          "📧 Email Funnel",
+          "📧 Masterclass Funnel",
+          "📺 Mindvalley Show Release",
+          "📺 New Masterclass Video",
+          "📺 VSL Funnel",
+          "📺 VSL Video",
+          "🕶️ Pro Implementation Call",
+          "😊 Recruiting Campaign",
+          "😎 Pro Workshop",
+          "🚀 Quest Soft Release",
+          "🛍️ Membership Major Sale",
+          "🛍️ Unique Advertising Campaign",
+          "🛍️ Upsell Page",
+          "🦋 Brand Campaign",
+          "🦋 Membership Summit",
+          "🦋 Release New Brand Page",
+          "🧘 Meditation Release"
+        ]
+      },
+      {
+        "id": "fld9VHJNNvyATKux8",
+        "name": "Month-Year Created",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "DATETIME_FORMAT({fld21bvLTCQy1RkOo}, 'MM MMMM YYYY')"
+      },
+      {
+        "id": "fldHFW5xOkZ5hyxxk",
+        "name": "Is Delivered?",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF(OR({fldYgdgTtIz8IANyw} = \"Approved\", {fldYgdgTtIz8IANyw} = \"Done\"), 1, BLANK())"
+      },
+      {
+        "id": "fldsN1Z73b4D7lg4D",
+        "name": "Is Actionable",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldYgdgTtIz8IANyw} != \"Won't Do\", 1, BLANK())"
+      },
+      {
+        "id": "fldHYzqXmtqob7qub",
+        "name": "🛎 Asset Type (Jira)",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF({fldqfCTKwYEnujA1a}, {fldqfCTKwYEnujA1a},\r\nIF({fldap50VdJ7F2dS55}, {fldap50VdJ7F2dS55},\r\nIF({fldxotdULoq4E2eIb}, {fldxotdULoq4E2eIb},\r\nIF({fldchLFQWCbugbnes}, {fldchLFQWCbugbnes},\r\n\"—\"))))"
+      },
+      {
+        "id": "fldeYuvdCzlQE2WFS",
+        "name": "📅 Published Date",
+        "type": "date"
+      },
+      {
+        "id": "fldjxuMXpcubI4Zae",
+        "name": "📣 Published Platform",
+        "type": "multipleSelects",
+        "choices": [
+          "📱 Mindvalley App",
+          "Instagram",
+          "Youtube",
+          "Facebook",
+          "Paid Ads"
+        ]
+      },
+      {
+        "id": "fldGzRFWNXVXE0TEr",
+        "name": "🎬 Video Completion Rate (%) [📱 Platform]",
+        "type": "percent"
+      },
+      {
+        "id": "fldzHFVoMKeUbd6qL",
+        "name": "⏱️ Avg. Watch Duration [📱 Platform]",
+        "type": "duration"
+      },
+      {
+        "id": "fldcGO7zfcWX6YCjv",
+        "name": "👀 Views / Reach [🌐 Social Media]",
+        "type": "number"
+      },
+      {
+        "id": "fldgCd3nO2BkEUzA7",
+        "name": "❤️ Avg. Engagement Rate (%) [🌐 Social Media]",
+        "type": "percent"
+      },
+      {
+        "id": "fldRM1pEc7xvUU3zi",
+        "name": "💰 Revenue Attributed [ROI]",
+        "type": "currency"
+      },
+      {
+        "id": "fld6HOo182aQQ4DFb",
+        "name": "📊 Conversion Rate (%) [ROI]",
+        "type": "percent"
+      },
+      {
+        "id": "fldET3T2ZHanxfygo",
+        "name": "🎯 ROAS [ROI]",
+        "type": "number"
+      },
+      {
+        "id": "fldaxjC9wl2FZ0hIG",
+        "name": "📉 CTR (%) [ROI]",
+        "type": "percent"
+      },
+      {
+        "id": "fldxXVHYV6GglO3LD",
+        "name": "📝 Performance Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldz8Uh113YMPL1Hd",
+        "name": "👀 Views / Reach [📱 Platform]",
+        "type": "number"
+      },
+      {
+        "id": "fldwvhUhpB3Sp6dcI",
+        "name": "Views / Reach Benchmark [Social Media]",
+        "type": "number"
+      },
+      {
+        "id": "fldBdRrDlsIymMBGQ",
+        "name": "Engagement Rate (%) Benchmark",
+        "type": "percent"
+      },
+      {
+        "id": "fldYRoKU5o5SjTamb",
+        "name": "Engagement",
+        "type": "number"
+      },
+      {
+        "id": "fldCyYSRWDcIhi5Hk",
+        "name": "Reach",
+        "type": "number"
+      },
+      {
+        "id": "fldhAIrI9N507vsPZ",
+        "name": "Avg Engagement Rate",
+        "type": "formula",
+        "resultType": "percent",
+        "formula": "IF(AND({fldYRoKU5o5SjTamb}, {fldCyYSRWDcIhi5Hk}, {fldCyYSRWDcIhi5Hk} != 0),\r\n  ({fldYRoKU5o5SjTamb} / {fldCyYSRWDcIhi5Hk}) * 100,\r\n  BLANK()\r\n)"
+      },
+      {
+        "id": "fldJzo7Lp79o69KlH",
+        "name": "Baseline Platform Views",
+        "type": "number"
+      },
+      {
+        "id": "fldtB0PDjB4seYQ47",
+        "name": "🎬 Baseline Video Completion Rate (%) [📱 Platform]",
+        "type": "percent"
+      },
+      {
+        "id": "fldYHGOo7LVoru5Bm",
+        "name": "Working Files",
+        "type": "singleLineText"
+      },
+      {
+        "id": "flduvgoSVtF9zIGkw",
+        "name": "📆 Official Calendar",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblwX47huc5xpkWyk",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldCW41DzzAJHLyuK",
+        "name": "Event type (from 📆 Official Calendar)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldAs48KfISRFATWH",
+        "name": "To repurpose (Anna)",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldtoD3l8z1fhA1WA",
+        "name": "Ticket Raised - Repurpose (Anna)",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldAWjvxH2rJwH8qa",
+        "name": "16x9 Asset Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsqa0jqCB9BUTdM",
+        "name": "9x16 Asset Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldSuThnyyCeOnOwm",
+        "name": "4x5 Asset Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKaoHqU57WIeQ6n",
+        "name": "Review Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldlY89Kka7HoVgmR",
+        "name": "Pathways",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldGCoXUFtnVvabV8",
+        "name": "Gareth Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldcUDdqlsCqZ8wsM",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldllcUaegVsQMtcw",
+        "name": "Preferred Editors (from 🛎️ Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldLDWjy5NGnbOA2p",
+        "name": "Team Lead (from 🛎️ Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldYeAdFhzss3oViC",
+        "name": "Assigned Editor",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbllP5vRon54L7Ccf",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld1wypx415JtpYJ2",
+        "name": "Creative Team (Editors) (from Assigned Editor)",
+        "type": "multipleLookupValues",
+        "resultType": "singleSelect"
+      }
+    ]
+  },
+  {
+    "id": "tblJQLtVUfyJLxKlH",
+    "name": "[TO REVIEW] Prioritization: Content Producers",
+    "primaryFieldId": "fldL0MG0I157RNCrH",
+    "fields": [
+      {
+        "id": "fldL0MG0I157RNCrH",
+        "name": "Issue Key",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldZQEmg8ZlG25zdA",
+        "name": "Summary",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldK1Cpy9mqLbsr34",
+        "name": "Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldK1DARnc3WclmCZ",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "To Do",
+          "In Progress",
+          "Done",
+          "Won't Do",
+          "Review",
+          "Approved",
+          "In Revision"
+        ]
+      },
+      {
+        "id": "fldSyMvsihIniAu9W",
+        "name": "Assignee",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHqpB4sWrTdSbpb",
+        "name": "Reporter",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldLXwY7RpJ9L1vCk",
+        "name": "Created",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldqqY9bJlvmYGigw",
+        "name": "Due date",
+        "type": "date"
+      },
+      {
+        "id": "fldXRybCTyeB1O5AO",
+        "name": "Labels",
+        "type": "multipleSelects",
+        "choices": [
+          "Beta",
+          "Beta-Users",
+          "PF-Board",
+          "UserInterviews",
+          "Quest",
+          "Meditations",
+          "VSL",
+          "MindvalleyMembership",
+          "MindvalleyUniversity",
+          "MindvalleyExperience",
+          "Masterclass",
+          "Upsell",
+          "Localization"
+        ]
+      },
+      {
+        "id": "fldB9nGr45uJ1sl5Z",
+        "name": "Priority",
+        "type": "singleSelect",
+        "choices": [
+          "Critical",
+          "High",
+          "Medium",
+          "Low"
+        ]
+      },
+      {
+        "id": "fldtjE3KdADuoaRhE",
+        "name": "Open in Jira",
+        "type": "button"
+      },
+      {
+        "id": "fld4UUSOwnYjggeDY",
+        "name": "Issue Type",
+        "type": "singleSelect",
+        "choices": [
+          "Sub-task",
+          "Task",
+          "Emailed request"
+        ]
+      },
+      {
+        "id": "fld9haEL081QPuodl",
+        "name": "Sync Source",
+        "type": "externalSyncSource",
+        "choices": [
+          "CST - Content Producers",
+          "CSR - Content Production (Reporter)"
+        ]
+      },
+      {
+        "id": "fldOu17gfJ0pkicZF",
+        "name": "Content Producer",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF(\r\n    OR(\r\n        {fldHqpB4sWrTdSbpb} = \"Hassaan Islam\",\r\n        {fldHqpB4sWrTdSbpb} = \"Anna Franchini\",\r\n        {fldHqpB4sWrTdSbpb} = \"Muhammad Mbwana\"\r\n    ),\r\n    {fldHqpB4sWrTdSbpb},\r\n    IF(\r\n        OR(\r\n            {fldSyMvsihIniAu9W} = \"Hassaan Islam\",\r\n            {fldSyMvsihIniAu9W} = \"Anna Franchini\",\r\n            {fldSyMvsihIniAu9W} = \"Muhammad Mbwana\"\r\n        ),\r\n        {fldSyMvsihIniAu9W},\r\n        BLANK()\r\n    )\r\n)"
+      },
+      {
+        "id": "fldK2FcbEgZ98f0bK",
+        "name": "Request Group",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "SWITCH(\r\n    LEFT({fldL0MG0I157RNCrH}, 3),\r\n    \"QCO\", \"Content Production\",\r\n    \"CSR\", \"Creative Services\"\r\n)"
+      }
+    ]
+  },
+  {
+    "id": "tblhrRl8GzsDMv0DD",
+    "name": "🎯 Prio: Creatives Requests (New)",
+    "primaryFieldId": "fldsuUnK3kc0ba834",
+    "fields": [
+      {
+        "id": "fldsuUnK3kc0ba834",
+        "name": "Request ID",
+        "type": "autoNumber"
+      },
+      {
+        "id": "fld59SWr1qd1XPuR0",
+        "name": "Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "CONCATENATE(\n  {fldxatmiW57hVUL9X},\n  \" | \",\n  {fldPgIBDJCuJng7K1},\n  \" | \",\n  YEAR({flde8MIcH6FH9sU0T})\n)"
+      },
+      {
+        "id": "fldf5Hdhx3BSEXdFZ",
+        "name": "Created By [Import]",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldxatmiW57hVUL9X",
+        "name": "Project/Program",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldaG3TQINrA1c9X0",
+        "name": "Priority ranking (Manual)",
+        "type": "rating"
+      },
+      {
+        "id": "fldjY4VfI44oGmtuS",
+        "name": "SCORE",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "AVERAGE({fldO4iUGIJQfDpRN8},{fld0NEhjKpYAn2l2G},{fldg0R2kFydJ707ww})"
+      },
+      {
+        "id": "fld5INJXFHCliBAKY",
+        "name": "Creative Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fldshVkRYMxic36BZ",
+        "name": "🔗 Asset Link",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF(\r\n    {fldRQRCJXQ6U4SKLq},\r\n    IF(\r\n        FIND(\"|\", {fldRQRCJXQ6U4SKLq}),\r\n        TRIM(SUBSTITUTE(\r\n            LEFT({fldRQRCJXQ6U4SKLq}, FIND(\"|\", {fldRQRCJXQ6U4SKLq}) - 1),\r\n            \"[\", \"\"\r\n        )),\r\n        TRIM(SUBSTITUTE({fldRQRCJXQ6U4SKLq}, \"[\", \"\"))\r\n    ),\r\n    IF(\r\n        {fldjP3qkJhbZAqh6C},\r\n        IF(\r\n            FIND(\"|\", {fldjP3qkJhbZAqh6C}),\r\n            TRIM(SUBSTITUTE(\r\n                LEFT({fldjP3qkJhbZAqh6C}, FIND(\"|\", {fldjP3qkJhbZAqh6C}) - 1),\r\n                \"[\", \"\"\r\n            )),\r\n            TRIM(SUBSTITUTE({fldjP3qkJhbZAqh6C}, \"[\", \"\"))\r\n        ),\r\n        \"N/A\"\r\n    )\r\n)"
+      },
+      {
+        "id": "fldPgIBDJCuJng7K1",
+        "name": "🛎️ Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldHav5N7f7Rpi08Q",
+        "name": "Creative Service Type",
+        "type": "multipleSelects",
+        "choices": [
+          "Event Design",
+          "Brand Design",
+          "Brand Video",
+          "Marketing Video",
+          "Content Video",
+          "Events & Campaign Video",
+          "Copy",
+          "Podcast Video"
+        ]
+      },
+      {
+        "id": "fldgw7zf5fD2YK2EL",
+        "name": "Requested By",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbllP5vRon54L7Ccf",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldlfaGYlYlTxNy1s",
+        "name": "Type of Request",
+        "type": "singleSelect",
+        "choices": [
+          "Video",
+          "Design"
+        ]
+      },
+      {
+        "id": "fldMbzZSolbVNAhGX",
+        "name": "Due date",
+        "type": "date"
+      },
+      {
+        "id": "fldanOtkhcohQbnK1",
+        "name": "Ticket Status",
+        "type": "singleSelect",
+        "choices": [
+          "Backlog",
+          "To Do",
+          "In Progress",
+          "Review",
+          "In Revision",
+          "Approved",
+          "Done",
+          "Won't Do",
+          "Shipping",
+          "Request on Hold"
+        ]
+      },
+      {
+        "id": "fld8gh5hMwf4ywghQ",
+        "name": "Components",
+        "type": "multipleSelects",
+        "choices": [
+          "Ad Creatives",
+          "Brand Design",
+          "Content Production",
+          "Events & Campaign",
+          "Social Media",
+          "Film Production"
+        ]
+      },
+      {
+        "id": "fldILpBDeTZe6gIqt",
+        "name": "🛎️ Hours_Asset Type",
+        "type": "multipleLookupValues",
+        "resultType": "number"
+      },
+      {
+        "id": "fldCmd6bkstwCUadF",
+        "name": "Creative Video Type",
+        "type": "singleSelect",
+        "choices": [
+          "Video - Aftermovies",
+          "Video - Brand: Campaign",
+          "Video - Meditation Looping",
+          "Video - Podcast Episode",
+          "Video - Podcast Snippet",
+          "Video - Shorts",
+          "Video - Quote reel",
+          "Video - Recap of Events",
+          "Video - Stage Talks",
+          "Video - Testimonials",
+          "Video - Trailer",
+          "Video - Vishen Stories (Newsletter)",
+          "Video - VSL",
+          "Video - VSL Leads",
+          "Video - Teaser",
+          "Video - Quest",
+          "Video - Author Story",
+          "Video - Advice and How To's in Steps",
+          "Video - Inspirational Video",
+          "Video - Direct to Sales",
+          "Video - Brand: Product Features",
+          "Video - Masterclass or Webinar",
+          "Video - Campaign Content",
+          "Video - Membership",
+          "Video - Consolidated Files",
+          "Video - Stage Talks: Viral",
+          "Video - Speaker Reel",
+          "Video - Stage Talks: Snippet (No B-Roll)",
+          "Video - Entertain and Engage Content",
+          "Video - Campaign Content: Invite",
+          "Video - Campaign Ad",
+          "Video - Accelerator",
+          "Video - Short Ads",
+          "Video - Close or CTA",
+          "Video - Pitch",
+          "Video - Humor Content",
+          "Video - Other",
+          "Video - Sounds",
+          "Video - Blog",
+          "Marketing Video - All"
+        ]
+      },
+      {
+        "id": "fldoomShK60DoMXqX",
+        "name": "Creative Quest Video Type",
+        "type": "singleSelect",
+        "choices": [
+          "Quest video - Audio mixing and mastering",
+          "Quest video - B-Roll Consolidation",
+          "Quest video - Bumper / Lower - Third Creation",
+          "Quest video - Colour Correction",
+          "Quest video - Footage / Content Asset Transfer",
+          "Quest video - Green screen compositing",
+          "Quest video - Meditation track edits",
+          "Quest video - Motion Custom Animation",
+          "Quest video - Motion Style Frame",
+          "Quest video - Motion Template",
+          "Quest video - Other",
+          "Quest video - Quest / Asset / Bug Fixes",
+          "Quest video - Video edit"
+        ]
+      },
+      {
+        "id": "fldmwGdm1dWOaOshA",
+        "name": "Creatives Brand Design Type",
+        "type": "singleSelect",
+        "choices": [
+          "Brand Design - Infographic/Illustration",
+          "Brand Design - Membership Pro Covers",
+          "Brand Design - Social Media",
+          "Brand Design - Quest Design",
+          "Brand Design - Ads Banners",
+          "Brand Design - Feature Banner",
+          "Brand Design - Localization",
+          "Brand Design - Physical/ Hybrid Event",
+          "Brand Design - Online Event",
+          "Brand Design - Presentation Deck",
+          "Brand Design - Author Image",
+          "Brand Design - Template Creation/ Documentation",
+          "Brand Design - Brochure",
+          "Brand Design - Product",
+          "Brand Design - Emails",
+          "Brand Design - Omvana - Sound Covers",
+          "Brand Design - Omvana - Meditation Covers",
+          "Brand Design - B2B",
+          "Design - Launch Banners ",
+          "Brand Design - Ad hoc: Translation, Feature Banners, Others",
+          "Design - Omvana",
+          "Design - Masterclass Banners "
+        ]
+      },
+      {
+        "id": "flde8MIcH6FH9sU0T",
+        "name": "Created",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldjP3qkJhbZAqh6C",
+        "name": "Output link",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldKGGZMuyqnF7gP8",
+        "name": "🧩 Event Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblzTFTZ2ttEvi2j1",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldJkAF4n86gKnTuq",
+        "name": "🧩 Event Type_Av Revenue",
+        "type": "multipleLookupValues",
+        "resultType": "currency"
+      },
+      {
+        "id": "fldO4iUGIJQfDpRN8",
+        "name": "🧩 Revenue_Event Type [SCORE]",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldJkAF4n86gKnTuq}>2000000,5,\nIF({fldJkAF4n86gKnTuq}>1000000,4,\nIF({fldJkAF4n86gKnTuq}>600000,3,\nIF({fldJkAF4n86gKnTuq}>400000,2,1))))\n\n\n\n\n\n"
+      },
+      {
+        "id": "fldWyLFvTxNZjMzLj",
+        "name": "🛎️ Complexity_Asset Type_Lookup",
+        "type": "rollup",
+        "resultType": "number"
+      },
+      {
+        "id": "fldHtjvNT6CzlMu96",
+        "name": "🛎️ Importance_Asset Type_Lookup",
+        "type": "rollup",
+        "resultType": "number"
+      },
+      {
+        "id": "fldg0R2kFydJ707ww",
+        "name": "🛎️ Importance_Asset Type [SCORE]",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldHtjvNT6CzlMu96}=BLANK(),1,{fldHtjvNT6CzlMu96})"
+      },
+      {
+        "id": "fld0NEhjKpYAn2l2G",
+        "name": "🛎️ Complexity_Asset Type [SCORE]",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldWyLFvTxNZjMzLj}=5,1,\nIF({fldWyLFvTxNZjMzLj}=4,2,\nIF({fldWyLFvTxNZjMzLj}=3,3,\nIF({fldWyLFvTxNZjMzLj}=2,4,\nIF({fldWyLFvTxNZjMzLj}=1,5,\nBLANK())))))"
+      },
+      {
+        "id": "fldJoA9IlnEUvexwH",
+        "name": "Best Video",
+        "type": "multipleLookupValues",
+        "resultType": "multipleAttachments"
+      },
+      {
+        "id": "fldgBqV0YTlMFt3vM",
+        "name": "Best Video URL",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldRQRCJXQ6U4SKLq",
+        "name": "Asset Folder Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldVoECGWiDrOhbAt",
+        "name": "V's Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldqR9AByOXqnp5WV",
+        "name": "Quest Program",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblnwdwiy3HCu26hU",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldJv4qlzSfdMDOUG",
+        "name": "Creative Event Design Type",
+        "type": "singleSelect",
+        "choices": [
+          "Event Design - Digital: 2nd Stage",
+          "Event Design - Digital: Agenda Digital Totems",
+          "Event Design - Digital: Bumper",
+          "Event Design - Digital: Digital Screens",
+          "Event Design - Digital: Holding Slides",
+          "Event Design - Digital: Invite Deck",
+          "Event Design - Digital: Keynote Slides",
+          "Event Design - Digital: Next-On Stage Banners",
+          "Event Design - Digital: Signage",
+          "Event Design - Digital: Venue Map",
+          "Event Design - Digital: Wayfinding  Screens",
+          "Event Design - Print: A3 Signs",
+          "Event Design - Print: Flag",
+          "Event Design - Print: Lightbox",
+          "Event Design - Print: Media Wall",
+          "Event Design - Print: Nametags",
+          "Event Design - Print: Notebook",
+          "Event Design - Print: Pens",
+          "Event Design - Print: Photo Backdrop",
+          "Event Design - Print: Pull-Up Banners",
+          "Event Design - Print: Registration Arches",
+          "Event Design - Print: Registration Desk",
+          "Event Design - Print: Sales Booth",
+          "Event Design - Print: Signage",
+          "Event Design - Print: Stage Design",
+          "Event Design - Print: Stickers",
+          "Event Design - Print: T-Shirt",
+          "Event Design - Print: Totebag",
+          "Event Design - Print: Wristbands"
+        ]
+      },
+      {
+        "id": "fldl2iWeBZnJ1l4JD",
+        "name": "Month-Year Created",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "DATETIME_FORMAT({flde8MIcH6FH9sU0T}, 'MM MMMM YYYY')"
+      },
+      {
+        "id": "fldTMxiYCOOep97JP",
+        "name": "Is Delivered?",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF(OR({fldanOtkhcohQbnK1} = \"Approved\", {fldanOtkhcohQbnK1} = \"Done\"), 1, BLANK())"
+      },
+      {
+        "id": "fldEUCcyRFTMfWQg8",
+        "name": "Is Actionable",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "IF({fldanOtkhcohQbnK1} != \"Won't Do\", 1, BLANK())"
+      },
+      {
+        "id": "fldT5aDoaXfxjI0GG",
+        "name": "🛎 Asset Type (Jira)",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF({fldCmd6bkstwCUadF}, {fldCmd6bkstwCUadF},\r\nIF({fldmwGdm1dWOaOshA}, {fldmwGdm1dWOaOshA},\r\nIF({fldJv4qlzSfdMDOUG}, {fldJv4qlzSfdMDOUG},\r\nIF({fldoomShK60DoMXqX}, {fldoomShK60DoMXqX},\r\n\"—\"))))"
+      },
+      {
+        "id": "fldq55IEq3aZMDwRn",
+        "name": "📅 Published Date",
+        "type": "date"
+      },
+      {
+        "id": "fldvE5ZodGjkQFzmJ",
+        "name": "📣 Published Platform",
+        "type": "multipleSelects",
+        "choices": [
+          "📱 Mindvalley App",
+          "Instagram",
+          "Youtube",
+          "Facebook",
+          "Paid Ads"
+        ]
+      },
+      {
+        "id": "fldSGsSnBrK6MBtQW",
+        "name": "🎬 Video Completion Rate (%) [📱 Platform]",
+        "type": "percent"
+      },
+      {
+        "id": "fldLOg8PAe33jOGCg",
+        "name": "⏱️ Avg. Watch Duration [📱 Platform]",
+        "type": "duration"
+      },
+      {
+        "id": "fldoNpk03GL6ezcv0",
+        "name": "👀 Views / Reach [🌐 Social Media]",
+        "type": "number"
+      },
+      {
+        "id": "fldsJOgOCwqtMv9MC",
+        "name": "❤️ Avg. Engagement Rate (%) [🌐 Social Media]",
+        "type": "percent"
+      },
+      {
+        "id": "fld3TCC50BmE2vDLN",
+        "name": "💰 Revenue Attributed [ROI]",
+        "type": "currency"
+      },
+      {
+        "id": "fldiOpBsWwZZYFdRG",
+        "name": "📊 Conversion Rate (%) [ROI]",
+        "type": "percent"
+      },
+      {
+        "id": "fldQ0E6tNbZwFQ8sT",
+        "name": "🎯 ROAS [ROI]",
+        "type": "number"
+      },
+      {
+        "id": "fldmEUPAkPRO7BRUb",
+        "name": "📉 CTR (%) [ROI]",
+        "type": "percent"
+      },
+      {
+        "id": "fldJ4wUpJAvptpDX8",
+        "name": "📝 Performance Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldLfvusPxNVXmBTI",
+        "name": "👀 Views / Reach [📱 Platform]",
+        "type": "number"
+      },
+      {
+        "id": "fldICS7Id5S1xHNod",
+        "name": "Views / Reach Benchmark [Social Media]",
+        "type": "number"
+      },
+      {
+        "id": "fldNksE49WxHunbSl",
+        "name": "Engagement Rate (%) Benchmark",
+        "type": "percent"
+      },
+      {
+        "id": "fldaYZXlTSU1ruKyG",
+        "name": "Engagement",
+        "type": "number"
+      },
+      {
+        "id": "fldOFz5iK71RpTFTP",
+        "name": "Reach",
+        "type": "number"
+      },
+      {
+        "id": "fldtHjE9XhU9f621u",
+        "name": "Avg Engagement Rate",
+        "type": "formula",
+        "resultType": "percent",
+        "formula": "IF(AND({fldaYZXlTSU1ruKyG}, {fldOFz5iK71RpTFTP}, {fldOFz5iK71RpTFTP} != 0),\r\n  ({fldaYZXlTSU1ruKyG} / {fldOFz5iK71RpTFTP}) * 100,\r\n  BLANK()\r\n)"
+      },
+      {
+        "id": "fldVGZkcdBYxeKkxc",
+        "name": "Baseline Platform Views",
+        "type": "number"
+      },
+      {
+        "id": "fldFIB2475TBmzqgC",
+        "name": "🎬 Baseline Video Completion Rate (%) [📱 Platform]",
+        "type": "percent"
+      },
+      {
+        "id": "fldaOh1PVfKxz5FNR",
+        "name": "Working Files",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldGCRBjJXuiHjgw1",
+        "name": "📆 Official Calendar",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblwX47huc5xpkWyk",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldMzFlb3cH0Nbt8c",
+        "name": "To repurpose (Anna)",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldFvegMW3QopbB85",
+        "name": "Ticket Raised - Repurpose (Anna)",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldM3UIYvwgSEiICF",
+        "name": "16x9 Final Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldExLdKe6qiJvtph",
+        "name": "9x16 Final Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld4BuuOm2rnWYoIR",
+        "name": "4x5 Final Link",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldo1eqR9Wrz7J6Eh",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldxsN7B2KKBYn3o1",
+        "name": "Preferred Editors (from 🛎️ Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldXKxwZThvwjpaeU",
+        "name": "Team Lead (from 🛎️ Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldalbq653hBbZvu7",
+        "name": "Assigned Creative",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbllP5vRon54L7Ccf",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "flddD9CYSvUSB0yVx",
+        "name": "Creative Team (Editors) (from Assigned Editor)",
+        "type": "multipleLookupValues",
+        "resultType": "singleSelect"
+      },
+      {
+        "id": "fldlluxesqo84iv0k",
+        "name": "Created By",
+        "type": "createdBy"
+      },
+      {
+        "id": "fldcY3QF0XD9Q3ld0",
+        "name": "Type of Design",
+        "type": "singleSelect",
+        "choices": [
+          "Print",
+          "Digital"
+        ]
+      },
+      {
+        "id": "fldRUl1jsQefaUz4q",
+        "name": "Call to action",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldAvuqXR1XY5Jh3Q",
+        "name": "Pathways (from Quest Program)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldYhXL2ml94Yztg0",
+        "name": "Outcomes (from Quest Program)",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      },
+      {
+        "id": "fldySmTUdhXlv4evT",
+        "name": "Raw File/URL Links",
+        "type": "url"
+      },
+      {
+        "id": "fldWYaTaYW6zh7G5f",
+        "name": "Speakers/Authors",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblGecx2i4ge9KYmU",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldFH3scvUfjnOwhg",
+        "name": "Prio. Status",
+        "type": "singleSelect",
+        "choices": [
+          "New Request",
+          "To be reviewed by Vishen",
+          "In Queue",
+          "Pending Information/Brief Not Clear",
+          "Rejected - No need to work",
+          "Assigned"
+        ]
+      },
+      {
+        "id": "fldHGT2p5SObJEzPh",
+        "name": "Team/Service Level",
+        "type": "singleSelect",
+        "choices": [
+          "Content Video",
+          "Ad Creatives Video",
+          "Social Media Video",
+          "Event Design Graphic",
+          "Brand Design Graphic",
+          "Pathway Organic"
+        ]
+      },
+      {
+        "id": "fldYPOqHxdglBZrVb",
+        "name": "# Days Since Submission",
+        "type": "formula",
+        "resultType": "number",
+        "formula": "DATETIME_DIFF(TODAY(), {flde8MIcH6FH9sU0T}, 'days')"
+      },
+      {
+        "id": "fldvITMyhwenKITPk",
+        "name": "Import Tag: Team",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldq2HiB56ToekT7g",
+        "name": "Ad Asset Code [Final Asset]",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0LLr4cnfNTy0nq",
+        "name": "Feedback Link",
+        "type": "url"
+      },
+      {
+        "id": "fldI88FUBPH8yzijN",
+        "name": "4x5 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldbTDEvPGjOjzUaW",
+        "name": "9x16 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldvdw7SU93YLeruF",
+        "name": "16x9 Folder",
+        "type": "url"
+      },
+      {
+        "id": "fldUBnt1pFprCZ9iU",
+        "name": "Ad Creative Test Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldxyNfxv9vehj6iH",
+        "name": "Transcript",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldXmNiiRDE5jLFHM",
+        "name": "Lead Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fld6r1JITvO57seYy",
+        "name": "VSL/MC Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldxgmA11t9GLhixS",
+        "name": "Close Conso File",
+        "type": "url"
+      },
+      {
+        "id": "fldbiLlh8ajHhmEHx",
+        "name": "Month of Posting [Pathway]",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldbIWOEZNwwqpJQH",
+        "name": "Year of Posting [Pathway]",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldDSN1qrA8Yqbwb1",
+        "name": "Dimensions (from 🛎️ Asset Type)",
+        "type": "multipleLookupValues",
+        "resultType": "multipleRecordLinks"
+      },
+      {
+        "id": "fldGJvGYPC71lDGKs",
+        "name": "Assigned Contractor/Freelancer",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblRhzXG5vea37rYr",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld7OCqviprIS6lX1",
+        "name": "End Date (from 📆 Official Calendar)",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldRTZnsHah7G56PA",
+        "name": "Start date (from 📆 Official Calendar)",
+        "type": "multipleLookupValues",
+        "resultType": "date"
+      },
+      {
+        "id": "fldHQs252gCQBrxP1",
+        "name": "Creatives Ticket Notes",
+        "type": "richText"
+      }
+    ]
+  },
+  {
+    "id": "tblcZ8OIxfgnlUowC",
+    "name": "📺 Shoots",
+    "primaryFieldId": "fldiXdLvABVQsQx6C",
+    "fields": [
+      {
+        "id": "fldiXdLvABVQsQx6C",
+        "name": "Asset Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldnLRFDHVXuUvUba",
+        "name": "Requested by",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbllP5vRon54L7Ccf",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldfz4B7S765leTIT",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "New Requests - Approved by Vishen",
+          "New Requests - Needs Vishen's Review",
+          "To Film",
+          "Done - Filmed",
+          "Cancelled"
+        ]
+      },
+      {
+        "id": "fldNNkk3toYNOgzor",
+        "name": "Priority Ranking (Manual)",
+        "type": "rating"
+      },
+      {
+        "id": "fldTuCEBQmXYnxCZM",
+        "name": "Notes/Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fldTpntyVFFiWCw49",
+        "name": "📍 Filming Location",
+        "type": "singleSelect",
+        "choices": [
+          "Studio Time - Tallinn",
+          "Studio Time - KL",
+          "Studio Time - London",
+          "MVU 2025",
+          "MVU 2026"
+        ]
+      },
+      {
+        "id": "fld2d5m4pvwaCkFt4",
+        "name": "📆 Filming Date",
+        "type": "date"
+      },
+      {
+        "id": "fld3EaYUxVfpKyZCM",
+        "name": "Raw Files",
+        "type": "url"
+      },
+      {
+        "id": "fldTkTRGlh5dj7cUp",
+        "name": "Authors 🧠",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblGecx2i4ge9KYmU",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldQvUwHnqBDDPH2O",
+        "name": "Business Unit",
+        "type": "singleSelect",
+        "choices": [
+          "MVM",
+          "MAS",
+          "CER",
+          "MVT",
+          "B2B",
+          "STA",
+          "MER",
+          "MVE",
+          "LFB",
+          "WTF",
+          "MVA",
+          "MIS",
+          "GEN",
+          "Membership",
+          "Events",
+          "Premium Programs",
+          "MV States",
+          "Book Club",
+          "Social/Podcast"
+        ]
+      },
+      {
+        "id": "fldEwptWHDtOYW7oW",
+        "name": "Style",
+        "type": "singleSelect",
+        "choices": [
+          "MV Podcast",
+          "Side Story",
+          "Life at Mindvalley",
+          "Debate",
+          "Focus Piece",
+          "Snippets",
+          "Explainer",
+          "Quest Snippet",
+          "Inserts",
+          "Trailer",
+          "Sales",
+          "Event Footage",
+          "Campaign",
+          "Live Stream",
+          "Testimonials",
+          "Masterclass",
+          "VSL/Leads",
+          "Ads (Short Hooks etc)",
+          "Member Guidance",
+          "Stage Talks",
+          "Vishen as Guest",
+          "Podcast Style Snippets",
+          "Announcement",
+          "Upsell",
+          "Newsletter",
+          "Man on the Street",
+          "Quest",
+          "Social/Engagement",
+          "Sponsor Commitments",
+          "Audiowaves/Meditation"
+        ]
+      },
+      {
+        "id": "fldyxWLBrfcEyEL9d",
+        "name": "Series",
+        "type": "singleSelect",
+        "choices": [
+          "Studio Interview",
+          "Debate",
+          "Behind the Scenes",
+          "Localization Content",
+          "Nas Style Trailers",
+          "Vishen's Life & Learnings",
+          "Explainer",
+          "Mindvalley",
+          "Side",
+          "Side Story",
+          "Backstage",
+          "Vishen's Journey",
+          "Vishen in Guest Podcast",
+          "Livecall Interview",
+          "Stage Talk",
+          "Glen Jason Chittur",
+          "Edutainment"
+        ]
+      },
+      {
+        "id": "fldzADgA2zZfdrXZy",
+        "name": "Platfom",
+        "type": "multipleSelects",
+        "choices": [
+          "Youtube",
+          "Facebook",
+          "Instagram",
+          "Twitter",
+          "LinkedIn",
+          "TikTok"
+        ]
+      },
+      {
+        "id": "fldI9Zq1MsLmkH1rC",
+        "name": "Format",
+        "type": "singleSelect",
+        "choices": [
+          "Studio",
+          "VLOG",
+          "Broll",
+          "Testimonial",
+          "Livestream"
+        ]
+      },
+      {
+        "id": "fld0QFKKIko8KpYkj",
+        "name": "Content Pillar",
+        "type": "singleSelect",
+        "choices": [
+          "Educational",
+          "Inspirational",
+          "Activism/ Global Events",
+          "Community",
+          "Brand/ Mindvalley/ Membership",
+          "Entertainment",
+          "PR/ Social Proof",
+          "Virality/ Paradigm Shift",
+          "Ads"
+        ]
+      },
+      {
+        "id": "fldpGBd4gOiCooTOv",
+        "name": "Production Support",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldFtmYlIScZRCtIS",
+        "name": "Production Unit",
+        "type": "multipleSelects",
+        "choices": [
+          "Unit 1 (Studio)",
+          "Unit 2 (Brolls)",
+          "Unit 3 (Testimonials)",
+          "Unit 4 (Social Content)",
+          "Unit 5 (A/V Crew)"
+        ]
+      },
+      {
+        "id": "fld6YexE2MgNrxfKy",
+        "name": "Last Modified By",
+        "type": "lastModifiedBy"
+      },
+      {
+        "id": "fld5oUk5TNQvchDx0",
+        "name": "Created",
+        "type": "createdTime",
+        "resultType": "date"
+      },
+      {
+        "id": "fldgRyAmaCzYrPjpl",
+        "name": "Attachments",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldmQ6JTiX0iNexwv",
+        "name": "Audio Notes",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "flddIn00xi8W9tPAY",
+        "name": "YT Thumbnail",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fld44VAES0QWKqAJd",
+        "name": "YT Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldTZqwHvaaMmpebA",
+        "name": "Final Asset URL",
+        "type": "url"
+      },
+      {
+        "id": "fldmoBtErj6BSVn2B",
+        "name": "Due Date",
+        "type": "date"
+      },
+      {
+        "id": "fldxgiLpegTh6S6J0",
+        "name": "Last Modified",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldIQrDNJ0Q6vfihB",
+        "name": "Post-Production Ticket",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldhqZbEmxjEK703f",
+        "name": "Vishen's Approval",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldRlBQIifsGQ4LWr",
+        "name": "🧩 Event Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblzTFTZ2ttEvi2j1",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldqNdJkJxT0kXuxy",
+        "name": "🛎️ Creative Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldIq5rx2Xn80Lxvz",
+        "name": "Campaign",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblwX47huc5xpkWyk",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "flddyAgUEUaKnaHSm",
+        "name": "Requester",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldUX2QexuFfDQSt6",
+        "name": "Prioritization: Creatives copy",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld9absg1O3LiVlcL",
+        "name": "Pathways",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblypdVsDH3ODLxrW",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldbIjmOVRr5CsEzn",
+        "name": "🔗 Final Asset Link",
+        "type": "multipleLookupValues",
+        "resultType": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblLbcgob2Bxevugy",
+    "name": "🛎️ Creative Asset Type",
+    "primaryFieldId": "fldP6YGDBvf4DWXld",
+    "fields": [
+      {
+        "id": "fldP6YGDBvf4DWXld",
+        "name": "Asset Type (Full title)",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldNRpVclLnbT3jRR",
+        "name": "Asset type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldQ35S8Y2r9a3Ix8",
+        "name": "Importance",
+        "type": "rating"
+      },
+      {
+        "id": "fldjZHYUBONTh3m4z",
+        "name": "Complexity",
+        "type": "rating"
+      },
+      {
+        "id": "fldJj1xEzyysTacvq",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fldK5PcSa9cw8tSj4",
+        "name": "DNA",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldvXfczENZC9SBW2",
+        "name": "Thumbnail (from Best Videos)",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldoAFVIeCt2IXoS3",
+        "name": "Sync Source",
+        "type": "externalSyncSource",
+        "choices": [
+          "Sync: 🛎 Video Assets Type - Creative Services",
+          "Sync: 🛎️ All Design Asset Type - Creative Services"
+        ]
+      },
+      {
+        "id": "fldIoHyUoqrVICdkt",
+        "name": "Prioritization",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld8P4QXOEmgjzPEz",
+        "name": "Best Video URL",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldqU31BH7gZiWF9b",
+        "name": "Shoots",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldlimBTA8siYeAOC",
+        "name": "Team",
+        "type": "singleSelect",
+        "choices": [
+          "Content",
+          "Social Media",
+          "Ad Creatives"
+        ]
+      },
+      {
+        "id": "flddkCd6WSwBAzNlt",
+        "name": "Design Category",
+        "type": "singleSelect",
+        "choices": [
+          "Graphic ",
+          "Event "
+        ]
+      },
+      {
+        "id": "flds1mZhcqwX9TgSu",
+        "name": "To Track Baseline",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldIrRHdNaCSwU9d4",
+        "name": "Sign-Off",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldfCsqOjPO2LH9Ye",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Inactive"
+        ]
+      },
+      {
+        "id": "fldpFtHWfo1P5MMEq",
+        "name": "Count (Prioritization)",
+        "type": "count"
+      },
+      {
+        "id": "fldmDywGRsFPjwNPb",
+        "name": "Category",
+        "type": "singleSelect",
+        "choices": [
+          "Creative Video Type",
+          "Creative Brand Design Type",
+          "Creative Event Design Type"
+        ]
+      },
+      {
+        "id": "fldSaUP7bC0IdlnMR",
+        "name": "Updated on Jira",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldJK8jZCogkkPR7u",
+        "name": "Last Modified on Jira By",
+        "type": "lastModifiedBy"
+      },
+      {
+        "id": "fldOIwHVl21ABBqpV",
+        "name": "Last Modified Time on Jira",
+        "type": "lastModifiedTime",
+        "resultType": "dateTime"
+      },
+      {
+        "id": "fldDcQwdpcNwnHZmR",
+        "name": "Update Status",
+        "type": "singleSelect",
+        "choices": [
+          "To update",
+          "Updated"
+        ]
+      },
+      {
+        "id": "fldju58CuxYvCH6pJ",
+        "name": "Update desciption",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldQY01a97TIxsmK2",
+        "name": "Matt to update",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldLDehJ5wrbsXWUP",
+        "name": "Service Type",
+        "type": "multipleSelects",
+        "choices": [
+          "Content",
+          "Marketing"
+        ]
+      },
+      {
+        "id": "fldCDp2QUGCTbyp3v",
+        "name": "Event Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblzTFTZ2ttEvi2j1",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldwO5GJ7OUoeJHfL",
+        "name": "Team Lead",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbllP5vRon54L7Ccf",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldyynej9y49WBxNm",
+        "name": "Preferred Editors",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbllP5vRon54L7Ccf",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fld3XvOZ2lJ7foY7t",
+        "name": "Dimensions",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblHSG0MpdvUI9Z4X",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldUviLlcUg4QdNwY",
+        "name": "Prioritization: Creatives copy",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld86vEJhhWbheWDU",
+        "name": "Type of Asset",
+        "type": "singleSelect",
+        "choices": [
+          "Print",
+          "Digital"
+        ]
+      },
+      {
+        "id": "fldU8rrHNVa3lJemr",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldkPU9zoLfNILH9a",
+        "name": "Team/Service Level",
+        "type": "singleSelect",
+        "choices": [
+          "Content Video",
+          "Ad Creatives Video",
+          "Social Media Video",
+          "Event Design Graphic",
+          "Brand Design Graphic"
+        ]
+      },
+      {
+        "id": "fldN8Nrq7q480lWjx",
+        "name": "DNA link",
+        "type": "url"
+      }
+    ]
+  },
+  {
+    "id": "tblzTFTZ2ttEvi2j1",
+    "name": "🧩 Event Type",
+    "primaryFieldId": "fldAthwfuZIZ1Ip1L",
+    "fields": [
+      {
+        "id": "fldAthwfuZIZ1Ip1L",
+        "name": "Event Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldcSHEisXVFj3T69",
+        "name": "Production Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldl8TGQ0HD7mNYVD",
+        "name": "Type",
+        "type": "singleSelect",
+        "choices": [
+          "Webinar",
+          "Online Seminar",
+          "Summit",
+          "Physical Event",
+          "Class Start",
+          "Advertising",
+          "Sale",
+          "Release",
+          "Branding",
+          "Hybrid"
+        ]
+      },
+      {
+        "id": "fldZRjXFbf7reOF39",
+        "name": "Owner",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fld0lwyb74r6XQDFz",
+        "name": "🗓️ Official Calendar",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldHIgo2P7OuNuZ3n",
+        "name": "URL",
+        "type": "url"
+      },
+      {
+        "id": "fld9G6n7iKtYlUZ0o",
+        "name": "Average revenue",
+        "type": "currency"
+      },
+      {
+        "id": "fldQhAa0gAifmcHrx",
+        "name": "Timeline",
+        "type": "singleSelect",
+        "choices": [
+          "Calendar",
+          "Evergreen",
+          "Pages ",
+          "Campaigns",
+          "Releases",
+          "Live Events"
+        ]
+      },
+      {
+        "id": "fldQucY5AP2xzz1sE",
+        "name": "Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fld61kbg6oxEIKqMo",
+        "name": "Prioritization",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldapguyjW2qYrS96",
+        "name": "Prioritization copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFWqawbn75Zy14M",
+        "name": "Shoots",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldexljH3wyPJUpbo",
+        "name": "🛎️ Creative Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldi8VoHUSmNQl0YT",
+        "name": "Prioritization: Creatives copy",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldjaEB4Ua7HaDm6s",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldO47YFvI33omtvr",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldrUg4Yu87OfaTeX",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld9zPjkF542hVinq",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Not Active",
+          "To Review"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblHSG0MpdvUI9Z4X",
+    "name": "📦 Dimensions",
+    "primaryFieldId": "fld5rj6hl3sAKlh7c",
+    "fields": [
+      {
+        "id": "fld5rj6hl3sAKlh7c",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld9aSiozJPRqXW3I",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Todo",
+          "In progress",
+          "Done"
+        ]
+      },
+      {
+        "id": "fldixEufLtJErz6If",
+        "name": "🛎️ Creative Asset Type",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblwX47huc5xpkWyk",
+    "name": "📆 Official Calendar",
+    "primaryFieldId": "fldjuF4S7ptf7LJvs",
+    "fields": [
+      {
+        "id": "fldjuF4S7ptf7LJvs",
+        "name": "Name of project",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldMmJxgQ5OCqog3k",
+        "name": "Unique Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldOsJS2ADpvpqN57",
+        "name": "Month",
+        "type": "singleSelect",
+        "choices": [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+          "?"
+        ]
+      },
+      {
+        "id": "fldvAEyKNsmVDKkdr",
+        "name": "Year",
+        "type": "singleSelect",
+        "choices": [
+          "2026",
+          "2024",
+          "2025",
+          "2023"
+        ]
+      },
+      {
+        "id": "fldUTFq2FREVVaPhW",
+        "name": "Event type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldezSGkl4oco94vW",
+        "name": "Average revenue (from Event type)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldlPdd36JQONqTtF",
+        "name": "💿 Production Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld14hx72rxW5fd4j",
+        "name": "Type",
+        "type": "multipleSelects",
+        "choices": [
+          "Webinar",
+          "Online Seminar",
+          "Summit",
+          "Physical Event",
+          "Class Start",
+          "Advertising",
+          "Sale",
+          "Release",
+          "Branding",
+          "Hybrid"
+        ]
+      },
+      {
+        "id": "fldcMN9WdUJYlx0pp",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Proposal",
+          "Confirmed",
+          "Completed",
+          "Fine-Tuning Needed",
+          "Dates to be Confirmed",
+          "Rejected/Cancelled"
+        ]
+      },
+      {
+        "id": "fldtiPnk3piWUJ8sh",
+        "name": "Start date",
+        "type": "date"
+      },
+      {
+        "id": "fldDQ5wle0nFSQXBi",
+        "name": "End Date",
+        "type": "date"
+      },
+      {
+        "id": "fldU1KJa0OzghWu8c",
+        "name": "Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fld51G3BCtlwhVpLx",
+        "name": "Responsible",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldvWljh49NL6Jcr5",
+        "name": "Created",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldexoRWB1nksuBuX",
+        "name": "URL",
+        "type": "url"
+      },
+      {
+        "id": "fld0mkSc6niSiFVnh",
+        "name": "Art",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldUZy2MHf30S6v4B",
+        "name": "Art Source Files",
+        "type": "url"
+      },
+      {
+        "id": "fldIttfBFqBw5XnVC",
+        "name": "Responsible Designer",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldwqeIhIdGR5J7nd",
+        "name": "Prioritization: Creatives",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldlXUztDjzdrdiog",
+        "name": "Prioritization: Creatives 2",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldIxPVIwHv0dkHzI",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldx4vMUrNomzOSAL",
+        "name": "Prioritization: Creatives copy",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldtB0PxyzcGnVaC4",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblZAOXgat3jmN3qK",
+    "name": "🏗 Production (DEL)",
+    "primaryFieldId": "flds8lrdydflD5jhk",
+    "fields": [
+      {
+        "id": "flds8lrdydflD5jhk",
+        "name": "Production",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldxgJNBvhtpB4Ayc",
+        "name": "Production Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "flddY32tlALXUDySp",
+        "name": "Members Release (from 🚀 Releases)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0l6x2rNyeEqST7",
+        "name": "Post: Rough Cut (Start)",
+        "type": "date"
+      },
+      {
+        "id": "fld8mjoF87NBjt6Nf",
+        "name": "Post: Completion",
+        "type": "date"
+      },
+      {
+        "id": "fldS2EEU3xDOmSbBR",
+        "name": "Timeline (from 🚀 Releases)",
+        "type": "multipleSelects",
+        "choices": [
+          "2021",
+          "2022 Q1",
+          "2022 Q2",
+          "2022 Q3",
+          "2022 Q4",
+          "2023 Q1",
+          "2023 Q2",
+          "2023 Q3",
+          "2023 Q4",
+          "2024 Q1",
+          "2024 Q2",
+          "2024 Q3",
+          "2024 Q4",
+          "2025 Q1",
+          "2025 Q2",
+          "2025 Q3",
+          "2025 Q4",
+          "On Hold",
+          "2026 Q1",
+          "2026 Q2",
+          "2026 Q3",
+          "2026 Q4"
+        ]
+      },
+      {
+        "id": "fldiTrKhtNHMiZ8Pa",
+        "name": "Prioritization",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldbTg6VtFxjVB2fK",
+        "name": "Type",
+        "type": "singleSelect",
+        "choices": [
+          "Quest",
+          "Masterclass",
+          "Events",
+          "Podcast",
+          "Studio Time",
+          "Meditations",
+          "VSL",
+          "MV Coach",
+          "Mastery",
+          "Accelerator",
+          "B2B"
+        ]
+      },
+      {
+        "id": "fldv2La5hzhPKS49e",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0WexGS7dbYBbyd",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldI31B6M3IyhpkXO",
+        "name": "Release (from 💿 Programs)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldwJB18FjJBgyJZH",
+        "name": "Pathways (from 💿 Programs)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldIkzyTWurRrfVYB",
+        "name": "Pathway (from 💿 Programs)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldu02XIhhwVqAI1F",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblGecx2i4ge9KYmU",
+    "name": "✍🏻 Authors",
+    "primaryFieldId": "fldfg4etowAZ0V6Td",
+    "fields": [
+      {
+        "id": "fldfg4etowAZ0V6Td",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldiGzhxjy8SlAyxB",
+        "name": "Picture",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fld3oF6P49icz2zDT",
+        "name": "Author's Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldEznTIssytUokrd",
+        "name": "Bio",
+        "type": "richText"
+      },
+      {
+        "id": "fldwCzvjcQNIn9bxR",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldCzCjfreZ0HX9HM",
+        "name": "🎯 Prioritization: Creatives (New)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tbl4YXlCFmsAlsS3B",
+    "name": "Vendors Database [To migrate]",
+    "primaryFieldId": "fldgkA01Tpb4yeJGg",
+    "fields": [
+      {
+        "id": "fldgkA01Tpb4yeJGg",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld2AohrVWAKte4Ch",
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "id": "fldnceVvcrQvWES23",
+        "name": "Phone Number",
+        "type": "phoneNumber"
+      },
+      {
+        "id": "fldUliKJFke5c08fz",
+        "name": "Role",
+        "type": "multipleSelects",
+        "choices": [
+          "Videographer",
+          "Cinematographer",
+          "Gaffer",
+          "Camera Operator",
+          "Teleprompter Operator",
+          "Producer",
+          "Production Assistant",
+          "Hair and Makeup",
+          "Photographer",
+          "Editor",
+          "Sound Recordist",
+          "Gimbal Operator",
+          "Stylist",
+          "Set Designer",
+          "Grip/Assistant Gaffer",
+          "Studio",
+          "Podcast Studio"
+        ]
+      },
+      {
+        "id": "fldwzvXg0EKdoeMCY",
+        "name": "Location",
+        "type": "singleSelect",
+        "choices": [
+          "London",
+          "Tallinn",
+          "Los Angeles",
+          "Miami",
+          "Amsterdam",
+          "New York",
+          "Barcelona",
+          "Seattle",
+          "Dubai",
+          "Kuala Lumpur",
+          "Tampa"
+        ]
+      },
+      {
+        "id": "fldppdS9LHYrZk4wL",
+        "name": "Daily Rate (currency is location based)",
+        "type": "number"
+      },
+      {
+        "id": "fld0ypqznl8Ii3iwh",
+        "name": "Rating",
+        "type": "rating"
+      },
+      {
+        "id": "fld1W1rXBPzL2uFHe",
+        "name": "Portfolio",
+        "type": "url"
+      },
+      {
+        "id": "fldbK9kauF7zjQDgq",
+        "name": "Notes",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblA6jZSHNYfyXwbF",
+    "name": "💃🏼 Events [to delete]",
+    "primaryFieldId": "fldXvHZme7uD5mnra",
+    "fields": [
+      {
+        "id": "fldXvHZme7uD5mnra",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldCYSEMzZtWXgnIr",
+        "name": "Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldpaUa0QpV4r3nCv",
+        "name": "Year",
+        "type": "number"
+      },
+      {
+        "id": "flde6gMb4zLy8FNEN",
+        "name": "City",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld0fDnN6NWt7acqz",
+        "name": "Country",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldW5V8i1LBqo9l6k",
+        "name": "Start Date",
+        "type": "date"
+      },
+      {
+        "id": "fldIU9Pm81Yw04Yb3",
+        "name": "End Date",
+        "type": "date"
+      },
+      {
+        "id": "fldnUkIU3zhhox804",
+        "name": "Cover",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fld55V2UsoA4v6aM8",
+        "name": "Author",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblGecx2i4ge9KYmU",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldMUdaDWXnwSh4Et",
+        "name": "URL",
+        "type": "url"
+      },
+      {
+        "id": "fldFgnJxNZDIC06tR",
+        "name": "Aftermovie",
+        "type": "url"
+      },
+      {
+        "id": "fldBd04GtfVxEBSfx",
+        "name": "Notes",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld0niz3nqJwwbWgF",
+        "name": "Event Name & Year",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld5CQd2MBj3B9yGw",
+        "name": "Prioritization: Creatives",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldiLaDQAnT632u0A",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldNFD0rbVPshLBpz",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhJrqtA58cJK8S1",
+        "name": "Prioritization: Creatives copy",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblWVkoA49n3XOrLh",
+    "name": "Midjourney Prompt [to migrate]",
+    "primaryFieldId": "fldY0pnHcckp1Ohfv",
+    "fields": [
+      {
+        "id": "fldY0pnHcckp1Ohfv",
+        "name": "Name",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "{fldgV2CKPCoP6kQup} & \" \" & \"|\" & \" \" & {fld1pAzY2MXCF52Qw}"
+      },
+      {
+        "id": "fld6SFPzC97heRb73",
+        "name": "Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldG2wheKZzLMFWJy",
+        "name": "Description",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldwRJMLwJoTHAQEy",
+        "name": "Prompt",
+        "type": "multilineText"
+      },
+      {
+        "id": "fld4lbRz15MhtHmHB",
+        "name": "Tags",
+        "type": "multipleSelects",
+        "choices": [
+          "Doodle",
+          "Sketch",
+          "Sketchbook",
+          "Pencil",
+          "Strokes",
+          "Storyboard",
+          "Energy",
+          "Japan",
+          "Manga",
+          "Anime"
+        ]
+      },
+      {
+        "id": "fld1pAzY2MXCF52Qw",
+        "name": "Version",
+        "type": "singleSelect",
+        "choices": [
+          "niji 6",
+          "v 6",
+          "v 7"
+        ]
+      },
+      {
+        "id": "fldgV2CKPCoP6kQup",
+        "name": "Style Reference",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldVmbgNiR7I1QUQv",
+        "name": "Artist/ Creator",
+        "type": "singleSelect",
+        "choices": [
+          "@Artedeingenio",
+          "@HalimAlrasihi"
+        ]
+      },
+      {
+        "id": "fldszYHJNliqhxrBF",
+        "name": "Example: Reference",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldxEWqnQ5Q7b0VsA",
+        "name": "Example: Prompt",
+        "type": "richText"
+      }
+    ]
+  },
+  {
+    "id": "tbl7rsefVi2YHNtDq",
+    "name": "🎉 Best Videos",
+    "primaryFieldId": "fldVqBfyU3K6MluWv",
+    "fields": [
+      {
+        "id": "fldVqBfyU3K6MluWv",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldxlOFI0QENjrvKx",
+        "name": "Thumbnail",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldn8CSKTTuIjw610",
+        "name": "File",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "flduyoAfRNMH2UQbn",
+        "name": "Video URL",
+        "type": "url"
+      },
+      {
+        "id": "fldJhnje0MhqxJzyt",
+        "name": "Why is this Good?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldcTbzMXSJD16Gb9",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "fldKiEt3p8YCKI6AC",
+        "name": "Asset Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld6jaATmUXqsRplf",
+        "name": "Video DNA",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldQ0MEWJh80dYs85",
+        "name": "Virality DNA",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldf94g2tOkpxtH4O",
+        "name": "Release Date",
+        "type": "date"
+      },
+      {
+        "id": "fldv2Yr6kbSE6eztG",
+        "name": "Team",
+        "type": "multipleSelects",
+        "choices": [
+          "Content",
+          "Social Media",
+          "Ad Creatives"
+        ]
+      },
+      {
+        "id": "fld0YiHnNuY4HQN7d",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Todo",
+          "In progress",
+          "Done"
+        ]
+      },
+      {
+        "id": "fldI2UMpLjNvA6X9v",
+        "name": "[DEMO] All Video Content Pipeline",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblUGTEXFGlOA9wVb",
+    "name": "📉 Data Baseline [to migrate]",
+    "primaryFieldId": "fldZGluQ9aFdCYPuL",
+    "fields": [
+      {
+        "id": "fldZGluQ9aFdCYPuL",
+        "name": "🏷️ Calculation",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "{fld6Uw74IVfQK7Gfi} & \" \" & \"|\" & \" \" & {flda5yq6PaysrbJ7T} & \" \" & \"-\" & \" \" & {fld75vWIfOyRbWywe}"
+      },
+      {
+        "id": "fld75vWIfOyRbWywe",
+        "name": "🎨 Asset Type",
+        "type": "singleSelect",
+        "choices": [
+          "Video",
+          "Shorts",
+          "Lesson",
+          "Meditation",
+          "Masterclass",
+          "VSL",
+          "Banner",
+          "Carousel"
+        ]
+      },
+      {
+        "id": "fld6Uw74IVfQK7Gfi",
+        "name": "📡 Platform",
+        "type": "singleSelect",
+        "choices": [
+          "Meta Ads",
+          "Google Ads",
+          "Mindvalley App",
+          "Instagram",
+          "Facebook",
+          "YouTube"
+        ]
+      },
+      {
+        "id": "flda5yq6PaysrbJ7T",
+        "name": "⚡ Type",
+        "type": "singleSelect",
+        "choices": [
+          "Paid Ads",
+          "Organic",
+          "Program"
+        ]
+      },
+      {
+        "id": "fld43FejnQWwugn4Q",
+        "name": "🔢 Days Baseline",
+        "type": "number"
+      },
+      {
+        "id": "fld7Ugpo1zXnfyqrS",
+        "name": "👁️ Views Baseline",
+        "type": "number"
+      },
+      {
+        "id": "fldbOiTqJhoVJOH17",
+        "name": "❤️ Engagement Baseline",
+        "type": "number"
+      },
+      {
+        "id": "fldaMhc2WVlR2Wi2e",
+        "name": "🎬 Video Completion Rate (%)",
+        "type": "percent"
+      },
+      {
+        "id": "fld8kCtE5aHH67r5n",
+        "name": "⏱️ Avg Watch Duration",
+        "type": "duration"
+      },
+      {
+        "id": "fldFUavzm78tl6qpz",
+        "name": "📊 Engagement Rate (%)",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF({fld7Ugpo1zXnfyqrS} > 0, ROUND(({fldbOiTqJhoVJOH17} / {fld7Ugpo1zXnfyqrS}) * 100, 2), \"\")"
+      },
+      {
+        "id": "fldyfQPH2cZB1GTMF",
+        "name": "🔭 Impressions Baseline",
+        "type": "number"
+      },
+      {
+        "id": "fld5MSbDF0J8FPrd2",
+        "name": "🖱️ Clicks Baseline",
+        "type": "number"
+      },
+      {
+        "id": "fldDh6glgCEtkURNV",
+        "name": "🎯 CTR (%)",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF({fldyfQPH2cZB1GTMF} > 0, ROUND(({fld5MSbDF0J8FPrd2} / {fldyfQPH2cZB1GTMF}) * 100, 2), \"\")"
+      },
+      {
+        "id": "fldLnU28nOTgcKGql",
+        "name": "✅ CPL",
+        "type": "number"
+      },
+      {
+        "id": "flddJiChkEg82Gdae",
+        "name": "🔁 Conversion Rate (%)",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF({fld5MSbDF0J8FPrd2} > 0, ROUND(({fldLnU28nOTgcKGql} / {fld5MSbDF0J8FPrd2}) * 100, 2), \"\")"
+      },
+      {
+        "id": "fldRs9q75ib1LoSUF",
+        "name": "💰 ROAS",
+        "type": "number"
+      },
+      {
+        "id": "fldAGbXOQZ3wsqKFm",
+        "name": "💵 Revenue Attributed",
+        "type": "currency"
+      }
+    ]
+  },
+  {
+    "id": "tblumJH9pcq1FLnBo",
+    "name": "[NOT IN USE] 📺 Shoots Prioritisation",
+    "primaryFieldId": "fldC76qElxb03kvli",
+    "fields": [
+      {
+        "id": "fldC76qElxb03kvli",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldIrks3nQXSXvPtk",
+        "name": "Company-Wide Priority ranking (Manual)",
+        "type": "rating"
+      },
+      {
+        "id": "fldoVdFwJ85d83BiV",
+        "name": "Score [Algorithm To be created]",
+        "type": "number"
+      },
+      {
+        "id": "fldiWjMGqawjXcE36",
+        "name": "Rating (on Source Airtable)",
+        "type": "rating"
+      },
+      {
+        "id": "fldah16OMwQFlRoGH",
+        "name": "Shoot Due Date",
+        "type": "date"
+      },
+      {
+        "id": "fldby0cnfHKKPs6jq",
+        "name": "Notes / Claude Script",
+        "type": "richText"
+      },
+      {
+        "id": "fldvJy4oCljix5ROA",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "1. Idea",
+          "2. Idea Confirmed",
+          "3. ⚡️To Shoot",
+          "4: 🎥 Filmed",
+          "5. In Editing",
+          "6. Published",
+          "Rejected",
+          "Repurpose (Matt)",
+          "Parked for later"
+        ]
+      },
+      {
+        "id": "flderQXt8aLynb9G6",
+        "name": "Medium",
+        "type": "singleSelect",
+        "choices": [
+          "📝 Insta Writing",
+          "📄 LinkedIn",
+          "📹 Video Short",
+          "🎥 Video Long",
+          "📧 Email",
+          "🎤 Talk",
+          "📸 Insta Image",
+          "🌞 Ad/Trailer"
+        ]
+      },
+      {
+        "id": "fldxoLrRXdvKfRhRZ",
+        "name": "Product",
+        "type": "singleSelect",
+        "choices": [
+          "States",
+          "AI Acc",
+          "Membership",
+          "Mastery",
+          "Events",
+          "CLC",
+          "Summit",
+          "Brand",
+          "Mani Summit"
+        ]
+      },
+      {
+        "id": "fldWQBYHVLUaG8kdF",
+        "name": "Source",
+        "type": "singleSelect",
+        "choices": [
+          "Vishen",
+          "Simplex Media",
+          "Will ",
+          "Membership",
+          "Academy",
+          "Simplex (by Vishen)",
+          "Talking Heads",
+          "Two Comma PR",
+          "VSL/Masterclass Ads",
+          "📣 MV Content & Comms",
+          "Ramya"
+        ]
+      },
+      {
+        "id": "fldk9H2h6bfgb8Z1v",
+        "name": "Format",
+        "type": "singleSelect",
+        "choices": [
+          "Clip",
+          "Straight to Cam",
+          "Humor",
+          "Carousel",
+          "Selfie",
+          "Studio",
+          "1. Video",
+          "2. Email",
+          "3a. Insta: Post/Carousel",
+          "3b. Insta: Snippet / Long Reel",
+          "3c. Insta: Stories",
+          "3d. Insta: Static Image",
+          "3e. Insta: Long Carousel",
+          "4. Reel < 1 min",
+          "5a. YT: Full Talk",
+          "5b. YT: Shorts",
+          "5c. YT  < 20m",
+          "7. Meditation/Sounds",
+          "8. Blog Post",
+          "9. Live Stream",
+          "10. MV Show Full Episode",
+          "11: Tweet Body/Text Only",
+          "13. Cover or Banner",
+          "14. FB: Photo Album",
+          "16. Poll",
+          "17. LinkedIn Text Post",
+          "18. Broadcast Message",
+          "2: Approved"
+        ]
+      },
+      {
+        "id": "fldw152pzgFCLuKdq",
+        "name": "GPT",
+        "type": "url"
+      },
+      {
+        "id": "fld7xn9HP8qKSucXP",
+        "name": "Attachments",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldkhxxVC1SzCY5zo",
+        "name": "Created Date",
+        "type": "date"
+      },
+      {
+        "id": "fldGLSeVJpVU0o4Gv",
+        "name": "🌳 Topics",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld2EyQccvLXlxsP6",
+        "name": "Link",
+        "type": "url"
+      },
+      {
+        "id": "fldF2odGcO7xqOo9Z",
+        "name": "Approval",
+        "type": "singleSelect",
+        "choices": [
+          "Rejected",
+          "To Refine",
+          "Approved",
+          "To Review",
+          "Parked for later"
+        ]
+      },
+      {
+        "id": "fldkCBXeZ8vSBVIf5",
+        "name": "Claude Captions",
+        "type": "richText"
+      },
+      {
+        "id": "fld4Q9wDhclxAP5bs",
+        "name": "Transcript",
+        "type": "richText"
+      },
+      {
+        "id": "fldsZuJXy2te6u4xO",
+        "name": "Virality Advisor",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldpjWIfhei9LkXp3",
+        "name": "Modified",
+        "type": "date"
+      },
+      {
+        "id": "fldZboB5SupCDXUhI",
+        "name": "Brand Rewrite",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldOrIkt1fqKJqKdi",
+        "name": "Content Pipeline Category",
+        "type": "singleSelect",
+        "choices": [
+          "Vishen Lakhiani Media"
+        ]
+      },
+      {
+        "id": "fld0gCs5AOe2abBhG",
+        "name": "Video Ticket Linked Record?",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldT9gPgJWSkEs8g7",
+        "name": "Creative Brief",
+        "type": "richText"
+      },
+      {
+        "id": "fldCbAm6i14aCAnJ6",
+        "name": "Reference Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "flduo7Cfm3YXQ38Yq",
+        "name": "Doc URL for Teleprompter",
+        "type": "url"
+      },
+      {
+        "id": "fldIhZSgYyfV3lSLg",
+        "name": "Thumbnail (from 🎉 Best Videos)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldUAuOcUv8xdydzm",
+        "name": "URL (from 🎉 Best Videos)",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fld7DHO5BhYDaL69J",
+        "name": "Marketing Principles",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8zEYXwx4PE6ju6",
+        "name": "Final VSL Ads Batches/Initiaives",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsGtXKr9wd8YeV3",
+        "name": "Repurposed",
+        "type": "singleSelect",
+        "choices": [
+          "Animated Banner",
+          "✍️ New Script",
+          "🎬 Repurpose Video"
+        ]
+      },
+      {
+        "id": "fldB6yQyuj1f617eI",
+        "name": "Sync Source",
+        "type": "externalSyncSource",
+        "choices": [
+          "SYNCH VISHEN LAKHIANI MEDIA TO CREATIVE SERVICES",
+          "SYNCH ADS LIBRARY to CREATIVE SERVICES",
+          "SYNCH 📣 Social MV CONTENT & COMMS TO CREATIVE SERVICES"
+        ]
+      },
+      {
+        "id": "fldL521tj3AaEWdWc",
+        "name": "Live Date",
+        "type": "date"
+      },
+      {
+        "id": "fldASrKYkcygBid9b",
+        "name": "🏳️‍🌈 Channels",
+        "type": "multipleSelects",
+        "choices": [
+          "Email",
+          "FB: MV",
+          "FB: VL",
+          "IG: MV",
+          "IG: VL",
+          "IG: Events",
+          "IG: Lifebook",
+          "IG: Coach",
+          "LI: MV",
+          "LI: VL",
+          "X: MV",
+          "X: VL",
+          "YT: MV",
+          "YT: MV Talks",
+          "YT: VL",
+          "TT: MV",
+          "TT: VL",
+          "IG: MV Es",
+          "IG: MV De",
+          "IG: MV Fr",
+          "IG: MV Coach",
+          "IG: States",
+          "FB: States",
+          "YT: States",
+          "IG: MV Members",
+          "FB: MV Members",
+          "YT: MV Members",
+          "WA: MV Members",
+          "IG: BookClub",
+          "FB: BookClub",
+          "YT: BookClub",
+          "IG: Kristina",
+          "FB: Kristina",
+          "IG: Future Human",
+          "IG: Broadcast",
+          "YT Mastery",
+          "YT MV Shorts",
+          "FB: Events",
+          "IG: MV Manifesting",
+          " FB: MV Manifesting",
+          "IG: MV Speaking ",
+          "FB: MV Speaking ",
+          "IG: MV Entrepreneurship",
+          " FB: MV Entrepreneurship",
+          "IG: MV Longevity ",
+          "FB: MV Longevity"
+        ]
+      },
+      {
+        "id": "fld9bFWU78thhWCi7",
+        "name": "✍️ Social Media Captions",
+        "type": "richText"
+      },
+      {
+        "id": "fldxeAWgG9hIRyRNq",
+        "name": "▶️ ✍️ YouTube Caption",
+        "type": "richText"
+      },
+      {
+        "id": "fldhowu7Ghd1zAh1j",
+        "name": "✉️ Audience",
+        "type": "multipleSelects",
+        "choices": [
+          "Everyone",
+          "1,2: Public",
+          "3: Lifebook",
+          "3: Members",
+          "4: Pro",
+          "5: Coach",
+          "5: Events",
+          "6: Mastery",
+          "Sublist (Any)"
+        ]
+      },
+      {
+        "id": "fldvS8gykS9mlC1Yz",
+        "name": "Created By",
+        "type": "singleCollaborator"
+      },
+      {
+        "id": "flds4F39koiPfQC6l",
+        "name": "🧭 Purpose",
+        "type": "singleSelect",
+        "choices": [
+          "🎺 Announcement",
+          "💡 Educate",
+          "🚀 Launch"
+        ]
+      },
+      {
+        "id": "fldP8UVPZLAbGlvxA",
+        "name": "📯 Campaign Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldICKaaFJYXpSLbp",
+        "name": "Shoot date [Confirmed by Vishen]",
+        "type": "date"
+      }
+    ]
+  },
+  {
+    "id": "tbl4TAOQZ2BtYFFUF",
+    "name": "📝 AI Tool Audit 2026",
+    "primaryFieldId": "fld35AHa6jWW0VYzG",
+    "fields": [
+      {
+        "id": "fld35AHa6jWW0VYzG",
+        "name": "Submission",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "\"AI Audit — \"&{fld6deksaGh1OfNrQ}&\" — \"&DATETIME_FORMAT(CREATED_TIME(),\"MMM YYYY\")"
+      },
+      {
+        "id": "fld6deksaGh1OfNrQ",
+        "name": "Respondent",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldsm6WsIkl6by7EP",
+        "name": "Department",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldqYWZk2xJ01tM80",
+        "name": "Job Role",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fld26G2LE7uX7cKu3",
+        "name": "Daily Driver",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblV0EwkBl4jdGzI4",
+        "prefersSingleRecordLink": true
+      },
+      {
+        "id": "fldwu7OiohFnyVIdd",
+        "name": "Impact if Removed",
+        "type": "rating"
+      },
+      {
+        "id": "fldoZRVFH2dN19a1C",
+        "name": "Tools Used (Last 30 Days)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblV0EwkBl4jdGzI4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld8scSUGyWWEasXp",
+        "name": "Unused Tools",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblV0EwkBl4jdGzI4",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldHLghSHh6pFI5Zb",
+        "name": "Unused Tools — Reason",
+        "type": "richText"
+      },
+      {
+        "id": "fldSN5b7B00ePLlZ8",
+        "name": "Overlap Notes",
+        "type": "richText"
+      },
+      {
+        "id": "fldpJoZHvVT0XDxpI",
+        "name": "Wishlist Tool",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldXKT8SBq25cMj11",
+        "name": "Wishlist Reason",
+        "type": "richText"
+      },
+      {
+        "id": "fld9AsMP4XAj9mxXj",
+        "name": "Audit Submitted Date",
+        "type": "createdTime",
+        "resultType": "dateTime"
+      }
+    ]
+  },
+  {
+    "id": "tbldIslyQdrnup5b4",
+    "name": "Artlist Workshop Feedback",
+    "primaryFieldId": "fld8nA8K6cQB9OmU0",
+    "fields": [
+      {
+        "id": "fld8nA8K6cQB9OmU0",
+        "name": "Respondent",
+        "type": "formula",
+        "formula": "{fldfDCQaCSoRnnG1y} & \" \" & \"|\" & \" \" & {fldBJbJIWKAUlE5hU}"
+      },
+      {
+        "id": "fldfDCQaCSoRnnG1y",
+        "name": "Respondent Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBJbJIWKAUlE5hU",
+        "name": "Department",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldytCCAfysXBJ5Vq",
+        "name": "Job Role",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fldkoBLhK1EzMdepV",
+        "name": "Q1 – Which topics were most relevant to your role, and which felt too generic or off-target?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldjShxvItN2Od63r",
+        "name": "Q2 – Was the content depth right for you, and which parts felt like the best use of time?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldv61Gmaun03MPnv",
+        "name": "Q3 – Which AI tool or workflow demoed would save you the most time — and was anything missing?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldktm9tX9d5gP4Oz",
+        "name": "Q4 – What’s the #1 problem in your work you’d want the next hands-on session to solve?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldVVi6QqzAfgYmrL",
+        "name": "Q5 – What are your main concerns when it comes to adopting AI tools in your day-to-day work?",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldctVOmKWH9e0gzp",
+        "name": "Rating: Overall Value",
+        "type": "rating"
+      },
+      {
+        "id": "fldntVY3b9A0xyHsT",
+        "name": "Rating: Presenter Clarity",
+        "type": "rating"
+      },
+      {
+        "id": "fldHaGbVMhvr8scs7",
+        "name": "Rating: Relevance to Role",
+        "type": "rating"
+      },
+      {
+        "id": "fldYTKAT0cGozf86H",
+        "name": "Created By",
+        "type": "createdBy"
+      }
+    ]
+  },
+  {
+    "id": "tbla65zTgUcly8FP8",
+    "name": "Project (Del)",
+    "primaryFieldId": "fldvgmJLAiV0qP7Dd",
+    "fields": [
+      {
+        "id": "fldvgmJLAiV0qP7Dd",
+        "name": "Program Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKwmxJTA2prGxn7",
+        "name": "Unique Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldnURBIR6TwoRLyJ",
+        "name": "Events & Campaign",
+        "type": "singleSelect",
+        "choices": [
+          "AI Accelerator 2026",
+          "AI Mastery 2026",
+          "AI Summit 2026",
+          "Author-ship Mastery 2026",
+          "Authority-ship Summit 2026",
+          "Black Friday 2026",
+          "Certified Hypnotherapy 2026",
+          "Certified Life Coach 2026",
+          "Entrepreneurship and AI Mastery 2026",
+          "Entrepreneurship and AI Summit 2026",
+          "Longevity Mastery 2026",
+          "Longevity Summit 2026",
+          "Manifesting Cert 2026",
+          "Manifesting Mastery 2026",
+          "Manifesting Summit 2026",
+          "Mindvalley U 2026",
+          "Self Reset 2026",
+          "Social Media Mastery 2026",
+          "Social Media Summit 2026",
+          "Social Media Summit Highlights 2026",
+          "Speaking & Influence Mastery 2026",
+          "Speaking & Influence Summit 2026",
+          "Lifebook",
+          "AI Summit Highlights 2026",
+          "Longevity Accelerator 2026"
+        ]
+      },
+      {
+        "id": "fldaPanE2T4UHQJ5R",
+        "name": "Dynamic Program Label",
+        "type": "formula",
+        "resultType": "singleLineText",
+        "formula": "IF(\r\n  FIND(\"(MV Brain)\", {fldbkSADj4IXpyWAb}),\r\n    {fldvgmJLAiV0qP7Dd} & \" | \" & {fldC5qmkCe20071s2},\r\n    IF(\r\n      FIND(\"(Official Cal)\", {fldbkSADj4IXpyWAb}),\r\n        {fldKwmxJTA2prGxn7} & \" | \" & {fld2WRGnbbzdIHWyR} & \" \" & {fldrCuQ91NzxZMNcn},\r\n        BLANK()\r\n    )\r\n)"
+      },
+      {
+        "id": "fldbkSADj4IXpyWAb",
+        "name": "Sync Source",
+        "type": "externalSyncSource",
+        "choices": [
+          "Sync: Creative Services (MV Brain)",
+          "Sync: Creative Services (Official Cal)"
+        ]
+      },
+      {
+        "id": "fldC5qmkCe20071s2",
+        "name": "Product Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgSZVeZ2vb74iRI",
+        "name": "Category",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldopdlNLpm8ZBVGy",
+        "name": "Languages",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldFGk2a6Ki4OwGIC",
+        "name": "Pathways",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldNZxVe2Ter35YHA",
+        "name": "Cover",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldjz6fnHptk3kP1I",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "In Discussion",
+          "Approved",
+          "Approached",
+          "Signed",
+          "Pre-Production",
+          "Filmed",
+          "Post-Production",
+          "Product QA",
+          "CN1 Ready",
+          "Completed",
+          "Ready to Publish",
+          "Published",
+          "Cancelled",
+          "On Hold",
+          "Unpublished",
+          "Proposal",
+          "Confirmed",
+          "Fine-Tuning Needed",
+          "Dates to be Confirmed",
+          "Rejected/Cancelled"
+        ]
+      },
+      {
+        "id": "fldCljfOfcZAfuPv9",
+        "name": "Author",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld5WTaXV2YDWXY23",
+        "name": "Release/ Start Date",
+        "type": "date"
+      },
+      {
+        "id": "flddVFkpjnSzKB6Rk",
+        "name": "End Date",
+        "type": "date"
+      },
+      {
+        "id": "fld2WRGnbbzdIHWyR",
+        "name": "Month",
+        "type": "singleSelect",
+        "choices": [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+          "?"
+        ]
+      },
+      {
+        "id": "fldrCuQ91NzxZMNcn",
+        "name": "Year",
+        "type": "singleSelect",
+        "choices": [
+          "2026",
+          "2024",
+          "2025",
+          "2023"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tbllP5vRon54L7Ccf",
+    "name": "👬 Employees",
+    "primaryFieldId": "fldaFPL1w7o8lrUcy",
+    "fields": [
+      {
+        "id": "fldaFPL1w7o8lrUcy",
+        "name": "Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldUvhqQlb7wapy5o",
+        "name": "Employee #",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldzGBnI3SBeS7mtW",
+        "name": "Hiring Status",
+        "type": "singleSelect",
+        "choices": [
+          "Joining Soon",
+          "Probation",
+          "Active",
+          "Leaving Soon",
+          "Ex-Team",
+          "Contract Ended",
+          "Offer Declined"
+        ]
+      },
+      {
+        "id": "fld2ePOqPjwktFKrb",
+        "name": "Division Executive",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldva7oCFXfBQaZ3q",
+        "name": "Department Manager",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldgiKIOqPCcfVfAr",
+        "name": "Airtable Record ID",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldyTRWo0yU2J71ab",
+        "name": "Team Lead",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldVpmhLINGDPxJNG",
+        "name": "Active Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Not Active"
+        ]
+      },
+      {
+        "id": "fldE56Vg1wJFXgZ7J",
+        "name": "Employment Status",
+        "type": "singleSelect",
+        "choices": [
+          "Full-Time",
+          "Full-Time EOR",
+          "Part-Time ",
+          "Part-Time EOR",
+          "Contractor",
+          "Advisor",
+          "Service Provider",
+          "Intern",
+          "Owner (Shareholder)",
+          "Other",
+          "Terminated",
+          "Maternity Leave",
+          "Full-Time (Maternity Cover)"
+        ]
+      },
+      {
+        "id": "fldhkXUKYyFubFzAh",
+        "name": "MV Entity",
+        "type": "singleSelect",
+        "choices": [
+          "MV Labs (Malaysia)",
+          "Remote",
+          "MV Inc (USA)",
+          "MV OU (Estonia)",
+          "MV UK",
+          "MV ME (UAE)"
+        ]
+      },
+      {
+        "id": "fldFHeXhUmFvFVZ0U",
+        "name": "Working Location",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldy55o2OhTHwIVWF",
+        "name": "Job Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldCSlSk6mwmQYK74",
+        "name": "Work Email",
+        "type": "email"
+      },
+      {
+        "id": "fld42kTiMRJkFJcXD",
+        "name": "Reporting To (Supervisor)",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldglaj0qjZvPR4qw",
+        "name": "Supervisor Emails",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldM1pDSFinsrWlQf",
+        "name": "Profile Pic",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldnqHMir8EYbAmTc",
+        "name": "Division",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8Hl4fntIp25VBE",
+        "name": "Leads DIVISION",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldruwHpjqgyDKWDJ",
+        "name": "Department",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldqPR983ll43q4jV",
+        "name": "Leads DEPARTMENT",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldC5YZyugSHFQbkm",
+        "name": "Slack Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldMtnJDpSKUibZwb",
+        "name": "Last modified",
+        "type": "dateTime"
+      },
+      {
+        "id": "fldSummwdegPrsiyM",
+        "name": "Direct Reports",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldKd2VblvWgJolax",
+        "name": "# Direct Reports",
+        "type": "number"
+      },
+      {
+        "id": "fldAx1ZnNVlKspjKc",
+        "name": "Leads TEAM",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldhJiVHzvkEKJVpZ",
+        "name": "Active under TEAM",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldEWQ1jG6UVas4JU",
+        "name": "Business Units",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldSij5EsOpQdV8mU",
+        "name": "Is Executive?",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldEHpA4r6vWWPWzw",
+        "name": "Team Lead (Creative)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld1AVsv8RhiVuriC",
+        "name": "🛎️ Creative Asset Type 2",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblLbcgob2Bxevugy",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld40bQ9gPPUF4bX2",
+        "name": "Creative Team (Editors)",
+        "type": "singleSelect",
+        "choices": [
+          "Content Production Video",
+          "Marketing Video",
+          "Organic Social Video",
+          "Design "
+        ]
+      },
+      {
+        "id": "fldpU1rGTObqJM9rJ",
+        "name": "Prioritization: Creatives",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl5kg8HS5DuEUqr8",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldB1CE7Hi0zRnJDe",
+        "name": "Prioritization: Creatives copy",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldxxzSxHTG63qVfI",
+        "name": "Prioritization: Creatives (New)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldxqudEG2zngOvET",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld6qTvx3ahTgQPLv",
+        "name": "📺 Shoots 2",
+        "type": "singleLineText"
+      }
+    ]
+  },
+  {
+    "id": "tblRhzXG5vea37rYr",
+    "name": "👷🏼 Contractor/Freelancers",
+    "primaryFieldId": "flddODE3TVJ1REDTY",
+    "fields": [
+      {
+        "id": "flddODE3TVJ1REDTY",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldrpLK9VCaXgykQD",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "Active",
+          "Inactive"
+        ]
+      },
+      {
+        "id": "fldOjdlWjwJk3GEMa",
+        "name": "🎯 Prio: Creatives Requests (New)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldJIpVXOavKBOYet",
+        "name": "Team/Service Level",
+        "type": "singleSelect",
+        "choices": [
+          "Content Video",
+          "Ad Creatives Video",
+          "Social Media Video",
+          "Event Design Graphic",
+          "Brand Design Graphic",
+          "Pathway Organic"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tblV0EwkBl4jdGzI4",
+    "name": "📡 Creative Tools [to delete]",
+    "primaryFieldId": "fldRnjbeguaz4TIfw",
+    "fields": [
+      {
+        "id": "fldRnjbeguaz4TIfw",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldIzrQ9TrrfAQAGJ",
+        "name": "Image",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fld11vUeQLH456L8j",
+        "name": "Upcoming Renewal Date",
+        "type": "date"
+      },
+      {
+        "id": "fldssJNLOkOQY2t9B",
+        "name": "Access Description",
+        "type": "richText"
+      },
+      {
+        "id": "fldRAKaAgGEihGFFF",
+        "name": "🏋️‍♂️ Team Member",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldXVYY15e2orFmxA",
+        "name": "Team Member Role",
+        "type": "multipleLookupValues"
+      },
+      {
+        "id": "fld77yVpQvEvcwP8z",
+        "name": "📝 AI Tool Audit 2026",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4TAOQZ2BtYFFUF",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fld8wRFLbdIjJLAU0",
+        "name": "Type",
+        "type": "multipleSelects",
+        "choices": [
+          "AI Tool",
+          "Transcript",
+          "Documentation",
+          "Review Platform",
+          "Stock Music",
+          "Stock Footage",
+          "Stock Template"
+        ]
+      },
+      {
+        "id": "fldkt3dStZM8Wj3SO",
+        "name": "📝 AI Tool Audit 2026 copy",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4TAOQZ2BtYFFUF",
+        "prefersSingleRecordLink": false
+      },
+      {
+        "id": "fldhtuXUWYmJsZ23h",
+        "name": "📝 AI Tool Audit 2026 (2)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tbl4TAOQZ2BtYFFUF",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblypdVsDH3ODLxrW",
+    "name": "🪜 Pathways",
+    "primaryFieldId": "fldFk6hAnYGFIAwsD",
+    "fields": [
+      {
+        "id": "fldFk6hAnYGFIAwsD",
+        "name": "Name",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldeS3F5PVih9noYS",
+        "name": "🔵 Areas of Growth",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldV1u7HVDPRdMZg0",
+        "name": "# Areas of Growth",
+        "type": "number"
+      },
+      {
+        "id": "fldRn22DA1ZiqPpi2",
+        "name": "Rating",
+        "type": "rating"
+      },
+      {
+        "id": "fldfxbE59TI1Z1sv7",
+        "name": "📺 Shoots",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblcZ8OIxfgnlUowC",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tblnwdwiy3HCu26hU",
+    "name": "📚 Programs",
+    "primaryFieldId": "fldVWSUwF9wl2nibK",
+    "fields": [
+      {
+        "id": "fldVWSUwF9wl2nibK",
+        "name": "Program Title",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldouBxhudUHnxl9V",
+        "name": "Cover",
+        "type": "multipleAttachments"
+      },
+      {
+        "id": "fldHOrWwwIgujeyD0",
+        "name": "Release",
+        "type": "date"
+      },
+      {
+        "id": "fldac3sVWzjUsgdbK",
+        "name": "Membership",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldTvcbnkDQwHCWCJ",
+        "name": "Coming Soon",
+        "type": "checkbox"
+      },
+      {
+        "id": "fldVuH2BLgtsWO8QS",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "In Discussion",
+          "Approved",
+          "Approached",
+          "Signed",
+          "Pre-Production",
+          "Filmed",
+          "Post-Production",
+          "Product QA",
+          "CN1 Ready",
+          "Completed",
+          "Ready to Publish",
+          "Published",
+          "Cancelled",
+          "On Hold",
+          "Unpublished"
+        ]
+      },
+      {
+        "id": "fldWzmSzyjPW0MgBH",
+        "name": "Category",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldnnyq5JcQiFYGZ5",
+        "name": "Product Type",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldQyhONXNLxZTozh",
+        "name": "Languages",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldmfxBdIml7jxtNZ",
+        "name": "Author",
+        "type": "singleLineText"
+      },
+      {
+        "id": "flddhz1Ehmso9umu4",
+        "name": "Brands",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldCyx3QILV0oojuX",
+        "name": "Outcomes",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldJ6BsXeaNvhlZYt",
+        "name": "Areas of Growth",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3g1wi1uIoT8UIS",
+        "name": "Lessons",
+        "type": "number"
+      },
+      {
+        "id": "fld3hUi5mUIchCwhp",
+        "name": "Hours",
+        "type": "number"
+      },
+      {
+        "id": "fldvb4NZtVH8Yfg4R",
+        "name": "Prod Abbreviation",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3CQ9iWM1mcixkU",
+        "name": "Slug",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldWSrndwNDs36ltZ",
+        "name": "Length",
+        "type": "singleSelect",
+        "choices": [
+          "1 Week",
+          "2 Weeks",
+          "3 Weeks",
+          "4 Weeks",
+          "≤ 6 Weeks",
+          "≤ 8 Weeks",
+          "≤ 12 Weeks",
+          "≤ 24 Weeks",
+          "> 24 Weeks"
+        ]
+      },
+      {
+        "id": "fldO237FiNu62fFkm",
+        "name": "# of products in a specific language",
+        "type": "number"
+      },
+      {
+        "id": "fldfDhzuBS6C09z9p",
+        "name": "# of products per languages (-1)",
+        "type": "number"
+      },
+      {
+        "id": "fldXeGF8rWB9dlnCy",
+        "name": "Pathways",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldqNlonvhREvo0GI",
+        "name": "Pathway",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld3NLbfa2gQHoI9l",
+        "name": "🎯 Prioritization: Creatives (New)",
+        "type": "multipleRecordLinks",
+        "linkedTableId": "tblhrRl8GzsDMv0DD",
+        "prefersSingleRecordLink": false
+      }
+    ]
+  },
+  {
+    "id": "tbleXL0wfagwsdoPD",
+    "name": "📣 Social Media [to review]",
+    "primaryFieldId": "fldri89eCU83PLCfJ",
+    "fields": [
+      {
+        "id": "fldri89eCU83PLCfJ",
+        "name": "Name",
+        "type": "multilineText"
+      }
+    ]
+  },
+  {
+    "id": "tblhLJg4V8LOulNVj",
+    "name": "🛒 PRODUCT LINES",
+    "primaryFieldId": "fld392cSydYEH3Znn",
+    "fields": [
+      {
+        "id": "fld392cSydYEH3Znn",
+        "name": "Product Name",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldFhbo28qAtCi5Gv",
+        "name": "Product Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld8XW79jpslXYLFy",
+        "name": "Business Unit",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldBmMmmWDOPC9XzJ",
+        "name": "Definition",
+        "type": "multilineText"
+      },
+      {
+        "id": "fldOBhnLzRtQfEj0z",
+        "name": "Project Code",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fldi84X6vHYP9RIun",
+        "name": "Classcode",
+        "type": "singleLineText"
+      },
+      {
+        "id": "fld2LKLpLw9RLJ4yK",
+        "name": "Status",
+        "type": "singleSelect",
+        "choices": [
+          "To Create",
+          "Active",
+          "To Deactivate",
+          "Deactivated"
+        ]
+      },
+      {
+        "id": "fldWbO4RC6YdwYR8f",
+        "name": "Ranking (from Business Unit)",
+        "type": "singleLineText"
+      }
+    ]
+  }
+]
