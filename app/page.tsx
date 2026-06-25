@@ -20,7 +20,7 @@ const Page = async () => {
 
         {!session ? (
           <div className="text-center">
-            <SignIn provider="github" />
+            <SignIn provider="google" />
           </div>
         ) : (
           <div className="space-y-4">
