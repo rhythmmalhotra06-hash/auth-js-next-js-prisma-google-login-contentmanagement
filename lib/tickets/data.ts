@@ -54,3 +54,73 @@ export async function getQueueTickets(): Promise<QueueTicket[]> {
     dueDate: r.dueDate ? r.dueDate.toISOString().slice(0, 10) : null,
   }));
 }
+
+export interface TicketEventRow {
+  id: string;
+  fromState: string | null;
+  toState: string;
+  actor: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface TicketDetail {
+  id: string;
+  title: string;
+  creativeBrief: string | null;
+  cta: string | null;
+  dueDate: string | null;
+  ticketStatus: string | null;
+  prioStatus: string | null;
+  typeOfRequest: string | null;
+  teamServiceLevel: string | null;
+  sourceLinks: string | null;
+  notes: string | null;
+  priorityScore: string | null;
+  eventType: string | null;
+  assetType: string | null;
+  requester: string | null;
+  assignee: string | null;
+  officialCalendar: string | null;
+  authors: string[];
+  events: TicketEventRow[];
+}
+
+export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
+  const t = await prisma.ticket.findUnique({
+    where: { id },
+    select: {
+      id: true, title: true, creativeBrief: true, cta: true, dueDate: true,
+      ticketStatus: true, prioStatus: true, typeOfRequest: true, teamServiceLevel: true,
+      sourceLinks: true, notes: true, priorityScore: true,
+      eventType: { select: { name: true } },
+      assetType: { select: { name: true } },
+      requester: { select: { name: true } },
+      assignee: { select: { name: true } },
+      officialCalendar: { select: { name: true } },
+      authors: { select: { author: { select: { name: true } } } },
+      events: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, fromState: true, toState: true, note: true, createdAt: true, actor: { select: { name: true } } },
+      },
+    },
+  });
+  if (!t) return null;
+  return {
+    id: t.id, title: t.title, creativeBrief: t.creativeBrief, cta: t.cta,
+    dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null,
+    ticketStatus: t.ticketStatus, prioStatus: t.prioStatus, typeOfRequest: t.typeOfRequest,
+    teamServiceLevel: t.teamServiceLevel, sourceLinks: t.sourceLinks, notes: t.notes,
+    priorityScore: t.priorityScore != null ? t.priorityScore.toString() : null,
+    eventType: t.eventType?.name ?? null,
+    assetType: t.assetType?.name ?? null,
+    requester: t.requester?.name ?? null,
+    assignee: t.assignee?.name ?? null,
+    officialCalendar: t.officialCalendar?.name ?? null,
+    authors: t.authors.map((a) => a.author.name),
+    events: t.events.map((e) => ({
+      id: e.id, fromState: e.fromState, toState: e.toState, note: e.note,
+      actor: e.actor?.name ?? null, createdAt: e.createdAt.toISOString(),
+    })),
+  };
+}

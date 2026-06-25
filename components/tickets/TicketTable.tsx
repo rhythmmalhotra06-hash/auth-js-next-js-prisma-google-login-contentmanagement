@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { QueueTicket } from '@/lib/tickets/data';
 
 // The mandated standard: the first five columns are identical across ALL views —
@@ -38,7 +39,9 @@ export function TicketTable({ tickets }: { tickets: QueueTicket[] }) {
         <tbody>
           {tickets.map((t) => (
             <tr key={t.id} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
-              <td className="px-4 py-3 font-medium text-neutral-900">{t.title}</td>
+              <td className="px-4 py-3 font-medium">
+                <Link href={`/tickets/${t.id}`} className="text-[#572280] hover:underline">{t.title}</Link>
+              </td>
               <td className="px-4 py-3 text-neutral-700">{t.priorityScore ?? <span className="text-neutral-400">unscored</span>}</td>
               <td className="px-4 py-3 text-neutral-700">{t.assignee ?? <span className="text-neutral-400">unassigned</span>}</td>
               <td className="px-4 py-3"><Badge value={t.ticketStatus} kind="ticket" /></td>
