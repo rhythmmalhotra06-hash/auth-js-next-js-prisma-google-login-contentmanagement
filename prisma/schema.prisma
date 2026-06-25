@@ -8,6 +8,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// ===========================================================================
+// AUTH.JS  (identity/session only; domain attribution lives on Employee)
+// ===========================================================================
+
 model Account {
   id                String  @id @default(cuid())
   userId            String  @map("user_id")
@@ -57,4 +61,232 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// ===========================================================================
+// REFERENCE DATA  (one-way: Airtable -> Postgres; read-only in the app)
+// ===========================================================================
+
+model Employee {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId     String?  @unique @map("airtable_id")
+  name           String
+  email          String?  @unique
+  team           String? // [VERIFY] e.g. Social Media, Content Production, Campaigns
+  division       String? // [VERIFY]
+  isTeamLead     Boolean  @default(false) @map("is_team_lead")
+  employmentType String   @default("employee") @map("employment_type") // employee | contractor | freelancer
+  active         Boolean  @default(true)
+  syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  assetTypesAsTeamLead        AssetType[]   @relation("AssetTypeTeamLead")
+  assetTypesAsPreferredEditor AssetType[]   @relation("AssetTypePreferredEditor")
+  assignedTickets             Ticket[]
+  ticketEvents                TicketEvent[]
+  approvals                   Approval[]
+
+  @@map("employees")
+}
+
+model Dimension {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId String?  @unique @map("airtable_id")
+  label      String // e.g. "9x16"
+  syncedAt   DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  assetTypes AssetTypeDimension[]
+
+  @@map("dimensions")
+}
+
+model EventType {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId     String?  @unique @map("airtable_id")
+  name           String // e.g. Masterclass, Mastery, States, MBU, Social Media Promotion, Pathway
+  brainProgramId String?  @map("brain_program_id") // [VERIFY] link to Mindvalley Brain
+  active         Boolean  @default(true)
+  syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  assetTypes AssetType[]
+  tickets    Ticket[]
+
+  @@map("event_types")
+}
+
+model Dna {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId        String?  @unique @map("airtable_id")
+  name              String
+  requirements      String?
+  feedbackStandards String?  @map("feedback_standards")
+  syncedAt          DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  assetTypes AssetType[]
+
+  @@map("dna")
+}
+
+model AssetType {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId        String?  @unique @map("airtable_id")
+  name              String // e.g. "Masterclass Trailer"
+  category          String? // digital | print
+  eventTypeId       String?  @map("event_type_id") @db.Uuid
+  teamLeadId        String?  @map("team_lead_id") @db.Uuid
+  preferredEditorId String?  @map("preferred_editor_id") @db.Uuid
+  dnaId             String?  @map("dna_id") @db.Uuid
+  active            Boolean  @default(true)
+  syncedAt          DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  eventType       EventType? @relation(fields: [eventTypeId], references: [id])
+  teamLead        Employee?  @relation("AssetTypeTeamLead", fields: [teamLeadId], references: [id])
+  preferredEditor Employee?  @relation("AssetTypePreferredEditor", fields: [preferredEditorId], references: [id])
+  dna             Dna?       @relation(fields: [dnaId], references: [id])
+
+  dimensions AssetTypeDimension[]
+  tickets    Ticket[]
+
+  @@map("asset_types")
+}
+
+model AssetTypeDimension {
+  assetTypeId String @map("asset_type_id") @db.Uuid
+  dimensionId String @map("dimension_id") @db.Uuid
+
+  assetType AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  dimension Dimension @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+
+  @@id([assetTypeId, dimensionId])
+  @@map("asset_type_dimensions")
+}
+
+// ===========================================================================
+// TRANSACTIONAL DATA  (two-way: app is primary, pushed back to Airtable)
+// ===========================================================================
+
+model Ticket {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId    String?   @unique @map("airtable_id")
+  title         String // renamed from "Summary" for Dropbox searchability
+  creativeBrief String?   @map("creative_brief")
+  cta           String? // Call to Action: URL / sign-up / social instruction
+  positioning   String? // messaging angle
+  audience      String? // 'cold' | 'warm'
+  dueDate       DateTime? @map("due_date") @db.Date
+
+  eventTypeId String? @map("event_type_id") @db.Uuid
+  assetTypeId String? @map("asset_type_id") @db.Uuid
+  assigneeId  String? @map("assignee_id") @db.Uuid
+
+  prioStatus   String? @map("prio_status") // manager-set, external-facing  [VERIFY enum]
+  ticketStatus String? @map("ticket_status") // editor/designer-set, internal  [VERIFY enum]
+
+  urgency       Int?
+  complexity    Int?
+  priorityScore Decimal? @map("priority_score") @db.Decimal // derived; ranks the queue
+  queueRank     Int?     @map("queue_rank") // manager-orderable position
+
+  source    String    @default("app") // app | jira_migration | airtable
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt  DateTime? @map("synced_at") @db.Timestamptz
+
+  eventType EventType? @relation(fields: [eventTypeId], references: [id])
+  assetType AssetType? @relation(fields: [assetTypeId], references: [id])
+  assignee  Employee?  @relation(fields: [assigneeId], references: [id])
+
+  events    TicketEvent[]
+  approvals Approval[]
+  shoots    ShootTicket[]
+  assets    Asset[]
+
+  @@index([priorityScore(sort: Desc), queueRank], map: "idx_tickets_queue")
+  @@index([assigneeId], map: "idx_tickets_assignee")
+  @@index([ticketStatus], map: "idx_tickets_status")
+  @@map("tickets")
+}
+
+model TicketEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId  String?  @map("ticket_id") @db.Uuid
+  fromState String?  @map("from_state")
+  toState   String   @map("to_state")
+  actorId   String?  @map("actor_id") @db.Uuid
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  ticket Ticket?   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  Employee? @relation(fields: [actorId], references: [id])
+
+  @@map("ticket_events")
+}
+
+model Approval {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId   String?   @map("ticket_id") @db.Uuid
+  approverId String?   @map("approver_id") @db.Uuid
+  state      String    @default("pending") // pending | approved | changes_requested
+  feedback   String?
+  decidedAt  DateTime? @map("decided_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  ticket   Ticket?   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  approver Employee? @relation(fields: [approverId], references: [id])
+
+  @@map("approvals")
+}
+
+model Shoot {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId String?   @unique @map("airtable_id")
+  title      String
+  status     String? // [VERIFY] shoot status enum
+  shootDate  DateTime? @map("shoot_date") @db.Date
+  location   String?
+  notes      String?
+  syncedAt   DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  tickets ShootTicket[]
+
+  @@map("shoots")
+}
+
+model ShootTicket {
+  shootId  String @map("shoot_id") @db.Uuid
+  ticketId String @map("ticket_id") @db.Uuid
+
+  shoot  Shoot  @relation(fields: [shootId], references: [id], onDelete: Cascade)
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@id([shootId, ticketId])
+  @@map("shoot_tickets")
+}
+
+model Asset {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId      String?   @unique @map("airtable_id")
+  ticketId        String?   @map("ticket_id") @db.Uuid
+  kind            String // 'raw' | 'final'
+  fileUrl         String?   @map("file_url") // Dropbox / storage link
+  distributionUrl String?   @map("distribution_url") // link to social media calendar entry
+  publishedAt     DateTime? @map("published_at") @db.Timestamptz
+  syncedAt        DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  ticket      Ticket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  performance Performance[]
+
+  @@map("assets")
+}
+
+model Performance {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assetId    String?  @map("asset_id") @db.Uuid
+  metric     String // e.g. CTR, views, spend, ROAS
+  value      Decimal? @db.Decimal
+  capturedAt DateTime @default(now()) @map("captured_at") @db.Timestamptz
+  source     String? // e.g. Clarisights, Amplitude, manual
+
+  asset Asset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("performance")
 }
