@@ -314,6 +314,8 @@ model Asset {
   airtableId      String?   @unique @map("airtable_id")
   ticketId        String?   @map("ticket_id") @db.Uuid
   kind            String // 'raw' | 'final'
+  name            String? // asset title (library imports have no ticket to name them)
+  sourceTable     String?   @map("source_table") // provenance: which Airtable table/origin this asset came from
   fileUrl         String?   @map("file_url") // Dropbox / storage link
   distributionUrl String?   @map("distribution_url") // link to social media calendar entry
   publishedAt     DateTime? @map("published_at") @db.Timestamptz

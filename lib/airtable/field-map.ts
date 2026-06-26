@@ -10,6 +10,88 @@ export const BASES = {
   adsCreativeLib: 'appWYOr2p4RKHf2LR',
 } as const;
 
+// ---------------------------------------------------------------------------
+// Historical migration (one-time backfill) field maps. Resolved against the
+// live schema 2026-06-26. Tickets come from the creative_services Prio table;
+// the standalone asset library tables come from ads_creative_lib.
+// ---------------------------------------------------------------------------
+
+// 🎯 Prio: Creatives Requests (New) — historical tickets.
+export const TICKETS = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblhrRl8GzsDMv0DD',
+  fields: {
+    name: 'fld59SWr1qd1XPuR0', // "Name" (formula primary) → ticket.title
+    creativeBrief: 'fld5INJXFHCliBAKY', // "Creative Brief" (richText)
+    cta: 'fldRUl1jsQefaUz4q', // "Call to action"
+    dueDate: 'fldMbzZSolbVNAhGX', // "Due date"
+    prioStatus: 'fldFH3scvUfjnOwhg', // "Prio. Status" (singleSelect)
+    ticketStatus: 'fldanOtkhcohQbnK1', // "Ticket Status" (singleSelect)
+    queueRank: 'fldaG3TQINrA1c9X0', // "Priority ranking (Manual)" (rating)
+    publishedAt: 'fldq55IEq3aZMDwRn', // "📅 Published Date"
+    typeOfRequest: 'fldlfaGYlYlTxNy1s', // "Type of Request" (Video | Design)
+    teamServiceLevel: 'fldHGT2p5SObJEzPh', // "Team/Service Level"
+    notes: 'fldVoECGWiDrOhbAt', // "V's Notes" (multilineText)
+    score: 'fldjY4VfI44oGmtuS', // "SCORE" (formula) → priorityScore
+    // file/link fields → assets (Stage 2a)
+    rawFileUrl: 'fldySmTUdhXlv4evT', // "Raw File/URL Links" (url) → kind=raw
+    outputLink: 'fldjP3qkJhbZAqh6C', // "Output link" (multilineText)
+    final16x9: 'fldM3UIYvwgSEiICF', // "16x9 Final Link"
+    final9x16: 'fldExLdKe6qiJvtph', // "9x16 Final Link"
+    final4x5: 'fld4BuuOm2rnWYoIR', // "4x5 Final Link"
+    assetFolderLink: 'fldRQRCJXQ6U4SKLq', // "Asset Folder Link"
+  },
+  links: {
+    eventTypes: 'fldKGGZMuyqnF7gP8', // → 🧩 Event Type
+    assetTypes: 'fldPgIBDJCuJng7K1', // → 🛎️ Asset Type
+    assignedCreative: 'fldalbq653hBbZvu7', // → Employees
+    assignedContractor: 'fldGJvGYPC71lDGKs', // → Contractor/Freelancers (fallback assignee)
+    requestedBy: 'fldgw7zf5fD2YK2EL', // → Employees (requester)
+    officialCalendar: 'fldGCRBjJXuiHjgw1', // → 📆 Official Calendar
+    speakers: 'fldWYaTaYW6zh7G5f', // → Authors (Speakers/Authors)
+  },
+} as const;
+
+// Ad Creatives — standalone content/creative records.
+export const AD_CREATIVES = {
+  baseId: BASES.adsCreativeLib,
+  tableId: 'tbl1AcKpMQvnF05YJ',
+  fields: {
+    name: 'fldSFSHNV8lnxhzqi', // "Name"
+    title: 'fldsoSbmXl8B6yqTV', // "Title" (fallback)
+    liveDate: 'fld3jxtoIk8uHOe2M', // "Live Date" → publishedAt
+    finalAsset: 'fldHra4Ah0u36wbIj', // "► Final Asset" (richText, may hold link)
+    reference: 'fldTKJnxnXoVX2A5F', // "Reference" (multipleAttachments) → fileUrl
+    status: 'fldNh9GqWzLjzcibr', // "Status"
+  },
+} as const;
+
+// (VSL) Final Ad Asset — finished sales-funnel video assets w/ performance.
+export const FINAL_AD_ASSET = {
+  baseId: BASES.adsCreativeLib,
+  tableId: 'tblgiW8VvCt2J68FD',
+  fields: {
+    code: 'fldOgO5ZdJH5uynyq', // "Video Sale Asset Code" → name
+    facebookPost: 'fldpfJ18DVPzjSpRD', // "Facebook Post" (url) → fileUrl
+    image: 'fldIuMoRGzVghUtKD', // "Image" (multipleAttachments) fallback
+    videoLink: 'fld7TAclvnde5SiCS', // "VIDEO LINK" (lookup) fallback
+    created: 'fldHOfllUIXRSseGN', // "Created" (createdTime) → publishedAt
+  },
+} as const;
+
+// 🎉 Best Videos — curated high-performing reference videos.
+export const BEST_VIDEOS = {
+  baseId: BASES.adsCreativeLib,
+  tableId: 'tbl1oTzzum1OX2VKz',
+  fields: {
+    name: 'fldli3Jq9OSacePju', // "Name"
+    videoUrl: 'fldQT2yoDDQEtGJDc', // "Video URL" (url) → fileUrl
+    file: 'fldXO96iHLRbBnV2T', // "File" (multipleAttachments) fallback
+    releaseDate: 'fldPLPP4sYRdyP5Kt', // "Release Date" → publishedAt
+    status: 'fld9wyDLmDx3eNY5O', // "Status"
+  },
+} as const;
+
 export const EMPLOYEES = {
   baseId: BASES.creativeServices,
   tableId: 'tbllP5vRon54L7Ccf', // 👬 Employees
