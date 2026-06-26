@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { scoreTicketById } from '@/lib/tickets/score-service';
 import { ensureReferenceRows } from '@/lib/airtable/resolve-reference';
 import { enqueueTicketPush } from '@/lib/airtable/outbox';
+import { enqueueBlinklifePush } from '@/lib/blinklife/outbox';
+import { pushBriefMemory } from '@/lib/blinklife/push';
 
 export interface CreateTicketInput {
   requesterId: string;
@@ -119,6 +121,10 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     try { await scoreTicketById(ticket.id); } catch { /* manager can recompute */ }
     // Mirror the new ticket to Airtable (best-effort; no-op unless push is enabled).
     await enqueueTicketPush(ticket.id);
+    // Mirror to BlinkLife: enqueue the editor task + capture the brief as memory
+    // (both best-effort; no-op unless BlinkLife push is enabled).
+    await enqueueBlinklifePush(ticket.id);
+    void pushBriefMemory(ticket.id);
     return { ok: true, ticketId: ticket.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create request' };

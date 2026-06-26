@@ -238,6 +238,9 @@ model Ticket {
   // Last time the app pushed this ticket to Airtable — echo-suppression window for
   // the (future) Phase 3 pull, so our own write doesn't ping-pong back.
   airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
+  // Last time the app mirrored this ticket into BlinkLife (editor task). Observability
+  // + lets the reconcile pass skip tickets already current.
+  blinklifePushedAt DateTime? @map("blinklife_pushed_at") @db.Timestamptz
 
   eventType        EventType?        @relation(fields: [eventTypeId], references: [id])
   assetType        AssetType?        @relation(fields: [assetTypeId], references: [id])
@@ -276,6 +279,40 @@ model AirtableOutbox {
 
   @@index([status, enqueuedAt], map: "idx_outbox_pending")
   @@map("airtable_outbox")
+}
+
+// BlinkLife integration — mirror of the Airtable push outbox, for pushing editor
+// tasks into BlinkLife (the team's personal-productivity OS). Ticket writes enqueue
+// a row in the same transaction; drainBlinklifeOutbox sends current state via the
+// BlinkLife MCP API. Separate from airtable_outbox so the two targets enable, fail,
+// and schedule independently. Gated by BLINKLIFE_ENABLED.
+model BlinkLifeOutbox {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId    String    @map("ticket_id") @db.Uuid
+  op          String    @default("upsert") // upsert (create-or-update task)
+  status      String    @default("pending") // pending | done | error
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error")
+  enqueuedAt  DateTime  @default(now()) @map("enqueued_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+
+  @@index([status, enqueuedAt], map: "idx_blinklife_outbox_pending")
+  @@map("blinklife_outbox")
+}
+
+// Provenance for entities the app creates inside BlinkLife (idempotency): the
+// shared "Content Production" project, the per-ticket task, the Vishen review page,
+// captured brief memories. Keyed by (kind, ticketId) so a re-push updates rather
+// than duplicates. Singleton kinds (e.g. 'project') use a null ticketId.
+model BlinkLifeRef {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kind       String // project | ticket_task | vishen_review_page | brief_memory
+  ticketId   String?  @map("ticket_id") @db.Uuid
+  externalId String   @map("external_id") // BlinkLife id (task/project/page/memory)
+  syncedAt   DateTime @default(now()) @updatedAt @map("synced_at") @db.Timestamptz
+
+  @@unique([kind, ticketId], map: "uniq_blinklife_ref")
+  @@map("blinklife_refs")
 }
 
 model TicketEvent {
