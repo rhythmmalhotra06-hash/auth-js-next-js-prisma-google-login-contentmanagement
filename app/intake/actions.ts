@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { scoreTicketById } from '@/lib/tickets/score-service';
+import { ensureReferenceRows } from '@/lib/airtable/resolve-reference';
 
 export interface CreateTicketInput {
   requesterId: string;
@@ -32,7 +33,7 @@ const REQUIRED: [keyof CreateTicketInput, string][] = [
   ['typeOfRequest', 'Type of Request'],
   ['eventTypeId', 'Event Type'],
   ['assetTypeId', 'Asset Type'],
-  ['officialCalendarId', 'Official Calendar'],
+  // Official Calendar is optional — not every request maps to a campaign on the calendar.
   ['creativeBrief', 'Creative Brief'],
   ['dueDate', 'Due date'],
 ];
@@ -53,6 +54,22 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     return { ok: false, error: 'Invalid due date' };
   }
 
+  // The intake form serves option values as Airtable recIds (live reference).
+  // Resolve them to our UUIDs, lazily mirroring any row not yet synced, so the
+  // ticket's foreign keys hold.
+  let ref: Awaited<ReturnType<typeof ensureReferenceRows>>;
+  try {
+    ref = await ensureReferenceRows({
+      eventTypeRecId: input.eventTypeId,
+      assetTypeRecId: input.assetTypeId,
+      requesterRecId: input.requesterId,
+      officialCalendarRecId: input.officialCalendarId || null,
+      authorRecIds: input.authorIds,
+    });
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? `Could not resolve taxonomy: ${err.message}` : 'Could not resolve taxonomy' };
+  }
+
   try {
     const ticket = await prisma.ticket.create({
       data: {
@@ -60,10 +77,10 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
         creativeBrief: input.creativeBrief.trim(),
         cta: input.cta?.trim() || null,
         dueDate: due,
-        eventTypeId: input.eventTypeId,
-        assetTypeId: input.assetTypeId,
-        requesterId: input.requesterId,
-        officialCalendarId: input.officialCalendarId,
+        eventTypeId: ref.eventTypeId,
+        assetTypeId: ref.assetTypeId,
+        requesterId: ref.requesterId,
+        officialCalendarId: ref.officialCalendarId,
         teamServiceLevel: input.teamServiceLevel,
         typeOfRequest: input.typeOfRequest,
         sourceLinks: input.sourceLinks?.trim() || null,
@@ -72,19 +89,19 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
         prioStatus: 'New Request', // live enum default
         ticketStatus: 'Backlog', // live enum default
         source: 'app',
-        authors: input.authorIds?.length
-          ? { create: input.authorIds.map((authorId) => ({ authorId })) }
+        authors: ref.authorIds.length
+          ? { create: ref.authorIds.map((authorId) => ({ authorId })) }
           : undefined,
         // Lifecycle: first state transition is logged.
         events: {
-          create: { toState: 'Requested', actorId: input.requesterId, note: 'Submitted via intake form' },
+          create: { toState: 'Requested', actorId: ref.requesterId, note: 'Submitted via intake form' },
         },
       },
     });
     // Auto-assign the unambiguous ~20–30%: asset type with exactly one preferred editor.
     try {
       const editors = await prisma.assetTypePreferredEditor.findMany({
-        where: { assetTypeId: input.assetTypeId },
+        where: { assetTypeId: ref.assetTypeId },
         select: { employeeId: true },
       });
       if (editors.length === 1) {
