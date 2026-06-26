@@ -77,3 +77,52 @@ export async function getRecord(baseId: string, tableId: string, recordId: strin
   await sleep(MIN_INTERVAL_MS);
   return rec;
 }
+
+// Airtable accepts at most 10 records per write request.
+const WRITE_BATCH = 10;
+
+const chunk = <T>(arr: T[], n: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+};
+
+export interface NewRecord {
+  fields: Record<string, unknown>;
+}
+export interface RecordPatch {
+  id: string;
+  fields: Record<string, unknown>;
+}
+
+/** Create records (≤10/request, paced). Returns created records (with new recIds), in input order. */
+export async function createRecords(baseId: string, tableId: string, records: NewRecord[]): Promise<AirtableRecord[]> {
+  const out: AirtableRecord[] = [];
+  for (const batch of chunk(records, WRITE_BATCH)) {
+    const url = new URL(`${API}/${baseId}/${tableId}`);
+    url.searchParams.set('returnFieldsByFieldId', 'true');
+    const json = await request<{ records: AirtableRecord[] }>(url, {
+      method: 'POST',
+      body: JSON.stringify({ records: batch }),
+    });
+    out.push(...json.records);
+    await sleep(MIN_INTERVAL_MS);
+  }
+  return out;
+}
+
+/** Update records by recId (≤10/request, paced). Returns updated records. */
+export async function updateRecords(baseId: string, tableId: string, records: RecordPatch[]): Promise<AirtableRecord[]> {
+  const out: AirtableRecord[] = [];
+  for (const batch of chunk(records, WRITE_BATCH)) {
+    const url = new URL(`${API}/${baseId}/${tableId}`);
+    url.searchParams.set('returnFieldsByFieldId', 'true');
+    const json = await request<{ records: AirtableRecord[] }>(url, {
+      method: 'PATCH',
+      body: JSON.stringify({ records: batch }),
+    });
+    out.push(...json.records);
+    await sleep(MIN_INTERVAL_MS);
+  }
+  return out;
+}
