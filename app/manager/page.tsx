@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { AppNav } from '@/components/AppNav';
 import { getQueueTickets } from '@/lib/tickets/data';
-import { TicketTable } from '@/components/tickets/TicketTable';
+import { ReorderableQueue } from '@/components/tickets/ReorderableQueue';
 import { RecomputeButton } from '@/components/tickets/RecomputeButton';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export default async function ManagerPage() {
             <Link href="/intake" className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ backgroundColor: '#572280' }}>+ New request</Link>
           </div>
         </div>
-        <TicketTable tickets={tickets} />
+        <ReorderableQueue tickets={tickets} />
       </div>
     </main>
   );
