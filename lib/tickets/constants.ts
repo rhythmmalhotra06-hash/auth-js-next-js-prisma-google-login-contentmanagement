@@ -16,3 +16,6 @@ export const PRIO_STATUSES = [
 // Decision lock — states that require an approved approval before a ticket may
 // enter them (Ziflow pattern). Enforced in updateTicketStatus.
 export const GATED_STATUSES = ['Shipping'] as const;
+
+// Asset versions stacked under a ticket (Air pattern: raw → final).
+export const ASSET_KINDS = ['raw', 'final'] as const;

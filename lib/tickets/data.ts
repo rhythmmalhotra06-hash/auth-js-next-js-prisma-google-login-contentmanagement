@@ -84,6 +84,15 @@ export interface ApprovalRow {
   createdAt: string;
 }
 
+export interface AssetRow {
+  id: string;
+  kind: string; // raw | final
+  fileUrl: string | null;
+  distributionUrl: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
 export interface TicketDetail {
   id: string;
   title: string;
@@ -106,6 +115,7 @@ export interface TicketDetail {
   authors: string[];
   events: TicketEventRow[];
   approvals: ApprovalRow[];
+  assets: AssetRow[];
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
@@ -128,6 +138,10 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
       approvals: {
         orderBy: { createdAt: 'asc' },
         select: { id: true, state: true, feedback: true, decidedAt: true, createdAt: true, approver: { select: { name: true } } },
+      },
+      assets: {
+        orderBy: { syncedAt: 'asc' },
+        select: { id: true, kind: true, fileUrl: true, distributionUrl: true, publishedAt: true, syncedAt: true },
       },
     },
   });
@@ -152,6 +166,10 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     approvals: t.approvals.map((a) => ({
       id: a.id, approver: a.approver?.name ?? null, state: a.state, feedback: a.feedback,
       decidedAt: a.decidedAt ? a.decidedAt.toISOString() : null, createdAt: a.createdAt.toISOString(),
+    })),
+    assets: t.assets.map((a) => ({
+      id: a.id, kind: a.kind, fileUrl: a.fileUrl, distributionUrl: a.distributionUrl,
+      publishedAt: a.publishedAt ? a.publishedAt.toISOString() : null, createdAt: a.syncedAt.toISOString(),
     })),
   };
 }

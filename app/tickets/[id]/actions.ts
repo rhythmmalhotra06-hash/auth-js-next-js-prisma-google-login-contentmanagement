@@ -116,3 +116,32 @@ export async function decideApproval(
   revalidatePath(`/tickets/${appr.ticketId}`);
   return { ok: true };
 }
+
+// Attach a raw/final asset to a ticket (Air-style version stacking). A
+// distribution URL marks it as published to the social calendar.
+export async function addAsset(
+  ticketId: string,
+  kind: string,
+  fileUrl: string,
+  distributionUrl: string,
+): Promise<UpdateStatusResult> {
+  if (kind !== 'raw' && kind !== 'final') return { ok: false, error: 'Kind must be raw or final' };
+  if (!fileUrl?.trim()) return { ok: false, error: 'File URL is required' };
+  const t = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } });
+  if (!t) return { ok: false, error: 'Ticket not found' };
+
+  const dist = distributionUrl?.trim() || null;
+  await prisma.asset.create({
+    data: { ticketId, kind, fileUrl: fileUrl.trim(), distributionUrl: dist, publishedAt: dist ? new Date() : null },
+  });
+  revalidatePath(`/tickets/${ticketId}`);
+  return { ok: true };
+}
+
+export async function removeAsset(assetId: string): Promise<UpdateStatusResult> {
+  const a = await prisma.asset.findUnique({ where: { id: assetId }, select: { ticketId: true } });
+  if (!a) return { ok: false, error: 'Asset not found' };
+  await prisma.asset.delete({ where: { id: assetId } });
+  if (a.ticketId) revalidatePath(`/tickets/${a.ticketId}`);
+  return { ok: true };
+}

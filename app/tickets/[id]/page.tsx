@@ -5,6 +5,7 @@ import { StatusUpdater } from '@/components/tickets/StatusUpdater';
 import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
 import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 import { ApprovalPanel } from '@/components/tickets/ApprovalPanel';
+import { AssetPanel } from '@/components/tickets/AssetPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +66,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <Row label="Notes" value={t.notes} />
           </dl>
         </div>
+
+        <AssetPanel ticketId={t.id} assets={t.assets} />
 
         <ApprovalPanel ticketId={t.id} approvals={t.approvals} employees={employees} />
 
