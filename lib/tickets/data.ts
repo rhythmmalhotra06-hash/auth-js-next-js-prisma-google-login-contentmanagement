@@ -33,7 +33,8 @@ export async function getQueueTickets(opts: { assigneeId?: string } = {}): Promi
   // Order mirrors v_editor_queue: priority_score DESC NULLS LAST, then queue_rank.
   const rows = await prisma.ticket.findMany({
     where: opts.assigneeId ? { assigneeId: opts.assigneeId } : undefined,
-    orderBy: [{ priorityScore: { sort: 'desc', nulls: 'last' } }, { queueRank: 'asc' }, { createdAt: 'desc' }],
+    // queue_rank (manager's manual order) overrides priority_score when set; unranked fall back to score.
+    orderBy: [{ queueRank: { sort: 'asc', nulls: 'last' } }, { priorityScore: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
     select: {
       id: true,
       title: true,

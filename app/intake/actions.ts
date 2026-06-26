@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { scoreTicketById } from '@/lib/tickets/score-service';
 
 export interface CreateTicketInput {
   requesterId: string;
@@ -80,6 +81,24 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
         },
       },
     });
+    // Auto-assign the unambiguous ~20–30%: asset type with exactly one preferred editor.
+    try {
+      const editors = await prisma.assetTypePreferredEditor.findMany({
+        where: { assetTypeId: input.assetTypeId },
+        select: { employeeId: true },
+      });
+      if (editors.length === 1) {
+        await prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { assigneeId: editors[0].employeeId, prioStatus: 'Assigned' },
+        });
+        await prisma.ticketEvent.create({
+          data: { ticketId: ticket.id, toState: 'Assigned', note: 'Auto-assigned (single preferred editor)' },
+        });
+      }
+    } catch { /* non-fatal — manager can assign */ }
+    // Score on create so the new request enters the queue ranked (best-effort).
+    try { await scoreTicketById(ticket.id); } catch { /* manager can recompute */ }
     return { ok: true, ticketId: ticket.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create request' };
