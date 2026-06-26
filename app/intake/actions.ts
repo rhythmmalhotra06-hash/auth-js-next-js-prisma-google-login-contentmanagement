@@ -57,6 +57,17 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     return { ok: false, error: 'Invalid due date' };
   }
 
+  // TEMP DIAGNOSTIC — what DB does the app's own connection use, and does it see
+  // the column? Logged on every submit so it surfaces in runtime logs.
+  try {
+    const diag = await prisma.$queryRaw`SELECT current_database()::text AS db, current_user::text AS usr,
+      (SELECT count(*) FROM information_schema.columns WHERE table_name='tickets' AND column_name='airtable_pushed_at')::int AS has_pushed_at,
+      (SELECT count(*) FROM information_schema.columns WHERE table_name='tickets')::int AS ticket_col_count`;
+    console.error('[DBDIAG2]', JSON.stringify(diag));
+  } catch (e) {
+    console.error('[DBDIAG2] err', e instanceof Error ? e.message : String(e));
+  }
+
   // The intake form serves option values as Airtable recIds (live reference).
   // Resolve them to our UUIDs, lazily mirroring any row not yet synced, so the
   // ticket's foreign keys hold.
@@ -127,6 +138,13 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     void pushBriefMemory(ticket.id);
     return { ok: true, ticketId: ticket.id };
   } catch (err) {
+    // TEMP DIAGNOSTIC — full error so we can see the real Postgres detail (which
+    // the returned message hides as "(not available)").
+    console.error('[CREATE_FAIL]', JSON.stringify({
+      message: err instanceof Error ? err.message : String(err),
+      code: (err as { code?: string })?.code,
+      meta: (err as { meta?: unknown })?.meta,
+    }));
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create request' };
   }
 }
