@@ -68,3 +68,24 @@ The GitHub Actions scaffold is ready at
   `IAP_AUDIENCE` and the SA key as secret `GCP_SA_KEY` (or confirm WIF), then
   add a `google-github-actions/auth` step to mint an ID token, send it as the
   `Authorization` header, and uncomment the `schedule:` trigger in the workflow.
+
+---
+
+# Second request: managed-DB connection for the one-time backfill
+
+**Status:** open — blocking the historical ticket/asset backfill.
+
+Separate from scheduling, we need to run the **one-time** historical migration
+(`scripts/migrate-history.ts` — live Airtable pull, ~10.4k tickets + ~15k assets)
+directly against the managed Postgres. It can't go through the IAP-gated HTTP
+endpoint, and the local CLI only sees `localhost`. Reference data is already
+seeded in the managed DB; only `tickets`/`assets` remain empty.
+
+> **Ask:** a connection to the managed Postgres for a one-off run — either a
+> short-lived **Cloud SQL Auth Proxy** session, or a temporary direct
+> `DATABASE_URL` (host/port/db/user/password) scoped to my account. Instance:
+> `mv-ai-gateway:asia-southeast1:cloudsql-asse1-mv-kessel-apps-fccf1fe4`,
+> database `js_next_js_prisma_google_login_dev`. I only need it long enough to
+> run the backfill once (it's idempotent, so re-runs are safe).
+
+Once I have it, see the runbook below. No long-lived credential is required.
