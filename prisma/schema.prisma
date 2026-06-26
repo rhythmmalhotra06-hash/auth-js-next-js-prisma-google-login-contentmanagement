@@ -85,6 +85,7 @@ model Employee {
   requestedTickets          Ticket[]                   @relation("TicketRequester")
   ticketEvents              TicketEvent[]
   approvals                 Approval[]
+  contentSources            ContentSource[]            @relation("ContentSourceCreatedBy")
 
   @@map("employees")
 }
@@ -247,6 +248,8 @@ model Ticket {
   assets    Asset[]
   authors   TicketAuthor[]
 
+  clipSuggestions ClipSuggestion[] @relation("TicketClipSuggestions")
+
   @@index([priorityScore(sort: Desc), queueRank], map: "idx_tickets_queue")
   @@index([assigneeId], map: "idx_tickets_assignee")
   @@index([ticketStatus], map: "idx_tickets_status")
@@ -378,4 +381,70 @@ model TicketAuthor {
 
   @@id([ticketId, authorId])
   @@map("ticket_authors")
+}
+
+// ===========================================================================
+// AI CONTENT CLIPPING ENGINE (E8)
+// Transcript → 10-section viral strategy → selectable clips → proposed tickets.
+// ===========================================================================
+
+// One long-form transcript + the context it was generated with.
+model ContentSource {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String
+  sourceType    String   @map("source_type") // paste | file | youtube
+  sourceUrl     String?  @map("source_url")
+  guestName     String?  @map("guest_name")
+  guestAudience String?  @map("guest_audience")
+  brandPillars  String?  @map("brand_pillars")
+  transcript    String   @db.Text
+  createdById   String?  @map("created_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  createdBy  Employee?      @relation("ContentSourceCreatedBy", fields: [createdById], references: [id])
+  strategies ClipStrategy[]
+
+  @@map("content_sources")
+}
+
+// One generation run: the full 10-section strategy lives in `output` (JSON).
+model ClipStrategy {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentSourceId String   @map("content_source_id") @db.Uuid
+  model           String
+  status          String   @default("generating") // generating | complete | error
+  error           String?
+  output          Json?
+  usedWebSearch   Boolean  @default(false) @map("used_web_search")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  contentSource ContentSource    @relation(fields: [contentSourceId], references: [id], onDelete: Cascade)
+  clips         ClipSuggestion[]
+
+  @@index([contentSourceId], map: "idx_clip_strategies_source")
+  @@map("clip_strategies")
+}
+
+// The Reels clips, broken out for propose → approve → ticket tracking.
+model ClipSuggestion {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clipStrategyId String  @map("clip_strategy_id") @db.Uuid
+  index          Int
+  title          String
+  timestampStart String? @map("timestamp_start")
+  timestampEnd   String? @map("timestamp_end")
+  rationale      String?
+  caption        String?
+  hookLine       String? @map("hook_line")
+  format         String?
+  platform       String?
+  viralityScore  Int?    @map("virality_score")
+  status         String  @default("proposed") // proposed | approved | dismissed
+  ticketId       String? @map("ticket_id") @db.Uuid
+
+  clipStrategy ClipStrategy @relation(fields: [clipStrategyId], references: [id], onDelete: Cascade)
+  ticket       Ticket?      @relation("TicketClipSuggestions", fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([clipStrategyId], map: "idx_clip_suggestions_strategy")
+  @@map("clip_suggestions")
 }

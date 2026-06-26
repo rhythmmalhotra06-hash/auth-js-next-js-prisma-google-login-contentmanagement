@@ -12,8 +12,9 @@ children:
   - content-production-management/lifecycle-views-approvals.md
   - content-production-management/two-way-sync.md
   - content-production-management/performance-loop.md
+  - content-production-management/content-clipping-engine.md
 created: 2026-06-25
-updated: 2026-06-25
+updated: 2026-06-26
 resolution: 5/8
 imported-from: "CLAUDE.md"
 ---

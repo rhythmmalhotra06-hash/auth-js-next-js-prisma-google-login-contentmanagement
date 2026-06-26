@@ -10,5 +10,10 @@
 | [E5 · Lifecycle, Views & Approvals](content-production-management/lifecycle-views-approvals.md) | epic | discovery | 2/7 | 2026-06-25 |
 | [E6 · Two-Way Sync (outbound)](content-production-management/two-way-sync.md) | epic | discovery | 2/7 | 2026-06-25 |
 | [E7 · Performance Loop (Phase 2)](content-production-management/performance-loop.md) | epic | discovery | 2/7 | 2026-06-25 |
+| [E8 · AI Content Clipping Engine](content-production-management/content-clipping-engine.md) | epic | resolved | 7/7 | 2026-06-26 |
+| [E8.1 · Generation Pipeline](content-production-management/content-clipping-engine/generation-pipeline.md) | feature | discovery | 6/7 | 2026-06-26 |
+| [E8.2 · Transcript Ingestion](content-production-management/content-clipping-engine/transcript-ingestion.md) | feature | discovery | 6/7 | 2026-06-26 |
+| [E8.3 · Strategy Viewer](content-production-management/content-clipping-engine/strategy-viewer.md) | feature | discovery | 5/7 | 2026-06-26 |
+| [E8.4 · Clip → Ticket Conversion](content-production-management/content-clipping-engine/clip-ticket-conversion.md) | feature | discovery | 6/7 | 2026-06-26 |
 
-_Total: 8 documents, 24/57 sections resolved (42%)._
+_Total: 13 documents, 54/92 sections resolved (59%)._
