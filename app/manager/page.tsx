@@ -3,6 +3,7 @@ import { AppNav } from '@/components/AppNav';
 import { getQueueTickets } from '@/lib/tickets/data';
 import { ReorderableQueue } from '@/components/tickets/ReorderableQueue';
 import { RecomputeButton } from '@/components/tickets/RecomputeButton';
+import { SyncAirtableButton } from '@/components/tickets/SyncAirtableButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function ManagerPage() {
             <p className="mt-1 text-sm text-neutral-500">{tickets.length} request{tickets.length === 1 ? '' : 's'} · all teams · ordered by priority score</p>
           </div>
           <div className="flex items-center gap-2">
+            <SyncAirtableButton />
             <RecomputeButton />
             <Link href="/intake" className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ backgroundColor: '#572280' }}>+ New request</Link>
           </div>
