@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { TICKET_STATUSES, PRIO_STATUSES, GATED_STATUSES } from '@/lib/tickets/constants';
 import { outboxPushOps, enqueueTicketPush } from '@/lib/airtable/outbox';
+import { blinklifeOutboxOps, enqueueBlinklifePush } from '@/lib/blinklife/outbox';
+import { pushDecisionMemory } from '@/lib/blinklife/push';
 
 export interface UpdateStatusResult {
   ok: boolean;
@@ -34,6 +36,7 @@ export async function updateTicketStatus(ticketId: string, newStatus: string): P
       data: { ticketId, fromState: current.ticketStatus, toState: newStatus, note: 'Ticket status updated' },
     }),
     ...outboxPushOps(ticketId),
+    ...blinklifeOutboxOps(ticketId),
   ]);
 
   revalidatePath(`/tickets/${ticketId}`);
@@ -52,6 +55,7 @@ export async function updatePrioStatus(ticketId: string, newStatus: string): Pro
 
   await prisma.ticket.update({ where: { id: ticketId }, data: { prioStatus: newStatus } });
   await enqueueTicketPush(ticketId);
+  await enqueueBlinklifePush(ticketId);
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath('/manager');
   return { ok: true };
@@ -70,10 +74,12 @@ export async function assignTicket(ticketId: string, assigneeId: string): Promis
       prisma.ticket.update({ where: { id: ticketId }, data: { assigneeId: next } }),
       prisma.ticketEvent.create({ data: { ticketId, toState: 'Assigned', note: `Assigned to ${emp?.name ?? 'editor'}` } }),
       ...outboxPushOps(ticketId),
+      ...blinklifeOutboxOps(ticketId),
     ]);
   } else {
     await prisma.ticket.update({ where: { id: ticketId }, data: { assigneeId: null } });
     await enqueueTicketPush(ticketId);
+    await enqueueBlinklifePush(ticketId);
   }
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath('/manager');
@@ -118,6 +124,8 @@ export async function decideApproval(
       },
     }),
   ]);
+  // Capture the decision into BlinkLife memory (best-effort; no-op unless enabled).
+  if (appr.ticketId) void pushDecisionMemory(appr.ticketId, decision, feedback?.trim() || null);
   revalidatePath(`/tickets/${appr.ticketId}`);
   return { ok: true };
 }
