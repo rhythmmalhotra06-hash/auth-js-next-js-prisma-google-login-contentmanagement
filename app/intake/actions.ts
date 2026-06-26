@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { scoreTicketById } from '@/lib/tickets/score-service';
 
 export interface CreateTicketInput {
   requesterId: string;
@@ -80,6 +81,8 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
         },
       },
     });
+    // Score on create so the new request enters the queue ranked (best-effort).
+    try { await scoreTicketById(ticket.id); } catch { /* manager can recompute */ }
     return { ok: true, ticketId: ticket.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Failed to create request' };

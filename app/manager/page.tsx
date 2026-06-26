@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { AppNav } from '@/components/AppNav';
 import { getQueueTickets } from '@/lib/tickets/data';
 import { TicketTable } from '@/components/tickets/TicketTable';
+import { RecomputeButton } from '@/components/tickets/RecomputeButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,10 @@ export default async function ManagerPage() {
             <h1 className="text-2xl font-bold text-neutral-900">Manager — Prioritization Queue</h1>
             <p className="mt-1 text-sm text-neutral-500">{tickets.length} request{tickets.length === 1 ? '' : 's'} · all teams · ordered by priority score</p>
           </div>
-          <Link href="/intake" className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ backgroundColor: '#572280' }}>+ New request</Link>
+          <div className="flex items-center gap-2">
+            <RecomputeButton />
+            <Link href="/intake" className="rounded-lg px-4 py-2 text-sm font-medium text-white" style={{ backgroundColor: '#572280' }}>+ New request</Link>
+          </div>
         </div>
         <TicketTable tickets={tickets} />
       </div>
