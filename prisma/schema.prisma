@@ -235,6 +235,9 @@ model Ticket {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   syncedAt  DateTime? @map("synced_at") @db.Timestamptz
+  // Last time the app pushed this ticket to Airtable — echo-suppression window for
+  // the (future) Phase 3 pull, so our own write doesn't ping-pong back.
+  airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
 
   eventType        EventType?        @relation(fields: [eventTypeId], references: [id])
   assetType        AssetType?        @relation(fields: [assetTypeId], references: [id])
@@ -254,6 +257,25 @@ model Ticket {
   @@index([assigneeId], map: "idx_tickets_assignee")
   @@index([ticketStatus], map: "idx_tickets_status")
   @@map("tickets")
+}
+
+// Phase 2 — outbox for two-way ticket PUSH (portal → Airtable). Ticket writes
+// enqueue a row in the same transaction; a background drainer (drainOutbox) pushes
+// current ticket state to the Prio Requests table, batched + rate-limited. We
+// enqueue by ticketId (not a field snapshot) so the drainer always sends the
+// latest state and collapses rapid successive edits.
+model AirtableOutbox {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId    String    @map("ticket_id") @db.Uuid
+  op          String    @default("upsert") // upsert (create-or-update)
+  status      String    @default("pending") // pending | done | error
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error")
+  enqueuedAt  DateTime  @default(now()) @map("enqueued_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+
+  @@index([status, enqueuedAt], map: "idx_outbox_pending")
+  @@map("airtable_outbox")
 }
 
 model TicketEvent {

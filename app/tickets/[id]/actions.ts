@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { TICKET_STATUSES, PRIO_STATUSES, GATED_STATUSES } from '@/lib/tickets/constants';
+import { outboxPushOps, enqueueTicketPush } from '@/lib/airtable/outbox';
 
 export interface UpdateStatusResult {
   ok: boolean;
@@ -32,6 +33,7 @@ export async function updateTicketStatus(ticketId: string, newStatus: string): P
     prisma.ticketEvent.create({
       data: { ticketId, fromState: current.ticketStatus, toState: newStatus, note: 'Ticket status updated' },
     }),
+    ...outboxPushOps(ticketId),
   ]);
 
   revalidatePath(`/tickets/${ticketId}`);
@@ -49,6 +51,7 @@ export async function updatePrioStatus(ticketId: string, newStatus: string): Pro
   if (!t) return { ok: false, error: 'Ticket not found' };
 
   await prisma.ticket.update({ where: { id: ticketId }, data: { prioStatus: newStatus } });
+  await enqueueTicketPush(ticketId);
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath('/manager');
   return { ok: true };
@@ -66,9 +69,11 @@ export async function assignTicket(ticketId: string, assigneeId: string): Promis
     await prisma.$transaction([
       prisma.ticket.update({ where: { id: ticketId }, data: { assigneeId: next } }),
       prisma.ticketEvent.create({ data: { ticketId, toState: 'Assigned', note: `Assigned to ${emp?.name ?? 'editor'}` } }),
+      ...outboxPushOps(ticketId),
     ]);
   } else {
     await prisma.ticket.update({ where: { id: ticketId }, data: { assigneeId: null } });
+    await enqueueTicketPush(ticketId);
   }
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath('/manager');
