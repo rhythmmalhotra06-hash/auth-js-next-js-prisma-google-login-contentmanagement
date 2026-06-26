@@ -12,7 +12,7 @@ import { listRecords, type AirtableRecord } from './client';
 import { EMPLOYEES, DIMENSIONS, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS } from './field-map';
 
 /** First string out of an Airtable value (handles scalar / array / null). */
-function str(v: unknown): string | null {
+export function str(v: unknown): string | null {
   if (typeof v === 'string') return v.length ? v : null;
   if (Array.isArray(v)) return typeof v[0] === 'string' ? v[0] : null;
   if (v == null) return null;
@@ -21,13 +21,74 @@ function str(v: unknown): string | null {
 }
 
 /** Array of linked record IDs from a multipleRecordLinks value. */
-function linkIds(v: unknown): string[] {
+export function linkIds(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 /** Parse an Airtable date string into a Date, or null. */
-function dateVal(v: unknown): Date | null {
+export function dateVal(v: unknown): Date | null {
   return typeof v === 'string' && v ? new Date(v) : null;
+}
+
+// Per-record mappers (Airtable record → our row shape). Exported so live reads
+// (reference-live.ts) and lazy upserts (resolve-reference.ts) reuse the exact
+// same field logic as the bulk sync — no duplicated field IDs.
+
+export function mapEmployee(r: AirtableRecord) {
+  return {
+    airtableId: r.id,
+    name: str(r.fields[EMPLOYEES.fields.name]) ?? '(unnamed)',
+    email: str(r.fields[EMPLOYEES.fields.email]),
+    team: str(r.fields[EMPLOYEES.fields.team]),
+    division: str(r.fields[EMPLOYEES.fields.division]),
+    employmentType: str(r.fields[EMPLOYEES.fields.employmentStatus]) ?? 'employee',
+    active: str(r.fields[EMPLOYEES.fields.activeStatus]) === 'Active',
+  };
+}
+
+export function mapDimension(r: AirtableRecord) {
+  return { airtableId: r.id, label: str(r.fields[DIMENSIONS.fields.label]) ?? '(unnamed)' };
+}
+
+export function mapEventType(r: AirtableRecord) {
+  return {
+    airtableId: r.id,
+    name: str(r.fields[EVENT_TYPES.fields.name]) ?? '(unnamed)',
+    active: str(r.fields[EVENT_TYPES.fields.status]) === 'Active',
+  };
+}
+
+export function mapAssetType(r: AirtableRecord) {
+  return {
+    airtableId: r.id,
+    name: str(r.fields[ASSET_TYPES.fields.name]) ?? str(r.fields[ASSET_TYPES.fields.fullName]) ?? '(unnamed)',
+    category: str(r.fields[ASSET_TYPES.fields.category]),
+    active: str(r.fields[ASSET_TYPES.fields.status]) === 'Active',
+    links: {
+      eventTypes: linkIds(r.fields[ASSET_TYPES.links.eventTypes]),
+      teamLeads: linkIds(r.fields[ASSET_TYPES.links.teamLeads]),
+      preferredEditors: linkIds(r.fields[ASSET_TYPES.links.preferredEditors]),
+      dimensions: linkIds(r.fields[ASSET_TYPES.links.dimensions]),
+    },
+  };
+}
+
+export function mapOfficialCalendar(r: AirtableRecord) {
+  return {
+    airtableId: r.id,
+    name: str(r.fields[OFFICIAL_CALENDARS.fields.name]) ?? '(unnamed)',
+    status: str(r.fields[OFFICIAL_CALENDARS.fields.status]),
+    startDate: dateVal(r.fields[OFFICIAL_CALENDARS.fields.startDate]),
+    endDate: dateVal(r.fields[OFFICIAL_CALENDARS.fields.endDate]),
+  };
+}
+
+export function mapAuthor(r: AirtableRecord) {
+  return {
+    airtableId: r.id,
+    name: str(r.fields[AUTHORS.fields.name]) ?? '(unnamed)',
+    title: str(r.fields[AUTHORS.fields.title]),
+  };
 }
 
 export interface SyncReport {
@@ -49,53 +110,12 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
   const ocRecs = await listRecords(OFFICIAL_CALENDARS.baseId, OFFICIAL_CALENDARS.tableId);
   const auRecs = await listRecords(AUTHORS.baseId, AUTHORS.tableId);
 
-  const employees = empRecs.map((r) => ({
-    airtableId: r.id,
-    name: str(r.fields[EMPLOYEES.fields.name]) ?? '(unnamed)',
-    email: str(r.fields[EMPLOYEES.fields.email]),
-    team: str(r.fields[EMPLOYEES.fields.team]),
-    division: str(r.fields[EMPLOYEES.fields.division]),
-    employmentType: str(r.fields[EMPLOYEES.fields.employmentStatus]) ?? 'employee',
-    active: str(r.fields[EMPLOYEES.fields.activeStatus]) === 'Active',
-  }));
-
-  const dimensions = dimRecs.map((r) => ({
-    airtableId: r.id,
-    label: str(r.fields[DIMENSIONS.fields.label]) ?? '(unnamed)',
-  }));
-
-  const eventTypes = evtRecs.map((r) => ({
-    airtableId: r.id,
-    name: str(r.fields[EVENT_TYPES.fields.name]) ?? '(unnamed)',
-    active: str(r.fields[EVENT_TYPES.fields.status]) === 'Active',
-  }));
-
-  const assetTypes = atRecs.map((r) => ({
-    airtableId: r.id,
-    name: str(r.fields[ASSET_TYPES.fields.name]) ?? str(r.fields[ASSET_TYPES.fields.fullName]) ?? '(unnamed)',
-    category: str(r.fields[ASSET_TYPES.fields.category]),
-    active: str(r.fields[ASSET_TYPES.fields.status]) === 'Active',
-    links: {
-      eventTypes: linkIds(r.fields[ASSET_TYPES.links.eventTypes]),
-      teamLeads: linkIds(r.fields[ASSET_TYPES.links.teamLeads]),
-      preferredEditors: linkIds(r.fields[ASSET_TYPES.links.preferredEditors]),
-      dimensions: linkIds(r.fields[ASSET_TYPES.links.dimensions]),
-    },
-  }));
-
-  const officialCalendars = ocRecs.map((r) => ({
-    airtableId: r.id,
-    name: str(r.fields[OFFICIAL_CALENDARS.fields.name]) ?? '(unnamed)',
-    status: str(r.fields[OFFICIAL_CALENDARS.fields.status]),
-    startDate: dateVal(r.fields[OFFICIAL_CALENDARS.fields.startDate]),
-    endDate: dateVal(r.fields[OFFICIAL_CALENDARS.fields.endDate]),
-  }));
-
-  const authors = auRecs.map((r) => ({
-    airtableId: r.id,
-    name: str(r.fields[AUTHORS.fields.name]) ?? '(unnamed)',
-    title: str(r.fields[AUTHORS.fields.title]),
-  }));
+  const employees = empRecs.map(mapEmployee);
+  const dimensions = dimRecs.map(mapDimension);
+  const eventTypes = evtRecs.map(mapEventType);
+  const assetTypes = atRecs.map(mapAssetType);
+  const officialCalendars = ocRecs.map(mapOfficialCalendar);
+  const authors = auRecs.map(mapAuthor);
 
   const linkEdges = {
     eventTypes: assetTypes.reduce((n, a) => n + a.links.eventTypes.length, 0),

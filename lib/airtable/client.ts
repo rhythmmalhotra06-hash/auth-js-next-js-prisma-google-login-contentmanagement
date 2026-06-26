@@ -24,6 +24,31 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const MIN_INTERVAL_MS = 220;
 const MAX_429_RETRIES = 5;
 
+/**
+ * Single Airtable request with 429 backoff. Returns the parsed JSON body.
+ * Shared by all read/write helpers so the rate-limit handling lives in one place.
+ */
+async function request<T>(url: string | URL, init?: RequestInit): Promise<T> {
+  let retries = 0;
+  for (;;) {
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token()}`,
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init?.headers,
+      },
+    });
+    if (res.status === 429) {
+      if (++retries > MAX_429_RETRIES) throw new Error(`${url}: rate-limited after ${MAX_429_RETRIES} retries`);
+      await sleep(Math.min(1000 * 2 ** retries, 10000)); // exponential backoff
+      continue;
+    }
+    if (!res.ok) throw new Error(`${url}: ${res.status} ${await res.text()}`);
+    return (await res.json()) as T;
+  }
+}
+
 /** List every record in a table, following pagination. */
 export async function listRecords(baseId: string, tableId: string): Promise<AirtableRecord[]> {
   const out: AirtableRecord[] = [];
@@ -35,22 +60,20 @@ export async function listRecords(baseId: string, tableId: string): Promise<Airt
     url.searchParams.set('returnFieldsByFieldId', 'true');
     if (offset) url.searchParams.set('offset', offset);
 
-    let retries = 0;
-    for (;;) {
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token()}` } });
-      if (res.status === 429) {
-        if (++retries > MAX_429_RETRIES) throw new Error(`${tableId}: rate-limited after ${MAX_429_RETRIES} retries`);
-        await sleep(Math.min(1000 * 2 ** retries, 10000)); // exponential backoff
-        continue;
-      }
-      if (!res.ok) throw new Error(`${baseId}/${tableId}: ${res.status} ${await res.text()}`);
-      const json = (await res.json()) as { records: AirtableRecord[]; offset?: string };
-      out.push(...json.records);
-      offset = json.offset;
-      break;
-    }
+    const json = await request<{ records: AirtableRecord[]; offset?: string }>(url);
+    out.push(...json.records);
+    offset = json.offset;
     await sleep(MIN_INTERVAL_MS);
   } while (offset);
 
   return out;
+}
+
+/** Fetch a single record by ID (used for lazy reference upserts). */
+export async function getRecord(baseId: string, tableId: string, recordId: string): Promise<AirtableRecord> {
+  const url = new URL(`${API}/${baseId}/${tableId}/${recordId}`);
+  url.searchParams.set('returnFieldsByFieldId', 'true');
+  const rec = await request<AirtableRecord>(url);
+  await sleep(MIN_INTERVAL_MS);
+  return rec;
 }

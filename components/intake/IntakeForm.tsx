@@ -132,7 +132,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
             </select>
           </Field>
         </div>
-        <Field label="📅 Official Calendar" required hint="So we know the campaign start/end dates">
+        <Field label="📅 Official Calendar" hint="Optional — link to a campaign so we know its start/end dates">
           <select className={inputCls} value={officialCalendarId} onChange={(e) => setOfficialCalendarId(e.target.value)}>
             <option value="">Select a campaign…</option>
             {data.officialCalendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
