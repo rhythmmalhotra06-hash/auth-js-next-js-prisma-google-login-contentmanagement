@@ -18,6 +18,8 @@ resolution: 2/7
 
 Implement the lifecycle state machine (Requested → Prioritized → Assigned → In Production → In Review → Approved → Published) writing a `ticket_events` row per transition; the three role views (Editor/Designer, Manager, Stakeholder/Agency) with the mandated 5-column header (Title, Priority, Assigned, Ticket Status, Priority Status); approvals with decision-locks that block the next state transition; asset version-stacking (raw vs final under one logical asset); and the distribution-URL link to the social calendar. Stakeholder/agency access is free and read/comment-only (no paid seat).
 
+**Asset Library auto-creation (post 26 Jun, `Context/MoreContext/CLAUDE.md` §3):** at the Produce stage, the Asset Library auto-creates **one row per required dimension** (driven off the Asset Type), so production tracks one logical asset per dimension rather than scattered files. The triggering Ticket Status is **TBD** (owner: Rhythm — see the main PRD Open Questions); build the trigger configurable so the chosen status can be set without a code change.
+
 ## User Stories
 
 [UNRESOLVED]
