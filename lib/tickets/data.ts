@@ -75,6 +75,15 @@ export interface TicketEventRow {
   createdAt: string;
 }
 
+export interface ApprovalRow {
+  id: string;
+  approver: string | null;
+  state: string; // pending | approved | changes_requested
+  feedback: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+}
+
 export interface TicketDetail {
   id: string;
   title: string;
@@ -96,6 +105,7 @@ export interface TicketDetail {
   officialCalendar: string | null;
   authors: string[];
   events: TicketEventRow[];
+  approvals: ApprovalRow[];
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
@@ -114,6 +124,10 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
       events: {
         orderBy: { createdAt: 'asc' },
         select: { id: true, fromState: true, toState: true, note: true, createdAt: true, actor: { select: { name: true } } },
+      },
+      approvals: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, state: true, feedback: true, decidedAt: true, createdAt: true, approver: { select: { name: true } } },
       },
     },
   });
@@ -134,6 +148,10 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     events: t.events.map((e) => ({
       id: e.id, fromState: e.fromState, toState: e.toState, note: e.note,
       actor: e.actor?.name ?? null, createdAt: e.createdAt.toISOString(),
+    })),
+    approvals: t.approvals.map((a) => ({
+      id: a.id, approver: a.approver?.name ?? null, state: a.state, feedback: a.feedback,
+      decidedAt: a.decidedAt ? a.decidedAt.toISOString() : null, createdAt: a.createdAt.toISOString(),
     })),
   };
 }

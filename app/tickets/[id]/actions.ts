@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
-import { TICKET_STATUSES, PRIO_STATUSES } from '@/lib/tickets/constants';
+import { TICKET_STATUSES, PRIO_STATUSES, GATED_STATUSES } from '@/lib/tickets/constants';
 
 export interface UpdateStatusResult {
   ok: boolean;
@@ -18,6 +18,14 @@ export async function updateTicketStatus(ticketId: string, newStatus: string): P
   const current = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { ticketStatus: true } });
   if (!current) return { ok: false, error: 'Ticket not found' };
   if (current.ticketStatus === newStatus) return { ok: true };
+
+  // Decision lock: gated states require an approved approval.
+  if ((GATED_STATUSES as readonly string[]).includes(newStatus)) {
+    const approved = await prisma.approval.count({ where: { ticketId, state: 'approved' } });
+    if (approved === 0) {
+      return { ok: false, error: `Blocked: "${newStatus}" requires an approved approval first` };
+    }
+  }
 
   await prisma.$transaction([
     prisma.ticket.update({ where: { id: ticketId }, data: { ticketStatus: newStatus } }),
@@ -65,5 +73,46 @@ export async function assignTicket(ticketId: string, assigneeId: string): Promis
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath('/manager');
   revalidatePath('/editor');
+  return { ok: true };
+}
+
+// Request an approval from an approver (creates a pending approval).
+export async function requestApproval(ticketId: string, approverId: string): Promise<UpdateStatusResult> {
+  if (!approverId) return { ok: false, error: 'Pick an approver' };
+  const t = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } });
+  if (!t) return { ok: false, error: 'Ticket not found' };
+
+  await prisma.approval.create({ data: { ticketId, approverId, state: 'pending' } });
+  revalidatePath(`/tickets/${ticketId}`);
+  return { ok: true };
+}
+
+// Approver decides: approved | changes_requested. Logs a lifecycle event; an
+// 'approved' decision unlocks the gated state transition.
+export async function decideApproval(
+  approvalId: string,
+  decision: 'approved' | 'changes_requested',
+  feedback: string,
+): Promise<UpdateStatusResult> {
+  if (decision !== 'approved' && decision !== 'changes_requested') {
+    return { ok: false, error: 'Invalid decision' };
+  }
+  const appr = await prisma.approval.findUnique({ where: { id: approvalId }, select: { ticketId: true } });
+  if (!appr) return { ok: false, error: 'Approval not found' };
+
+  await prisma.$transaction([
+    prisma.approval.update({
+      where: { id: approvalId },
+      data: { state: decision, feedback: feedback?.trim() || null, decidedAt: new Date() },
+    }),
+    prisma.ticketEvent.create({
+      data: {
+        ticketId: appr.ticketId,
+        toState: decision === 'approved' ? 'Approved' : 'Changes requested',
+        note: feedback?.trim() ? `Approval: ${feedback.trim()}` : 'Approval decision',
+      },
+    }),
+  ]);
+  revalidatePath(`/tickets/${appr.ticketId}`);
   return { ok: true };
 }

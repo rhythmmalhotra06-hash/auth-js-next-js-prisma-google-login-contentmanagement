@@ -12,3 +12,7 @@ export const PRIO_STATUSES = [
   'New Request', 'To be reviewed by Vishen', 'In Queue',
   'Pending Information/Brief Not Clear', 'Rejected - No need to work', 'Assigned',
 ] as const;
+
+// Decision lock — states that require an approved approval before a ticket may
+// enter them (Ziflow pattern). Enforced in updateTicketStatus.
+export const GATED_STATUSES = ['Shipping'] as const;

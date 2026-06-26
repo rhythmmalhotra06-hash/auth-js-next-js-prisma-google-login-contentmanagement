@@ -4,6 +4,7 @@ import { getTicketDetail, getActiveEmployees } from '@/lib/tickets/data';
 import { StatusUpdater } from '@/components/tickets/StatusUpdater';
 import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
 import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
+import { ApprovalPanel } from '@/components/tickets/ApprovalPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <Row label="Notes" value={t.notes} />
           </dl>
         </div>
+
+        <ApprovalPanel ticketId={t.id} approvals={t.approvals} employees={employees} />
 
         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-neutral-200">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Lifecycle history</h2>
