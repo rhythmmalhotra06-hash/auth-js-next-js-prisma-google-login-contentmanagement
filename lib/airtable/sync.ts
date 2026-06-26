@@ -1,15 +1,15 @@
 // Reference-data sync: one-way Airtable → Postgres (read-only source).
 //
-// v1 scope: employees, dimensions, event_types, asset_types + the asset_type
-// link join tables. Upsert-on-airtable_id makes it idempotent. DNA + tickets +
-// webhooks + two-way push are out of scope (see field-map.ts / RECONCILIATION.md).
+// v1 scope: employees, dimensions, event_types, asset_types (+ asset_type link
+// join tables), official_calendar, authors. Upsert-on-airtable_id makes it
+// idempotent. DNA + tickets + webhooks + two-way push are out of scope.
 //
 // Two passes are required because Airtable links are arrays of record IDs:
 //   pass 1 — upsert all reference rows (establishes airtable_id → our uuid)
 //   pass 2 — resolve asset_type link arrays to our uuids, fill join tables.
 
 import { listRecords, type AirtableRecord } from './client';
-import { EMPLOYEES, DIMENSIONS, EVENT_TYPES, ASSET_TYPES } from './field-map';
+import { EMPLOYEES, DIMENSIONS, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS } from './field-map';
 
 /** First string out of an Airtable value (handles scalar / array / null). */
 function str(v: unknown): string | null {
@@ -25,9 +25,14 @@ function linkIds(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
+/** Parse an Airtable date string into a Date, or null. */
+function dateVal(v: unknown): Date | null {
+  return typeof v === 'string' && v ? new Date(v) : null;
+}
+
 export interface SyncReport {
   dryRun: boolean;
-  counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number };
+  counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number };
   linkEdges: { eventTypes: number; teamLeads: number; preferredEditors: number; dimensions: number };
   samples: { employee?: string; eventType?: string; assetType?: string };
 }
@@ -41,6 +46,8 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
   const dimRecs = await listRecords(DIMENSIONS.baseId, DIMENSIONS.tableId);
   const evtRecs = await listRecords(EVENT_TYPES.baseId, EVENT_TYPES.tableId);
   const atRecs = await listRecords(ASSET_TYPES.baseId, ASSET_TYPES.tableId);
+  const ocRecs = await listRecords(OFFICIAL_CALENDARS.baseId, OFFICIAL_CALENDARS.tableId);
+  const auRecs = await listRecords(AUTHORS.baseId, AUTHORS.tableId);
 
   const employees = empRecs.map((r) => ({
     airtableId: r.id,
@@ -76,6 +83,20 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     },
   }));
 
+  const officialCalendars = ocRecs.map((r) => ({
+    airtableId: r.id,
+    name: str(r.fields[OFFICIAL_CALENDARS.fields.name]) ?? '(unnamed)',
+    status: str(r.fields[OFFICIAL_CALENDARS.fields.status]),
+    startDate: dateVal(r.fields[OFFICIAL_CALENDARS.fields.startDate]),
+    endDate: dateVal(r.fields[OFFICIAL_CALENDARS.fields.endDate]),
+  }));
+
+  const authors = auRecs.map((r) => ({
+    airtableId: r.id,
+    name: str(r.fields[AUTHORS.fields.name]) ?? '(unnamed)',
+    title: str(r.fields[AUTHORS.fields.title]),
+  }));
+
   const linkEdges = {
     eventTypes: assetTypes.reduce((n, a) => n + a.links.eventTypes.length, 0),
     teamLeads: assetTypes.reduce((n, a) => n + a.links.teamLeads.length, 0),
@@ -109,6 +130,13 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
       });
     }
 
+    for (const oc of officialCalendars) {
+      await prisma.officialCalendar.upsert({ where: { airtableId: oc.airtableId }, create: oc, update: { name: oc.name, status: oc.status, startDate: oc.startDate, endDate: oc.endDate, syncedAt: new Date() } });
+    }
+    for (const au of authors) {
+      await prisma.author.upsert({ where: { airtableId: au.airtableId }, create: au, update: { name: au.name, title: au.title, syncedAt: new Date() } });
+    }
+
     // Build airtable_id → our uuid maps for link resolution.
     const idMap = async (model: 'employee' | 'eventType' | 'dimension' | 'assetType') => {
       const rows = await (prisma[model] as { findMany: (a: unknown) => Promise<{ id: string; airtableId: string | null }[]> }).findMany({ select: { id: true, airtableId: true } });
@@ -138,7 +166,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
 
   return {
     dryRun,
-    counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length },
+    counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length, officialCalendars: officialCalendars.length, authors: authors.length },
     linkEdges,
     samples: { employee: employees[0]?.name, eventType: eventTypes[0]?.name, assetType: assetTypes[0]?.name },
   };
