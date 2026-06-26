@@ -18,6 +18,8 @@ resolution: 2/7
 
 Build the one-way Airtable→Postgres sync for reference data (employees, dimensions, event_types, asset_types, dna) via webhook + nightly reconcile, upsert-on-`airtable_id`. Includes running `context/export-airtable-schema.js` and reconciling every `[VERIFY]` field name and enum in `schema.sql` against the live bases before any sync runs. Reference data is read-only in the app — edited in Airtable, synced down.
 
+**New taxonomy to sync (post 26 Jun, `Context/MoreContext/CLAUDE.md` §8):** the Event/Asset Type enums now include the **Social = film** unification and the new **Video / Build Process-Document / Social Media Clips** category cuts. Reconcile these as part of the `[VERIFY]` pass. The DNA bases (Titus Video `appDZnMnJGehbSOo5`, Ads Creative Library `appWYOr2p4RKHf2LR`) **two-way sync** into the primary base so requirements + feedback standards travel with the asset.
+
 ## User Stories
 
 [UNRESOLVED]
