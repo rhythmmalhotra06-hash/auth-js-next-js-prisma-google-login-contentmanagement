@@ -18,6 +18,7 @@ function bootstrapEmails(): string[] {
 export interface AdminAccess {
   email: string | null;
   isAdmin: boolean;
+  roles: string[];
 }
 
 export async function getAdminAccess(): Promise<AdminAccess> {
@@ -29,5 +30,5 @@ export async function getAdminAccess(): Promise<AdminAccess> {
   }
   const byRole = hasRole(employee?.roles, ADMIN_ROLE);
   const byBootstrap = !!email && bootstrapEmails().includes(email.toLowerCase());
-  return { email, isAdmin: byRole || byBootstrap };
+  return { email, isAdmin: byRole || byBootstrap, roles: employee?.roles ?? [] };
 }

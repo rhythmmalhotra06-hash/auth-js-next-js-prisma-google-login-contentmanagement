@@ -57,6 +57,29 @@ export function canAccessRoute(roles: readonly string[] | null | undefined, rout
   return ROUTE_ROLES[route].some((need) => r.includes(need));
 }
 
+/**
+ * Whether a sidebar nav item should be shown. Admins and untagged users see
+ * everything (rollout-safe). Otherwise: the three role surfaces follow
+ * canAccessRoute; settings is admin-only; the internal production tools
+ * (/vishen, /intake, /media) show only to production/management roles.
+ */
+export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: boolean, href: string): boolean {
+  const r = roles ?? [];
+  if (isAdmin) return true;
+  if (r.length === 0) return true;
+  switch (href) {
+    case '/manager':
+    case '/editor':
+    case '/stakeholder':
+      return canAccessRoute(r, href);
+    case '/settings/clip-rules':
+    case '/settings/team':
+      return false; // admin-only (admins already returned true above)
+    default:
+      return canAccessRoute(r, '/editor') || canAccessRoute(r, '/manager');
+  }
+}
+
 /** The surface a user lands on by default, based on their roles. */
 export function homeRouteForRoles(roles: readonly string[] | null | undefined): GatedRoute {
   const r = roles ?? [];

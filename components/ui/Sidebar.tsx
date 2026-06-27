@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
+import { canSeeNav } from '@/lib/roles';
 
 const NAV: { href: string; label: string; icon: string }[] = [
   { href: '/vishen', label: 'Clips', icon: '✂' },
@@ -15,8 +16,9 @@ const NAV: { href: string; label: string; icon: string }[] = [
   { href: '/settings/team', label: 'Team roles', icon: '👥' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ roles = [], isAdmin = false }: { roles?: string[]; isAdmin?: boolean }) {
   const pathname = usePathname();
+  const nav = NAV.filter((item) => canSeeNav(roles, isAdmin, item.href));
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[236px] flex-col border-r border-border-default bg-surface lg:flex">
       <div className="flex h-[60px] items-center gap-2.5 border-b border-border-default px-5 py-3">
@@ -24,7 +26,7 @@ export function Sidebar() {
         <span className="text-[15px] font-bold tracking-tight text-text">Content Engine</span>
       </div>
       <nav className="flex-1 space-y-0.5 px-3 py-3">
-        {NAV.map((item) => {
+        {nav.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
