@@ -22,6 +22,7 @@ export interface IntakeReferenceData {
   assetTypes: AssetTypeOption[];
   officialCalendars: Option[];
   authors: Option[];
+  shoots: Option[];
   teamServiceLevels: string[];
   typesOfRequest: string[];
 }
@@ -38,7 +39,7 @@ export const TEAM_SERVICE_LEVELS = [
 export const TYPES_OF_REQUEST = ['Video', 'Design'];
 
 const EMPTY: IntakeReferenceData = {
-  employees: [], eventTypes: [], assetTypes: [], officialCalendars: [], authors: [],
+  employees: [], eventTypes: [], assetTypes: [], officialCalendars: [], authors: [], shoots: [],
   teamServiceLevels: TEAM_SERVICE_LEVELS, typesOfRequest: TYPES_OF_REQUEST,
 };
 
@@ -51,6 +52,7 @@ export async function getIntakeReferenceData(): Promise<IntakeReferenceData> {
       assetTypes: live.assetTypes,
       officialCalendars: live.officialCalendars,
       authors: live.authors,
+      shoots: live.shoots,
       teamServiceLevels: TEAM_SERVICE_LEVELS,
       typesOfRequest: TYPES_OF_REQUEST,
     };

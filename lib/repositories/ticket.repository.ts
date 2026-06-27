@@ -70,6 +70,7 @@ export interface CreateTicketFields {
   requesterRecId: string;
   officialCalendarRecId?: string | null;
   authorRecIds?: string[];
+  shootRecIds?: string[];
 }
 
 /** Create a ticket directly in the Prio Requests table (link fields = reference recIds). */
@@ -78,6 +79,7 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
     [F.projectProgram]: input.title,
     [F.creativeBrief]: input.creativeBrief,
     [F.dueDate]: input.dueDate,
+    [F.created]: new Date().toISOString(), // capture request-created timestamp
     [F.typeOfRequest]: input.typeOfRequest,
     [F.teamServiceLevel]: input.teamServiceLevel,
     [F.prioStatus]: 'New Request',
@@ -97,6 +99,7 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
   if (notes) fields[F.notes] = notes;
   if (input.officialCalendarRecId) fields[L.officialCalendar] = [input.officialCalendarRecId];
   if (input.authorRecIds?.length) fields[L.speakers] = input.authorRecIds;
+  if (input.shootRecIds?.length) fields[L.shoots] = input.shootRecIds;
 
   const res = await createRecord(TICKETS.baseId, TICKETS.tableId, fields);
   if (!res.ok) return res;
