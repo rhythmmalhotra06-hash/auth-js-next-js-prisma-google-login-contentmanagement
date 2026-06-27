@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/lib/auth';
+import { getEmployeeForSession } from '@/lib/employee';
+import { homeRouteForRoles } from '@/lib/roles';
 
 function GoogleIcon() {
   return (
@@ -14,7 +16,10 @@ function GoogleIcon() {
 
 export default async function Home() {
   const session = await auth();
-  if (session) redirect('/manager');
+  if (session) {
+    const employee = await getEmployeeForSession();
+    redirect(homeRouteForRoles(employee?.roles));
+  }
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
@@ -54,7 +59,7 @@ export default async function Home() {
             className="mt-8"
             action={async () => {
               'use server';
-              await signIn('google', { redirectTo: '/manager' });
+              await signIn('google', { redirectTo: '/' });
             }}
           >
             <button

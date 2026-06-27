@@ -4,10 +4,12 @@ import { QueueTable } from '@/components/tickets/QueueTable';
 import { ApprovedClipsPanel } from '@/components/clips/ApprovedClipsPanel';
 import { listClipsByStatus, listMediaSources } from '@/lib/media/repository';
 import { getIntakeReferenceData } from '@/lib/intake/data';
+import { guardRoute } from '@/lib/auth/route-guard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ManagerPage() {
+  await guardRoute('/manager');
   const [tickets, approvedRes, sourcesRes, reference] = await Promise.all([
     getQueueTickets(),
     listClipsByStatus('Approved'),

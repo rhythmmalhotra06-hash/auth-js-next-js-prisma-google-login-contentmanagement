@@ -5,10 +5,12 @@ import { EmployeePicker } from '@/components/tickets/EmployeePicker';
 import { ApprovedClipsPanel } from '@/components/clips/ApprovedClipsPanel';
 import { listClipsByStatus, listMediaSources } from '@/lib/media/repository';
 import { getIntakeReferenceData } from '@/lib/intake/data';
+import { guardRoute } from '@/lib/auth/route-guard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditorPage({ searchParams }: { searchParams: Promise<{ assignee?: string }> }) {
+  await guardRoute('/editor');
   const { assignee } = await searchParams;
   const [tickets, employees, approvedRes, sourcesRes, reference] = await Promise.all([
     getQueueTickets({ assigneeId: assignee }),
