@@ -1,0 +1,279 @@
+<style>
+  /* ===== Content Engine Cockpit — brand tokens (context/mockups + design-system) ===== */
+  :root{
+    --brand:#572280; --brand-bright:#6d34a0; --brand-content:#3f1860; --brand-soft:#f1eaf7; --brand-border:#e3d4f0;
+    --gold:#f5b000; --gold-soft:#fff6e0; --gold-content:#6b4e00;
+    --bg:#faf9fc; --surface:#ffffff; --subtle:#f4f2f8;
+    --text:#1a1523; --muted:#6b6478; --faint:#a59db4;
+    --border:rgba(40,20,60,.12); --border-strong:rgba(40,20,60,.20);
+    --green:#159f65; --green-soft:#e8f9f1; --green-ink:#0e6742;
+    --amber:#c9801a; --amber-soft:#fff4d9; --amber-ink:#7a5600;
+    --red:#dc2626; --red-soft:#ffe4e4; --red-ink:#8a1f1f;
+    --info:#2563cf; --info-soft:#ebf2ff; --info-ink:#1c3bd4;
+    --r-sm:8px; --r-md:12px;
+    --shadow:0 1px 2px rgba(40,20,60,.06),0 4px 12px rgba(40,20,60,.05);
+    --font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  .cockpit{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;
+    -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+  .cockpit .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  .cockpit h1,.cockpit h2,.cockpit h3{margin:0;text-wrap:balance}
+  .num{font-variant-numeric:tabular-nums}
+  .eyebrow{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+
+  /* Topbar */
+  .topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--surface) 88%,transparent);
+    backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--border)}
+  .topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em}
+  .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));
+    display:grid;place-items:center;color:#fff;font-size:15px}
+  .brand small{display:block;font-weight:500;font-size:11px;color:var(--muted);letter-spacing:0}
+  .whoami{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted)}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--brand-soft);color:var(--brand-content);
+    display:grid;place-items:center;font-weight:700;font-size:12px}
+
+  /* Section heads */
+  .sec{padding:30px 0 6px}
+  .sec h2{font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .sec p{margin:3px 0 0;color:var(--muted);font-size:13.5px}
+  .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+
+  /* KPI strip */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:18px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 15px;box-shadow:var(--shadow)}
+  .kpi .lbl{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  .kpi .val{font-size:30px;font-weight:700;line-height:1.05;margin-top:8px;letter-spacing:-.02em}
+  .kpi .sub{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .kpi.attention{border-color:var(--gold);background:linear-gradient(180deg,var(--gold-soft),var(--surface) 60%)}
+  .kpi.attention .lbl{color:var(--gold-content)}
+  .trend{display:inline-flex;align-items:center;gap:3px;font-weight:600;font-size:11px;padding:1px 6px;border-radius:6px}
+  .trend.up{background:var(--green-soft);color:var(--green-ink)} .trend.dn{background:var(--red-soft);color:var(--red-ink)}
+
+  /* Funnel */
+  .funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:18px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow)}
+  .lane{padding:16px 16px 18px;border-right:1px solid var(--border);position:relative}
+  .lane:last-child{border-right:0}
+  .lane .arrow{position:absolute;right:-9px;top:22px;z-index:2;width:18px;height:18px;border-radius:50%;
+    background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--faint);font-size:10px}
+  .lane:last-child .arrow{display:none}
+  .lane .stage{display:flex;align-items:center;gap:8px}
+  .lane .stage .ic{width:24px;height:24px;border-radius:7px;background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:12px}
+  .lane .stage .name{font-size:12.5px;font-weight:600;color:var(--muted)}
+  .lane .count{font-size:26px;font-weight:700;margin:9px 0 2px;letter-spacing:-.02em}
+  .lane .chip-list{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+  .lane .row{font-size:12px;color:var(--text);display:flex;gap:7px;align-items:center}
+  .lane .row .d{width:5px;height:5px;border-radius:50%;background:var(--faint);flex:none}
+  .lane .row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .grid{display:grid;gap:14px}
+  /* Clip approval cards */
+  .clips{grid-template-columns:repeat(2,1fr);margin-top:18px}
+  .clip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:11px}
+  .clip.is-await{border-left:3px solid var(--gold)}
+  .clip .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .clip .hook{font-size:15.5px;font-weight:650;letter-spacing:-.01em;line-height:1.32}
+  .clip .src{font-size:11.5px;color:var(--faint);margin-top:4px}
+  .vir{flex:none;text-align:center;background:var(--brand-soft);border-radius:10px;padding:7px 10px;min-width:58px}
+  .vir b{display:block;font-size:19px;font-weight:750;color:var(--brand-content);line-height:1}
+  .vir small{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);font-weight:600}
+  .meta{display:flex;flex-wrap:wrap;gap:6px}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;border-radius:var(--r-sm);padding:3px 9px}
+  .badge .dot{width:6px;height:6px;border-radius:50%}
+  .b-fmt{background:var(--subtle);color:var(--muted)} .b-fmt .dot{background:var(--brand)}
+  .b-time{background:var(--subtle);color:var(--muted);font-variant-numeric:tabular-nums}
+  .b-appr{background:var(--green-soft);color:var(--green-ink)} .b-appr .dot{background:var(--green)}
+  .caption{font-size:13px;color:var(--muted);line-height:1.5;background:var(--subtle);border-radius:var(--r-sm);padding:10px 12px}
+  .clip .acts{display:flex;gap:8px;margin-top:1px}
+  .btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:var(--r-sm);padding:8px 14px;cursor:pointer;
+    border:1px solid transparent;transition:background .12s,border-color .12s}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(109,52,160,.3)}
+  .btn-primary{background:var(--brand);color:#fff}.btn-primary:hover{background:var(--brand-bright)}
+  .btn-ghost{background:var(--surface);color:var(--text);border-color:var(--border)}.btn-ghost:hover{background:var(--subtle)}
+  .btn-flat{background:transparent;color:var(--muted)}.btn-flat:hover{color:var(--red-ink);background:var(--red-soft)}
+  .convert{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--green-soft);
+    border-radius:var(--r-sm);padding:9px 12px;font-size:12.5px;color:var(--green-ink);font-weight:600}
+
+  /* Performance table */
+  .perf{margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:12px 16px;border-bottom:1px solid var(--border)}
+  thead th.r,tbody td.r{text-align:right}
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--border);font-size:13.5px}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--subtle)}
+  .clip-t{font-weight:600;letter-spacing:-.01em}
+  .chan{color:var(--brand);font-size:12px;font-weight:600;text-decoration:none}.chan:hover{text-decoration:underline}
+  .metric{font-weight:700;font-variant-numeric:tabular-nums}
+  .m-good{color:var(--green-ink)}.m-mid{color:var(--amber-ink)}.m-low{color:var(--red-ink)}
+  .footwrap{padding:40px 0 56px;text-align:center;color:var(--faint);font-size:12px}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}.funnel{grid-template-columns:1fr 1fr}.clips{grid-template-columns:1fr}}
+</style>
+
+<div class="cockpit">
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <span class="mark">▶</span>
+        <span>Content Engine<small>Cockpit · live from Airtable</small></span>
+      </div>
+      <div class="whoami">
+        <span>Vishen Lakhiani</span>
+        <span class="avatar">VL</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- KPI STRIP -->
+    <section class="sec">
+      <div class="sechead">
+        <div><h2>Your engine, right now</h2><p>Media in → clips proposed → in production → published → performing.</p></div>
+        <span class="eyebrow">Last 30 days</span>
+      </div>
+    </section>
+    <section class="kpis">
+      <div class="kpi"><div class="lbl">Media in inbox</div><div class="val num">7</div><div class="sub">3 transcribing</div></div>
+      <div class="kpi attention"><div class="lbl">Clips awaiting you</div><div class="val num">12</div><div class="sub">your approval gate</div></div>
+      <div class="kpi"><div class="lbl">In production</div><div class="val num">28</div><div class="sub">across 6 editors</div></div>
+      <div class="kpi"><div class="lbl">Published</div><div class="val num">41</div><div class="sub"><span class="trend up">▲ 18%</span> vs prev</div></div>
+      <div class="kpi"><div class="lbl">Avg CTR</div><div class="val num">4.8%</div><div class="sub"><span class="trend up">▲ 0.6pt</span></div></div>
+      <div class="kpi"><div class="lbl">Avg ROAS</div><div class="val num">3.1×</div><div class="sub"><span class="trend dn">▼ 0.2×</span></div></div>
+    </section>
+
+    <!-- FUNNEL -->
+    <section class="sec"><div class="sechead"><div><h2>Pipeline</h2><p>What the engine is producing, stage by stage.</p></div></div></section>
+    <section class="funnel">
+      <div class="lane">
+        <span class="arrow">→</span>
+        <div class="stage"><span class="ic">🎥</span><span class="name">Media Sources</span></div>
+        <div class="count num">7</div><div class="eyebrow">in inbox</div>
+        <div class="chip-list">
+          <div class="row"><span class="d"></span><span>Podcast — The 6 Phases (YouTube)</span></div>
+          <div class="row"><span class="d"></span><span>Mastery Talk — Resilience</span></div>
+          <div class="row"><span class="d"></span><span>Q&A — Manifesting, ep. 14</span></div>
+        </div>
+      </div>
+      <div class="lane">
+        <span class="arrow">→</span>
+        <div class="stage"><span class="ic">✂️</span><span class="name">Clip Suggestions</span></div>
+        <div class="count num">12</div><div class="eyebrow">proposed</div>
+        <div class="chip-list">
+          <div class="row"><span class="d" style="background:var(--gold)"></span><span>“The 5-minute rule that…”</span></div>
+          <div class="row"><span class="d" style="background:var(--gold)"></span><span>“Why discipline beats…”</span></div>
+          <div class="row"><span class="d" style="background:var(--gold)"></span><span>“Most people quit at…”</span></div>
+        </div>
+      </div>
+      <div class="lane">
+        <span class="arrow">→</span>
+        <div class="stage"><span class="ic">🎬</span><span class="name">Tickets</span></div>
+        <div class="count num">28</div><div class="eyebrow">in production</div>
+        <div class="chip-list">
+          <div class="row"><span class="d" style="background:var(--info)"></span><span>Reel — Resilience hook · In Progress</span></div>
+          <div class="row"><span class="d" style="background:var(--amber)"></span><span>Short — Manifesting · Review</span></div>
+          <div class="row"><span class="d" style="background:var(--green)"></span><span>YT clip — 6 Phases · Approved</span></div>
+        </div>
+      </div>
+      <div class="lane">
+        <div class="stage"><span class="ic">🚀</span><span class="name">Published</span></div>
+        <div class="count num">41</div><div class="eyebrow">last 30 days</div>
+        <div class="chip-list">
+          <div class="row"><span class="d" style="background:var(--green)"></span><span>“The 5-minute rule” · IG</span></div>
+          <div class="row"><span class="d" style="background:var(--green)"></span><span>“Stop negotiating…” · TikTok</span></div>
+          <div class="row"><span class="d" style="background:var(--green)"></span><span>“Your morning sets…” · YT</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIP APPROVAL — the active gate -->
+    <section class="sec">
+      <div class="sechead">
+        <div><h2>Awaiting your approval</h2><p>Approve to send to production, or dismiss. Only you gate this step.</p></div>
+        <span class="badge" style="background:var(--gold-soft);color:var(--gold-content)"><span class="dot" style="background:var(--gold)"></span>12 clips</span>
+      </div>
+    </section>
+    <section class="grid clips">
+      <article class="clip is-await">
+        <div class="top">
+          <div><div class="hook">“The 5-minute rule that rewires your morning”</div>
+            <div class="src">from “The 6 Phases” podcast · 12:04–12:38</div></div>
+          <div class="vir"><b class="num">9</b><small>Virality</small></div>
+        </div>
+        <div class="meta">
+          <span class="badge b-fmt"><span class="dot"></span>Talking head</span>
+          <span class="badge b-time">0:34</span>
+        </div>
+        <div class="caption">Hook on the first frame, then the rule in three beats. Strong pattern-interrupt opener — built for IG Reels &amp; Shorts.</div>
+        <div class="acts"><button class="btn btn-primary">Approve</button><button class="btn btn-flat">Dismiss</button></div>
+      </article>
+
+      <article class="clip is-await">
+        <div class="top">
+          <div><div class="hook">“Why discipline beats motivation — every time”</div>
+            <div class="src">from Mastery Talk — Resilience · 04:51–05:30</div></div>
+          <div class="vir"><b class="num">8</b><small>Virality</small></div>
+        </div>
+        <div class="meta">
+          <span class="badge b-fmt"><span class="dot"></span>Quote card</span>
+          <span class="badge b-time">0:39</span>
+        </div>
+        <div class="caption">Quotable line carries it; pair with bold caption animation. Good cold-audience reach play.</div>
+        <div class="acts"><button class="btn btn-primary">Approve</button><button class="btn btn-flat">Dismiss</button></div>
+      </article>
+
+      <article class="clip">
+        <div class="top">
+          <div><div class="hook">“Most people quit at the exact moment it works”</div>
+            <div class="src">from Q&amp;A — Manifesting ep.14 · 21:10–21:46</div></div>
+          <div class="vir"><b class="num">7</b><small>Virality</small></div>
+        </div>
+        <div class="meta">
+          <span class="badge b-appr"><span class="dot"></span>Approved</span>
+          <span class="badge b-fmt"><span class="dot"></span>B-roll overlay</span>
+          <span class="badge b-time">0:36</span>
+        </div>
+        <div class="convert"><span>Approved — ready to produce</span><button class="btn btn-ghost">Convert to ticket →</button></div>
+      </article>
+
+      <article class="clip">
+        <div class="top">
+          <div><div class="hook">“The one question that ends overthinking”</div>
+            <div class="src">from “The 6 Phases” podcast · 33:20–33:52</div></div>
+          <div class="vir"><b class="num">8</b><small>Virality</small></div>
+        </div>
+        <div class="meta">
+          <span class="badge b-appr"><span class="dot"></span>Approved</span>
+          <span class="badge b-fmt"><span class="dot"></span>Talking head</span>
+          <span class="badge b-time">0:32</span>
+        </div>
+        <div class="convert"><span>Approved — ready to produce</span><button class="btn btn-ghost">Convert to ticket →</button></div>
+      </article>
+    </section>
+
+    <!-- PERFORMANCE -->
+    <section class="sec">
+      <div class="sechead">
+        <div><h2>Published performance</h2><p>Each clip linked to where it ran and how it's doing.</p></div>
+        <span class="eyebrow">CTR &amp; ROAS · live</span>
+      </div>
+    </section>
+    <section class="perf">
+      <table>
+        <thead><tr><th>Clip</th><th>Channel</th><th class="r">Views</th><th class="r">CTR</th><th class="r">ROAS</th><th>Editor</th></tr></thead>
+        <tbody>
+          <tr><td class="clip-t">The 5-minute rule</td><td><a class="chan" href="#">Instagram ↗</a></td><td class="r num">412k</td><td class="r metric m-good num">6.9%</td><td class="r metric m-good num">4.2×</td><td>A. Mendez</td></tr>
+          <tr><td class="clip-t">Stop negotiating with the snooze</td><td><a class="chan" href="#">TikTok ↗</a></td><td class="r num">288k</td><td class="r metric m-good num">5.4%</td><td class="r metric m-mid num">2.8×</td><td>J. Park</td></tr>
+          <tr><td class="clip-t">Your morning sets the day</td><td><a class="chan" href="#">YouTube ↗</a></td><td class="r num">156k</td><td class="r metric m-mid num">3.1%</td><td class="r metric m-good num">3.6×</td><td>R. Khan</td></tr>
+          <tr><td class="clip-t">Discipline &gt; motivation</td><td><a class="chan" href="#">Instagram ↗</a></td><td class="r num">94k</td><td class="r metric m-mid num">2.9%</td><td class="r metric m-low num">1.4×</td><td>A. Mendez</td></tr>
+          <tr><td class="clip-t">The overthinking question</td><td><a class="chan" href="#">YouTube ↗</a></td><td class="r num">61k</td><td class="r metric m-low num">1.8%</td><td class="r metric m-mid num">2.1×</td><td>S. Oyelaran</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="footwrap">Mockup · Content Engine cockpit · brand #572280 / gold accent / Inter — wired to Airtable Media Sources, Clip Suggestions &amp; Prio Requests</div>
+  </div>
+</div>
