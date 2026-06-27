@@ -5,8 +5,9 @@
 // the chosen rows (see resolve-reference.ts) so ticket FKs still resolve.
 
 import { listRecords } from './client';
+import { listRecords as listRest } from './rest';
 import {
-  EMPLOYEES, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS,
+  EMPLOYEES, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS, SHOOTS,
 } from './field-map';
 import { mapEmployee, mapEventType, mapAssetType, mapOfficialCalendar, mapAuthor } from './sync';
 import type { Option, AssetTypeOption } from '@/lib/intake/data';
@@ -17,7 +18,12 @@ export interface LiveReference {
   assetTypes: AssetTypeOption[];
   officialCalendars: Option[];
   authors: Option[];
+  shoots: Option[];
 }
+
+// The Shoots & Raw Assets table can be large; cap the picker list (most recent first
+// isn't available without a sort field, so cap and let users search within it).
+const SHOOTS_MAX = 500;
 
 const TTL_MS = 60_000;
 let cache: { at: number; data: LiveReference } | null = null;
@@ -46,12 +52,18 @@ async function fetchLive(): Promise<LiveReference> {
     .map(mapAuthor)
     .map((a) => ({ id: a.airtableId, name: a.name }));
 
+  // Shoots/raw assets — optional intake picker. Capped (table can be large).
+  const shootsRes = await listRest(SHOOTS.baseId, SHOOTS.tableId, { fields: [SHOOTS.fields.title], maxRecords: SHOOTS_MAX });
+  const shoots: Option[] = shootsRes.ok
+    ? shootsRes.data.records.map((r) => ({ id: r.id, name: (typeof r.fields[SHOOTS.fields.title] === 'string' && (r.fields[SHOOTS.fields.title] as string)) || '(untitled shoot)' }))
+    : [];
+
   // Sort to match the existing Postgres-backed ordering (name asc).
   const byName = (a: Option, b: Option) => a.name.localeCompare(b.name);
   employees.sort(byName); eventTypes.sort(byName); assetTypes.sort(byName);
-  officialCalendars.sort(byName); authors.sort(byName);
+  officialCalendars.sort(byName); authors.sort(byName); shoots.sort(byName);
 
-  return { employees, eventTypes, assetTypes, officialCalendars, authors };
+  return { employees, eventTypes, assetTypes, officialCalendars, authors, shoots };
 }
 
 /** Live reference lists, cached ~60s. Throws if Airtable is unreachable (caller falls back to Postgres). */

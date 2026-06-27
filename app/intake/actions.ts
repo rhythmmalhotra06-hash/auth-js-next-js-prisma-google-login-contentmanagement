@@ -11,6 +11,7 @@ export interface CreateTicketInput {
   assetTypeId: string; // Airtable recId
   officialCalendarId: string; // Airtable recId (optional)
   authorIds: string[]; // Airtable recIds
+  shootIds?: string[]; // Airtable recIds (📺 Shoots & Raw Assets) — optional
   creativeBrief: string;
   cta?: string;
   dueDate: string; // ISO date
@@ -69,6 +70,7 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     requesterRecId: input.requesterId,
     officialCalendarRecId: input.officialCalendarId || null,
     authorRecIds: input.authorIds ?? [],
+    shootRecIds: input.shootIds ?? [],
   });
 
   if (!res.ok) return { ok: false, error: res.error.message };

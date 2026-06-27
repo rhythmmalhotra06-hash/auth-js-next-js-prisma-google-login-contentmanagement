@@ -23,6 +23,7 @@ export const TICKETS = {
   fields: {
     name: 'fld59SWr1qd1XPuR0', // "Name" (formula primary, READ-ONLY) → display title
     projectProgram: 'fldxatmiW57hVUL9X', // "Project/Program" (multilineText, WRITABLE) → intake title
+    created: 'flde8MIcH6FH9sU0T', // "Created" (dateTime, writable) — set at intake time
     creativeBrief: 'fld5INJXFHCliBAKY', // "Creative Brief" (richText)
     cta: 'fldRUl1jsQefaUz4q', // "Call to action"
     dueDate: 'fldMbzZSolbVNAhGX', // "Due date"
@@ -50,6 +51,16 @@ export const TICKETS = {
     requestedBy: 'fldgw7zf5fD2YK2EL', // → Employees (requester)
     officialCalendar: 'fldGCRBjJXuiHjgw1', // → 📆 Official Calendar
     speakers: 'fldWYaTaYW6zh7G5f', // → Authors (Speakers/Authors)
+    shoots: 'fldE0BeC6oUHs7NDk', // → 📺 Shoots & Raw Assets (optional)
+  },
+} as const;
+
+// 📺 Shoots & Raw Assets — the raw source/shoot a request can optionally link to.
+export const SHOOTS = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblcZ8OIxfgnlUowC',
+  fields: {
+    title: 'fldiXdLvABVQsQx6C', // "Asset Title" (primary)
   },
 } as const;
 

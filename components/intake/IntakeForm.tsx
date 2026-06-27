@@ -41,6 +41,8 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
   const [officialCalendarId, setOfficialCalendarId] = useState('');
   const [authorIds, setAuthorIds] = useState<string[]>([]);
   const [authorQuery, setAuthorQuery] = useState('');
+  const [shootIds, setShootIds] = useState<string[]>([]);
+  const [shootQuery, setShootQuery] = useState('');
   const [creativeBrief, setCreativeBrief] = useState('');
   const [cta, setCta] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -64,6 +66,14 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
 
   const selectedAuthors = data.authors.filter((a) => authorIds.includes(a.id));
 
+  const shootMatches = useMemo(() => {
+    const q = shootQuery.trim().toLowerCase();
+    if (!q) return [];
+    return data.shoots.filter((s) => s.name.toLowerCase().includes(q)).slice(0, 30);
+  }, [shootQuery, data.shoots]);
+
+  const selectedShoots = data.shoots.filter((s) => shootIds.includes(s.id));
+
   function onEventTypeChange(id: string) {
     setEventTypeId(id);
     setAssetTypeId(''); // reset dependent field
@@ -75,14 +85,14 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
     setResult(null);
     const res = await createTicket({
       requesterId, title, teamServiceLevel, typeOfRequest, eventTypeId, assetTypeId,
-      officialCalendarId, authorIds, creativeBrief, cta, dueDate, sourceLinks, notes,
+      officialCalendarId, authorIds, shootIds, creativeBrief, cta, dueDate, sourceLinks, notes,
     });
     setSubmitting(false);
     if (res.ok) {
       setResult({ ok: true, message: `Request submitted — ticket ${res.ticketId?.slice(0, 8)}…` });
       // reset
       setRequesterId(''); setTitle(''); setTeamServiceLevel(''); setTypeOfRequest('');
-      setEventTypeId(''); setAssetTypeId(''); setOfficialCalendarId(''); setAuthorIds([]);
+      setEventTypeId(''); setAssetTypeId(''); setOfficialCalendarId(''); setAuthorIds([]); setShootIds([]);
       setCreativeBrief(''); setCta(''); setDueDate(''); setSourceLinks(''); setNotes('');
     } else {
       setResult({ ok: false, message: res.error ?? 'Something went wrong' });
@@ -159,6 +169,33 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
                     onClick={() => setAuthorIds((ids) => (sel ? ids.filter((x) => x !== a.id) : [...ids, a.id]))}
                     className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-50 ${sel ? 'text-[#572280] font-medium' : 'text-neutral-700'}`}>
                     {sel ? '✓ ' : ''}{a.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Field>
+        <Field label="📺 Raw Asset Source & Shoots" hint="Optional — link the shoot(s)/raw asset source this request draws from">
+          {selectedShoots.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {selectedShoots.map((s) => (
+                <span key={s.id} className="inline-flex items-center gap-1 rounded-full bg-[#572280]/10 px-2.5 py-0.5 text-xs text-[#572280]">
+                  {s.name}
+                  <button type="button" onClick={() => setShootIds((ids) => ids.filter((x) => x !== s.id))} className="font-bold">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input className={inputCls} value={shootQuery} onChange={(e) => setShootQuery(e.target.value)} placeholder="Type to search shoots / raw assets…" />
+          {shootMatches.length > 0 && (
+            <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-neutral-200">
+              {shootMatches.map((s) => {
+                const sel = shootIds.includes(s.id);
+                return (
+                  <button type="button" key={s.id}
+                    onClick={() => setShootIds((ids) => (sel ? ids.filter((x) => x !== s.id) : [...ids, s.id]))}
+                    className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-50 ${sel ? 'text-[#572280] font-medium' : 'text-neutral-700'}`}>
+                    {sel ? '✓ ' : ''}{s.name}
                   </button>
                 );
               })}
