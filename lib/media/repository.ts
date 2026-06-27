@@ -177,6 +177,7 @@ export interface ClipSuggestion {
   viralityScore: number | null;
   status: string | null;
   ticketId: string | null;
+  mediaSourceId: string | null;
 }
 
 function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
@@ -194,7 +195,19 @@ function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
     viralityScore: num(f[CF.viralityScore]),
     status: selectName(f[CF.status]),
     ticketId: firstLinkedId(f[CL.ticket]),
+    mediaSourceId: firstLinkedId(f[CL.mediaSource]),
   };
+}
+
+/** All clips with a given Status (across sources), highest virality first. For the cockpit. */
+export async function listClipsByStatus(status: string, limit = 60): Promise<AirtableResult<ClipSuggestion[]>> {
+  const res = await listRecords<Raw>(C.baseId, C.tableId, {
+    filterByFormula: `{Status} = '${status.replace(/'/g, "\\'")}'`,
+    maxRecords: limit,
+  });
+  if (!res.ok) return res;
+  const rows = res.data.records.map(mapClip).sort((a, b) => (b.viralityScore ?? 0) - (a.viralityScore ?? 0));
+  return { ok: true, data: rows };
 }
 
 /**
