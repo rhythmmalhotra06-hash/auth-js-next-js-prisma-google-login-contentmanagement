@@ -13,7 +13,7 @@ const NAV: { href: string; label: string; icon: string }[] = [
   { href: '/stakeholder', label: 'Stakeholder', icon: '◉' },
   { href: '/media', label: 'Media', icon: '🎥' },
   { href: '/settings/clip-rules', label: 'Clip rules', icon: '⚙' },
-  { href: '/settings/team', label: 'Team roles', icon: '👥' },
+  { href: '/settings/team', label: 'Admin panel', icon: '🛡' },
 ];
 
 export function Sidebar({ roles = [], isAdmin = false }: { roles?: string[]; isAdmin?: boolean }) {

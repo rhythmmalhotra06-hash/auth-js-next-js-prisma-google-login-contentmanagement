@@ -13,6 +13,8 @@ export interface EmployeeRecord {
   email: string | null;
   active: boolean;
   roles: string[];   // app access roles (Editor, Manager, Admin, …)
+  division: string | null; // org division (free text: Creatives, Technology, …)
+  team: string | null;     // Creative team (single-select; set for Creatives only)
 }
 
 let cache: { at: number; rows: EmployeeRecord[] } | null = null;
@@ -30,8 +32,18 @@ function selectNames(v: unknown): string[] {
     .filter((x): x is string => !!x);
 }
 
+// singleSelect → a {id,name} object or a plain name string. Returns the trimmed name.
+function selectOne(v: unknown): string | null {
+  if (v == null) return null;
+  if (typeof v === 'string') return v.trim() || null;
+  if (typeof v === 'object' && 'name' in (v as object)) return String((v as { name: unknown }).name).trim() || null;
+  return null;
+}
+
 async function load(): Promise<EmployeeRecord[]> {
-  const res = await listAll(EMPLOYEES.baseId, EMPLOYEES.tableId, { fields: [E.name, E.email, E.activeStatus, E.roles] });
+  const res = await listAll(EMPLOYEES.baseId, EMPLOYEES.tableId, {
+    fields: [E.name, E.email, E.activeStatus, E.roles, E.division, E.team],
+  });
   if (!res.ok) return [];
   return res.data.map((rec) => {
     const f = rec.fields as Record<string, unknown>;
@@ -42,6 +54,8 @@ async function load(): Promise<EmployeeRecord[]> {
       email: str(f[E.email]),
       active: str(f[E.activeStatus]) === 'Active',
       roles: selectNames(f[E.roles]),
+      division: selectOne(f[E.division]),
+      team: selectOne(f[E.team]),
     };
   });
 }

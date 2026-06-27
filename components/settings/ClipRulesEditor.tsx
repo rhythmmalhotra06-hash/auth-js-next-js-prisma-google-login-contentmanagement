@@ -232,7 +232,7 @@ export function ClipRulesEditor({ basePrompt, pillars, rules, ruleScopes, canEdi
     <div className="space-y-5">
       {!canEdit && (
         <div className="rounded-[8px] bg-amber-50 px-3 py-2 text-sm text-text">
-          Read-only — editing clip rules requires the <strong>Admin</strong> role. Ask an admin to grant it in Team roles.
+          Read-only — editing clip rules requires the <strong>Admin</strong> role. Ask an admin to grant it in the Admin panel.
         </div>
       )}
 
