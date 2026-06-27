@@ -4,28 +4,26 @@ import { useMemo, useState } from 'react';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { createTicket } from '@/app/intake/actions';
 
-const PURPLE = '#572280';
-
 function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-neutral-900">
-        {label} {required && <span style={{ color: '#dc2626' }}>*</span>}
+      <label className="block text-sm font-medium text-text">
+        {label} {required && <span className="text-danger">*</span>}
       </label>
-      {hint && <p className="text-xs text-neutral-500">{hint}</p>}
+      {hint && <p className="text-xs text-text-muted">{hint}</p>}
       {children}
     </div>
   );
 }
 
 const inputCls =
-  'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20';
+  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-neutral-200 pt-6">
-      <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
-      {subtitle && <p className="mt-1 text-sm text-neutral-500">{subtitle}</p>}
+    <section className="border-t border-border-default pt-6">
+      <h2 className="text-lg font-semibold text-text">{title}</h2>
+      {subtitle && <p className="mt-1 text-sm text-text-muted">{subtitle}</p>}
       <div className="mt-4 space-y-5">{children}</div>
     </section>
   );
@@ -111,7 +109,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
         </Field>
         <Field label="Project/Program" required hint="Which project or program is this for? (max 40 characters)">
           <input className={inputCls} maxLength={40} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Mastery Summit 2026" />
-          <p className="text-right text-xs text-neutral-400">{title.length}/40</p>
+          <p className="text-right text-xs text-text-subtle">{title.length}/40</p>
         </Field>
         <Field label="Team/Service Level" required hint="Which team is this request for?">
           <select className={inputCls} value={teamServiceLevel} onChange={(e) => setTeamServiceLevel(e.target.value)}>
@@ -152,7 +150,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
           {selectedAuthors.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {selectedAuthors.map((a) => (
-                <span key={a.id} className="inline-flex items-center gap-1 rounded-full bg-[#572280]/10 px-2.5 py-0.5 text-xs text-[#572280]">
+                <span key={a.id} className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs text-brand">
                   {a.name}
                   <button type="button" onClick={() => setAuthorIds((ids) => ids.filter((x) => x !== a.id))} className="font-bold">×</button>
                 </span>
@@ -161,13 +159,13 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
           )}
           <input className={inputCls} value={authorQuery} onChange={(e) => setAuthorQuery(e.target.value)} placeholder="Type to search authors…" />
           {authorMatches.length > 0 && (
-            <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-neutral-200">
+            <div className="mt-1 max-h-44 overflow-y-auto rounded-[8px] border border-border-default">
               {authorMatches.map((a) => {
                 const sel = authorIds.includes(a.id);
                 return (
                   <button type="button" key={a.id}
                     onClick={() => setAuthorIds((ids) => (sel ? ids.filter((x) => x !== a.id) : [...ids, a.id]))}
-                    className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-50 ${sel ? 'text-[#572280] font-medium' : 'text-neutral-700'}`}>
+                    className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-bg-muted ${sel ? 'text-brand font-medium' : 'text-text'}`}>
                     {sel ? '✓ ' : ''}{a.name}
                   </button>
                 );
@@ -179,7 +177,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
           {selectedShoots.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {selectedShoots.map((s) => (
-                <span key={s.id} className="inline-flex items-center gap-1 rounded-full bg-[#572280]/10 px-2.5 py-0.5 text-xs text-[#572280]">
+                <span key={s.id} className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs text-brand">
                   {s.name}
                   <button type="button" onClick={() => setShootIds((ids) => ids.filter((x) => x !== s.id))} className="font-bold">×</button>
                 </span>
@@ -188,13 +186,13 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
           )}
           <input className={inputCls} value={shootQuery} onChange={(e) => setShootQuery(e.target.value)} placeholder="Type to search shoots / raw assets…" />
           {shootMatches.length > 0 && (
-            <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-neutral-200">
+            <div className="mt-1 max-h-44 overflow-y-auto rounded-[8px] border border-border-default">
               {shootMatches.map((s) => {
                 const sel = shootIds.includes(s.id);
                 return (
                   <button type="button" key={s.id}
                     onClick={() => setShootIds((ids) => (sel ? ids.filter((x) => x !== s.id) : [...ids, s.id]))}
-                    className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-50 ${sel ? 'text-[#572280] font-medium' : 'text-neutral-700'}`}>
+                    className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-bg-muted ${sel ? 'text-brand font-medium' : 'text-text'}`}>
                     {sel ? '✓ ' : ''}{s.name}
                   </button>
                 );
@@ -229,15 +227,14 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
       </Section>
 
       {result && (
-        <div className={`rounded-lg px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'}`}>
+        <div className={`rounded-[8px] px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-danger'}`}>
           {result.message}
         </div>
       )}
 
-      <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-6">
+      <div className="flex items-center justify-end gap-3 border-t border-border-default pt-6">
         <button type="submit" disabled={submitting}
-          className="rounded-lg px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-          style={{ backgroundColor: PURPLE }}>
+          className="rounded-[8px] bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60">
           {submitting ? 'Submitting…' : 'Submit request'}
         </button>
       </div>
