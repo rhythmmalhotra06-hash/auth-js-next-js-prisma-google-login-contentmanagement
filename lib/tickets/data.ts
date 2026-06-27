@@ -1,8 +1,16 @@
-import { prisma } from '@/lib/prisma';
+// Queue/list data for the role views — Airtable-direct (Prio Requests table).
+// The first five columns are mandated identical across ALL views: Title, Priority,
+// Assigned, Ticket Status, Priority Status (CLAUDE.md §7).
+//
+// Reads come straight from Airtable; linked names (assignee/event/asset/...) are
+// resolved via cached reference maps. No Postgres.
 
-// Queue/list data for the role views. The first five columns are mandated to be
-// identical across ALL views: Title, Priority, Assigned, Ticket Status,
-// Priority Status (decision log / CLAUDE.md §7).
+import { TICKETS } from '@/lib/airtable/field-map';
+import { listAll, getRecord } from '@/lib/airtable/rest';
+import { nameMap, firstLinkedName, firstLinkedId } from '@/lib/repositories/reference.repository';
+
+const F = TICKETS.fields;
+const L = TICKETS.links;
 
 export interface QueueTicket {
   id: string;
@@ -19,80 +27,72 @@ export interface QueueTicket {
   dueDate: string | null;
 }
 
-export interface EmployeeOption {
-  id: string;
-  name: string;
-}
+export interface EmployeeOption { id: string; name: string }
 
-/** Active employees, for the editor-view picker and (later) manager assignment. */
+const str = (v: unknown): string | null => {
+  if (v == null) return null;
+  if (typeof v === 'string') return v || null;
+  if (typeof v === 'object' && 'name' in (v as object)) return String((v as { name: unknown }).name);
+  return String(v);
+};
+const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
+
+// Active = everything except terminal states; keeps us well under the 10k table size.
+const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
+
+/** Active employees for assignment pickers (recId → name). */
 export async function getActiveEmployees(): Promise<EmployeeOption[]> {
-  return prisma.employee.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+  const map = await nameMap('employees');
+  return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getQueueTickets(opts: { assigneeId?: string } = {}): Promise<QueueTicket[]> {
-  // Order mirrors v_editor_queue: priority_score DESC NULLS LAST, then queue_rank.
-  const rows = await prisma.ticket.findMany({
-    where: opts.assigneeId ? { assigneeId: opts.assigneeId } : undefined,
-    // queue_rank (manager's manual order) overrides priority_score when set; unranked fall back to score.
-    orderBy: [{ queueRank: { sort: 'asc', nulls: 'last' } }, { priorityScore: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
-    select: {
-      id: true,
-      title: true,
-      priorityScore: true,
-      queueRank: true,
-      ticketStatus: true,
-      prioStatus: true,
-      typeOfRequest: true,
-      dueDate: true,
-      assignee: { select: { name: true } },
-      requester: { select: { name: true } },
-      eventType: { select: { name: true } },
-      assetType: { select: { name: true } },
-    },
+  const [res, employees, eventTypes, assetTypes] = await Promise.all([
+    listAll(TICKETS.baseId, TICKETS.tableId, {
+      filterByFormula: ACTIVE_FILTER,
+      fields: [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
+        L.assignedCreative, L.requestedBy, L.eventTypes, L.assetTypes],
+    }),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
+  ]);
+  if (!res.ok) return [];
+
+  let rows = res.data.map((rec) => {
+    const f = rec.fields as Record<string, unknown>;
+    return {
+      id: rec.id,
+      title: str(f[F.name]) ?? '(untitled)',
+      priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
+      queueRank: num(f[F.queueRank]),
+      assignee: firstLinkedName(f[L.assignedCreative], employees),
+      assigneeId: firstLinkedId(f[L.assignedCreative]),
+      ticketStatus: str(f[F.ticketStatus]),
+      prioStatus: str(f[F.prioStatus]),
+      eventType: firstLinkedName(f[L.eventTypes], eventTypes),
+      assetType: firstLinkedName(f[L.assetTypes], assetTypes),
+      requester: firstLinkedName(f[L.requestedBy], employees),
+      typeOfRequest: str(f[F.typeOfRequest]),
+      dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
+    };
   });
 
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    priorityScore: r.priorityScore != null ? r.priorityScore.toString() : null,
-    queueRank: r.queueRank,
-    assignee: r.assignee?.name ?? null,
-    ticketStatus: r.ticketStatus,
-    prioStatus: r.prioStatus,
-    eventType: r.eventType?.name ?? null,
-    assetType: r.assetType?.name ?? null,
-    requester: r.requester?.name ?? null,
-    typeOfRequest: r.typeOfRequest,
-    dueDate: r.dueDate ? r.dueDate.toISOString().slice(0, 10) : null,
-  }));
+  if (opts.assigneeId) rows = rows.filter((r) => r.assigneeId === opts.assigneeId);
+
+  // queue_rank (manual) overrides score; unranked fall back to score desc.
+  rows.sort((a, b) => {
+    const ar = a.queueRank, br = b.queueRank;
+    if (ar != null && br != null) return ar - br;
+    if (ar != null) return -1;
+    if (br != null) return 1;
+    return (Number(b.priorityScore) || 0) - (Number(a.priorityScore) || 0);
+  });
+
+  return rows.map(({ assigneeId: _drop, ...rest }) => rest);
 }
 
-export interface TicketEventRow {
-  id: string;
-  fromState: string | null;
-  toState: string;
-  actor: string | null;
-  note: string | null;
-  createdAt: string;
-}
-
-export interface ApprovalRow {
-  id: string;
-  approver: string | null;
-  state: string; // pending | approved | changes_requested
-  feedback: string | null;
-  decidedAt: string | null;
-  createdAt: string;
-}
-
-export interface AssetRow {
-  id: string;
-  kind: string; // raw | final
-  fileUrl: string | null;
-  distributionUrl: string | null;
-  publishedAt: string | null;
-  createdAt: string;
-}
+export interface TicketEventRow { id: string; fromState: string | null; toState: string; actor: string | null; note: string | null; createdAt: string }
+export interface ApprovalRow { id: string; approver: string | null; state: string; feedback: string | null; decidedAt: string | null; createdAt: string }
+export interface AssetRow { id: string; kind: string; fileUrl: string | null; distributionUrl: string | null; publishedAt: string | null; createdAt: string }
 
 export interface TicketDetail {
   id: string;
@@ -120,57 +120,52 @@ export interface TicketDetail {
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
-  const t = await prisma.ticket.findUnique({
-    where: { id },
-    select: {
-      id: true, title: true, creativeBrief: true, cta: true, dueDate: true,
-      ticketStatus: true, prioStatus: true, typeOfRequest: true, teamServiceLevel: true,
-      sourceLinks: true, notes: true, priorityScore: true, assigneeId: true,
-      eventType: { select: { name: true } },
-      assetType: { select: { name: true } },
-      requester: { select: { name: true } },
-      assignee: { select: { name: true } },
-      officialCalendar: { select: { name: true } },
-      authors: { select: { author: { select: { name: true } } } },
-      events: {
-        orderBy: { createdAt: 'asc' },
-        select: { id: true, fromState: true, toState: true, note: true, createdAt: true, actor: { select: { name: true } } },
-      },
-      approvals: {
-        orderBy: { createdAt: 'asc' },
-        select: { id: true, state: true, feedback: true, decidedAt: true, createdAt: true, approver: { select: { name: true } } },
-      },
-      assets: {
-        orderBy: { syncedAt: 'asc' },
-        select: { id: true, kind: true, fileUrl: true, distributionUrl: true, publishedAt: true, syncedAt: true },
-      },
-    },
-  });
-  if (!t) return null;
+  const [res, employees, eventTypes, assetTypes, authorsMap, calendars] = await Promise.all([
+    getRecord(TICKETS.baseId, TICKETS.tableId, id),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('authors'), nameMap('officialCalendars'),
+  ]);
+  if (!res.ok) return null;
+  const f = res.data.fields as Record<string, unknown>;
+
+  // Assets are collapsed onto the Prio file-URL fields (raw/final/output).
+  const assets: AssetRow[] = [];
+  const pushAsset = (kind: string, url: unknown) => {
+    const u = typeof url === 'string' && url.trim() ? url.trim() : null;
+    if (u) assets.push({ id: `${id}:${kind}`, kind, fileUrl: u, distributionUrl: null, publishedAt: null, createdAt: res.data.createdTime });
+  };
+  pushAsset('raw', f[F.rawFileUrl]);
+  pushAsset('final', f[F.final16x9]);
+  pushAsset('final', f[F.final9x16]);
+  pushAsset('final', f[F.final4x5]);
+  pushAsset('final', f[F.outputLink]);
+
+  const speakerNames = Array.isArray(f[L.speakers])
+    ? (f[L.speakers] as unknown[]).map((rid) => (typeof rid === 'string' ? authorsMap.get(rid) : null)).filter((n): n is string => !!n)
+    : [];
+
   return {
-    id: t.id, title: t.title, creativeBrief: t.creativeBrief, cta: t.cta,
-    dueDate: t.dueDate ? t.dueDate.toISOString().slice(0, 10) : null,
-    ticketStatus: t.ticketStatus, prioStatus: t.prioStatus, typeOfRequest: t.typeOfRequest,
-    teamServiceLevel: t.teamServiceLevel, sourceLinks: t.sourceLinks, notes: t.notes,
-    priorityScore: t.priorityScore != null ? t.priorityScore.toString() : null,
-    eventType: t.eventType?.name ?? null,
-    assetType: t.assetType?.name ?? null,
-    requester: t.requester?.name ?? null,
-    assignee: t.assignee?.name ?? null,
-    assigneeId: t.assigneeId,
-    officialCalendar: t.officialCalendar?.name ?? null,
-    authors: t.authors.map((a) => a.author.name),
-    events: t.events.map((e) => ({
-      id: e.id, fromState: e.fromState, toState: e.toState, note: e.note,
-      actor: e.actor?.name ?? null, createdAt: e.createdAt.toISOString(),
-    })),
-    approvals: t.approvals.map((a) => ({
-      id: a.id, approver: a.approver?.name ?? null, state: a.state, feedback: a.feedback,
-      decidedAt: a.decidedAt ? a.decidedAt.toISOString() : null, createdAt: a.createdAt.toISOString(),
-    })),
-    assets: t.assets.map((a) => ({
-      id: a.id, kind: a.kind, fileUrl: a.fileUrl, distributionUrl: a.distributionUrl,
-      publishedAt: a.publishedAt ? a.publishedAt.toISOString() : null, createdAt: a.syncedAt.toISOString(),
-    })),
+    id: res.data.id,
+    title: str(f[F.name]) ?? '(untitled)',
+    creativeBrief: str(f[F.creativeBrief]),
+    cta: str(f[F.cta]),
+    dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
+    ticketStatus: str(f[F.ticketStatus]),
+    prioStatus: str(f[F.prioStatus]),
+    typeOfRequest: str(f[F.typeOfRequest]),
+    teamServiceLevel: str(f[F.teamServiceLevel]),
+    sourceLinks: str(f[F.rawFileUrl]),
+    notes: str(f[F.notes]),
+    priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
+    eventType: firstLinkedName(f[L.eventTypes], eventTypes),
+    assetType: firstLinkedName(f[L.assetTypes], assetTypes),
+    requester: firstLinkedName(f[L.requestedBy], employees),
+    assignee: firstLinkedName(f[L.assignedCreative], employees),
+    assigneeId: firstLinkedId(f[L.assignedCreative]),
+    officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),
+    authors: speakerNames,
+    // Audit trail + approval history live in Airtable's record revision history now.
+    events: [],
+    approvals: [],
+    assets,
   };
 }
