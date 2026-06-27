@@ -6,7 +6,8 @@ import authConfig from '@/lib/auth.config'
 // crashed every request with `Cannot redefine property: __import_unsupported`.)
 export const { auth: middleware } = NextAuth(authConfig)
 
-// Skip static assets and API routes (the sync route guards itself).
+// Skip static assets, API routes (the sync route guards itself), and the public
+// access-denied page (must be reachable without a session).
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|access-denied).*)'],
 }

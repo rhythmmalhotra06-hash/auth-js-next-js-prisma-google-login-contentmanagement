@@ -50,9 +50,15 @@ const ROUTE_ROLES: Record<GatedRoute, Role[]> = {
   '/stakeholder': ['Stakeholder', 'Agency / External', 'Executive / CEO'],
 };
 
+// Anyone who signs in but hasn't been given an explicit role is treated as a
+// Stakeholder — read-only status access. (Every @mindvalley.com account can sign
+// in; production/management access is opt-in via the Admin panel.)
+export function effectiveRoles(roles: readonly string[] | null | undefined): string[] {
+  return roles && roles.length > 0 ? [...roles] : ['Stakeholder'];
+}
+
 export function canAccessRoute(roles: readonly string[] | null | undefined, route: GatedRoute): boolean {
-  const r = roles ?? [];
-  if (r.length === 0) return true; // untagged → ungated during rollout
+  const r = effectiveRoles(roles);
   if (r.includes(ADMIN_ROLE)) return true; // admins see everything
   return ROUTE_ROLES[route].some((need) => r.includes(need));
 }
@@ -64,9 +70,8 @@ export function canAccessRoute(roles: readonly string[] | null | undefined, rout
  * (/vishen, /intake, /media) show only to production/management roles.
  */
 export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: boolean, href: string): boolean {
-  const r = roles ?? [];
   if (isAdmin) return true;
-  if (r.length === 0) return true;
+  const r = effectiveRoles(roles);
   switch (href) {
     case '/manager':
     case '/editor':
@@ -80,9 +85,9 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
   }
 }
 
-/** The surface a user lands on by default, based on their roles. */
+/** The surface a user lands on by default, based on their roles (untagged → Stakeholder). */
 export function homeRouteForRoles(roles: readonly string[] | null | undefined): GatedRoute {
-  const r = roles ?? [];
+  const r = effectiveRoles(roles);
   if (r.includes('Editor') || r.includes('Designer')) {
     // Editors/designers land on their queue unless they're also a manager/approver.
     if (!(r.includes('Manager') || r.includes('Approver') || r.includes('Admin'))) return '/editor';

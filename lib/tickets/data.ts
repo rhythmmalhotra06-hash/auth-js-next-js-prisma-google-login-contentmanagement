@@ -24,6 +24,7 @@ export interface QueueTicket {
   eventType: string | null;
   assetType: string | null;
   requester: string | null;
+  requesterId: string | null;
   typeOfRequest: string | null;
   dueDate: string | null;
 }
@@ -73,6 +74,7 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
       eventType: firstLinkedName(f[L.eventTypes], eventTypes),
       assetType: firstLinkedName(f[L.assetTypes], assetTypes),
       requester: firstLinkedName(f[L.requestedBy], employees),
+      requesterId: firstLinkedId(f[L.requestedBy]),
       typeOfRequest: str(f[F.typeOfRequest]),
       dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
     };
