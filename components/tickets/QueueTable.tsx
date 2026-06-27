@@ -23,6 +23,16 @@ const FILTERS: { key: Dim; label: string }[] = [
 const uniq = (rows: QueueTicket[], key: Dim) =>
   [...new Set(rows.map((r) => r[key]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
 
+// Lifecycle pipeline order (CLAUDE.md §6) — unknown statuses sort to the end alphabetically.
+const TICKET_ORDER = [
+  'Requested', 'Prioritized', 'Assigned', 'In Production', 'In Review', 'Review',
+  'In Revision', 'Approved', 'Published', 'Done', "Won't Do",
+];
+const orderIdx = (s: string) => {
+  const i = TICKET_ORDER.indexOf(s);
+  return i === -1 ? TICKET_ORDER.length : i;
+};
+
 export function QueueTable({ tickets }: { tickets: QueueTicket[] }) {
   const router = useRouter();
   const [sel, setSel] = useState<Record<Dim, string>>({
@@ -39,10 +49,52 @@ export function QueueTable({ tickets }: { tickets: QueueTicket[] }) {
     [tickets, sel],
   );
 
+  // Funnel: ticket-status stages with counts, scoped by every OTHER active filter
+  // (so clicking through event/asset narrows the funnel too). Clicking a stage
+  // toggles the Ticket Status filter — the clickable drill-down.
+  const funnel = useMemo(() => {
+    const scoped = tickets.filter((t) =>
+      FILTERS.filter((f) => f.key !== 'ticketStatus').every((f) => !sel[f.key] || t[f.key] === sel[f.key]),
+    );
+    const counts = new Map<string, number>();
+    for (const t of scoped) {
+      const s = t.ticketStatus;
+      if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => orderIdx(a[0]) - orderIdx(b[0]) || a[0].localeCompare(b[0]))
+      .map(([status, count]) => ({ status, count }));
+  }, [tickets, sel]);
+
   const activeFilters = FILTERS.filter((f) => sel[f.key]).length;
 
   return (
     <div>
+      {/* Clickable funnel — pipeline stages by Ticket Status */}
+      {funnel.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {funnel.map(({ status, count }) => {
+            const active = sel.ticketStatus === status;
+            return (
+              <button
+                key={status}
+                onClick={() => setSel((s) => ({ ...s, ticketStatus: active ? '' : status }))}
+                aria-pressed={active}
+                className={cn(
+                  'flex items-baseline gap-2 rounded-[10px] border px-3 py-2 text-left transition-colors',
+                  active
+                    ? 'border-brand bg-brand-soft'
+                    : 'border-border-default bg-surface hover:bg-bg-subtle',
+                )}
+              >
+                <span className={cn('text-lg font-semibold tabular-nums', active ? 'text-brand-content' : 'text-text')}>{count}</span>
+                <span className={cn('text-xs', active ? 'text-brand-content' : 'text-text-muted')}>{status}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Filter bar */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {FILTERS.map((f) => (
