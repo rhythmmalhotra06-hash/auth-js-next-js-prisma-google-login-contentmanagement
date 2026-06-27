@@ -7,6 +7,7 @@ const LINKS = [
   { href: '/editor', label: 'Editor' },
   { href: '/stakeholder', label: 'Stakeholder' },
   { href: '/content-engine', label: 'Content Engine' },
+  { href: '/media', label: 'Media' },
 ];
 
 export function AppNav({ active }: { active?: string }) {

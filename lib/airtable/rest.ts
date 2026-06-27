@@ -172,3 +172,22 @@ export async function updateRecord<T = Record<string, unknown>>(
     body: JSON.stringify({ fields, returnFieldsByFieldId: true }),
   });
 }
+
+/** Create multiple records (Airtable caps writes at 10/request — batches + paced via the queue). */
+export async function createRecords<T = Record<string, unknown>>(
+  baseId: string,
+  tableId: string,
+  records: { fields: Record<string, unknown> }[],
+): Promise<AirtableResult<AirtableRecord<T>[]>> {
+  const out: AirtableRecord<T>[] = [];
+  for (let i = 0; i < records.length; i += 10) {
+    const batch = records.slice(i, i + 10);
+    const res = await request<AirtableListResponse<T>>(`${API}/${baseId}/${tableId}`, {
+      method: 'POST',
+      body: JSON.stringify({ records: batch, returnFieldsByFieldId: true }),
+    });
+    if (!res.ok) return res;
+    out.push(...res.data.records);
+  }
+  return { ok: true, data: out };
+}
