@@ -1,9 +1,10 @@
-import { prisma } from '@/lib/prisma';
 import { getLiveIntakeReference } from '@/lib/airtable/reference-live';
 
-// Reference data for the intake form. Mirrors the live "Creative Request
-// Submission" form: Requested By, Team/Service Level, Type of Request,
-// Event Type → (filters) Asset Type, Official Calendar, Speakers/Authors.
+// Reference data for the intake form — LIVE from Airtable. Option values are
+// Airtable recIds, written straight into the ticket's link fields at create time.
+// No Postgres fallback: a fallback that returned UUIDs would break the Airtable
+// link write, so on failure we surface empty lists (form shows nothing → retry)
+// rather than silently submit invalid record IDs.
 
 export interface Option {
   id: string;
@@ -36,11 +37,12 @@ export const TEAM_SERVICE_LEVELS = [
 ];
 export const TYPES_OF_REQUEST = ['Video', 'Design'];
 
+const EMPTY: IntakeReferenceData = {
+  employees: [], eventTypes: [], assetTypes: [], officialCalendars: [], authors: [],
+  teamServiceLevels: TEAM_SERVICE_LEVELS, typesOfRequest: TYPES_OF_REQUEST,
+};
+
 export async function getIntakeReferenceData(): Promise<IntakeReferenceData> {
-  // Prefer LIVE Airtable reference so new taxonomy (asset/event types) shows up
-  // immediately — option values are Airtable recIds, resolved to our UUIDs at
-  // create time (see ensureReferenceRows). Fall back to the Postgres mirror if
-  // Airtable is slow/unreachable so intake never hard-fails.
   try {
     const live = await getLiveIntakeReference();
     return {
@@ -53,37 +55,7 @@ export async function getIntakeReferenceData(): Promise<IntakeReferenceData> {
       typesOfRequest: TYPES_OF_REQUEST,
     };
   } catch (err) {
-    console.error('[intake] live Airtable reference unavailable, falling back to Postgres:', err);
-    return getReferenceFromPostgres();
+    console.error('[intake] live Airtable reference unavailable:', err);
+    return EMPTY;
   }
-}
-
-/** Postgres-mirror reference (fallback). Option values are our UUIDs. */
-async function getReferenceFromPostgres(): Promise<IntakeReferenceData> {
-  const [employees, eventTypes, assetTypesRaw, officialCalendars, authors] = await Promise.all([
-    prisma.employee.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    prisma.eventType.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    prisma.assetType.findMany({
-      where: { active: true },
-      select: { id: true, name: true, category: true, eventTypes: { select: { eventTypeId: true } } },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.officialCalendar.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    prisma.author.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-  ]);
-
-  return {
-    employees,
-    eventTypes,
-    assetTypes: assetTypesRaw.map((a) => ({
-      id: a.id,
-      name: a.name,
-      category: a.category,
-      eventTypeIds: a.eventTypes.map((e) => e.eventTypeId),
-    })),
-    officialCalendars,
-    authors,
-    teamServiceLevels: TEAM_SERVICE_LEVELS,
-    typesOfRequest: TYPES_OF_REQUEST,
-  };
 }
