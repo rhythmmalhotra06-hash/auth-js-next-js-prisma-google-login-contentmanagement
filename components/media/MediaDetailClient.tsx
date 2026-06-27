@@ -7,16 +7,15 @@ import type { ClipSuggestion } from '@/lib/media/repository';
 import { dismissClip } from '@/app/media/actions';
 import { ClipApprovalModal } from '@/components/media/ClipApprovalModal';
 
-const purple = '#572280';
 
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
-    'New': 'bg-neutral-100 text-neutral-600',
+    'New': 'bg-bg-subtle text-text-muted',
     'Transcribing': 'bg-amber-50 text-amber-700',
-    'Clips Suggested': 'bg-green-50 text-green-700',
-    'Error': 'bg-red-50 text-red-700',
+    'Clips Suggested': 'bg-green-50 text-success-content',
+    'Error': 'bg-red-50 text-danger',
   };
-  return <span className={`rounded-full px-2 py-0.5 text-xs ${map[status ?? ''] ?? 'bg-neutral-100 text-neutral-600'}`}>{status ?? 'New'}</span>;
+  return <span className={`rounded-full px-2 py-0.5 text-xs ${map[status ?? ''] ?? 'bg-bg-subtle text-text-muted'}`}>{status ?? 'New'}</span>;
 }
 
 export function MediaDetailClient({
@@ -80,34 +79,34 @@ export function MediaDetailClient({
   return (
     <div className="space-y-6">
       {/* Run panel */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-neutral-200">
+      <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <StatusBadge status={status} />
-            {status === 'Clips Suggested' && <span className="text-sm text-neutral-500">{clips.length} clips suggested</span>}
+            {status === 'Clips Suggested' && <span className="text-sm text-text-muted">{clips.length} clips suggested</span>}
           </div>
-          <label className="flex items-center gap-2 text-xs text-neutral-500">
+          <label className="flex items-center gap-2 text-xs text-text-muted">
             <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
             Web-search grounding (slower)
           </label>
         </div>
 
         {error && status === 'Error' && (
-          <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="mt-3 rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{error}</div>
         )}
-        {runError && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{runError}</div>}
+        {runError && <div className="mt-3 rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{runError}</div>}
 
         {!hasClips && (
           <div className="mt-4">
-            <label className="block text-sm font-medium text-neutral-900">
-              Transcript <span className="font-normal text-neutral-500">— recommended. Paste it for instant, reliable clips; leave blank to try auto-fetch.</span>
+            <label className="block text-sm font-medium text-text">
+              Transcript <span className="font-normal text-text-muted">— recommended. Paste it for instant, reliable clips; leave blank to try auto-fetch.</span>
             </label>
             <textarea
               value={pasted}
               onChange={(e) => setPasted(e.target.value)}
               rows={6}
               placeholder="Paste the full transcript here…"
-              className="mt-1.5 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20"
+              className="mt-1.5 w-full rounded-[8px] border border-border-default px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]"
             />
           </div>
         )}
@@ -116,8 +115,7 @@ export function MediaDetailClient({
           <button
             onClick={suggest}
             disabled={running}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-            style={{ backgroundColor: purple }}
+            className="rounded-[8px] bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60"
           >
             {running ? 'Generating… (1–3 min)' : hasClips ? 'Re-run clips' : 'Suggest clips'}
           </button>
@@ -126,14 +124,13 @@ export function MediaDetailClient({
 
       {/* Clips */}
       {hasClips && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-neutral-200">
+        <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-neutral-900">Suggested Reels clips</h2>
+            <h2 className="text-sm font-semibold text-text">Suggested Reels clips</h2>
             <button
               onClick={() => setModalOpen(true)}
               disabled={selected.size === 0}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
-              style={{ backgroundColor: purple }}
+              className="rounded-[8px] bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-40"
             >
               Convert {selected.size || ''} to ticket{selected.size === 1 ? '' : 's'}
             </button>
@@ -144,7 +141,7 @@ export function MediaDetailClient({
               const approved = c.status === 'Approved';
               const dismissed = c.status === 'Dismissed';
               return (
-                <li key={c.id} className={`rounded-xl border p-4 ${dismissed ? 'border-neutral-100 opacity-50' : 'border-neutral-200'}`}>
+                <li key={c.id} className={`rounded-xl border p-4 ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}>
                   <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
@@ -155,20 +152,20 @@ export function MediaDetailClient({
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-neutral-900">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
+                        <span className="font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
                         {typeof c.viralityScore === 'number' && (
                           <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
                         )}
-                        {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-green-700">Ticket created</span>}
-                        {dismissed && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">Dismissed</span>}
+                        {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Ticket created</span>}
+                        {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
                       </div>
-                      <div className="mt-1 text-xs text-neutral-400">
+                      <div className="mt-1 text-xs text-text-subtle">
                         {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
                       </div>
-                      {c.rationale && <p className="mt-2 text-sm text-neutral-600">{c.rationale}</p>}
-                      {c.caption && <p className="mt-2 text-sm italic text-neutral-500">“{c.caption}”</p>}
+                      {c.rationale && <p className="mt-2 text-sm text-text-muted">{c.rationale}</p>}
+                      {c.caption && <p className="mt-2 text-sm italic text-text-muted">“{c.caption}”</p>}
                       {!approved && !dismissed && (
-                        <button onClick={() => onDismiss(c.id)} className="mt-2 text-xs text-neutral-400 hover:text-red-600">
+                        <button onClick={() => onDismiss(c.id)} className="mt-2 text-xs text-text-subtle hover:text-danger">
                           Dismiss
                         </button>
                       )}
