@@ -194,6 +194,7 @@ export const MEDIA_SOURCES = {
     guestShow: 'fldRdZmAVVmFcLM1l', // "Guest / Show"
     audience: 'fldX0KZp8UX1pYmgJ', // "Audience" (Cold | Warm)
     submittedVia: 'fldpG2cRTGGLOnKd4', // "Submitted Via" (Portal | Airtable | Slack | Auto-discover)
+    transcript: 'fldlHHuu6RZoIGmIb', // "Transcript" (multilineText) — source transcript the strategy was built from
     strategyJson: 'fldcv4HIUI0HflvRG', // "Strategy JSON" (multilineText) — full 10-section output
     usedWebSearch: 'fldBncwhmhQ7vdSCk', // "Used Web Search" (checkbox)
     error: 'fldmk2jHF9n0whzcu', // "Error" (multilineText)
