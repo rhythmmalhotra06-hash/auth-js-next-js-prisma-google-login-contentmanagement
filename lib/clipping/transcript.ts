@@ -152,6 +152,18 @@ export async function fetchYouTubeTranscript(url: string): Promise<string> {
   const id = extractYouTubeId(url);
   if (!id) throw new TranscriptFetchError(REASON_MSG.invalid_url, 'invalid_url');
 
+  // Primary path when configured: Supadata runs its own proxies + AI fallback, so
+  // it works from the Cloud Run datacenter IP where YouTube blocks youtubei.js.
+  // On any failure we fall through to the best-effort direct fetch below.
+  const { isSupadataConfigured, fetchSupadataTranscript } = await import('./supadata');
+  if (isSupadataConfigured()) {
+    try {
+      return await fetchSupadataTranscript(url);
+    } catch {
+      /* fall through to youtubei.js */
+    }
+  }
+
   const { Innertube } = await import('youtubei.js');
   let sawCaptionTracks = false;
   let lastReason: TranscriptFailReason = 'unknown';

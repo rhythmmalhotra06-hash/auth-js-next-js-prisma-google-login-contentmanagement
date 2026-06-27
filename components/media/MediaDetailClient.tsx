@@ -38,7 +38,6 @@ export function MediaDetailClient({
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
-  const [showPaste, setShowPaste] = useState(false);
   const [pasted, setPasted] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
@@ -98,6 +97,21 @@ export function MediaDetailClient({
         )}
         {runError && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{runError}</div>}
 
+        {!hasClips && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-neutral-900">
+              Transcript <span className="font-normal text-neutral-500">— recommended. Paste it for instant, reliable clips; leave blank to try auto-fetch.</span>
+            </label>
+            <textarea
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              rows={6}
+              placeholder="Paste the full transcript here…"
+              className="mt-1.5 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20"
+            />
+          </div>
+        )}
+
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={suggest}
@@ -107,20 +121,7 @@ export function MediaDetailClient({
           >
             {running ? 'Generating… (1–3 min)' : hasClips ? 'Re-run clips' : 'Suggest clips'}
           </button>
-          <button onClick={() => setShowPaste((v) => !v)} className="text-sm text-neutral-500 hover:text-[#572280]">
-            {showPaste ? 'Hide paste fallback' : 'Paste transcript (if auto-fetch fails)'}
-          </button>
         </div>
-
-        {showPaste && (
-          <textarea
-            value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
-            rows={6}
-            placeholder="Paste the transcript here if YouTube auto-fetch is blocked…"
-            className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20"
-          />
-        )}
       </div>
 
       {/* Clips */}

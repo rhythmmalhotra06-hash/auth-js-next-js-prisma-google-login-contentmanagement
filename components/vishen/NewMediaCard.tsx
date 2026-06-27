@@ -14,7 +14,6 @@ export function NewMediaCard() {
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [transcript, setTranscript] = useState('');
-  const [showTranscript, setShowTranscript] = useState(false);
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -45,22 +44,16 @@ export function NewMediaCard() {
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className="sm:flex-1" />
         <Button disabled={pending} onClick={submit}>{pending ? 'Submitting…' : 'Generate clips'}</Button>
       </div>
-      <button
-        type="button"
-        onClick={() => setShowTranscript((v) => !v)}
-        className="mt-2 text-[12px] text-text-muted hover:text-brand-content"
-      >
-        {showTranscript ? 'Hide transcript' : 'Paste transcript (optional — recommended; auto-fetch can be blocked)'}
-      </button>
-      {showTranscript && (
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          rows={5}
-          placeholder="Paste the full transcript here. If provided, we skip the YouTube fetch entirely."
-          className="mt-2 w-full rounded-[9px] border border-border-default bg-surface px-3 py-2 text-sm text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-        />
-      )}
+      <label className="mt-3 block text-[12.5px] font-medium text-text">
+        Transcript <span className="font-normal text-text-muted">— recommended. Paste it for instant, reliable clips; leave blank and we’ll try to auto-fetch.</span>
+      </label>
+      <textarea
+        value={transcript}
+        onChange={(e) => setTranscript(e.target.value)}
+        rows={5}
+        placeholder="Paste the full transcript here. If provided, we skip the YouTube fetch entirely."
+        className="mt-1.5 w-full rounded-[9px] border border-border-default bg-surface px-3 py-2 text-sm text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+      />
       {err && <p className="mt-2 text-xs text-danger">{err}</p>}
     </div>
   );
