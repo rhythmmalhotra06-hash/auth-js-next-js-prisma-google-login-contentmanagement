@@ -33,8 +33,8 @@ export default async function TeamRolesPage() {
       title="Admin panel"
       subtitle="Assign app roles — editors, managers, approvers, admins, and more. Admins can edit clip rules and manage roles."
     >
-      <Link href="/settings/clip-rules" className="text-sm text-brand hover:underline">Clip rules →</Link>
-      <div className="mt-3">
+      <Link href="/settings/clip-rules" className="btn ghost sm" style={{ textDecoration: 'none', marginBottom: 14 }}>Clip rules →</Link>
+      <div>
         <TeamRolesEditor
           employees={rows}
           allRoles={ROLES}

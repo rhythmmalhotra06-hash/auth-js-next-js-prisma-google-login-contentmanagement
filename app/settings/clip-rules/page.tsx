@@ -48,8 +48,8 @@ export default async function ClipRulesPage() {
       title="Clip rules"
       subtitle="Edit the prompt the AI uses to suggest clips — changes apply on the next generation."
     >
-      <Link href="/media" className="text-sm text-brand hover:underline">← Media inbox</Link>
-      <div className="mt-3">
+      <Link href="/media" className="btn ghost sm" style={{ textDecoration: 'none', marginBottom: 14 }}>← Media inbox</Link>
+      <div>
         <ClipRulesEditor
           basePrompt={basePrompt}
           pillars={pillars}

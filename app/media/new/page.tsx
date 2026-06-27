@@ -10,8 +10,8 @@ export default function NewMediaPage() {
       title="Submit a Vishen media link"
       subtitle="Drop a YouTube link to a new podcast or interview featuring Vishen. It lands in the inbox; click “Suggest clips” there to run the engine."
     >
-      <Link href="/media" className="text-sm text-brand hover:underline">← Inbox</Link>
-      <div className="mt-3 max-w-2xl">
+      <Link href="/media" className="btn ghost sm" style={{ textDecoration: 'none', marginBottom: 14 }}>← Inbox</Link>
+      <div className="max-w-2xl">
         <MediaLinkForm />
       </div>
     </AppShell>
