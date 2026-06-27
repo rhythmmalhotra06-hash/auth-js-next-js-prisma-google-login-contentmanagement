@@ -103,7 +103,7 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
   for (const [k, label] of [
     ['eventTypeId', 'Event Type'],
     ['assetTypeId', 'Asset Type'],
-    ['officialCalendarId', 'Official Calendar'],
+    // Official Calendar is optional (matches the intake form + createTicket).
     ['dueDate', 'Due date'],
   ] as const) {
     if (!input[k]?.trim()) return { ok: false, created: 0, failed: [], error: `${label} is required` };
