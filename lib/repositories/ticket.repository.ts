@@ -106,6 +106,18 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
   return { ok: true, data: { id: res.data.id } };
 }
 
+/** Count tickets whose Ticket Status is in the given set (e.g. Shipping/Done for "published"). */
+export async function countTicketsByStatus(statuses: string[]): Promise<number> {
+  if (statuses.length === 0) return 0;
+  const ors = statuses.map((s) => `{Ticket Status} = '${s.replace(/'/g, "\\'")}'`).join(', ');
+  const res = await listRecords(TICKETS.baseId, TICKETS.tableId, {
+    filterByFormula: `OR(${ors})`,
+    fields: [F.ticketStatus],
+    maxRecords: 1000,
+  });
+  return res.ok ? res.data.records.length : 0;
+}
+
 /** Patch arbitrary writable fields on a ticket (status, prio status, links, asset URLs). */
 export async function updateTicketFields(id: string, fields: Record<string, unknown>): Promise<AirtableResult<AirtableRecord>> {
   return updateRecord(TICKETS.baseId, TICKETS.tableId, id, fields);
