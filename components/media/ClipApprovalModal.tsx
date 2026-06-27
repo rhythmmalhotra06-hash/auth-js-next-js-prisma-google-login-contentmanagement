@@ -93,7 +93,7 @@ export function ClipApprovalModal({
                 {filteredAssetTypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </Field>
-            <Field label="Official Calendar">
+            <Field label="Official Calendar" hint="Optional">
               <select className={inputCls} value={officialCalendarId} onChange={(e) => setOfficialCalendarId(e.target.value)}>
                 <option value="">Select…</option>
                 {reference.officialCalendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
