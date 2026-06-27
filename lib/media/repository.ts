@@ -54,6 +54,7 @@ export interface MediaSource {
   submittedVia: string | null;
   usedWebSearch: boolean;
   strategyJson: string | null;
+  transcript: string | null;
   error: string | null;
   submittedDate: string | null;
   clipsAddedDate: string | null;
@@ -80,6 +81,7 @@ function mapSource(rec: AirtableRecord<Raw>): MediaSource {
     submittedVia: selectName(f[MF.submittedVia]),
     usedWebSearch: f[MF.usedWebSearch] === true,
     strategyJson: str(f[MF.strategyJson]),
+    transcript: str(f[MF.transcript]),
     error: str(f[MF.error]),
     submittedDate: str(f[MF.submittedDate]),
     clipsAddedDate: str(f[MF.clipsAddedDate]),

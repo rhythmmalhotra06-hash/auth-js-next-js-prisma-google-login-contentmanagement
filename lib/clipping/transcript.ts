@@ -1,16 +1,44 @@
 // Transcript ingestion: normalize pasted/uploaded text and best-effort YouTube
 // fetch. Node-runtime only (youtubei.js needs Node networking).
 
+/** Why a YouTube transcript fetch failed — drives the user-facing copy. */
+export type TranscriptFailReason = 'blocked' | 'no_captions' | 'unavailable' | 'invalid_url' | 'unknown';
+
 /** Thrown when a YouTube transcript can't be fetched; message is user-facing. */
 export class TranscriptFetchError extends Error {
-  constructor(message: string) {
+  reason: TranscriptFailReason;
+  constructor(message: string, reason: TranscriptFailReason = 'unknown') {
     super(message);
     this.name = 'TranscriptFetchError';
+    this.reason = reason;
   }
 }
 
 const YT_FALLBACK_MSG =
   "Couldn't fetch captions for this video — it may have captions disabled, be age/region-restricted, or YouTube may be blocking automated access. Paste the transcript or upload a .txt/.vtt/.srt instead.";
+
+/** User-facing copy per failure reason. */
+const REASON_MSG: Record<TranscriptFailReason, string> = {
+  blocked:
+    'YouTube is blocking automated caption access from this server (bot check). Paste the transcript below — or upload a .txt/.vtt/.srt — and we’ll use that instead.',
+  no_captions:
+    'This video has no captions available (captions disabled, or none generated yet). Paste the transcript below or upload a .txt/.vtt/.srt instead.',
+  unavailable:
+    'This video is unavailable (private, removed, or region/age-restricted). Paste the transcript below or upload a .txt/.vtt/.srt instead.',
+  invalid_url: "That doesn't look like a valid YouTube URL.",
+  unknown: YT_FALLBACK_MSG,
+};
+
+/** Classify a raw error from youtubei.js into a failure reason. */
+function classifyError(e: unknown): TranscriptFailReason {
+  const msg = (e instanceof Error ? e.message : String(e ?? '')).toLowerCase();
+  if (/sign in to confirm|not a bot|429|too many requests|consent|captcha|forbidden|403/.test(msg)) return 'blocked';
+  if (/unavailable|private|removed|age|region|login required|this video is not available/.test(msg)) return 'unavailable';
+  if (/transcript|caption|no transcript|disabled/.test(msg)) return 'no_captions';
+  return 'unknown';
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Normalize a raw transcript to plain spoken text. Strips WebVTT/SRT cue numbers,
@@ -60,30 +88,121 @@ export function extractYouTubeId(url: string): string | null {
   }
 }
 
-/** Best-effort YouTube transcript fetch. Throws TranscriptFetchError on any failure. */
+// Innertube clients tried in order. WEB is the most bot-checked from datacenter
+// IPs (Cloud Run); ANDROID/iOS/TV are often served when WEB is blocked and need
+// no PoToken. NOTE: a residential proxy or BotGuard PoToken would raise the
+// success rate further but adds heavy deps — the upfront-transcript path
+// (paste alongside the link) is the dependable safety net instead.
+const YT_CLIENTS = ['ANDROID', 'IOS', 'WEB', 'TV'] as const;
+
+/** Pull transcript text from a getTranscript() response (initial_segments shape). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function segmentsToText(data: any): string {
+  const segments = data?.transcript?.content?.body?.initial_segments ?? [];
+  return segments
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((s: any) => s?.snippet?.text ?? '')
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+}
+
+/** Decode the handful of XML/HTML entities timedtext uses. */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
+/**
+ * Parse YouTube timedtext XML (srv1 `<text>` / srv3 `<p>` cues) into plain text.
+ * This is the format caption-track base_urls actually return — `getTranscript()`
+ * is currently broken (HTTP 400) in youtubei.js, so this is the primary path.
+ */
+function parseTimedText(xml: string): string {
+  const blocks = xml.match(/<(?:p|text)\b[^>]*>([\s\S]*?)<\/(?:p|text)>/g) ?? [];
+  return blocks
+    .map((b) => decodeEntities(b.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Fetch a caption track's timedtext and turn it into plain spoken text. */
+async function fetchCaptionTrack(baseUrl: string): Promise<string> {
+  const res = await fetch(baseUrl);
+  if (!res.ok) return '';
+  const body = await res.text();
+  // base_urls return timedtext XML (the fmt param is ignored); parse that.
+  // Tolerate a VTT/SRT body too in case YouTube ever serves one.
+  return body.trimStart().startsWith('<') ? parseTimedText(body) : normalizeTranscript(body);
+}
+
+/**
+ * Best-effort YouTube transcript fetch. Tries several Innertube clients, then a
+ * direct caption-track fetch, with light retries. Throws TranscriptFetchError
+ * (carrying a classified `reason`) on failure so callers can show honest copy.
+ */
 export async function fetchYouTubeTranscript(url: string): Promise<string> {
   const id = extractYouTubeId(url);
-  if (!id) throw new TranscriptFetchError("That doesn't look like a valid YouTube URL.");
+  if (!id) throw new TranscriptFetchError(REASON_MSG.invalid_url, 'invalid_url');
 
-  try {
-    const { Innertube } = await import('youtubei.js');
-    const yt = await Innertube.create({ retrieve_player: false });
-    const info = await yt.getInfo(id);
-    const data = await info.getTranscript();
-    // youtubei.js shape: transcript.content.body.initial_segments[].snippet.text
-    const segments =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (data as any)?.transcript?.content?.body?.initial_segments ?? [];
-    const text = segments
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((s: any) => s?.snippet?.text ?? '')
-      .filter(Boolean)
-      .join(' ')
-      .trim();
-    if (!text) throw new TranscriptFetchError(YT_FALLBACK_MSG);
-    return normalizeTranscript(text);
-  } catch (e) {
-    if (e instanceof TranscriptFetchError) throw e;
-    throw new TranscriptFetchError(YT_FALLBACK_MSG);
+  const { Innertube } = await import('youtubei.js');
+  let sawCaptionTracks = false;
+  let lastReason: TranscriptFailReason = 'unknown';
+
+  for (const client of YT_CLIENTS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const yt = await Innertube.create();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const info = await yt.getInfo(id, { client } as any);
+
+        // Primary: caption-track timedtext (reliable). getTranscript() currently
+        // 400s in youtubei.js, so the player's caption tracks are the real source.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tracks = (info as any)?.captions?.caption_tracks ?? [];
+        if (tracks.length) {
+          sawCaptionTracks = true;
+          // Prefer a manual (non-asr) English track, else the first.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pick = tracks.find((t: any) => t.kind !== 'asr' && /^en/i.test(t.language_code)) ?? tracks[0];
+          const text = await fetchCaptionTrack(pick.base_url);
+          if (text) return text;
+        }
+
+        // Secondary: structured transcript endpoint (cheap to try; works if/when
+        // youtubei.js fixes get_transcript).
+        try {
+          const text = segmentsToText(await info.getTranscript());
+          if (text) return normalizeTranscript(text);
+        } catch (e) {
+          lastReason = classifyError(e);
+        }
+      } catch (e) {
+        lastReason = classifyError(e);
+        if (lastReason === 'blocked' || lastReason === 'unknown') {
+          await sleep(300 * (attempt + 1)); // brief backoff, then retry this client
+          continue;
+        }
+      }
+      break; // non-retryable for this client → move to next client
+    }
   }
+
+  // No client yielded text. If we saw caption tracks but couldn't read them it's
+  // most likely a block; if we never saw any, the video genuinely has no captions.
+  const reason: TranscriptFailReason = sawCaptionTracks
+    ? lastReason === 'unknown'
+      ? 'blocked'
+      : lastReason
+    : lastReason === 'unknown'
+      ? 'no_captions'
+      : lastReason;
+  throw new TranscriptFetchError(REASON_MSG[reason], reason);
 }

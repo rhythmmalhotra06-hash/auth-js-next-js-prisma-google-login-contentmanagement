@@ -38,7 +38,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   await updateMediaSource(id, { status: 'Transcribing', error: '' });
 
   try {
+    // Prefer a transcript we already have so we never need a YouTube round-trip:
+    // (a) pasted with this request, (b) captured on the source at submit, then
+    // (c) fall back to a live fetch only when neither is present.
     let transcript = pastedTranscript;
+    if (transcript.length < MIN_TRANSCRIPT_CHARS && source.transcript) {
+      transcript = normalizeTranscript(source.transcript);
+    }
     if (transcript.length < MIN_TRANSCRIPT_CHARS) {
       transcript = normalizeTranscript(await fetchYouTubeTranscript(source.sourceUrl));
     }

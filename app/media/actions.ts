@@ -20,6 +20,7 @@ export interface SubmitMediaInput {
   title?: string;
   guestShow?: string;
   audience?: string; // Cold | Warm
+  transcript?: string; // optional — captured upfront so a blocked YouTube fetch never costs a round-trip
 }
 
 export interface SubmitMediaResult {
@@ -45,6 +46,7 @@ export async function submitMediaLink(input: SubmitMediaInput): Promise<SubmitMe
     audience: input.audience?.trim() || null,
     submittedVia: 'Portal',
     submittedByRecId: employee?.airtableId ?? null,
+    transcript: input.transcript?.trim() || null,
   });
 
   if (!res.ok) return { ok: false, error: res.error.message };

@@ -126,15 +126,21 @@ export function ClipEngineForm() {
         )}
 
         {tab === 'youtube' && (
-          <Field label="YouTube URL" hint="Best-effort caption fetch. If it fails, paste the transcript instead.">
+          <Field label="YouTube URL" hint="Auto-fetch is best-effort and can be blocked on the server — pasting the transcript below is the reliable path.">
             <div className="flex gap-2">
               <input className={inputCls} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://youtube.com/watch?v=…" />
               <button type="button" onClick={onFetchYouTube} disabled={fetching} className="shrink-0 rounded-lg border border-[#572280] px-4 py-2 text-sm font-medium text-[#572280] disabled:opacity-60">
                 {fetching ? 'Fetching…' : 'Fetch'}
               </button>
             </div>
-            {transcript && <p className="text-xs text-green-700">Fetched {transcript.length.toLocaleString()} chars. Review below or generate.</p>}
-            {transcript && <textarea className={`${inputCls} mt-2`} rows={6} value={transcript} onChange={(e) => setTranscript(e.target.value)} />}
+            {transcript && <p className="mt-2 text-xs text-green-700">{transcript.length.toLocaleString()} chars ready. Review or generate.</p>}
+            <textarea
+              className={`${inputCls} mt-2`}
+              rows={6}
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder="Transcript — fetch from the URL above, or paste it here directly."
+            />
           </Field>
         )}
       </div>

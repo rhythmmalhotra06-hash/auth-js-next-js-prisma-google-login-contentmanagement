@@ -13,6 +13,8 @@ export function NewMediaCard() {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
+  const [transcript, setTranscript] = useState('');
+  const [showTranscript, setShowTranscript] = useState(false);
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -20,7 +22,11 @@ export function NewMediaCard() {
     start(async () => {
       setErr(null);
       if (!url.trim()) { setErr('Paste a media link first'); return; }
-      const res = await submitMediaLink({ url: url.trim(), title: title.trim() });
+      const res = await submitMediaLink({
+        url: url.trim(),
+        title: title.trim(),
+        transcript: transcript.trim() || undefined,
+      });
       if (res.ok && res.id) router.push(`/media/${res.id}`);
       else setErr(res.error ?? 'Failed to submit');
     });
@@ -39,6 +45,22 @@ export function NewMediaCard() {
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className="sm:flex-1" />
         <Button disabled={pending} onClick={submit}>{pending ? 'Submitting…' : 'Generate clips'}</Button>
       </div>
+      <button
+        type="button"
+        onClick={() => setShowTranscript((v) => !v)}
+        className="mt-2 text-[12px] text-text-muted hover:text-brand-content"
+      >
+        {showTranscript ? 'Hide transcript' : 'Paste transcript (optional — recommended; auto-fetch can be blocked)'}
+      </button>
+      {showTranscript && (
+        <textarea
+          value={transcript}
+          onChange={(e) => setTranscript(e.target.value)}
+          rows={5}
+          placeholder="Paste the full transcript here. If provided, we skip the YouTube fetch entirely."
+          className="mt-2 w-full rounded-[9px] border border-border-default bg-surface px-3 py-2 text-sm text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+        />
+      )}
       {err && <p className="mt-2 text-xs text-danger">{err}</p>}
     </div>
   );
