@@ -11,6 +11,8 @@ const NAV: { href: string; label: string; icon: string }[] = [
   { href: '/editor', label: 'Editor', icon: '✦' },
   { href: '/stakeholder', label: 'Stakeholder', icon: '◉' },
   { href: '/media', label: 'Media', icon: '🎥' },
+  { href: '/settings/clip-rules', label: 'Clip rules', icon: '⚙' },
+  { href: '/settings/team', label: 'Team roles', icon: '👥' },
 ];
 
 export function Sidebar() {

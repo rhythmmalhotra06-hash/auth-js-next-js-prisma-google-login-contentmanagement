@@ -1,6 +1,7 @@
 import { getMediaSource, updateMediaSource, createClipSuggestions } from '@/lib/media/repository';
 import { generateStrategy } from '@/lib/clipping/generate';
 import { fetchYouTubeTranscript, normalizeTranscript, TranscriptFetchError } from '@/lib/clipping/transcript';
+import { DEFAULT_CLIP_TYPE, isClipType } from '@/lib/clipping/clip-types';
 
 // Node runtime: Anthropic SDK + youtubei.js need Node; long duration for
 // transcript fetch + web search + 10-section generation.
@@ -32,6 +33,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     /* no body is fine */
   }
   const webSearch = body.webSearch === true;
+  const rawClipType = typeof body.clipType === 'string' ? body.clipType : undefined;
+  const clipType = isClipType(rawClipType) ? rawClipType : DEFAULT_CLIP_TYPE;
   // Allow a pasted transcript as a fallback when YouTube auto-fetch is blocked.
   const pastedTranscript = typeof body.transcript === 'string' ? normalizeTranscript(body.transcript) : '';
 
@@ -58,7 +61,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       guestAudience: source.audience ?? undefined,
     };
 
-    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch });
+    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch, clipType });
 
     const clipRes = await createClipSuggestions(id, strategy.reelsClips);
     if (!clipRes.ok) throw new Error(`Failed to write clips: ${clipRes.error.message}`);

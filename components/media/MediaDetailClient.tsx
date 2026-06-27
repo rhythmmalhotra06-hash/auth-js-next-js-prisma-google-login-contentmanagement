@@ -6,6 +6,7 @@ import type { IntakeReferenceData } from '@/lib/intake/data';
 import type { ClipSuggestion } from '@/lib/media/repository';
 import { dismissClip } from '@/app/media/actions';
 import { ClipApprovalModal } from '@/components/media/ClipApprovalModal';
+import { CLIP_TYPES, DEFAULT_CLIP_TYPE } from '@/lib/clipping/clip-types';
 
 
 function StatusBadge({ status }: { status: string | null }) {
@@ -39,6 +40,7 @@ export function MediaDetailClient({
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
+  const [clipType, setClipType] = useState<string>(DEFAULT_CLIP_TYPE);
   const [pasted, setPasted] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,7 +63,7 @@ export function MediaDetailClient({
       const res = await fetch(`/api/media/${sourceId}/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ webSearch, transcript: pasted.trim() || undefined }),
+        body: JSON.stringify({ webSearch, clipType, transcript: pasted.trim() || undefined }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string; clips?: number };
       if (!data.ok) setRunError(data.error ?? 'Generation failed.');
@@ -99,10 +101,25 @@ export function MediaDetailClient({
             <StatusBadge status={status} />
             {status === 'Clips Suggested' && <span className="text-sm text-text-muted">{clips.length} clips suggested</span>}
           </div>
-          <label className="flex items-center gap-2 text-xs text-text-muted">
-            <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
-            Web-search grounding (slower)
-          </label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs text-text-muted">
+              Clip type
+              <select
+                value={clipType}
+                onChange={(e) => setClipType(e.target.value)}
+                disabled={running}
+                className="rounded-[8px] border border-border-default px-2 py-1 text-xs text-text outline-none focus-visible:border-brand"
+              >
+                {CLIP_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-xs text-text-muted">
+              <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
+              Web-search grounding (slower)
+            </label>
+          </div>
         </div>
 
         {error && status === 'Error' && (

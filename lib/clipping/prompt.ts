@@ -35,8 +35,13 @@ export interface GenerationContext {
 }
 
 /** Build the Phase B user turn: context + optional web research + the transcript. */
-export function buildUserMessage(transcript: string, ctx: GenerationContext, research: string): string {
-  const pillars = ctx.brandPillars?.trim() || DEFAULT_BRAND_PILLARS;
+export function buildUserMessage(
+  transcript: string,
+  ctx: GenerationContext,
+  research: string,
+  defaultBrandPillars: string = DEFAULT_BRAND_PILLARS,
+): string {
+  const pillars = ctx.brandPillars?.trim() || defaultBrandPillars;
   const lines = [
     'Produce the complete viral content strategy for the following episode.',
     '',
@@ -53,8 +58,11 @@ export function buildUserMessage(transcript: string, ctx: GenerationContext, res
 }
 
 /** Build the Phase A research prompt (web-search turn). */
-export function buildResearchPrompt(ctx: GenerationContext): string {
-  const pillars = ctx.brandPillars?.trim() || DEFAULT_BRAND_PILLARS;
+export function buildResearchPrompt(
+  ctx: GenerationContext,
+  defaultBrandPillars: string = DEFAULT_BRAND_PILLARS,
+): string {
+  const pillars = ctx.brandPillars?.trim() || defaultBrandPillars;
   const subject = [ctx.title?.trim(), ctx.guestName?.trim() && `guest ${ctx.guestName.trim()}`]
     .filter(Boolean)
     .join(', ');

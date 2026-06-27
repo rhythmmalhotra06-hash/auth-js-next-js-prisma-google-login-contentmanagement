@@ -1,9 +1,13 @@
 import { anthropic, CLIP_MODEL } from '@/lib/clipping/anthropic';
 import { STRATEGY_SCHEMA, validateStrategy, type Strategy } from '@/lib/clipping/schema';
-import { SYSTEM_PROMPT, buildUserMessage, buildResearchPrompt, type GenerationContext } from '@/lib/clipping/prompt';
+import { buildUserMessage, buildResearchPrompt, type GenerationContext } from '@/lib/clipping/prompt';
+import { getClipEngineConfig } from '@/lib/clipping/config';
+import { DEFAULT_CLIP_TYPE, type ClipType } from '@/lib/clipping/clip-types';
 
 export interface GenerateOptions {
   webSearch: boolean;
+  /** Which content form to generate for — scopes which rules apply. Defaults to Reel. */
+  clipType?: ClipType;
 }
 
 export interface GenerateResult {
@@ -20,11 +24,11 @@ type AnyParams = Record<string, unknown>;
  * returns an empty research string rather than blocking generation. Kept in a
  * SEPARATE turn from the structured call (web search + output_config must not share a turn).
  */
-async function research(ctx: GenerationContext): Promise<string> {
+async function research(ctx: GenerationContext, brandPillars: string): Promise<string> {
   try {
     const tools = [{ type: 'web_search_20260209', name: 'web_search' }];
     const messages: { role: 'user' | 'assistant'; content: unknown }[] = [
-      { role: 'user', content: buildResearchPrompt(ctx) },
+      { role: 'user', content: buildResearchPrompt(ctx, brandPillars) },
     ];
     let resp = await anthropic.messages.create({
       model: CLIP_MODEL,
@@ -67,7 +71,10 @@ export async function generateStrategy(
 ): Promise<GenerateResult> {
   if (!transcript.trim()) throw new Error('Transcript is empty — nothing to generate from.');
 
-  const researchSummary = opts.webSearch ? await research(ctx) : '';
+  // Editable prompt + rules from Airtable (cached; falls back to hardcoded constants).
+  const { systemPrompt, brandPillars } = await getClipEngineConfig(opts.clipType ?? DEFAULT_CLIP_TYPE);
+
+  const researchSummary = opts.webSearch ? await research(ctx, brandPillars) : '';
   const usedWebSearch = opts.webSearch && researchSummary.length > 0;
 
   const stream = anthropic.messages.stream({
@@ -75,8 +82,8 @@ export async function generateStrategy(
     max_tokens: 16000,
     thinking: { type: 'adaptive' },
     output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } },
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary) }],
+    system: systemPrompt,
+    messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary, brandPillars) }],
   } as AnyParams as never);
 
   const final = await stream.finalMessage();

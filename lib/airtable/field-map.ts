@@ -114,6 +114,7 @@ export const EMPLOYEES = {
     division: 'fldnqHMir8EYbAmTc', // "Division"
     employmentStatus: 'fldE56Vg1wJFXgZ7J', // "Employment Status"
     activeStatus: 'fldVpmhLINGDPxJNG', // "Active Status" → active = (value === "Active")
+    roles: 'fldZmbGqc6GXvLPDq', // "Roles" (multipleSelects) — app access roles, managed from /settings/team
   },
 } as const;
 
@@ -213,6 +214,28 @@ export const MEDIA_SOURCES = {
   // singleSelect option values (write the plain name string).
   status_: { new: 'New', transcribing: 'Transcribing', clipsSuggested: 'Clips Suggested', error: 'Error', archived: 'Archived' },
   via: { portal: 'Portal', airtable: 'Airtable', slack: 'Slack', autoDiscover: 'Auto-discover' },
+} as const;
+
+// 🧠 Clip Rules — editable config for the clip-generation engine (created 2026-06-27).
+// Base system prompt + default brand pillars + appendable rules/learnings, scoped by
+// Clip Type. Edited from /settings/clip-rules; read by lib/clipping/config.ts (cached,
+// with hardcoded fallback). One app-owned table in the Creative Services base.
+export const CLIP_RULES = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblNTRNmpQyIusmEU',
+  fields: {
+    name: 'fldOGidWbqO1tqWJ1', // "Name" (singleLineText, primary) — row label
+    kind: 'fldj57TsJseA52IJM', // "Kind" (singleSelect: Base Prompt | Brand Pillars | Rule)
+    clipType: 'fld6aIBLq5wzlgHrd', // "Clip Type" (singleSelect: All | Reel | Stage Talk | Short)
+    content: 'fld0l7jf5UcVoiG67', // "Content" (multilineText) — prompt / pillars / rule text
+    active: 'fldY4Q1xzQiFUQHd4', // "Active" (checkbox)
+    order: 'fldtzI21fmkchkU7o', // "Order" (number) — sort for appended rules
+    section: 'fldTOUl3kFhLjDzvG', // "Section" (singleSelect: General | Clips | Thumbnail | Titles | Distribution)
+    note: 'fld3W1tiYjtVnGQ5l', // "Note" (multilineText) — why the learning was added
+    updatedBy: 'fld8E6wUBRgQjYs2V', // "Updated By" (singleLineText) — last editor email
+  },
+  // singleSelect option values (write the plain name string).
+  kind_: { basePrompt: 'Base Prompt', brandPillars: 'Brand Pillars', rule: 'Rule' },
 } as const;
 
 // 🎬 Clip Suggestions — one row per proposed clip from a Media Source.
