@@ -40,13 +40,7 @@ export default async function ClipsPage() {
         <p className="mt-0.5 text-[13.5px] text-text-muted">AI-generated clips, grouped by source. Approve to send to production, or dismiss.</p>
       </div>
       <div className="mt-4"><ClipBoard clips={proposed} sourceNames={sourceNames} /></div>
-
-      {approved.length > 0 && (
-        <>
-          <h2 className="mt-9 text-lg font-bold tracking-tight text-text">Approved — ready to convert</h2>
-          <div className="mt-4"><ClipBoard clips={approved} sourceNames={sourceNames} /></div>
-        </>
-      )}
+      {/* Approved clips ("ready to convert") now surface in the Manager (and Editor) view. */}
     </AppShell>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { approveClip, dismissClip } from '@/app/vishen/actions';
 import { Button } from '@/components/ui/Button';
 
-export function ClipActions({ clipId, size = 'sm' }: { clipId: string; size?: 'sm' | 'md' }) {
+export function ClipActions({ clipId, size = 'sm', onDone }: { clipId: string; size?: 'sm' | 'md'; onDone?: () => void }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
@@ -14,7 +14,8 @@ export function ClipActions({ clipId, size = 'sm' }: { clipId: string; size?: 's
     start(async () => {
       setErr(null);
       const r = await fn(clipId);
-      if (!r.ok) setErr(r.error ?? 'failed');
+      if (!r.ok) { setErr(r.error ?? 'failed'); return; }
+      onDone?.();
       router.refresh();
     });
 
