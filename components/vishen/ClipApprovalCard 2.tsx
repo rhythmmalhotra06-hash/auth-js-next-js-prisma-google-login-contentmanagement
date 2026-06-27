@@ -1,12 +1,26 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ClipActions } from '@/components/vishen/ClipActions';
+import { useRouter } from 'next/navigation';
+import { approveClip, dismissClip } from '@/app/vishen/actions';
+import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import type { ClipSuggestion } from '@/lib/media/repository';
 
 export function ClipApprovalCard({ clip }: { clip: ClipSuggestion }) {
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+  const router = useRouter();
   const approved = clip.status === 'Approved';
+
+  const run = (fn: (id: string) => Promise<{ ok: boolean; error?: string }>) =>
+    start(async () => {
+      setErr(null);
+      const r = await fn(clip.id);
+      if (!r.ok) setErr(r.error ?? 'failed');
+      router.refresh();
+    });
 
   return (
     <article
@@ -51,7 +65,12 @@ export function ClipApprovalCard({ clip }: { clip: ClipSuggestion }) {
           )}
         </div>
       ) : (
-        <ClipActions clipId={clip.id} />
+        <div className="flex items-center gap-2">
+          <Button size="sm" disabled={pending} onClick={() => run(approveClip)}>Approve</Button>
+          <Button variant="ghost" size="sm" disabled={pending} onClick={() => run(dismissClip)}>Dismiss</Button>
+          {pending && <span className="text-xs text-text-subtle">saving…</span>}
+          {err && <span className="text-xs text-danger">{err}</span>}
+        </div>
       )}
     </article>
   );
