@@ -9,7 +9,7 @@ export function EmployeePicker({ employees, value }: { employees: { id: string; 
     <select
       value={value}
       onChange={(e) => router.push(e.target.value ? `/editor?assignee=${e.target.value}` : '/editor')}
-      className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20"
+      className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]"
     >
       <option value="">All editors</option>
       {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}

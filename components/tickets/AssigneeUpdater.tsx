@@ -35,13 +35,13 @@ export function AssigneeUpdater({
         value={value}
         disabled={pending}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20 disabled:opacity-60"
+        className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60"
       >
         <option value="">Unassigned</option>
         {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
       </select>
-      {pending && <span className="text-xs text-neutral-400">saving…</span>}
-      {!pending && msg && <span className="text-xs text-green-600">{msg}</span>}
+      {pending && <span className="text-xs text-text-subtle">saving…</span>}
+      {!pending && msg && <span className="text-xs text-success-content">{msg}</span>}
     </div>
   );
 }
