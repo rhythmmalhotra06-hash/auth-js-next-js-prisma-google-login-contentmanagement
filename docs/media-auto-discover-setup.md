@@ -4,7 +4,10 @@ The Vishen media pipeline can auto-add new media to the 📺 Media Sources inbox
 - **YouTube channel** uploads → `POST /api/media/discover`
 - **Slack channel** links → `POST /api/media/slack-scan`
 
-Both are deployed; they just need a **scheduler** to call them on a cadence. This requires Kessel-UI or
+It can also create tickets straight from Airtable:
+- **Clip checkbox → ticket** → `POST /api/clips/convert` (see "Airtable checkbox → ticket" below)
+
+All are deployed; they just need a **scheduler** to call them on a cadence. This requires Kessel-UI or
 Google-Cloud access — it cannot be done from the Kessel CLI (no schedule command) and a plain external
 cron is **blocked by IAP**.
 
@@ -108,6 +111,41 @@ Setup:
 3. Until both are set the route returns `501` (the GitHub Actions workflow tolerates this and skips).
 
 ---
+
+## Airtable checkbox → ticket — clip convert
+
+Lets the team create a ticket from a clip **without opening the portal**: tick a box in Airtable
+and the next cron run converts it. Because the app is IAP-gated (an inbound Airtable automation
+can't clear IAP), this is **polled**, not a webhook — the ticket appears within the cron interval
+(hourly by default), not instantly.
+
+**How it works** (`POST /api/clips/convert`, same dual-gate auth as the others):
+1. Scans 🎬 Clip Suggestions for rows where **Create Ticket** = checked and Status ≠ Dismissed.
+2. Groups them by parent 📺 Media Source and, for each, creates one Prio Request ticket per clip via
+   the same `createTicket()` invariant the portal uses (title = hook line, brief = hook/rationale/
+   caption/clip range).
+3. Links the new ticket back to the clip, flips the clip's Status to **Approved**, and **unticks**
+   the box so it won't re-fire.
+4. Returns JSON: `{ ok, scanned, created, failed }`.
+
+**Taxonomy is inherited from the Media Source** (there's no modal in Airtable). Set these on the
+📺 Media Sources row once; every clip's ticket reuses them:
+
+| Media Source field | Required? | Used for |
+|--------------------|-----------|----------|
+| **Ticket Event Type** (link) | yes | ticket Event Type |
+| **Ticket Asset Type** (link) | yes | ticket Asset Type |
+| **Ticket Official Calendar** (link) | no | ticket Official Calendar |
+| **Ticket Due Date** (date) | no | ticket due date (falls back to today + 7 days) |
+| **Submitted By** (link → Employees) | requester | ticket "Requested By" |
+
+If a source is missing the two required links or a requester, its clips are reported in `failed`
+and stay ticked (they retry next run). The requester falls back to the optional Kessel env var
+`DEFAULT_TICKET_REQUESTER_ID` (an Employee recId) when **Submitted By** is empty — useful for
+auto-discovered sources that have no submitter.
+
+The hourly GitHub Actions workflow already calls this endpoint alongside discover/slack-scan. To skip
+the wait, the `/media` inbox has a **Convert checked now** button that runs the same conversion on demand.
 
 ## Verify it works
 

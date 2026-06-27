@@ -6,8 +6,11 @@ import { getEmployeeForSession } from '@/lib/employee';
 import {
   createMediaSource,
   getClipsByIds,
+  getMediaSource,
+  listClipsToConvert,
   updateClipSuggestion,
   updateMediaSource,
+  type ClipSuggestion,
 } from '@/lib/media/repository';
 
 // ── Submit a media link (portal intake) ─────────────────────────────────────
@@ -150,6 +153,101 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
 
   revalidatePath('/media');
   return { ok: failed.length === 0, created, failed };
+}
+
+// ── Airtable checkbox → ticket (polled by /api/clips/convert) ────────────────
+// Mirrors the portal modal, but taxonomy is inherited from the parent Media Source
+// instead of typed in. A human ticks "Create Ticket" on a clip in Airtable; the
+// hourly convert cron picks it up, creates the ticket (same createTicket invariant),
+// links it back, and unticks the box so it doesn't re-fire.
+
+export interface ConvertCheckedResult {
+  ok: boolean;
+  scanned: number; // ticked, non-dismissed clips found
+  created: number; // tickets created this run
+  failed: { clipId: string; error: string }[];
+  error?: string;
+}
+
+function defaultDueDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function convertCheckedClips(): Promise<ConvertCheckedResult> {
+  const listRes = await listClipsToConvert();
+  if (!listRes.ok) return { ok: false, scanned: 0, created: 0, failed: [], error: listRes.error.message };
+
+  // Skip rows already converted (Approved + linked ticket) — they're tolerated by the
+  // query but shouldn't create a second ticket; just untick them so they stop matching.
+  const scanned = listRes.data.length;
+  const fallbackRequester = process.env.DEFAULT_TICKET_REQUESTER_ID?.trim();
+  const failed: { clipId: string; error: string }[] = [];
+  let created = 0;
+
+  const pending: ClipSuggestion[] = [];
+  for (const c of listRes.data) {
+    if (c.status === 'Approved' && c.ticketId) {
+      await updateClipSuggestion(c.id, { createTicket: false });
+      continue;
+    }
+    pending.push(c);
+  }
+
+  // Group by parent media source — all of a source's clips share its default taxonomy.
+  const bySource = new Map<string, ClipSuggestion[]>();
+  for (const c of pending) {
+    if (!c.mediaSourceId) {
+      failed.push({ clipId: c.id, error: 'Clip has no parent Media Source — cannot inherit taxonomy.' });
+      continue;
+    }
+    const arr = bySource.get(c.mediaSourceId) ?? [];
+    arr.push(c);
+    bySource.set(c.mediaSourceId, arr);
+  }
+
+  for (const [sourceId, clips] of bySource) {
+    const srcRes = await getMediaSource(sourceId);
+    if (!srcRes.ok) {
+      for (const c of clips) failed.push({ clipId: c.id, error: `Couldn't load Media Source: ${srcRes.error.message}` });
+      continue;
+    }
+    const src = srcRes.data;
+
+    const missing: string[] = [];
+    if (!src.ticketEventTypeId) missing.push('Ticket Event Type');
+    if (!src.ticketAssetTypeId) missing.push('Ticket Asset Type');
+    const requesterId = src.submittedById || fallbackRequester;
+    if (!requesterId) missing.push('a requester (set Submitted By on the source or DEFAULT_TICKET_REQUESTER_ID)');
+    if (missing.length) {
+      for (const c of clips) failed.push({ clipId: c.id, error: `Media Source is missing ${missing.join(', ')}.` });
+      continue;
+    }
+
+    const res = await convertClipsToTickets({
+      clipIds: clips.map((c) => c.id),
+      eventTypeId: src.ticketEventTypeId!,
+      assetTypeId: src.ticketAssetTypeId!,
+      officialCalendarId: src.ticketOfficialCalendarId ?? '',
+      dueDate: src.ticketDueDate || defaultDueDate(),
+      sourceUrl: src.sourceUrl ?? undefined,
+      requesterId,
+    });
+
+    const failedIds = new Set(res.failed.map((f) => f.clipId));
+    for (const f of res.failed) failed.push(f);
+    // Untick the box on every clip that converted cleanly so the cron won't re-fire it.
+    for (const c of clips) {
+      if (!failedIds.has(c.id)) {
+        await updateClipSuggestion(c.id, { createTicket: false });
+        created += 1;
+      }
+    }
+  }
+
+  revalidatePath('/media');
+  return { ok: failed.length === 0, scanned, created, failed };
 }
 
 export async function dismissClip(clipId: string): Promise<{ ok: boolean; error?: string }> {

@@ -57,3 +57,5 @@ jobs:
           call /api/media/discover
           # Slack channel scan (Phase 2). Harmless no-op until SLACK_* env is set on the service.
           call /api/media/slack-scan || echo "slack-scan not configured yet — skipping"
+          # Airtable checkbox → ticket: convert clips ticked "Create Ticket".
+          call /api/clips/convert

@@ -59,6 +59,12 @@ export interface MediaSource {
   clipsAddedDate: string | null;
   clipCount: number;
   createdTime: string;
+  // Default taxonomy for tickets created from this source's clips (checkbox convert).
+  submittedById: string | null;
+  ticketEventTypeId: string | null;
+  ticketAssetTypeId: string | null;
+  ticketOfficialCalendarId: string | null;
+  ticketDueDate: string | null;
 }
 
 function mapSource(rec: AirtableRecord<Raw>): MediaSource {
@@ -79,6 +85,11 @@ function mapSource(rec: AirtableRecord<Raw>): MediaSource {
     clipsAddedDate: str(f[MF.clipsAddedDate]),
     clipCount: Array.isArray(f[ML.clipSuggestions]) ? (f[ML.clipSuggestions] as unknown[]).length : 0,
     createdTime: rec.createdTime,
+    submittedById: firstLinkedId(f[ML.submittedBy]),
+    ticketEventTypeId: firstLinkedId(f[ML.ticketEventType]),
+    ticketAssetTypeId: firstLinkedId(f[ML.ticketAssetType]),
+    ticketOfficialCalendarId: firstLinkedId(f[ML.ticketOfficialCalendar]),
+    ticketDueDate: str(f[MF.ticketDueDate]),
   };
 }
 
@@ -225,6 +236,21 @@ export async function listClipSuggestions(mediaSourceId: string): Promise<Airtab
   return { ok: true, data: res.data.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)) };
 }
 
+/**
+ * Clips whose "Create Ticket" checkbox is ticked and that aren't dismissed — the
+ * Airtable-driven convert queue (polled by /api/clips/convert). Already-converted
+ * rows (Status Approved + linked ticket) are tolerated here and skipped downstream
+ * by convertClipsToTickets; the convert cron also unticks the box after success.
+ */
+export async function listClipsToConvert(limit = 100): Promise<AirtableResult<ClipSuggestion[]>> {
+  const res = await listRecords<Raw>(C.baseId, C.tableId, {
+    filterByFormula: `AND({Create Ticket} = TRUE(), {Status} != '${C.status_.dismissed}')`,
+    maxRecords: limit,
+  });
+  if (!res.ok) return res;
+  return { ok: true, data: res.data.records.map(mapClip) };
+}
+
 /** Get clip rows by recId (for convert-to-ticket). */
 export async function getClipsByIds(ids: string[]): Promise<AirtableResult<ClipSuggestion[]>> {
   const out: ClipSuggestion[] = [];
@@ -265,11 +291,12 @@ export async function createClipSuggestions(
 
 export async function updateClipSuggestion(
   id: string,
-  patch: { status?: string; ticketRecId?: string },
+  patch: { status?: string; ticketRecId?: string; createTicket?: boolean },
 ): Promise<AirtableResult<ClipSuggestion>> {
   const fields: Record<string, unknown> = {};
   if (patch.status) fields[CF.status] = patch.status;
   if (patch.ticketRecId) fields[CL.ticket] = [patch.ticketRecId];
+  if (patch.createTicket !== undefined) fields[CF.createTicket] = patch.createTicket;
   const res = await updateRecord<Raw>(C.baseId, C.tableId, id, fields);
   if (!res.ok) return res;
   return { ok: true, data: mapClip(res.data) };

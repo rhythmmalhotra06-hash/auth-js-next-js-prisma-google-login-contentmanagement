@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AppNav } from '@/components/AppNav';
+import { ConvertCheckedButton } from '@/components/media/ConvertCheckedButton';
 import { listMediaSources } from '@/lib/media/repository';
 
 export const dynamic = 'force-dynamic';
@@ -26,9 +27,12 @@ export default async function MediaInboxPage() {
               New podcasts &amp; interviews featuring Vishen. Submit a YouTube link, then suggest clips for the production queue.
             </p>
           </div>
-          <Link href="/media/new" className="shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium text-white" style={{ backgroundColor: '#572280' }}>
-            Submit link
-          </Link>
+          <div className="flex shrink-0 items-start gap-3">
+            <ConvertCheckedButton />
+            <Link href="/media/new" className="rounded-lg px-4 py-2.5 text-sm font-medium text-white" style={{ backgroundColor: '#572280' }}>
+              Submit link
+            </Link>
+          </div>
         </div>
 
         {!res.ok && (

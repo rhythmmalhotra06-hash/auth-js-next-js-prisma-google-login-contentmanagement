@@ -200,10 +200,15 @@ export const MEDIA_SOURCES = {
     error: 'fldmk2jHF9n0whzcu', // "Error" (multilineText)
     submittedDate: 'fld0iEsDj4xv2ABpt', // "Submitted Date" (dateTime) — set on create
     clipsAddedDate: 'fldn3QKcQCIiK6nrr', // "Clips Added Date" (dateTime) — set when clips written
+    ticketDueDate: 'fldDfUyOazIWkgq98', // "Ticket Due Date" (date) — default due date for checkbox-created tickets; falls back to today+7
   },
   links: {
     submittedBy: 'fldFXpTr3za0Qc8Pd', // → 👬 Employees
     clipSuggestions: 'fldZvIu1lHYlFwPpt', // → 🎬 Clip Suggestions (auto-created reverse link)
+    // Default taxonomy inherited by tickets created from this source's clips (checkbox convert).
+    ticketEventType: 'fldy1BzsII45RCxlV', // → 🧩 Event Type
+    ticketAssetType: 'fldKGgQDQwfm0xVgr', // → 🛎️ Creative Asset Type
+    ticketOfficialCalendar: 'fldUsLv1aQEzJErgk', // → 📆 Official Calendar (optional)
   },
   // singleSelect option values (write the plain name string).
   status_: { new: 'New', transcribing: 'Transcribing', clipsSuggested: 'Clips Suggested', error: 'Error', archived: 'Archived' },
@@ -226,6 +231,7 @@ export const CLIP_SUGGESTIONS = {
     viralityScore: 'fldCA8JsTQSvM148U', // "Virality Score" (number, 1–10)
     status: 'fldpnlfTD2UwXS8su', // "Status" (Proposed | Approved | Dismissed)
     addedDate: 'fldwmRqAJf2kcUrp3', // "Added Date" (dateTime) — set on create
+    createTicket: 'fldNHVmcWAMuYVeXb', // "Create Ticket" (checkbox) — tick to convert to a ticket; convert cron unchecks it
   },
   links: {
     mediaSource: 'fldcmDia3CiWEWJkI', // → 📺 Media Sources (parent)
