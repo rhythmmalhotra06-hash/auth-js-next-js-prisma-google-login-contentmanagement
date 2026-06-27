@@ -109,26 +109,29 @@ export async function getMediaSource(id: string): Promise<AirtableResult<MediaSo
 }
 
 export interface CreateMediaSourceInput {
-  url: string;
+  url?: string | null; // optional — pasted/uploaded transcripts (Content Engine) have no URL
   title?: string | null;
   platform?: string; // defaults YouTube
   guestShow?: string | null;
   audience?: string | null; // Cold | Warm
   submittedVia: string; // Portal | Airtable | Slack | Auto-discover
   submittedByRecId?: string | null; // Employee recId
+  transcript?: string | null; // captured source transcript
+  status?: string; // defaults New
 }
 
 export async function createMediaSource(input: CreateMediaSourceInput): Promise<AirtableResult<MediaSource>> {
   const fields: Record<string, unknown> = {
-    [MF.sourceUrl]: input.url,
     [MF.platform]: input.platform ?? 'YouTube',
-    [MF.status]: M.status_.new,
+    [MF.status]: input.status ?? M.status_.new,
     [MF.submittedVia]: input.submittedVia,
     [MF.submittedDate]: new Date().toISOString(), // capture submission timestamp
   };
+  if (input.url) fields[MF.sourceUrl] = input.url;
   if (input.title) fields[MF.title] = input.title;
   if (input.guestShow) fields[MF.guestShow] = input.guestShow;
   if (input.audience) fields[MF.audience] = input.audience;
+  if (input.transcript) fields[MF.transcript] = input.transcript.slice(0, 95000);
   if (input.submittedByRecId) fields[ML.submittedBy] = [input.submittedByRecId];
 
   const res = await createRecord<Raw>(M.baseId, M.tableId, fields);

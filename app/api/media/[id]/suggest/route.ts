@@ -61,6 +61,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       status: 'Clips Suggested',
       usedWebSearch,
       clipsAddedDate: new Date().toISOString(),
+      transcript: transcript.slice(0, 95000),
       // Airtable long-text caches the full strategy for re-render / provenance.
       strategyJson: JSON.stringify(strategy).slice(0, 95000),
     });

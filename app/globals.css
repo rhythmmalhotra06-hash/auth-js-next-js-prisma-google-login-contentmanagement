@@ -1,26 +1,214 @@
 @import "tailwindcss";
 
+/* ================================================================
+   Content Portal — Design System Foundation
+   Brand tokens (#572280 purple / #F5B000 gold accent / Inter) + light/dark.
+   Ported from the vendor portal's token architecture, re-skinned to our brand
+   (context/mockups). 8/12px radii (no pill), purple-tinted neutrals.
+   ================================================================ */
+
 :root {
+  /* ————————————————— Brand (Purple) ————————————————— */
+  --mv-brand:          #572280; /* primary */
+  --mv-brand-bright:   #6d34a0; /* hover / lighter fill */
+  --mv-brand-content:  #3f1860; /* text/icon on light brand */
+  --mv-brand-strong:   #3f1860;
+  --mv-brand-dark:     #2c1144;
+  --mv-brand-soft:     #f1eaf7; /* tint background */
+  --mv-brand-border:   #e3d4f0;
+
+  /* ————————————————— Gold (accent ONLY — attention) ————————————————— */
+  --mv-gold:           #f5b000;
+  --mv-gold-bright:    #ffc62e;
+  --mv-gold-content:   #6b4e00; /* accessible gold "ink" on light */
+  --mv-gold-soft:      #fff6e0;
+
+  /* ————————————————— Support / status colors ————————————————— */
+  --mv-green:          #159f65;
+  --mv-green-content:  #0e6742;
+  --mv-green-soft:     #e8f9f1;
+
+  --mv-blue:           #2563cf;
+  --mv-blue-content:   #1c3bd4;
+  --mv-blue-soft:      #ebf2ff;
+
+  --mv-amber:          #c9801a;
+  --mv-amber-content:  #7a5600;
+  --mv-amber-soft:     #fff4d9;
+
+  --mv-red:            #dc2626;
+  --mv-red-content:    #8a1f1f;
+  --mv-red-soft:       #ffe4e4;
+
+  /* ————————————————— Neutral (cool, purple-tinted) ————————————————— */
+  --mv-grey-100: #faf9fc;
+  --mv-grey-150: #f4f2f8;
+  --mv-grey-200: #ece9f1;
+  --mv-grey-300: #d8d3e0;
+  --mv-grey-400: #a59db4;
+  --mv-grey-500: #6b6478;
+  --mv-grey-600: #463f54;
+  --mv-grey-700: #1a1523;
+  --mv-white:    #ffffff;
+  --mv-black:    #1a1523;
+
+  /* ————————————————— Semantic (light — default) ————————————————— */
+  --mv-bg:               #ffffff;
+  --mv-bg-muted:         #faf9fc; /* page background */
+  --mv-bg-subtle:        #f4f2f8;
+  --mv-surface:          #ffffff;
+  --mv-surface-elevated: #ffffff;
+
+  --mv-text:             #1a1523;
+  --mv-text-muted:       #6b6478;
+  --mv-text-subtle:      #a59db4;
+  --mv-text-disabled:    #c5bfd0;
+  --mv-text-inverse:     #ffffff;
+  --mv-text-link:        #572280;
+
+  --mv-border:           rgba(40, 20, 60, 0.12);
+  --mv-border-strong:    rgba(40, 20, 60, 0.22);
+  --mv-border-muted:     rgba(40, 20, 60, 0.06);
+
+  --mv-focus-ring:       #6d34a0;
+
+  /* ————————————————— Typography (Inter via next/font) ————————————————— */
+  --mv-font-body:    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --mv-font-mono:    ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --mv-weight-regular: 400;
+  --mv-weight-medium:  500;
+  --mv-weight-bold:    700;
+
+  /* ————————————————— Radius (8 / 12 — brand) ————————————————— */
+  --mv-radius-xs:   4px;
+  --mv-radius-sm:   8px;
+  --mv-radius-md:   12px;
+  --mv-radius-lg:   16px;
+  --mv-radius-full: 9999px; /* dots / avatars only */
+
+  /* ————————————————— Shadow ————————————————— */
+  --mv-shadow-light:  0 1px 2px 0 rgba(40,20,60,0.06), 0 4px 12px 0 rgba(40,20,60,0.05);
+  --mv-shadow-medium: 0 4px 16px 0 rgba(40,20,60,0.10);
+  --mv-shadow-strong: 0 16px 40px 0 rgba(40,20,60,0.18);
+  --mv-shadow-focus:  0 0 0 3px rgba(109,52,160,0.30);
+
+  /* ————————————————— Motion ————————————————— */
+  --mv-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --mv-dur-fast: 120ms;
+  --mv-dur-base: 200ms;
+  --mv-dur-slow: 320ms;
+
+  /* ————————————————— Tailwind compat ————————————————— */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1523;
 }
 
+/* ————————————————— Dark theme ————————————————— */
+.dark,
+[data-mv-theme="dark"] {
+  --mv-brand:          #b98fe0; /* lifted for contrast on dark */
+  --mv-brand-bright:   #cda9ec;
+  --mv-brand-content:  #e9dcf6;
+  --mv-brand-soft:     #2a1c3a;
+  --mv-brand-border:   #3d2c52;
+
+  --mv-bg:               #15101d;
+  --mv-bg-muted:         #110c18;
+  --mv-bg-subtle:        #1f1730;
+  --mv-surface:          #1b1426;
+  --mv-surface-elevated: #241a33;
+
+  --mv-text:             #f3eefa;
+  --mv-text-muted:       #b3a9c4;
+  --mv-text-subtle:      #877c99;
+  --mv-text-disabled:    #5b5170;
+  --mv-text-inverse:     #1a1523;
+  --mv-text-link:        #b98fe0;
+
+  --mv-border:           rgba(200, 180, 230, 0.14);
+  --mv-border-strong:    rgba(200, 180, 230, 0.26);
+  --mv-border-muted:     rgba(200, 180, 230, 0.07);
+
+  --mv-green-soft:  #11291f;
+  --mv-blue-soft:   #14233f;
+  --mv-amber-soft:  #2e2410;
+  --mv-red-soft:    #2e1414;
+  --mv-gold-soft:   #2e2410;
+
+  --mv-shadow-light:  0 1px 2px 0 rgba(0,0,0,0.5), 0 4px 12px 0 rgba(0,0,0,0.4);
+  --mv-shadow-medium: 0 4px 16px 0 rgba(0,0,0,0.55);
+  --mv-shadow-strong: 0 20px 40px 0 rgba(0,0,0,0.65);
+
+  --background: #110c18;
+  --foreground: #f3eefa;
+}
+
+/* ————————————————— Tailwind v4 theme integration —————————————————
+   Expose tokens as utilities: bg-brand, text-muted, border-default, bg-surface… */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-brand:         var(--mv-brand);
+  --color-brand-bright:  var(--mv-brand-bright);
+  --color-brand-content: var(--mv-brand-content);
+  --color-brand-strong:  var(--mv-brand-strong);
+  --color-brand-soft:    var(--mv-brand-soft);
+  --color-brand-border:  var(--mv-brand-border);
+
+  --color-gold:         var(--mv-gold);
+  --color-gold-content: var(--mv-gold-content);
+  --color-gold-soft:    var(--mv-gold-soft);
+
+  --color-bg:            var(--mv-bg);
+  --color-bg-muted:      var(--mv-bg-muted);
+  --color-bg-subtle:     var(--mv-bg-subtle);
+  --color-surface:       var(--mv-surface);
+  --color-surface-elevated: var(--mv-surface-elevated);
+
+  --color-text:          var(--mv-text);
+  --color-text-muted:    var(--mv-text-muted);
+  --color-text-subtle:   var(--mv-text-subtle);
+  --color-text-inverse:  var(--mv-text-inverse);
+  --color-text-link:     var(--mv-text-link);
+
+  --color-border-default: var(--mv-border);
+  --color-border-strong:  var(--mv-border-strong);
+  --color-border-muted:   var(--mv-border-muted);
+
+  --color-success:         var(--mv-green);
+  --color-success-content: var(--mv-green-content);
+  --color-success-soft:    var(--mv-green-soft);
+  --color-info:            var(--mv-blue);
+  --color-info-content:    var(--mv-blue-content);
+  --color-info-soft:       var(--mv-blue-soft);
+  --color-warning:         var(--mv-amber);
+  --color-warning-content: var(--mv-amber-content);
+  --color-warning-soft:    var(--mv-amber-soft);
+  --color-danger:          var(--mv-red);
+  --color-danger-content:  var(--mv-red-content);
+  --color-danger-soft:     var(--mv-red-soft);
+
+  --radius-xs: var(--mv-radius-xs);
+  --radius-sm: var(--mv-radius-sm);
+  --radius-md: var(--mv-radius-md);
+  --radius-lg: var(--mv-radius-lg);
+
+  --font-sans: var(--mv-font-body);
+  --font-mono: var(--mv-font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ————————————————— Base reset ————————————————— */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--mv-font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--mv-text);
+  background: var(--mv-bg-muted);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
