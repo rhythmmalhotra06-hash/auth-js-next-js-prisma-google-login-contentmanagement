@@ -26,7 +26,7 @@ export function NewMediaCard() {
         title: title.trim(),
         transcript: transcript.trim() || undefined,
       });
-      if (res.ok && res.id) router.push(`/media/${res.id}`);
+      if (res.ok && res.id) router.push(`/media/${res.id}?autostart=1`);
       else setErr(res.error ?? 'Failed to submit');
     });
 

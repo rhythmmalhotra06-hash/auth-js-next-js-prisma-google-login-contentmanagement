@@ -7,8 +7,15 @@ import { MediaDetailClient } from '@/components/media/MediaDetailClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function MediaDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MediaDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ autostart?: string }>;
+}) {
   const { id } = await params;
+  const { autostart } = await searchParams;
 
   const srcRes = await getMediaSource(id);
   if (!srcRes.ok) {
@@ -48,6 +55,7 @@ export default async function MediaDetailPage({ params }: { params: Promise<{ id
           error={source.error}
           clips={clips}
           reference={reference}
+          autostart={autostart === '1'}
         />
       </div>
     </AppShell>

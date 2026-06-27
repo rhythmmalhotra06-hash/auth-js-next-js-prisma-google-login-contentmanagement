@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import type { ClipSuggestion } from '@/lib/media/repository';
@@ -25,6 +25,7 @@ export function MediaDetailClient({
   error,
   clips,
   reference,
+  autostart = false,
 }: {
   sourceId: string;
   sourceUrl: string | null;
@@ -32,6 +33,7 @@ export function MediaDetailClient({
   error: string | null;
   clips: ClipSuggestion[];
   reference: IntakeReferenceData;
+  autostart?: boolean;
 }) {
   const router = useRouter();
   const [running, setRunning] = useState(false);
@@ -70,6 +72,18 @@ export function MediaDetailClient({
       setRunning(false);
     }
   }
+
+  // Auto-kick generation when arriving with ?autostart=1 (one click from the Clips
+  // page). Fires once; strip the param so a manual reload won't re-generate.
+  const autoFired = useRef(false);
+  useEffect(() => {
+    if (autostart && !autoFired.current && !hasClips && !running && status !== 'Transcribing') {
+      autoFired.current = true;
+      router.replace(`/media/${sourceId}`);
+      suggest();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onDismiss(id: string) {
     await dismissClip(id);
