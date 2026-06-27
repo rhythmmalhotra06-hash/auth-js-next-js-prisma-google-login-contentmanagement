@@ -620,3 +620,9 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 .ai-input input{flex:1;}
 .ai-input button{flex-shrink:0;width:38px;display:flex;align-items:center;justify-content:center;background:var(--brand);border:1px solid var(--brand);color:#fff;border-radius:var(--r-sm);cursor:pointer;}
 .ai-input button:hover{background:var(--brand-bright);}
+
+/* loading skeleton */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skel{border-radius:var(--r-md);background:linear-gradient(90deg,var(--bg-subtle) 25%,var(--g200) 37%,var(--bg-subtle) 63%);
+  background-size:800px 100%;animation:shimmer 1.4s ease infinite;}
+@media(prefers-reduced-motion:reduce){.skel{animation:none;}}

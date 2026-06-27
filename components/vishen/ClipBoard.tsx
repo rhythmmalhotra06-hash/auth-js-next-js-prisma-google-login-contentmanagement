@@ -30,15 +30,12 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-end">
-        <div className="inline-flex rounded-[8px] border border-border-default bg-surface p-0.5 text-sm">
-          {(['grid', 'table'] as View[]).map((v) => (
-            <button key={v} onClick={() => setView(v)}
-              className={cn('rounded-[6px] px-3 py-1 capitalize transition-colors', view === v ? 'bg-brand text-white' : 'text-text-muted hover:text-text')}>
-              {v}
-            </button>
-          ))}
-        </div>
+      <div className="subtabs" style={{ justifyContent: 'flex-end', marginTop: 0, marginBottom: 14 }}>
+        {(['grid', 'table'] as View[]).map((v) => (
+          <button key={v} onClick={() => setView(v)} className={cn('subtab', view === v && 'on')} style={{ textTransform: 'capitalize' }}>
+            {v}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-7">
