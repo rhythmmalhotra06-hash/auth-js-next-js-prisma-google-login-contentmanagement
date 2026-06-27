@@ -176,3 +176,59 @@ export const AUTHORS = {
     title: 'fld3oF6P49icz2zDT', // "Author's Title"
   },
 } as const;
+
+// ---------------------------------------------------------------------------
+// Vishen media → clip pipeline (created 2026-06-27). Two app-owned tables in the
+// Creative Services base: the media inbox + its clip suggestions. Airtable-direct.
+// ---------------------------------------------------------------------------
+
+// 📺 Media Sources — inbox of external Vishen media links (YouTube first).
+export const MEDIA_SOURCES = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblBQhM2Blqa7uNZX',
+  fields: {
+    title: 'fldumFfoeH2aMzKFZ', // "Title" (singleLineText, primary)
+    sourceUrl: 'fldWw36iQ2Rm6DP41', // "Source URL" (url)
+    platform: 'fldYCIo2Dricj0QiQ', // "Platform" (singleSelect: YouTube | Spotify | Apple Podcasts | Other)
+    status: 'fldnX0Qu6uWHtmN5I', // "Status" (New | Transcribing | Clips Suggested | Error | Archived)
+    guestShow: 'fldRdZmAVVmFcLM1l', // "Guest / Show"
+    audience: 'fldX0KZp8UX1pYmgJ', // "Audience" (Cold | Warm)
+    submittedVia: 'fldpG2cRTGGLOnKd4', // "Submitted Via" (Portal | Airtable | Slack | Auto-discover)
+    strategyJson: 'fldcv4HIUI0HflvRG', // "Strategy JSON" (multilineText) — full 10-section output
+    usedWebSearch: 'fldBncwhmhQ7vdSCk', // "Used Web Search" (checkbox)
+    error: 'fldmk2jHF9n0whzcu', // "Error" (multilineText)
+    submittedDate: 'fld0iEsDj4xv2ABpt', // "Submitted Date" (dateTime) — set on create
+    clipsAddedDate: 'fldn3QKcQCIiK6nrr', // "Clips Added Date" (dateTime) — set when clips written
+  },
+  links: {
+    submittedBy: 'fldFXpTr3za0Qc8Pd', // → 👬 Employees
+    clipSuggestions: 'fldZvIu1lHYlFwPpt', // → 🎬 Clip Suggestions (auto-created reverse link)
+  },
+  // singleSelect option values (write the plain name string).
+  status_: { new: 'New', transcribing: 'Transcribing', clipsSuggested: 'Clips Suggested', error: 'Error', archived: 'Archived' },
+  via: { portal: 'Portal', airtable: 'Airtable', slack: 'Slack', autoDiscover: 'Auto-discover' },
+} as const;
+
+// 🎬 Clip Suggestions — one row per proposed clip from a Media Source.
+export const CLIP_SUGGESTIONS = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblquXg7eesUZwvSH',
+  fields: {
+    name: 'fldGD07TIbYEcCYAz', // "Name" (singleLineText, primary) — hook line / label
+    index: 'fldoDUIlLBSLtR4ZP', // "Index" (number)
+    timestampStart: 'fldlDxa8ZEbo8tEYu', // "Timestamp Start"
+    timestampEnd: 'fldxBgaSdriwtpFjk', // "Timestamp End"
+    hookLine: 'fldvbSGgjKfZ9U3Oy', // "Hook Line"
+    rationale: 'fldFWsyDDe1UMLySB', // "Rationale" (multilineText)
+    caption: 'fldPIon3niXYqMG73', // "Caption" (multilineText)
+    format: 'fldUC9mA48dyfoxjr', // "Format" (talking_head | quote_card | broll_overlay)
+    viralityScore: 'fldCA8JsTQSvM148U', // "Virality Score" (number, 1–10)
+    status: 'fldpnlfTD2UwXS8su', // "Status" (Proposed | Approved | Dismissed)
+    addedDate: 'fldwmRqAJf2kcUrp3', // "Added Date" (dateTime) — set on create
+  },
+  links: {
+    mediaSource: 'fldcmDia3CiWEWJkI', // → 📺 Media Sources (parent)
+    ticket: 'fldTcZh1Z5YvugMFX', // → 🎯 Prio Requests (set on approve)
+  },
+  status_: { proposed: 'Proposed', approved: 'Approved', dismissed: 'Dismissed' },
+} as const;
