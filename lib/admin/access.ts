@@ -22,12 +22,20 @@ export interface AdminAccess {
 }
 
 export async function getAdminAccess(): Promise<AdminAccess> {
-  const employee = await getEmployeeForSession();
-  let email = employee?.email ?? null;
-  if (!email) {
-    const session = await auth();
-    email = session?.user?.email ?? null;
+  const session = await auth();
+
+  // Dev-login override: roles come from the local dev login, not Airtable. Inert
+  // in production (devRoles is never set on the session there — see auth.config).
+  if (process.env.NODE_ENV !== 'production') {
+    const devRoles = (session as { devRoles?: string } | null)?.devRoles;
+    if (devRoles !== undefined) {
+      const roles = devRoles.split(',').map((s) => s.trim()).filter(Boolean);
+      return { email: session?.user?.email ?? null, isAdmin: roles.includes(ADMIN_ROLE), roles };
+    }
   }
+
+  const employee = await getEmployeeForSession();
+  const email = employee?.email ?? session?.user?.email ?? null;
   const byRole = hasRole(employee?.roles, ADMIN_ROLE);
   const byBootstrap = !!email && bootstrapEmails().includes(email.toLowerCase());
   return { email, isAdmin: byRole || byBootstrap, roles: employee?.roles ?? [] };

@@ -1,14 +1,19 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { ClipRulesEditor, type EditorRule } from '@/components/settings/ClipRulesEditor';
 import { listClipRules } from '@/lib/clip-rules/repository';
-import { getClipRulesAccess } from '@/lib/clip-rules/access';
+import { getAdminAccess } from '@/lib/admin/access';
 import { RULE_SCOPES } from '@/lib/clipping/clip-types';
+import { homeRouteForRoles } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ClipRulesPage() {
-  const [rulesRes, access] = await Promise.all([listClipRules(), getClipRulesAccess()]);
+  const adminAccess = await getAdminAccess();
+  if (!adminAccess.isAdmin) redirect(homeRouteForRoles(adminAccess.roles)); // admin-only surface
+  const access = { canEdit: adminAccess.isAdmin };
+  const rulesRes = await listClipRules();
 
   if (!rulesRes.ok) {
     return (

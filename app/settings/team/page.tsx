@@ -1,14 +1,17 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { TeamRolesEditor, type TeamEmployee } from '@/components/settings/TeamRolesEditor';
 import { listAllEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { getAdminAccess } from '@/lib/admin/access';
-import { ROLES, ROLE_DESCRIPTIONS } from '@/lib/roles';
+import { ROLES, ROLE_DESCRIPTIONS, homeRouteForRoles } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeamRolesPage() {
-  const [employees, access] = await Promise.all([listAllEmployeeRecords(), getAdminAccess()]);
+  const access = await getAdminAccess();
+  if (!access.isAdmin) redirect(homeRouteForRoles(access.roles)); // admin-only surface
+  const employees = await listAllEmployeeRecords();
 
   const rows: TeamEmployee[] = employees.map((e) => ({
     id: e.id,

@@ -1,14 +1,15 @@
 import { redirect } from 'next/navigation';
-import { getEmployeeForSession } from '@/lib/employee';
+import { getAdminAccess } from '@/lib/admin/access';
 import { canAccessRoute, homeRouteForRoles, type GatedRoute } from '@/lib/roles';
 
 // Server-component guard for the role surfaces. Call at the top of a page:
 //   await guardRoute('/manager');
-// Untagged users (no Employees record or no roles) pass through unchanged; tagged
-// users without the route's role are bounced to their own home surface.
+// Admins pass anywhere; untagged users are treated as Stakeholder; a tagged user
+// without the route's role is bounced to their own home surface. Uses getAdminAccess
+// so the dev-login role override is honored consistently with the nav.
 export async function guardRoute(route: GatedRoute): Promise<void> {
-  const employee = await getEmployeeForSession();
-  const roles = employee?.roles;
+  const { roles, isAdmin } = await getAdminAccess();
+  if (isAdmin) return;
   if (!canAccessRoute(roles, route)) {
     redirect(homeRouteForRoles(roles));
   }

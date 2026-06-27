@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/lib/auth';
-import { getEmployeeForSession } from '@/lib/employee';
+import { getAdminAccess } from '@/lib/admin/access';
 import { homeRouteForRoles } from '@/lib/roles';
 
 function GoogleIcon() {
@@ -17,8 +17,8 @@ function GoogleIcon() {
 export default async function Home() {
   const session = await auth();
   if (session) {
-    const employee = await getEmployeeForSession();
-    redirect(homeRouteForRoles(employee?.roles));
+    const { isAdmin, roles } = await getAdminAccess();
+    redirect(isAdmin ? '/manager' : homeRouteForRoles(roles));
   }
 
   return (
