@@ -1,21 +1,16 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
-import { scoreTicketById } from '@/lib/tickets/score-service';
-import { ensureReferenceRows } from '@/lib/airtable/resolve-reference';
-import { enqueueTicketPush } from '@/lib/airtable/outbox';
-import { enqueueBlinklifePush } from '@/lib/blinklife/outbox';
-import { pushBriefMemory } from '@/lib/blinklife/push';
+import { createTicket as createTicketRecord } from '@/lib/repositories/ticket.repository';
 
 export interface CreateTicketInput {
-  requesterId: string;
+  requesterId: string; // Airtable recId (Employees)
   title: string; // Project/Program (≤40)
   teamServiceLevel: string;
   typeOfRequest: string; // Video | Design
-  eventTypeId: string;
-  assetTypeId: string;
-  officialCalendarId: string;
-  authorIds: string[];
+  eventTypeId: string; // Airtable recId
+  assetTypeId: string; // Airtable recId
+  officialCalendarId: string; // Airtable recId (optional)
+  authorIds: string[]; // Airtable recIds
   creativeBrief: string;
   cta?: string;
   dueDate: string; // ISO date
@@ -36,13 +31,16 @@ const REQUIRED: [keyof CreateTicketInput, string][] = [
   ['typeOfRequest', 'Type of Request'],
   ['eventTypeId', 'Event Type'],
   ['assetTypeId', 'Asset Type'],
-  // Official Calendar is optional — not every request maps to a campaign on the calendar.
+  // Official Calendar is optional.
   ['creativeBrief', 'Creative Brief'],
   ['dueDate', 'Due date'],
 ];
 
+// Airtable-direct: write the new request straight to the Prio Requests table. The
+// intake form already serves reference options as Airtable recIds, so link fields
+// are set directly — no Postgres, no reference resolution, no scoring (Airtable's
+// SCORE formula handles ranking).
 export async function createTicket(input: CreateTicketInput): Promise<CreateTicketResult> {
-  // Enforce required taxonomy at submit (missing tags break the priority score).
   for (const [key, label] of REQUIRED) {
     const v = input[key];
     if (!v || (typeof v === 'string' && !v.trim())) {
@@ -57,76 +55,22 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     return { ok: false, error: 'Invalid due date' };
   }
 
-  // The intake form serves option values as Airtable recIds (live reference).
-  // Resolve them to our UUIDs, lazily mirroring any row not yet synced, so the
-  // ticket's foreign keys hold.
-  let ref: Awaited<ReturnType<typeof ensureReferenceRows>>;
-  try {
-    ref = await ensureReferenceRows({
-      eventTypeRecId: input.eventTypeId,
-      assetTypeRecId: input.assetTypeId,
-      requesterRecId: input.requesterId,
-      officialCalendarRecId: input.officialCalendarId || null,
-      authorRecIds: input.authorIds,
-    });
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? `Could not resolve taxonomy: ${err.message}` : 'Could not resolve taxonomy' };
-  }
+  const res = await createTicketRecord({
+    title: input.title.trim(),
+    creativeBrief: input.creativeBrief.trim(),
+    cta: input.cta?.trim() || null,
+    dueDate: input.dueDate.slice(0, 10),
+    typeOfRequest: input.typeOfRequest,
+    teamServiceLevel: input.teamServiceLevel,
+    notes: input.notes?.trim() || null,
+    sourceLinks: input.sourceLinks?.trim() || null,
+    eventTypeRecId: input.eventTypeId,
+    assetTypeRecId: input.assetTypeId,
+    requesterRecId: input.requesterId,
+    officialCalendarRecId: input.officialCalendarId || null,
+    authorRecIds: input.authorIds ?? [],
+  });
 
-  try {
-    const ticket = await prisma.ticket.create({
-      data: {
-        title: input.title.trim(),
-        creativeBrief: input.creativeBrief.trim(),
-        cta: input.cta?.trim() || null,
-        dueDate: due,
-        eventTypeId: ref.eventTypeId,
-        assetTypeId: ref.assetTypeId,
-        requesterId: ref.requesterId,
-        officialCalendarId: ref.officialCalendarId,
-        teamServiceLevel: input.teamServiceLevel,
-        typeOfRequest: input.typeOfRequest,
-        sourceLinks: input.sourceLinks?.trim() || null,
-        notes: input.notes?.trim() || null,
-        // Priority + assignee are NOT set here — handled by the backend (E4).
-        prioStatus: 'New Request', // live enum default
-        ticketStatus: 'Backlog', // live enum default
-        source: 'app',
-        authors: ref.authorIds.length
-          ? { create: ref.authorIds.map((authorId) => ({ authorId })) }
-          : undefined,
-        // Lifecycle: first state transition is logged.
-        events: {
-          create: { toState: 'Requested', actorId: ref.requesterId, note: 'Submitted via intake form' },
-        },
-      },
-    });
-    // Auto-assign the unambiguous ~20–30%: asset type with exactly one preferred editor.
-    try {
-      const editors = await prisma.assetTypePreferredEditor.findMany({
-        where: { assetTypeId: ref.assetTypeId },
-        select: { employeeId: true },
-      });
-      if (editors.length === 1) {
-        await prisma.ticket.update({
-          where: { id: ticket.id },
-          data: { assigneeId: editors[0].employeeId, prioStatus: 'Assigned' },
-        });
-        await prisma.ticketEvent.create({
-          data: { ticketId: ticket.id, toState: 'Assigned', note: 'Auto-assigned (single preferred editor)' },
-        });
-      }
-    } catch { /* non-fatal — manager can assign */ }
-    // Score on create so the new request enters the queue ranked (best-effort).
-    try { await scoreTicketById(ticket.id); } catch { /* manager can recompute */ }
-    // Mirror the new ticket to Airtable (best-effort; no-op unless push is enabled).
-    await enqueueTicketPush(ticket.id);
-    // Mirror to BlinkLife: enqueue the editor task + capture the brief as memory
-    // (both best-effort; no-op unless BlinkLife push is enabled).
-    await enqueueBlinklifePush(ticket.id);
-    void pushBriefMemory(ticket.id);
-    return { ok: true, ticketId: ticket.id };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Failed to create request' };
-  }
+  if (!res.ok) return { ok: false, error: res.error.message };
+  return { ok: true, ticketId: res.data.id };
 }

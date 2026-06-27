@@ -21,7 +21,8 @@ export const TICKETS = {
   baseId: BASES.creativeServices,
   tableId: 'tblhrRl8GzsDMv0DD',
   fields: {
-    name: 'fld59SWr1qd1XPuR0', // "Name" (formula primary) → ticket.title
+    name: 'fld59SWr1qd1XPuR0', // "Name" (formula primary, READ-ONLY) → display title
+    projectProgram: 'fldxatmiW57hVUL9X', // "Project/Program" (multilineText, WRITABLE) → intake title
     creativeBrief: 'fld5INJXFHCliBAKY', // "Creative Brief" (richText)
     cta: 'fldRUl1jsQefaUz4q', // "Call to action"
     dueDate: 'fldMbzZSolbVNAhGX', // "Due date"

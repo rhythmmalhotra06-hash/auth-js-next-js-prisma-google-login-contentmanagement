@@ -2,9 +2,10 @@
 // tickets + set status. Expands as the Airtable-direct migration proceeds.
 
 import { TICKETS } from '@/lib/airtable/field-map';
-import { listRecords, updateRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
+import { listRecords, createRecord, updateRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
 
 const F = TICKETS.fields;
+const L = TICKETS.links;
 
 export interface TicketRow {
   id: string;
@@ -54,6 +55,61 @@ export async function setTicketStatus(recordId: string, status: string): Promise
   if (!res.ok) return res;
   return { ok: true, data: mapTicket(res.data) };
 }
+
+export interface CreateTicketFields {
+  title: string;
+  creativeBrief: string;
+  cta?: string | null;
+  dueDate: string; // YYYY-MM-DD
+  typeOfRequest: string;
+  teamServiceLevel: string;
+  notes?: string | null;
+  sourceLinks?: string | null;
+  eventTypeRecId: string;
+  assetTypeRecId: string;
+  requesterRecId: string;
+  officialCalendarRecId?: string | null;
+  authorRecIds?: string[];
+}
+
+/** Create a ticket directly in the Prio Requests table (link fields = reference recIds). */
+export async function createTicket(input: CreateTicketFields): Promise<AirtableResult<{ id: string }>> {
+  const fields: Record<string, unknown> = {
+    [F.projectProgram]: input.title,
+    [F.creativeBrief]: input.creativeBrief,
+    [F.dueDate]: input.dueDate,
+    [F.typeOfRequest]: input.typeOfRequest,
+    [F.teamServiceLevel]: input.teamServiceLevel,
+    [F.prioStatus]: 'New Request',
+    [F.ticketStatus]: 'Backlog',
+    [L.eventTypes]: [input.eventTypeRecId],
+    [L.assetTypes]: [input.assetTypeRecId],
+    [L.requestedBy]: [input.requesterRecId],
+  };
+  if (input.cta) fields[F.cta] = input.cta;
+  // "Raw File/URL Links" is a URL-typed field; only write a real URL there, otherwise
+  // fold the free text into notes so a non-URL value can't make Airtable reject the create.
+  let notes = input.notes?.trim() || '';
+  if (input.sourceLinks?.trim()) {
+    if (/^https?:\/\//i.test(input.sourceLinks.trim())) fields[F.rawFileUrl] = input.sourceLinks.trim();
+    else notes = notes ? `${notes}\n\nSource/links: ${input.sourceLinks.trim()}` : `Source/links: ${input.sourceLinks.trim()}`;
+  }
+  if (notes) fields[F.notes] = notes;
+  if (input.officialCalendarRecId) fields[L.officialCalendar] = [input.officialCalendarRecId];
+  if (input.authorRecIds?.length) fields[L.speakers] = input.authorRecIds;
+
+  const res = await createRecord(TICKETS.baseId, TICKETS.tableId, fields);
+  if (!res.ok) return res;
+  return { ok: true, data: { id: res.data.id } };
+}
+
+/** Patch arbitrary writable fields on a ticket (status, prio status, links, asset URLs). */
+export async function updateTicketFields(id: string, fields: Record<string, unknown>): Promise<AirtableResult<AirtableRecord>> {
+  return updateRecord(TICKETS.baseId, TICKETS.tableId, id, fields);
+}
+
+export const TICKET_FIELD = F;
+export const TICKET_LINK = L;
 
 export const TICKET_STATUS_OPTIONS = [
   'Backlog', 'To Do', 'In Progress', 'Review', 'In Revision', 'Approved', 'Done', "Won't Do", 'Shipping', 'Request on Hold',
