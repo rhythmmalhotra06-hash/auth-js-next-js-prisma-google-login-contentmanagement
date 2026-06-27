@@ -8,6 +8,7 @@
 import { TICKETS } from '@/lib/airtable/field-map';
 import { listAll, getRecord } from '@/lib/airtable/rest';
 import { nameMap, firstLinkedName, firstLinkedId } from '@/lib/repositories/reference.repository';
+import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
 
 const F = TICKETS.fields;
 const L = TICKETS.links;
@@ -40,16 +41,17 @@ const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
 // Active = everything except terminal states; keeps us well under the 10k table size.
 const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
 
-/** Active employees for assignment pickers (recId → name). */
+/** Active employees for assignment pickers (recId → name) — excludes retired/inactive staff. */
 export async function getActiveEmployees(): Promise<EmployeeOption[]> {
-  const map = await nameMap('employees');
-  return [...map.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  const rows = await listActiveEmployeeRecords();
+  return rows.map((r) => ({ id: r.id, name: r.name })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function getQueueTickets(opts: { assigneeId?: string } = {}): Promise<QueueTicket[]> {
+export async function getQueueTickets(opts: { assigneeId?: string; includeCompleted?: boolean } = {}): Promise<QueueTicket[]> {
   const [res, employees, eventTypes, assetTypes] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
-      filterByFormula: ACTIVE_FILTER,
+      // Stakeholder/post-prod views pass includeCompleted to also surface Done/Won't Do.
+      ...(opts.includeCompleted ? {} : { filterByFormula: ACTIVE_FILTER }),
       fields: [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
         L.assignedCreative, L.requestedBy, L.eventTypes, L.assetTypes],
     }),
