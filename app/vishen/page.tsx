@@ -1,5 +1,5 @@
 import { AppShell } from '@/components/ui/AppShell';
-import { MetricCard, MetricGrid } from '@/components/ui/MetricCard';
+import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { ClipBoard } from '@/components/vishen/ClipBoard';
 import { NewMediaCard } from '@/components/vishen/NewMediaCard';
 import { listMediaSources, listClipsByStatus } from '@/lib/media/repository';
@@ -25,11 +25,11 @@ export default async function ClipsPage() {
   return (
     <AppShell title="Clips" subtitle="Generate, review, and approve AI clips from media.">
       {/* Clip-focused KPIs */}
-      <MetricGrid className="lg:!grid-cols-3">
-        <MetricCard label="Media in inbox" value={sources.length} />
-        <MetricCard label="Clips awaiting you" value={proposed.length} className="border-gold" />
-        <MetricCard label="Approved, ready" value={approved.length} />
-      </MetricGrid>
+      <KpiGrid>
+        <Kpi label="Media in inbox" value={sources.length} i={0} />
+        <Kpi tone="alert" label="Clips awaiting you" value={proposed.length} i={1} />
+        <Kpi label="Approved, ready" value={approved.length} sub="to convert" i={2} />
+      </KpiGrid>
 
       {/* Add media → generate clips */}
       <div className="mt-5"><NewMediaCard /></div>

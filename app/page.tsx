@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation';
 import { auth, signIn } from '@/lib/auth';
 import { getAdminAccess } from '@/lib/admin/access';
 import { homeRouteForRoles } from '@/lib/roles';
+import { DevLogin } from '@/components/auth/DevLogin';
+
+const DEV_LOGIN = process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEV_LOGIN === 'true';
 
 function GoogleIcon() {
   return (
@@ -18,62 +21,34 @@ export default async function Home() {
   const session = await auth();
   if (session) {
     const { isAdmin, roles } = await getAdminAccess();
-    redirect(isAdmin ? '/manager' : homeRouteForRoles(roles));
+    redirect(isAdmin ? '/studio' : homeRouteForRoles(roles));
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel */}
-      <div
-        className="relative hidden flex-col justify-between p-12 text-white lg:flex"
-        style={{ background: 'linear-gradient(135deg, #572280 0%, #3b1759 100%)' }}
-      >
-        <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
-          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: '#F5B000' }} />
-          Mindvalley · Creative Services
-        </div>
-        <div>
-          <h1 className="text-4xl font-bold leading-tight">
-            Content Production
-            <br />& Management
-          </h1>
-          <p className="mt-4 max-w-md text-white/70">
-            One place for intake, prioritization, production, approval and performance —
-            replacing scattered Jira boards and Airtable bases.
-          </p>
-        </div>
-        <div className="text-xs text-white/50">A Blinkwork tool</div>
+    <div id="cover">
+      <div className="dotgrid" />
+      <div className="cover-top">
+        <div className="brand-mark">M</div>
+        <div className="brand-txt"><b>Content Studio</b><span>Mindvalley</span></div>
       </div>
-
-      {/* Login card */}
-      <div className="flex items-center justify-center bg-neutral-50 p-8">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 text-center lg:hidden">
-            <h1 className="text-2xl font-bold" style={{ color: '#572280' }}>Creative Services</h1>
-          </div>
-
-          <h2 className="text-2xl font-bold text-neutral-900">Sign in</h2>
-          <p className="mt-1 text-sm text-neutral-500">Use your Mindvalley Google account to continue.</p>
-
-          <form
-            className="mt-8"
-            action={async () => {
-              'use server';
-              await signIn('google', { redirectTo: '/' });
-            }}
-          >
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
-            >
-              <GoogleIcon />
-              Continue with Google
+      <div className="cover-body">
+        <div className="cover-eyebrow cv cv1">Mindvalley Content Studio</div>
+        <h1 className="cover-h1 cv cv2">Everything the team makes, <span className="em">end&nbsp;to&nbsp;end</span>.</h1>
+        <p className="cover-sub cv cv3">One home for creative production — from request to performance. Sign in with your Mindvalley account to continue.</p>
+        <div className="cover-cta cv cv4">
+          <form action={async () => { 'use server'; await signIn('google', { redirectTo: '/' }); }}>
+            <button type="submit" className="btn primary" style={{ padding: '13px 22px', fontSize: 14.5 }}>
+              <GoogleIcon /> Continue with Google
             </button>
           </form>
-
-          <p className="mt-6 text-xs text-neutral-400">Team-only access · @mindvalley.com accounts.</p>
+          <span className="muted" style={{ fontSize: 12.5, alignSelf: 'center' }}>Team-only · @mindvalley.com</span>
         </div>
+        {DEV_LOGIN && (
+          <div className="cv cv5" style={{ marginTop: 22, maxWidth: 460 }}>
+            <DevLogin />
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }

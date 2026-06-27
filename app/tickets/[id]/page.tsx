@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
-import { PrioStatusBadge } from '@/components/ui/Badge';
+import { TicketStatusBadge, PrioStatusBadge } from '@/components/ui/Badge';
+import { TierBadge } from '@/components/ui/TierBadge';
+import { Icon } from '@/components/ui/Icon';
 import { getTicketDetail, getActiveEmployees } from '@/lib/tickets/data';
 import { StatusUpdater } from '@/components/tickets/StatusUpdater';
 import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
@@ -10,11 +12,11 @@ import { AssetPanel } from '@/components/tickets/AssetPanel';
 
 export const dynamic = 'force-dynamic';
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({ label, value, lookup }: { label: string; value: React.ReactNode; lookup?: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5 border-b border-border-muted py-2.5 last:border-0 sm:flex-row sm:gap-4">
-      <dt className="w-48 shrink-0 text-sm text-text-muted">{label}</dt>
-      <dd className="text-sm text-text">{value || <span className="text-text-subtle">—</span>}</dd>
+    <div className="field-row">
+      <div className="k">{label}{lookup && <span className="lock"><Icon name="lock" size={11} /> lookup</span>}</div>
+      <div className="v">{value || <span className="subtle">—</span>}</div>
     </div>
   );
 }
@@ -26,45 +28,58 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const employees = await getActiveEmployees();
 
   return (
-    <AppShell title={t.title} subtitle={[t.eventType, t.assetType].filter(Boolean).join(' · ') || undefined}
-      actions={<PrioStatusBadge status={t.prioStatus} />}>
-      <Link href="/manager" className="text-sm text-brand hover:underline">← Back to queue</Link>
+    <AppShell title={t.title} subtitle={[t.eventType, t.assetType].filter(Boolean).join(' · ') || undefined}>
+      <Link href="/manager" className="btn ghost sm" style={{ textDecoration: 'none', marginBottom: 14 }}>
+        <Icon name="arrow" size={14} /> Back to queue
+      </Link>
 
-      <div className="mt-3 rounded-[12px] border border-border-default bg-surface p-6 shadow-[var(--mv-shadow-light)]">
-        <div className="mb-5 grid gap-4 sm:grid-cols-3">
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-subtle">Ticket Status <span className="font-normal lowercase text-text-subtle">· editor</span></p>
-            <StatusUpdater ticketId={t.id} current={t.ticketStatus} />
+      <div className="detail">
+        <div className="stack">
+          <div className="card pad">
+            <div className="row-between" style={{ marginBottom: 6 }}>
+              <div className="t-meta"><TierBadge event={t.eventType} /> <span>{t.assetType ?? '—'}</span></div>
+              <div style={{ display: 'flex', gap: 7 }}><TicketStatusBadge status={t.ticketStatus} /><PrioStatusBadge status={t.prioStatus} /></div>
+            </div>
+            <h3 style={{ fontSize: 18, margin: '4px 0 12px' }}>{t.title}</h3>
+            <Field label="Creative brief" value={t.creativeBrief} />
+            <div className="grid2">
+              <Field label="Call to action" value={t.cta} />
+              <Field label="Type of request" value={t.typeOfRequest} />
+              <Field label="Team / service level" value={t.teamServiceLevel} />
+              <Field label="Due date" value={t.dueDate} />
+              <Field label="Requested by" value={t.requester} lookup />
+              <Field label="Official calendar" value={t.officialCalendar} lookup />
+              <Field label="Speakers / authors" value={t.authors.join(', ')} />
+              <Field label="Priority score" value={t.priorityScore ?? 'unscored'} />
+            </div>
+            {t.notes && <Field label="Notes" value={t.notes} />}
           </div>
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-subtle">Priority Status <span className="font-normal lowercase text-text-subtle">· manager</span></p>
-            <PrioStatusUpdater ticketId={t.id} current={t.prioStatus} />
-          </div>
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-subtle">Assigned <span className="font-normal lowercase text-text-subtle">· manager</span></p>
-            <AssigneeUpdater ticketId={t.id} current={t.assigneeId} employees={employees} />
+
+          <div className="card pad">
+            <div className="sec-head" style={{ margin: '0 0 12px' }}><h3>Assets</h3><span className="hint">raw &amp; final stack under one asset</span></div>
+            <AssetPanel ticketId={t.id} assets={t.assets} />
           </div>
         </div>
-        <dl>
-          <Row label="Event Type" value={t.eventType} />
-          <Row label="Asset Type" value={t.assetType} />
-          <Row label="Type of Request" value={t.typeOfRequest} />
-          <Row label="Team/Service Level" value={t.teamServiceLevel} />
-          <Row label="Requested By" value={t.requester} />
-          <Row label="Official Calendar" value={t.officialCalendar} />
-          <Row label="Speakers/Authors" value={t.authors.join(', ')} />
-          <Row label="Due date" value={t.dueDate} />
-          <Row label="Priority score" value={t.priorityScore ?? 'unscored'} />
-          <Row label="Creative Brief" value={t.creativeBrief} />
-          <Row label="Call to action" value={t.cta} />
-          <Row label="Source links" value={t.sourceLinks} />
-          <Row label="Notes" value={t.notes} />
-        </dl>
+
+        <div className="stack">
+          <div className="card pad">
+            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Two status axes</div>
+            <label>Ticket status <span className="subtle">· editor-owned</span></label>
+            <StatusUpdater ticketId={t.id} current={t.ticketStatus} />
+            <label style={{ marginTop: 12 }}>Priority status <span className="subtle">· manager-owned</span></label>
+            <PrioStatusUpdater ticketId={t.id} current={t.prioStatus} />
+            <label style={{ marginTop: 12 }}>Assignee</label>
+            <AssigneeUpdater ticketId={t.id} current={t.assigneeId} employees={employees} />
+          </div>
+
+          <div className="card pad">
+            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 8 }}>Lifecycle</div>
+            <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
+              Change history is tracked in the Airtable record revision history. Approvals run through Ticket Status (Review → Approved / In Revision).
+            </p>
+          </div>
+        </div>
       </div>
-
-      <AssetPanel ticketId={t.id} assets={t.assets} />
-
-      <p className="mt-6 text-xs text-text-subtle">Change history is tracked in the Airtable record (revision history). Approvals are handled via Ticket Status (Review → Approved / In Revision).</p>
     </AppShell>
   );
 }

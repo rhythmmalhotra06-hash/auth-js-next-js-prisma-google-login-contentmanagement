@@ -1,9 +1,19 @@
-import Link from 'next/link';
-import { Sidebar } from '@/components/ui/Sidebar';
 import { getAdminAccess } from '@/lib/admin/access';
+import { navForRoles, effectiveRoles } from '@/lib/roles';
+import { ShellChrome } from '@/components/ui/ShellChrome';
+import { AskPanel } from '@/components/ui/AskPanel';
+import { Tour } from '@/components/ui/Tour';
 
-// Global app shell: fixed left sidebar (section nav) + sticky topbar (page title +
-// user) + scrollable content. Tokenized; replaces the inline AppNav pill.
+function roleLabel(roles: string[], isAdmin: boolean): { label: string; dot: string } {
+  const r = effectiveRoles(roles);
+  if (r.includes('Executive / CEO')) return { label: 'Founder', dot: 'var(--gold)' };
+  if (isAdmin || r.includes('Admin')) return { label: 'Admin', dot: 'var(--brand-bright)' };
+  if (r.includes('Manager') || r.includes('Approver')) return { label: 'Creative manager', dot: 'var(--brand)' };
+  if (r.includes('Editor') || r.includes('Designer')) return { label: 'Editor / designer', dot: 'var(--blue)' };
+  return { label: 'Stakeholder', dot: 'var(--green)' };
+}
+
+// Global app shell: prototype chrome (sidebar + sticky topbar + content), role-scoped.
 export async function AppShell({ title, subtitle, actions, children }: {
   title: string;
   subtitle?: string;
@@ -11,27 +21,25 @@ export async function AppShell({ title, subtitle, actions, children }: {
   children: React.ReactNode;
 }) {
   const { roles, isAdmin, email } = await getAdminAccess();
+  const nav = navForRoles(roles, isAdmin);
+  const role = roleLabel(roles, isAdmin);
+  const initials =
+    (email ?? 'You').split('@')[0].split(/[.\-_]/).map((s) => s[0]?.toUpperCase() ?? '').slice(0, 2).join('') || 'YOU';
+  const canCreate = role.label !== 'Stakeholder';
   return (
-    <div className="min-h-screen bg-bg-muted">
-      <Sidebar roles={roles} isAdmin={isAdmin} email={email} />
-      <div className="lg:pl-[236px]">
-        <header className="sticky top-0 z-20 border-b border-border-default bg-surface/85 backdrop-blur">
-          <div className="flex h-[60px] items-center justify-between gap-4 px-6 py-3">
-            <div className="min-w-0">
-              <h1 className="truncate text-[19px] font-bold tracking-tight text-text">{title}</h1>
-              {subtitle && <p className="truncate text-[12.5px] text-text-muted">{subtitle}</p>}
-            </div>
-            <div className="flex items-center gap-3">
-              {actions}
-              <Link href="/intake" className="hidden h-9 items-center rounded-[8px] bg-brand px-3.5 text-sm font-medium text-white hover:bg-brand-bright sm:inline-flex">
-                + New request
-              </Link>
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-content">VL</span>
-            </div>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl px-6 py-7">{children}</main>
-      </div>
-    </div>
+    <ShellChrome
+      title={title}
+      subtitle={subtitle}
+      nav={nav}
+      roleLabel={role.label}
+      roleDot={role.dot}
+      initials={initials}
+      canCreate={canCreate}
+      actions={actions}
+    >
+      {children}
+      <AskPanel />
+      <Tour nav={nav} />
+    </ShellChrome>
   );
 }

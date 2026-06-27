@@ -4,34 +4,37 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { TicketStatusBadge, PrioStatusBadge } from '@/components/ui/Badge';
+import { TierBadge } from '@/components/ui/TierBadge';
+import { Icon } from '@/components/ui/Icon';
+import { loadMap, riskOf } from '@/lib/tickets/intel';
 import type { QueueTicket } from '@/lib/tickets/data';
 
-// Filterable queue table. Mandated first five columns (CLAUDE.md §7):
-// Title · Priority · Assigned · Ticket Status · Priority Status. Filters across
-// Priority Status, Ticket Status, Event Type, Asset Type, Type of Request.
-// Rows click through to the ticket record.
+// Filterable queue table — ported to the prototype `.list` look. Mandated first
+// five columns (CLAUDE.md §7): Title · Priority · Assigned · Ticket Status ·
+// Priority Status. Clickable funnel + filters across the taxonomy dimensions.
 
 type Dim = 'prioStatus' | 'ticketStatus' | 'eventType' | 'assetType' | 'typeOfRequest';
 const FILTERS: { key: Dim; label: string }[] = [
-  { key: 'prioStatus', label: 'Priority Status' },
-  { key: 'ticketStatus', label: 'Ticket Status' },
-  { key: 'eventType', label: 'Event Type' },
-  { key: 'assetType', label: 'Asset Type' },
-  { key: 'typeOfRequest', label: 'Type of Request' },
+  { key: 'eventType', label: 'All event types' },
+  { key: 'assetType', label: 'All asset types' },
+  { key: 'prioStatus', label: 'All priority statuses' },
+  { key: 'typeOfRequest', label: 'All request types' },
 ];
 
 const uniq = (rows: QueueTicket[], key: Dim) =>
   [...new Set(rows.map((r) => r[key]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
 
-// Lifecycle pipeline order (CLAUDE.md §6) — unknown statuses sort to the end alphabetically.
-const TICKET_ORDER = [
-  'Requested', 'Prioritized', 'Assigned', 'In Production', 'In Review', 'Review',
-  'In Revision', 'Approved', 'Published', 'Done', "Won't Do",
-];
-const orderIdx = (s: string) => {
-  const i = TICKET_ORDER.indexOf(s);
-  return i === -1 ? TICKET_ORDER.length : i;
-};
+const TICKET_ORDER = ['Backlog', 'To Do', 'In Progress', 'In Revision', 'Review', 'Approved', 'Shipping', 'Done', "Won't Do"];
+const orderIdx = (s: string) => { const i = TICKET_ORDER.indexOf(s); return i === -1 ? TICKET_ORDER.length : i; };
+
+function dueChip(due: string | null) {
+  if (!due) return null;
+  const d = Math.ceil((new Date(due).getTime() - Date.now()) / 86400000);
+  if (Number.isNaN(d)) return null;
+  if (d < 0) return <span className="due far">overdue</span>;
+  const cls = d <= 2 ? 'soon' : d <= 6 ? 'mid' : 'far';
+  return <span className={`due ${cls}`}>due {d}d</span>;
+}
 
 export function QueueTable({ tickets }: { tickets: QueueTicket[] }) {
   const router = useRouter();
@@ -43,122 +46,83 @@ export function QueueTable({ tickets }: { tickets: QueueTicket[] }) {
     () => Object.fromEntries(FILTERS.map((f) => [f.key, uniq(tickets, f.key)])) as Record<Dim, string[]>,
     [tickets],
   );
-
   const rows = useMemo(
-    () => tickets.filter((t) => FILTERS.every((f) => !sel[f.key] || t[f.key] === sel[f.key])),
+    () => tickets.filter((t) => (Object.keys(sel) as Dim[]).every((k) => !sel[k] || t[k] === sel[k])),
     [tickets, sel],
   );
-
-  // Funnel: ticket-status stages with counts, scoped by every OTHER active filter
-  // (so clicking through event/asset narrows the funnel too). Clicking a stage
-  // toggles the Ticket Status filter — the clickable drill-down.
+  const load = useMemo(() => loadMap(tickets), [tickets]);
   const funnel = useMemo(() => {
     const scoped = tickets.filter((t) =>
-      FILTERS.filter((f) => f.key !== 'ticketStatus').every((f) => !sel[f.key] || t[f.key] === sel[f.key]),
+      FILTERS.every((f) => !sel[f.key] || t[f.key] === sel[f.key]),
     );
     const counts = new Map<string, number>();
-    for (const t of scoped) {
-      const s = t.ticketStatus;
-      if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .sort((a, b) => orderIdx(a[0]) - orderIdx(b[0]) || a[0].localeCompare(b[0]))
-      .map(([status, count]) => ({ status, count }));
+    for (const t of scoped) { const s = t.ticketStatus; if (s) counts.set(s, (counts.get(s) ?? 0) + 1); }
+    return [...counts.entries()].sort((a, b) => orderIdx(a[0]) - orderIdx(b[0])).map(([status, count]) => ({ status, count }));
   }, [tickets, sel]);
 
-  const activeFilters = FILTERS.filter((f) => sel[f.key]).length;
+  const activeFilters = (Object.keys(sel) as Dim[]).filter((k) => sel[k]).length;
 
   return (
     <div>
-      {/* Clickable funnel — pipeline stages by Ticket Status */}
       {funnel.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {funnel.map(({ status, count }) => {
-            const active = sel.ticketStatus === status;
-            return (
-              <button
-                key={status}
-                onClick={() => setSel((s) => ({ ...s, ticketStatus: active ? '' : status }))}
-                aria-pressed={active}
-                className={cn(
-                  'flex items-baseline gap-2 rounded-[10px] border px-3 py-2 text-left transition-colors',
-                  active
-                    ? 'border-brand bg-brand-soft'
-                    : 'border-border-default bg-surface hover:bg-bg-subtle',
-                )}
-              >
-                <span className={cn('text-lg font-semibold tabular-nums', active ? 'text-brand-content' : 'text-text')}>{count}</span>
-                <span className={cn('text-xs', active ? 'text-brand-content' : 'text-text-muted')}>{status}</span>
-              </button>
-            );
-          })}
+        <div className="sortchips" style={{ marginBottom: 14 }}>
+          {funnel.map(({ status, count }) => (
+            <button key={status} className={cn('chipbtn', sel.ticketStatus === status && 'on')}
+              onClick={() => setSel((s) => ({ ...s, ticketStatus: s.ticketStatus === status ? '' : status }))}>
+              <b style={{ fontVariantNumeric: 'tabular-nums' }}>{count}</b> {status}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* Filter bar */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="filters">
+        <span className="flab">Filter</span>
         {FILTERS.map((f) => (
-          <select
-            key={f.key}
-            value={sel[f.key]}
-            onChange={(e) => setSel((s) => ({ ...s, [f.key]: e.target.value }))}
-            className={cn(
-              'h-9 rounded-[8px] border bg-surface px-2.5 text-sm outline-none focus-visible:shadow-[var(--mv-shadow-focus)]',
-              sel[f.key] ? 'border-brand text-brand-content' : 'border-border-default text-text-muted',
-            )}
-          >
-            <option value="">{f.label}: All</option>
+          <select key={f.key} value={sel[f.key]} onChange={(e) => setSel((s) => ({ ...s, [f.key]: e.target.value }))}>
+            <option value="">{f.label}</option>
             {options[f.key].map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         ))}
         {activeFilters > 0 && (
-          <button
-            onClick={() => setSel({ prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '' })}
-            className="h-9 rounded-[8px] px-2.5 text-sm font-medium text-text-muted hover:text-text"
-          >
+          <button className="btn sm ghost" onClick={() => setSel({ prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '' })}>
             Clear ({activeFilters})
           </button>
         )}
-        <span className="ml-auto text-[12.5px] text-text-subtle tabular-nums">{rows.length} of {tickets.length}</span>
+        <span className="subtle" style={{ marginLeft: 'auto', fontSize: 12 }}>{rows.length} of {tickets.length}</span>
       </div>
 
-      <div className="overflow-x-auto rounded-[12px] border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
-        <table className="w-full text-sm">
-          <thead className="text-left text-[10.5px] uppercase tracking-wide text-text-subtle">
-            <tr className="border-b border-border-default">
-              <th className="px-4 py-2.5">Title</th>
-              <th className="px-4 py-2.5 text-right">Priority</th>
-              <th className="px-4 py-2.5">Assigned</th>
-              <th className="px-4 py-2.5">Ticket Status</th>
-              <th className="px-4 py-2.5">Priority Status</th>
-              <th className="px-4 py-2.5">Event</th>
-              <th className="px-4 py-2.5">Asset</th>
-              <th className="px-4 py-2.5">Type</th>
+      <div className="tw"><div className="tscroll"><table className="list">
+        <thead><tr>
+          <th>Title</th><th>Priority</th><th>Assigned</th><th>Ticket status</th><th>Priority status</th>
+        </tr></thead>
+        <tbody>
+          {rows.map((t) => {
+            const r = riskOf(t, load);
+            return (
+            <tr key={t.id} className={cn(!t.assignee && 'attn')} onClick={() => router.push(`/tickets/${t.id}`)}>
+              <td>
+                <div className="t-title">{t.title}</div>
+                <div className="t-meta">
+                  <TierBadge event={t.eventType} /> <span>{t.assetType ?? '—'}</span>
+                  {r.level && (
+                    <span className={`risk ${r.level}`} title={r.why.join(' · ')}>
+                      <Icon name="clock" size={11} /> {r.level === 'high' ? 'at risk' : 'watch'}
+                    </span>
+                  )}
+                </div>
+              </td>
+              <td style={{ width: 120 }}>
+                <span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}
+              </td>
+              <td style={{ width: 150 }}>{t.assignee ?? <span className="subtle">Unassigned</span>}</td>
+              <td style={{ width: 130 }}><TicketStatusBadge status={t.ticketStatus} /></td>
+              <td style={{ width: 150 }}><PrioStatusBadge status={t.prioStatus} /></td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((t) => (
-              <tr
-                key={t.id}
-                onClick={() => router.push(`/tickets/${t.id}`)}
-                className="cursor-pointer border-b border-border-muted last:border-0 hover:bg-bg-subtle"
-              >
-                <td className="px-4 py-2.5 font-medium text-text">{t.title}</td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-text-muted">{t.queueRank ?? t.priorityScore ?? '—'}</td>
-                <td className="px-4 py-2.5 text-text-muted">{t.assignee ?? '—'}</td>
-                <td className="px-4 py-2.5"><TicketStatusBadge status={t.ticketStatus} /></td>
-                <td className="px-4 py-2.5"><PrioStatusBadge status={t.prioStatus} /></td>
-                <td className="px-4 py-2.5 text-text-muted">{t.eventType ?? '—'}</td>
-                <td className="px-4 py-2.5 text-text-muted">{t.assetType ?? '—'}</td>
-                <td className="px-4 py-2.5 text-text-muted">{t.typeOfRequest ?? '—'}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-text-subtle">No tickets match these filters.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+          {rows.length === 0 && <tr><td colSpan={5} className="empty">No requests match these filters.</td></tr>}
+        </tbody>
+      </table></div></div>
     </div>
   );
 }

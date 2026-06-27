@@ -85,9 +85,40 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
   }
 }
 
-/** The surface a user lands on by default, based on their roles (untagged → Stakeholder). */
-export function homeRouteForRoles(roles: readonly string[] | null | undefined): GatedRoute {
+/** Founder/executive surface (Studio). */
+export function isFounder(roles: readonly string[] | null | undefined): boolean {
+  return effectiveRoles(roles).includes('Executive / CEO');
+}
+
+export interface NavItem { href: string; label: string; icon: string }
+
+/** Role-scoped top-of-funnel nav. Mirrors the prototype's per-role nav. */
+export function navForRoles(roles: readonly string[] | null | undefined, isAdmin: boolean): NavItem[] {
   const r = effectiveRoles(roles);
+  const exec = r.includes('Executive / CEO');
+  const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
+  const ed = isAdmin || r.includes('Editor') || r.includes('Designer');
+  const stake = exec || r.includes('Stakeholder') || r.includes('Agency / External');
+  const items: NavItem[] = [];
+  if (isAdmin || exec) items.push({ href: '/studio', label: 'Studio', icon: 'sparkle' });
+  if (mgr) items.push({ href: '/manager', label: 'Queue', icon: 'list' });
+  if (ed) items.push({ href: '/editor', label: 'My work', icon: 'play' });
+  if (mgr || stake || isAdmin) items.push({ href: '/stakeholder', label: 'Shares', icon: 'msg' });
+  if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film' });
+  items.push({ href: '/performance', label: 'Insights', icon: 'chart' });
+  if (isAdmin) {
+    items.push({ href: '/settings/clip-rules', label: 'Rules', icon: 'sliders' });
+    items.push({ href: '/settings/team', label: 'Admin', icon: 'user' });
+  }
+  return items.filter((it, i, a) => a.findIndex((x) => x.href === it.href) === i);
+}
+
+/** The surface a user lands on by default, based on their roles (untagged → Stakeholder). */
+export function homeRouteForRoles(roles: readonly string[] | null | undefined): string {
+  const r = effectiveRoles(roles);
+  if (r.includes('Executive / CEO') && !(r.includes('Manager') || r.includes('Approver') || r.includes('Admin'))) {
+    return '/studio';
+  }
   if (r.includes('Editor') || r.includes('Designer')) {
     // Editors/designers land on their queue unless they're also a manager/approver.
     if (!(r.includes('Manager') || r.includes('Approver') || r.includes('Admin'))) return '/editor';
