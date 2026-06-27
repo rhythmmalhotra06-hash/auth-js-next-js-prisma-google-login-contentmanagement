@@ -3,7 +3,7 @@ import Link from 'next/link';
 // Role views (real role-gating arrives with Blinkwork SSO; for now all are open).
 // Content Engine is superseded by the Media pipeline + Cockpit (see plan addendum).
 const LINKS = [
-  { href: '/vishen', label: 'Cockpit' },
+  { href: '/vishen', label: 'Clips' },
   { href: '/intake', label: 'Intake' },
   { href: '/manager', label: 'Manager' },
   { href: '/editor', label: 'Editor' },

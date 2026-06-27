@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
 
 const NAV: { href: string; label: string; icon: string }[] = [
-  { href: '/vishen', label: 'Cockpit', icon: '▶' },
+  { href: '/vishen', label: 'Clips', icon: '✂' },
   { href: '/intake', label: 'Intake', icon: '✎' },
   { href: '/manager', label: 'Manager', icon: '▦' },
   { href: '/editor', label: 'Editor', icon: '✦' },
