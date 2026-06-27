@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { canSeeNav } from '@/lib/roles';
+import { signOutAction } from '@/app/auth-actions';
 
 const NAV: { href: string; label: string; icon: string }[] = [
   { href: '/vishen', label: 'Clips', icon: '✂' },
@@ -16,7 +17,7 @@ const NAV: { href: string; label: string; icon: string }[] = [
   { href: '/settings/team', label: 'Admin panel', icon: '🛡' },
 ];
 
-export function Sidebar({ roles = [], isAdmin = false }: { roles?: string[]; isAdmin?: boolean }) {
+export function Sidebar({ roles = [], isAdmin = false, email = null }: { roles?: string[]; isAdmin?: boolean; email?: string | null }) {
   const pathname = usePathname();
   const nav = NAV.filter((item) => canSeeNav(roles, isAdmin, item.href));
   return (
@@ -43,7 +44,19 @@ export function Sidebar({ roles = [], isAdmin = false }: { roles?: string[]; isA
           );
         })}
       </nav>
-      <div className="border-t border-border-default px-5 py-3 text-[11px] text-text-subtle">Mindvalley · Creative Services</div>
+      <div className="border-t border-border-default px-3 py-3">
+        {email && <div className="truncate px-2 pb-2 text-[11px] text-text-subtle" title={email}>{email}</div>}
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-subtle hover:text-text"
+          >
+            <span className="w-4 text-center text-[13px] opacity-80">⏻</span>
+            Sign out
+          </button>
+        </form>
+        <div className="px-2 pt-2 text-[11px] text-text-subtle">Mindvalley · Creative Services</div>
+      </div>
     </aside>
   );
 }

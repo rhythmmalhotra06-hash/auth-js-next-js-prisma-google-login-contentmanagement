@@ -10,10 +10,10 @@ export async function AppShell({ title, subtitle, actions, children }: {
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const { roles, isAdmin } = await getAdminAccess();
+  const { roles, isAdmin, email } = await getAdminAccess();
   return (
     <div className="min-h-screen bg-bg-muted">
-      <Sidebar roles={roles} isAdmin={isAdmin} />
+      <Sidebar roles={roles} isAdmin={isAdmin} email={email} />
       <div className="lg:pl-[236px]">
         <header className="sticky top-0 z-20 border-b border-border-default bg-surface/85 backdrop-blur">
           <div className="flex h-[60px] items-center justify-between gap-4 px-6 py-3">
