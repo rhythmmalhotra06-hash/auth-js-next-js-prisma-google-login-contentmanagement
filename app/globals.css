@@ -262,9 +262,12 @@ button{font-family:inherit;cursor:pointer;}
 table{border-collapse:collapse;width:100%;}
 ::selection{background:var(--brand-soft);}
 :focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:4px;}
-input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:8px 10px;color:var(--text);
+/* text-like fields only — never checkboxes/radios (those keep native sizing) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+select,textarea{font-family:inherit;font-size:13px;width:100%;padding:8px 10px;color:var(--text);
   border:1px solid var(--border-strong);border-radius:var(--r-sm);background:var(--surface);}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(109,52,160,.18);}
+input:not([type="checkbox"]):not([type="radio"]):focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(109,52,160,.18);}
+input[type="checkbox"],input[type="radio"]{width:auto;accent-color:var(--brand);cursor:pointer;}
 label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:5px;}
 .app{display:flex;min-height:100vh;}
 .side{width:236px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
