@@ -1,0 +1,575 @@
+<title>Content Portal — PRD & Build Status</title>
+<style>
+  :root {
+    --purple: #572280;
+    --purple-deep: #3a1657;
+    --purple-soft: #f4eff8;
+    --gold: #f5b000;
+    --ink: #1c1626;
+    --muted: #6b6577;
+    --faint: #8a8494;
+    --line: #e7e2ee;
+    --line-soft: #f0ecf5;
+    --paper: #ffffff;
+    --ground: #faf9fc;
+    --ship: #1f9d6b;
+    --ship-bg: #e7f4ee;
+    --flight: #cf8a06;
+    --flight-bg: #fdf2dc;
+    --prop: #5b6b9e;
+    --prop-bg: #eceef6;
+    --none: #b0524a;
+    --none-bg: #f7eae9;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  .reading { max-width: 760px; }
+
+  /* ---------- header band ---------- */
+  header.band {
+    background:
+      radial-gradient(120% 140% at 88% -10%, rgba(245,176,0,0.16), transparent 55%),
+      linear-gradient(160deg, var(--purple) 0%, var(--purple-deep) 100%);
+    color: #fff;
+    padding: 56px 0 48px;
+    border-bottom: 3px solid var(--gold);
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: rgba(255,255,255,0.72);
+    margin: 0 0 18px;
+  }
+  header.band h1 {
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    margin: 0 0 16px;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  header.band p.mission {
+    font-size: clamp(16px, 2vw, 19px);
+    color: rgba(255,255,255,0.85);
+    max-width: 60ch;
+    margin: 0 0 28px;
+  }
+  .pillrow { display: flex; flex-wrap: wrap; gap: 10px; }
+  .meta-pill {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: #fff;
+  }
+  .meta-pill b { font-weight: 700; }
+  .meta-pill .k { color: rgba(255,255,255,0.6); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* ---------- toc ---------- */
+  nav.toc {
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 5;
+  }
+  nav.toc .wrap { display: flex; flex-wrap: wrap; gap: 4px 22px; padding-top: 12px; padding-bottom: 12px; }
+  nav.toc a {
+    color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600;
+    padding: 4px 0; border-bottom: 2px solid transparent;
+  }
+  nav.toc a:hover { color: var(--purple); border-bottom-color: var(--gold); }
+
+  /* ---------- sections ---------- */
+  section { padding: 52px 0; border-bottom: 1px solid var(--line-soft); }
+  section:last-of-type { border-bottom: 0; }
+  .layer-tag {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700;
+    color: var(--gold); margin: 0 0 10px;
+  }
+  .layer-tag.tech { color: var(--prop); }
+  h2 {
+    font-size: clamp(24px, 3.4vw, 32px); letter-spacing: -0.02em; font-weight: 800;
+    margin: 0 0 8px; text-wrap: balance;
+  }
+  h2 + .lede { color: var(--muted); font-size: 17px; margin: 0 0 28px; max-width: 64ch; }
+  h3 {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+    margin: 34px 0 12px; padding-top: 4px;
+  }
+  h3 .num { color: var(--faint); font-weight: 700; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  p { margin: 0 0 14px; }
+  a.inline { color: var(--purple); text-decoration: none; border-bottom: 1px solid var(--line); }
+  a.inline:hover { border-bottom-color: var(--purple); }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.86em; background: var(--purple-soft); color: var(--purple-deep);
+    padding: 1px 6px; border-radius: 5px;
+  }
+  strong { font-weight: 700; }
+
+  /* ---------- status board cards ---------- */
+  .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 14px; margin: 24px 0 8px; }
+  .card {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .card .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card h4 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .card p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  /* ---------- status pill ---------- */
+  .st { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700;
+        letter-spacing: 0.02em; padding: 3px 9px 3px 8px; border-radius: 999px; white-space: nowrap; }
+  .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+  .st.ship { color: var(--ship); background: var(--ship-bg); }
+  .st.flight { color: var(--flight); background: var(--flight-bg); }
+  .st.prop { color: var(--prop); background: var(--prop-bg); }
+  .st.none { color: var(--none); background: var(--none-bg); }
+
+  /* ---------- legend ---------- */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 6px 0 22px;
+            padding: 14px 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+  .legend .li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; margin: 8px 0 6px; background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  thead th {
+    text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--faint); font-weight: 700; padding: 12px 16px; border-bottom: 1px solid var(--line);
+    background: var(--ground); position: sticky; top: 0;
+  }
+  tbody td { padding: 11px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--purple-soft); }
+  td .feat { font-weight: 600; }
+  td .path { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; color: var(--faint); }
+  .num-col { font-variant-numeric: tabular-nums; }
+
+  /* ---------- callout ---------- */
+  .callout {
+    border-left: 3px solid var(--gold); background: var(--flight-bg);
+    padding: 16px 18px; border-radius: 0 10px 10px 0; margin: 22px 0; font-size: 14.5px;
+  }
+  .callout.purple { border-left-color: var(--purple); background: var(--purple-soft); }
+  .callout b { color: var(--ink); }
+
+  /* ---------- two-col prose ---------- */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 680px) { .duo { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* ---------- lists ---------- */
+  ul.clean { list-style: none; padding: 0; margin: 8px 0 14px; }
+  ul.clean li { padding: 7px 0 7px 24px; position: relative; border-bottom: 1px solid var(--line-soft); font-size: 14.5px; }
+  ul.clean li:last-child { border-bottom: 0; }
+  ul.clean li::before { content: ""; position: absolute; left: 4px; top: 15px; width: 6px; height: 6px;
+                        border-radius: 50%; background: var(--purple); }
+  ul.clean li b { font-weight: 700; }
+
+  .owner { display: inline-block; font-size: 11px; font-weight: 700; color: var(--purple-deep);
+           background: var(--purple-soft); padding: 1px 7px; border-radius: 5px; margin-left: 4px; }
+
+  /* ---------- formula ---------- */
+  .formula { background: var(--ink); color: #f3eefa; border-radius: 12px; padding: 20px 22px; margin: 16px 0;
+             font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.85;
+             overflow-x: auto; }
+  .formula .c { color: #8a8494; }
+  .formula .g { color: var(--gold); }
+
+  /* ---------- pipeline ---------- */
+  .pipe { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 14px 0 4px; }
+  .pipe .step { font-size: 13px; font-weight: 600; background: var(--paper); border: 1px solid var(--line);
+                border-radius: 8px; padding: 6px 11px; }
+  .pipe .arr { color: var(--faint); font-weight: 700; }
+
+  footer { padding: 36px 0 56px; color: var(--faint); font-size: 13px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 4px; }
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <p class="eyebrow">Mindvalley · Creative Services · Status Report</p>
+    <h1>Content Production &amp; Management Portal</h1>
+    <p class="mission">One full-lifecycle system — intake → prioritization → production → approval → publish → performance — replacing fragmented Jira and 4+ Airtable bases, surfaced inside Blinkwork.</p>
+    <div class="pillrow">
+      <span class="meta-pill"><span class="k">As of</span> <b>28 Jun 2026</b></span>
+      <span class="meta-pill"><span class="k">Architecture</span> <b>Hybrid · Postgres today</b></span>
+      <span class="meta-pill"><span class="k">Phase</span> <b>Phase 1 build</b></span>
+      <span class="meta-pill"><span class="k">PRD</span> <b>Discovery · 5/8</b></span>
+      <span class="meta-pill"><span class="k">Latest</span> <b>dfbb8fb</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#summary">Exec summary</a>
+    <a href="#board">Status board</a>
+    <a href="#prd">PRD digest</a>
+    <a href="#algo">Prioritization</a>
+    <a href="#matrix">Build matrix</a>
+    <a href="#data">Data model</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#next">Open decisions</a>
+  </div>
+</nav>
+
+<!-- ===================== EXEC SUMMARY ===================== -->
+<section id="summary">
+  <div class="wrap">
+    <p class="layer-tag">For leadership · the short version</p>
+    <h2>Where we are</h2>
+    <p class="lede">The core workflow is built and usable end-to-end on a real database. Reference data flows in from Airtable; the differentiating performance loop and the two-way write-back are the main pieces still ahead.</p>
+
+    <div class="duo">
+      <div>
+        <h3>The problem we're solving</h3>
+        <p>The Social, Ads and Content teams merged. Leadership can't see what's being produced, by whom, or how it performs — work is scattered across Jira and 4+ Airtable bases. The portal consolidates the whole lifecycle into one place, and answers the question no existing tool does:</p>
+        <p class="callout purple" style="margin-top:0"><b>“Who edited this asset — and how did it perform?”</b> — answered in a single view. That performance loop is our edge; every other DAM leaves that gap open.</p>
+      </div>
+      <div>
+        <h3>What the portal is</h3>
+        <p>A role-aware workspace with three audiences:</p>
+        <ul class="clean">
+          <li><b>Editors &amp; designers</b> — a personal queue: pull the next item, move it through production, attach assets.</li>
+          <li><b>Managers</b> — a prioritization board: confirm the algorithmic queue in ~5 min/day, assign, approve.</li>
+          <li><b>Stakeholders &amp; agencies</b> — read-only status + performance, <b>no paid seat required</b>.</li>
+        </ul>
+        <p>Plus a Vishen media → clip engine: long-form video in, AI-proposed short clips out, converted to tickets on approval.</p>
+      </div>
+    </div>
+
+    <div class="board" id="board">
+      <div class="card">
+        <div class="top"><h4>Intake</h4><span class="st ship">Live</span></div>
+        <p>Conditional Event → Asset → auto-lookup form with enforced taxonomy.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Prioritization queue</h4><span class="st ship">Live</span></div>
+        <p>urgency × complexity scoring, sortable queue, manager override.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Three role surfaces</h4><span class="st ship">Live</span></div>
+        <p>Editor, Manager, Stakeholder views on the mandated 5-column header.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Ticket lifecycle</h4><span class="st ship">Live</span></div>
+        <p>Two status axes, detail view, approvals, asset stacking.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Media → clip engine</h4><span class="st ship">Live</span></div>
+        <p>Transcript → Claude strategy → approve → convert to ticket.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Auth &amp; roles</h4><span class="st ship">Live</span></div>
+        <p>Google SSO, @mindvalley.com gate, stakeholder-by-default.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Airtable reference sync</h4><span class="st ship">Live</span></div>
+        <p>One-way inbound (employees, taxonomy, calendar, authors).</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Airtable two-way push</h4><span class="st flight">Built · gated</span></div>
+        <p>Outbox + drain coded; disabled behind a flag, untested live.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Performance loop</h4><span class="st prop">Schema only</span></div>
+        <p>The differentiator — table exists, live metric source unwired.</p>
+      </div>
+      <div class="card">
+        <div class="top"><h4>Intelligence layer</h4><span class="st prop">Partial</span></div>
+        <p>Scoring lives; insight / brief / DNA review still propose-only specs.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRD DIGEST ===================== -->
+<section id="prd">
+  <div class="wrap">
+    <p class="layer-tag tech">Product requirements · the settled spec</p>
+    <h2>What we agreed to build</h2>
+    <p class="lede">Settled across three meetings (Titus 1:1, Blinkwork session, Hackathon, Jun 22–25). These decisions are fixed inputs, not suggestions — several deliberately reverse earlier approaches.</p>
+
+    <h3><span class="num">1</span>Intake — a conditional chain, order matters</h3>
+    <p>The form enforces taxonomy at submit so prioritization scores are never wrong from missing tags:</p>
+    <div class="pipe">
+      <span class="step">Event Type</span><span class="arr">→</span>
+      <span class="step">Asset Type (filtered)</span><span class="arr">→</span>
+      <span class="step">Team Lead + Editor (auto, read-only)</span><span class="arr">→</span>
+      <span class="step">Dimensions (required)</span><span class="arr">→</span>
+      <span class="step">Title · Brief · CTA · Positioning · Audience · Due date</span>
+    </div>
+    <p>Priority and Assignee are <b>never</b> on the form — they're handled by the backend.</p>
+
+    <h3><span class="num">2</span>Two status axes, never merged</h3>
+    <div class="duo">
+      <div>
+        <p><b>Priority Status</b> <code>prio_status</code> — owned by managers, external-facing (New Request → To be reviewed → In Queue → Assigned…).</p>
+      </div>
+      <div>
+        <p><b>Ticket Status</b> <code>ticket_status</code> — owned by editors/designers, internal (Backlog → To Do → In Progress → Review → Approved → Shipping…).</p>
+      </div>
+    </div>
+
+    <h3><span class="num">3</span>Lifecycle — every transition is audited</h3>
+    <div class="pipe">
+      <span class="step">Requested</span><span class="arr">→</span>
+      <span class="step">Prioritized</span><span class="arr">→</span>
+      <span class="step">Assigned</span><span class="arr">→</span>
+      <span class="step">In Production</span><span class="arr">→</span>
+      <span class="step">In Review</span><span class="arr">→</span>
+      <span class="step">Approved</span><span class="arr">→</span>
+      <span class="step">Published</span><span class="arr">→</span>
+      <span class="step">Performance Tracked</span>
+    </div>
+    <p>Each move writes a <code>ticket_events</code> row (actor, from, to, note). <b>Ship gate:</b> one real request completes this end-to-end, entirely in-tool.</p>
+
+    <h3><span class="num">4</span>Three role surfaces · one mandated header</h3>
+    <p class="callout"><b>Hard requirement.</b> The first five columns of every list view are identical: <b>Title · Priority · Assigned · Ticket Status · Priority Status.</b> Not a style choice.</p>
+
+    <h3><span class="num">5</span>Airtable sync rules</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Data</th><th>Direction</th><th>Trigger</th></tr></thead>
+        <tbody>
+          <tr><td>employees, dimensions, event/asset types, DNA</td><td>Airtable → Postgres</td><td>webhook + nightly reconcile</td></tr>
+          <tr><td>tickets, assets, approvals, shoots</td><td>Postgres ↔ Airtable</td><td>on write, batched ≤10, 429 backoff</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Reference data is read-only in the app (edit in Airtable). Always store <code>airtable_id</code>; reconcile is upsert-on-airtable_id.</p>
+
+    <h3><span class="num">6</span>Architecture — the HYBRID decision <span class="owner">decided 25 Jun</span></h3>
+    <p>Build the workflow surfaces now in this standalone Next.js + Postgres repo (valid under either architecture), and migrate the <em>nouns</em> to Blinkwork brain nodes later. Under the target model, reference nouns (Asset, Person, Event, Channel, Metric, Insight) become brain nodes and Airtable becomes a <b>connector</b>; only workflow state (tickets, queue_rank, statuses, approvals) stays app-owned permanently. The workflow decisions, scoring algorithm and UI mockups stay valid in both.</p>
+
+    <h3><span class="num">7</span>Epics</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Epic</th><th>Phase</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="num-col">E1</td><td>Foundation &amp; data layer (schema → Prisma, auth)</td><td>1</td><td><span class="st ship">Done</span></td></tr>
+          <tr><td class="num-col">E2</td><td>Reference sync (Airtable → Postgres, inbound)</td><td>1</td><td><span class="st ship">Done</span></td></tr>
+          <tr><td class="num-col">E3</td><td>Intake (conditional Event→Asset→lookup form)</td><td>1</td><td><span class="st ship">Done</span></td></tr>
+          <tr><td class="num-col">E4</td><td>Prioritization &amp; queue (scoring + reorder)</td><td>1</td><td><span class="st flight">Mostly · reorder persistence pending</span></td></tr>
+          <tr><td class="num-col">E5</td><td>Lifecycle, views &amp; approvals (decision locks)</td><td>1</td><td><span class="st flight">Mostly</span></td></tr>
+          <tr><td class="num-col">E6</td><td>Two-way sync (outbound push to Airtable)</td><td>1</td><td><span class="st flight">Built · gated off</span></td></tr>
+          <tr><td class="num-col">E7</td><td>Performance loop (live metrics on assets)</td><td>2</td><td><span class="st prop">Schema only</span></td></tr>
+          <tr><td class="num-col">E8</td><td>Media → clip intelligence engine</td><td>1.5</td><td><span class="st ship">Live</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ALGORITHM ===================== -->
+<section id="algo">
+  <div class="wrap reading">
+    <p class="layer-tag tech">Prioritization · how the queue is ordered</p>
+    <h2>Score = urgency × complexity</h2>
+    <p class="lede">Phase 1 is manual-assisted: the algorithm produces a default order; managers spend ~5 min/day confirming it and handling reassignments. Auto-assignment covers only the ~20–30% of unambiguous cases.</p>
+    <div class="formula">
+<span class="c"># urgency from due-date proximity + event tier</span>
+urgency_score    = <span class="g">0.5</span>·due_proximity + <span class="g">0.5</span>·event_tier
+<span class="c"># complexity from effort, variants, whether a shoot is needed</span>
+complexity_score = <span class="g">0.3</span>·effort + <span class="g">0.2</span>·variants + <span class="g">0.5</span>·shoot_flag
+
+priority_score   = urgency_score + lead_time_adjustment(complexity_score)
+    </div>
+    <p>Tie-breaks: earlier due date → higher event tier → earliest <code>created_at</code> (FIFO, so nothing starves). When a manager drags a row, <code>queue_rank</code> overrides <code>priority_score</code> for display order — editors always pull from the manager-confirmed order. Weights are starting values, to be tuned after one real week. Implemented in <span class="path">lib/tickets/scoring.ts</span>.</p>
+    <p class="callout"><b>Still open:</b> the event-tier ranking for the urgency score is unconfirmed. <span class="owner">Owner: Moniek</span></p>
+  </div>
+</section>
+
+<!-- ===================== BUILD MATRIX ===================== -->
+<section id="matrix">
+  <div class="wrap">
+    <p class="layer-tag tech">Build status · technical appendix</p>
+    <h2>Feature matrix</h2>
+    <p class="lede">What's actually in the codebase today, mapped to the PRD capabilities. Current architecture is Postgres-backed (Prisma + PrismaPg adapter), not the proposed Airtable-direct pivot.</p>
+
+    <div class="legend">
+      <span class="li"><span class="st ship">Shipped</span> in main, working</span>
+      <span class="li"><span class="st flight">In-flight</span> partial or behind a flag</span>
+      <span class="li"><span class="st prop">Proposed</span> planned, not built</span>
+      <span class="li"><span class="st none">Not built</span> gap</span>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Capability</th><th>Status</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td><span class="feat">Intake form</span> — conditional chain, auto-lookups</td><td><span class="st ship">Shipped</span></td><td class="path">app/intake · lib/intake · components/intake</td></tr>
+          <tr><td><span class="feat">Editor queue</span> — pull next, status, asset attach</td><td><span class="st ship">Shipped</span></td><td class="path">app/editor · components/tickets</td></tr>
+          <tr><td><span class="feat">Manager board</span> — prioritization, assign, approve</td><td><span class="st ship">Shipped</span></td><td class="path">app/manager</td></tr>
+          <tr><td><span class="feat">Stakeholder / My requests</span> — read-only, owner-scoped</td><td><span class="st ship">Shipped</span></td><td class="path">app/stakeholder</td></tr>
+          <tr><td><span class="feat">Ticket detail</span> — 2 status axes, approvals, assets</td><td><span class="st ship">Shipped</span></td><td class="path">app/tickets/[id]</td></tr>
+          <tr><td><span class="feat">5-column queue table</span> — sortable, configurable</td><td><span class="st ship">Shipped</span></td><td class="path">components/tickets/QueueTable.tsx</td></tr>
+          <tr><td><span class="feat">Priority scoring</span> — urgency × complexity</td><td><span class="st ship">Shipped</span></td><td class="path">lib/tickets/scoring.ts</td></tr>
+          <tr><td><span class="feat">Insights / performance board</span> — at-risk, funnel</td><td><span class="st ship">Shipped</span></td><td class="path">app/performance</td></tr>
+          <tr><td><span class="feat">Studio / executive surface</span> — awaiting approval, shipped</td><td><span class="st ship">Shipped</span></td><td class="path">app/studio</td></tr>
+          <tr><td><span class="feat">Media → clip engine</span> — transcript → Claude strategy</td><td><span class="st ship">Shipped</span></td><td class="path">app/media · lib/clipping · lib/media</td></tr>
+          <tr><td><span class="feat">Clip rules editor</span> — edit prompt without deploy</td><td><span class="st ship">Shipped</span></td><td class="path">app/settings/clip-rules</td></tr>
+          <tr><td><span class="feat">Auth + roles</span> — Google SSO, role routing/gating</td><td><span class="st ship">Shipped</span></td><td class="path">lib/auth.ts · lib/roles.ts</td></tr>
+          <tr><td><span class="feat">Airtable reference sync</span> — inbound, upsert-on-airtable_id</td><td><span class="st ship">Shipped</span></td><td class="path">lib/airtable/sync.ts · api/sync/reference</td></tr>
+          <tr><td><span class="feat">BlinkLife push</span> — editor tasks, Vishen review page</td><td><span class="st flight">Built · gated</span></td><td class="path">lib/blinklife · api/push/blinklife</td></tr>
+          <tr><td><span class="feat">Metrics snapshot</span> — nightly precomputed counts</td><td><span class="st ship">Shipped</span></td><td class="path">lib/metrics · api/metrics/refresh</td></tr>
+          <tr><td><span class="feat">Decision locks</span> — block Shipping without Approved</td><td><span class="st flight">In-flight</span></td><td class="path">product-evaluation-loose-ends</td></tr>
+          <tr><td><span class="feat">Queue reorder persistence</span> — QueueRank model</td><td><span class="st flight">In-flight</span></td><td class="path">migration pending</td></tr>
+          <tr><td><span class="feat">Airtable two-way push</span> — outbox drain, batched</td><td><span class="st flight">Built · off</span></td><td class="path">lib/airtable/push.ts · flag=false</td></tr>
+          <tr><td><span class="feat">Airtable webhook receiver</span> — real-time inbound</td><td><span class="st none">Not built</span></td><td class="path">manual sync route only</td></tr>
+          <tr><td><span class="feat">Performance loop</span> — live ROAS/CTR on assets</td><td><span class="st prop">Schema only</span></td><td class="path">Performance model · source TBD</td></tr>
+          <tr><td><span class="feat">DNA AI feedback</span> — first-pass review notes</td><td><span class="st none">Not built</span></td><td class="path">field exists, no LLM</td></tr>
+          <tr><td><span class="feat">Conversational layer</span> — chat over the data</td><td><span class="st prop">Stub</span></td><td class="path">api/ask</td></tr>
+          <tr><td><span class="feat">Frame-accurate video comments</span> — timecode anchored</td><td><span class="st none">Phase 2</span></td><td class="path">not in schema</td></tr>
+          <tr><td><span class="feat">Cron scheduling</span> — wire refresh/sync jobs</td><td><span class="st flight">Routes ready</span></td><td class="path">Kessel cron unconfigured</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DATA MODEL ===================== -->
+<section id="data">
+  <div class="wrap">
+    <p class="layer-tag tech">Data model · 30 Prisma models · 8 migrations</p>
+    <h2>What's in the database</h2>
+    <p class="lede">All migrated to Kessel-managed Postgres. Generated client lives in <code>app/generated/prisma/</code> (non-standard) on the edge-light PrismaPg adapter.</p>
+
+    <div class="duo">
+      <div>
+        <h3>Reference data <span class="st ship" style="font-size:10px">Airtable → PG</span></h3>
+        <ul class="clean">
+          <li>Employee · Dimension · EventType · AssetType · Dna</li>
+          <li>AssetType ↔ EventType / TeamLead / PreferredEditor / Dimension joins</li>
+          <li>OfficialCalendar · Author · TicketAuthor</li>
+        </ul>
+        <h3>Auth <span class="st ship" style="font-size:10px">Auth.js v5</span></h3>
+        <ul class="clean">
+          <li>User · Account · Session · VerificationToken (JWT, no DB adapter)</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Transactional <span class="st ship" style="font-size:10px">app-owned</span></h3>
+        <ul class="clean">
+          <li>Ticket · TicketEvent (audit) · Approval · Shoot · ShootTicket</li>
+          <li>Asset (raw/final stacking) · Performance</li>
+          <li>AirtableOutbox · BlinkLifeOutbox · BlinkLifeRef · MetricSnapshot</li>
+        </ul>
+        <h3>Clip engine <span class="st ship" style="font-size:10px">E8</span></h3>
+        <ul class="clean">
+          <li>ContentSource (transcript + context)</li>
+          <li>ClipStrategy (one generation run)</li>
+          <li>ClipSuggestion (per-clip proposal → ticket)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Migration</th><th>What it added</th></tr></thead>
+        <tbody>
+          <tr><td class="path">0001_init_content_schema</td><td>reference + transactional + Auth.js tables</td></tr>
+          <tr><td class="path">0002_reconcile_multilinks</td><td>asset-type ↔ event-type many-to-many</td></tr>
+          <tr><td class="path">0003_e3_intake_fields</td><td>intake form fields on Ticket</td></tr>
+          <tr><td class="path">0004_asset_library_fields</td><td>Asset model (raw/final, distribution URL)</td></tr>
+          <tr><td class="path">0005_content_clipping_engine</td><td>ContentSource, ClipStrategy, ClipSuggestion</td></tr>
+          <tr><td class="path">0006_airtable_outbox_push</td><td>outbox for ticket push-back</td></tr>
+          <tr><td class="path">0007_blinklife_push</td><td>BlinkLife outbox + provenance refs</td></tr>
+          <tr><td class="path">0008_metric_snapshots</td><td>nightly precomputed aggregates</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ROADMAP ===================== -->
+<section id="roadmap">
+  <div class="wrap">
+    <p class="layer-tag tech">Roadmap · 13 plans in /plans</p>
+    <h2>What's shaped and what's next</h2>
+    <p class="lede">Recent ship trajectory: categorised sidebar, my-requests archive, metric snapshots, requestor fieldset, ~9k-row Done-scan perf fixes, insights route. Below: the planned work and its state.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Plan</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td><span class="feat">direct-ticket-form-and-clip-generation</span></td><td><span class="st ship">Shipped</span></td><td>one-click convert + generate (38bb170)</td></tr>
+          <tr><td><span class="feat">security-review-mockups</span></td><td><span class="st ship">Done</span></td><td>no exploitable vulns; flag YouTube SSRF when it ships</td></tr>
+          <tr><td><span class="feat">vishen-media-clip-pipeline</span></td><td><span class="st ship">v1 live</span></td><td>media inbox + clip suggestions; Slack intake later</td></tr>
+          <tr><td><span class="feat">ai-content-clipping-engine</span></td><td><span class="st ship">Live</span></td><td>Opus strategy, structured output, streaming</td></tr>
+          <tr><td><span class="feat">clip-rules-editable-prompt</span></td><td><span class="st ship">Live</span></td><td>edit prompt without a deploy</td></tr>
+          <tr><td><span class="feat">content-portal-ux</span></td><td><span class="st flight">Phase B</span></td><td>token system port; ~26 files still de-hardcoding off #572280</td></tr>
+          <tr><td><span class="feat">product-evaluation-loose-ends</span></td><td><span class="st flight">3 of 4 done</span></td><td>decision lock + dead-code + audit done; queue-rank pending</td></tr>
+          <tr><td><span class="feat">fix-youtube-transcript-fetch</span></td><td><span class="st flight">Shaped</span></td><td>Cloud Run IP blocked; multi-client retry + paste fallback</td></tr>
+          <tr><td><span class="feat">adapt-demo-artifact-surfaces</span></td><td><span class="st prop">Framework</span></td><td>reusable sortable table + sparklines + insight cards</td></tr>
+          <tr><td><span class="feat">blinklife-integration</span></td><td><span class="st prop">Blocked</span></td><td>BlinkLife API lacks assignedTo/sharing — awaiting spike</td></tr>
+          <tr><td><span class="feat">full-historical-migration</span></td><td><span class="st prop">Blocked</span></td><td>depends on backend decision below</td></tr>
+          <tr><td><span class="feat">airtable-direct-pivot</span></td><td><span class="st prop">Decision</span></td><td>drop Postgres, Airtable as direct backend — not yet locked</td></tr>
+          <tr><td><span class="feat">interim-hybrid-airtable-two-way-sync</span></td><td><span class="st none">Superseded</span></td><td>replaced by the pivot plan above; kept as fallback</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== NEXT ===================== -->
+<section id="next">
+  <div class="wrap">
+    <p class="layer-tag">Decisions &amp; next steps</p>
+    <h2>What needs a call</h2>
+
+    <div class="duo">
+      <div>
+        <h3>Open decisions</h3>
+        <ul class="clean">
+          <li><b>Backend architecture</b> — lock or reject the Airtable-direct pivot. It unblocks the historical migration and changes how two-way write-back is finished.</li>
+          <li><b>Event-tier ranking</b> for the urgency score. <span class="owner">Moniek</span></li>
+          <li><b>Performance metrics home</b> — Prio table vs Asset Library, and the live source (Clarisights / Amplitude / Metabase). <span class="owner">team</span></li>
+          <li><b>Brain table names + stable key</b> to link on — blocks <code>brain_program_id</code> sync. <span class="owner">team</span></li>
+          <li><b>Blinkwork embedding contract</b> — identity hand-off, shared vs fresh Postgres, deploy pipeline.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Next steps, in order</h3>
+        <ul class="clean">
+          <li>Merge the in-flight nav/tour refactor after a regression pass.</li>
+          <li>Decide the backend architecture (pivot vs hybrid push).</li>
+          <li>Verify live Airtable schema for the media + clip tables.</li>
+          <li>Finish decision-lock logic + the QueueRank migration.</li>
+          <li>Harden YouTube transcript fetch (multi-client + paste fallback).</li>
+          <li>Wire a real performance source — the differentiator.</li>
+          <li>Phase B de-hardcode pass + WCAG AA on brand/gold/status colors.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="callout purple"><b>The one differentiator to protect:</b> the performance loop. Schema is ready and a real metric source is connected at Mindvalley already (Clarisights / Amplitude / Ahrefs). Wiring it is what makes the portal answer “who edited this <em>and</em> how did it perform” — the reason this isn't just another DAM.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Mindvalley Content Production &amp; Management Portal · status report</span>
+    <span>Compiled 28 Jun 2026 · main @ dfbb8fb · architecture: Hybrid (Postgres today)</span>
+  </div>
+</footer>
