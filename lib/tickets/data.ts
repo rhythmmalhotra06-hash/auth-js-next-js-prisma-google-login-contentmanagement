@@ -9,6 +9,7 @@ import { TICKETS } from '@/lib/airtable/field-map';
 import { listAll, getRecord } from '@/lib/airtable/rest';
 import { nameMap, firstLinkedName, firstLinkedId, resolveLinkedNames } from '@/lib/repositories/reference.repository';
 import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
+import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
 
 const F = TICKETS.fields;
@@ -33,6 +34,10 @@ export interface QueueTicket {
 }
 
 export interface EmployeeOption { id: string; name: string }
+
+/** An assignable person — the only people tickets get assigned to: Employee creatives
+ *  (Creative Team set) and active Contractor/Freelancers. `group` drives option grouping. */
+export interface AssigneeOption { id: string; name: string; group: 'Creatives' | 'Freelancers & contractors' }
 
 const str = (v: unknown): string | null => {
   if (v == null) return null;
@@ -59,12 +64,15 @@ const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't
 const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;
 
 const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
-  L.assignedCreative, L.requestedBy, L.eventTypes, L.assetTypes];
+  L.assignedCreative, L.assignedContractor, L.requestedBy, L.eventTypes, L.assetTypes];
 
 // Maps a raw Prio Requests record to a QueueTicket (+ assigneeId for filtering).
+// Assignee can be an Employee creative OR a Contractor/Freelancer — resolve whichever
+// link is set (creative takes precedence if, rarely, both are present).
 function mapTicketRow(
   rec: { id: string; fields: unknown },
   employees: Map<string, string>, eventTypes: Map<string, string>, assetTypes: Map<string, string>,
+  contractors: Map<string, string> = new Map(),
 ): QueueTicket & { assigneeId: string | null } {
   const f = rec.fields as Record<string, unknown>;
   return {
@@ -72,8 +80,8 @@ function mapTicketRow(
     title: str(f[F.name]) ?? '(untitled)',
     priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
     queueRank: num(f[F.queueRank]),
-    assignee: firstLinkedName(f[L.assignedCreative], employees),
-    assigneeId: firstLinkedId(f[L.assignedCreative]),
+    assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
+    assigneeId: firstLinkedId(f[L.assignedCreative]) ?? firstLinkedId(f[L.assignedContractor]),
     ticketStatus: str(f[F.ticketStatus]),
     prioStatus: str(f[F.prioStatus]),
     eventType: firstLinkedName(f[L.eventTypes], eventTypes),
@@ -91,18 +99,39 @@ export async function getActiveEmployees(): Promise<EmployeeOption[]> {
   return rows.map((r) => ({ id: r.id, name: r.name })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/**
+ * The only people a ticket gets assigned to: Employee **creatives** (those with a
+ * Creative Team set) plus active **Contractor/Freelancers**. Used by the assignee
+ * filter so it lists assignable people, not every employee in the org.
+ */
+export async function getEligibleAssignees(): Promise<AssigneeOption[]> {
+  const [employees, contractors] = await Promise.all([
+    listActiveEmployeeRecords(),
+    listActiveContractorRecords(),
+  ]);
+  const creatives: AssigneeOption[] = employees
+    // A creative is anyone on a Creative Team (Airtable-native signal, set for creatives
+    // only) or carrying an Editor/Designer app role — the people tickets route to.
+    .filter((e) => !!e.team || e.roles.includes('Editor') || e.roles.includes('Designer'))
+    .map((e) => ({ id: e.id, name: e.name, group: 'Creatives' as const }));
+  const freelancers: AssigneeOption[] = contractors
+    .map((c) => ({ id: c.id, name: c.name, group: 'Freelancers & contractors' as const }));
+  const byName = (a: AssigneeOption, b: AssigneeOption) => a.name.localeCompare(b.name);
+  return [...creatives.sort(byName), ...freelancers.sort(byName)];
+}
+
 export async function getQueueTickets(opts: { assigneeId?: string; includeCompleted?: boolean } = {}): Promise<QueueTicket[]> {
-  const [res, employees, eventTypes, assetTypes] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, contractors] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
       // Stakeholder/post-prod views pass includeCompleted to also surface Done/Won't Do.
       ...(opts.includeCompleted ? {} : { filterByFormula: ACTIVE_FILTER }),
       fields: QUEUE_FIELDS,
     }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'),
   ]);
   if (!res.ok) return [];
 
-  let rows = res.data.map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes));
+  let rows = res.data.map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors));
 
   if (opts.assigneeId) rows = rows.filter((r) => r.assigneeId === opts.assigneeId);
 
@@ -124,18 +153,18 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
  * scanning all ~9k Done rows via the includeCompleted path.
  */
 export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
-  const [res, employees, eventTypes, assetTypes] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, contractors] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
       filterByFormula: SHIPPED_FILTER,
       sort: [{ field: 'Created', direction: 'desc' }],
       maxRecords: limit,
       fields: QUEUE_FIELDS,
     }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'),
   ]);
   if (!res.ok) return [];
   return res.data.map((rec) => {
-    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes);
+    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes, contractors);
     return rest;
   });
 }
@@ -151,18 +180,18 @@ export async function getMyRequests(employee: { id: string; name: string }): Pro
   if (!employee?.name) return [];
   const safe = employee.name.replace(/["\\]/g, '\\$&');
   const formula = `FIND(LOWER("${safe}"), LOWER(ARRAYJOIN({Requested By}))) > 0`;
-  const [res, employees, eventTypes, assetTypes] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, contractors] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
       filterByFormula: formula,
       sort: [{ field: 'Created', direction: 'desc' }],
       maxRecords: 1000,
       fields: QUEUE_FIELDS,
     }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'),
   ]);
   if (!res.ok) return [];
   return res.data
-    .map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes))
+    .map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors))
     .filter((t) => t.requesterId === employee.id) // exact: drop same-name collisions
     .map(({ assigneeId: _drop, ...rest }) => rest);
 }
@@ -204,9 +233,9 @@ export interface TicketDetail {
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
-  const [res, employees, eventTypes, assetTypes, authorsMap, calendars, dimensionsMap] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, authorsMap, calendars, dimensionsMap, contractors] = await Promise.all([
     getRecord(TICKETS.baseId, TICKETS.tableId, id),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('authors'), nameMap('officialCalendars'), nameMap('dimensions'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('authors'), nameMap('officialCalendars'), nameMap('dimensions'), nameMap('contractors'),
   ]);
   if (!res.ok) return null;
   const f = res.data.fields as Record<string, unknown>;
@@ -251,8 +280,8 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     assetType: firstLinkedName(f[L.assetTypes], assetTypes),
     requester: firstLinkedName(f[L.requestedBy], employees),
     requesterId: firstLinkedId(f[L.requestedBy]),
-    assignee: firstLinkedName(f[L.assignedCreative], employees),
-    assigneeId: firstLinkedId(f[L.assignedCreative]),
+    assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
+    assigneeId: firstLinkedId(f[L.assignedCreative]) ?? firstLinkedId(f[L.assignedContractor]),
     officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),
     authors: speakerNames,
     // Audit trail + approval history live in Airtable's record revision history now.

@@ -1,13 +1,14 @@
 // Reference name maps (recId → name) for resolving Prio Requests link fields when
 // rendering tickets. Small, slow-changing tables — cached ~5min. Airtable-direct.
 
-import { EMPLOYEES, EVENT_TYPES, ASSET_TYPES, AUTHORS, OFFICIAL_CALENDARS, DIMENSIONS } from '@/lib/airtable/field-map';
+import { EMPLOYEES, CONTRACTORS, EVENT_TYPES, ASSET_TYPES, AUTHORS, OFFICIAL_CALENDARS, DIMENSIONS } from '@/lib/airtable/field-map';
 import { listAll } from '@/lib/airtable/rest';
 
 interface NameSource { baseId: string; tableId: string; nameField: string; fallbackField?: string }
 
 const SOURCES: Record<string, NameSource> = {
   employees: { baseId: EMPLOYEES.baseId, tableId: EMPLOYEES.tableId, nameField: EMPLOYEES.fields.name },
+  contractors: { baseId: CONTRACTORS.baseId, tableId: CONTRACTORS.tableId, nameField: CONTRACTORS.fields.name },
   eventTypes: { baseId: EVENT_TYPES.baseId, tableId: EVENT_TYPES.tableId, nameField: EVENT_TYPES.fields.name },
   assetTypes: { baseId: ASSET_TYPES.baseId, tableId: ASSET_TYPES.tableId, nameField: ASSET_TYPES.fields.name, fallbackField: ASSET_TYPES.fields.fullName },
   authors: { baseId: AUTHORS.baseId, tableId: AUTHORS.tableId, nameField: AUTHORS.fields.name },

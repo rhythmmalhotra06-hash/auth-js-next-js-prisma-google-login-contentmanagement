@@ -122,6 +122,19 @@ export const EMPLOYEES = {
   },
 } as const;
 
+// 👷🏼 Contractor/Freelancers — the second pool tickets get assigned to (via Prio
+// Requests "Assigned Contractor/Freelancer"). Tickets assign to either an Employee
+// creative OR a contractor here; nobody else.
+export const CONTRACTORS = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblRhzXG5vea37rYr',
+  fields: {
+    name: 'flddODE3TVJ1REDTY', // "Name"
+    status: 'fldrpLK9VCaXgykQD', // "Status" (singleSelect) → active = (value === "Active")
+    serviceLevel: 'fldJIpVXOavKBOYet', // "Team/Service Level" (singleSelect)
+  },
+} as const;
+
 export const DIMENSIONS = {
   baseId: BASES.creativeServices,
   tableId: 'tblHSG0MpdvUI9Z4X', // 📦 Dimensions

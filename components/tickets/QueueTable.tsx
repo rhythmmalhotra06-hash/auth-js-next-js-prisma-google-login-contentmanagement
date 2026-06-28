@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useTableView, type ColumnDef } from '@/components/ui/table/useTableView';
 import { SortableTh } from '@/components/ui/table/SortableTh';
 import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { loadMap, riskOf } from '@/lib/tickets/intel';
 import type { QueueTicket } from '@/lib/tickets/data';
 
@@ -146,10 +147,10 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         <input className="qsearch" type="search" placeholder="Search tickets…" value={q} onChange={(e) => setQ(e.target.value)}
           style={{ width: 220, flex: '0 1 220px' }} aria-label="Search tickets by title" />
         {FILTERS.map((f) => (
-          <select key={f.key} value={sel[f.key]} onChange={(e) => setSel((s) => ({ ...s, [f.key]: e.target.value }))}>
-            <option value="">{f.label}</option>
-            {options[f.key].map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
+          <SearchableSelect key={f.key} value={sel[f.key]} allLabel={f.label} placeholder={f.label}
+            ariaLabel={f.label} searchPlaceholder="Search…"
+            options={options[f.key].map((o) => ({ value: o, label: o }))}
+            onChange={(v) => setSel((s) => ({ ...s, [f.key]: v }))} />
         ))}
         {(activeFilters > 0 || q) && (
           <button className="btn sm ghost" onClick={() => { setSel({ prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '' }); setQ(''); }}>

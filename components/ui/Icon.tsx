@@ -24,6 +24,7 @@ const PATHS: Record<string, string> = {
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z|M12 7v5l3 2',
   arrow: 'M5 12h14M13 6l6 6-6 6',
   chevron: 'M6 9l6 6 6-6',
+  search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z|M21 21l-4.35-4.35',
   columns: 'M3 4h18v16H3z|M9 4v16M15 4v16',
   menu: 'M3 6h18M3 12h18M3 18h18',
   doc: 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z|M14 3v6h6',

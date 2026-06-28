@@ -1,18 +1,23 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import type { AssigneeOption } from '@/lib/tickets/data';
 
-// Stand-in for "the logged-in editor" until Blinkwork SSO maps a session → employee.
-export function EmployeePicker({ employees, value }: { employees: { id: string; name: string }[]; value: string }) {
+// Editor-queue assignee filter. Lists only the people tickets are actually assigned
+// to — Employee creatives and Contractor/Freelancers — and is type-to-filter.
+export function EmployeePicker({ assignees, value }: { assignees: AssigneeOption[]; value: string }) {
   const router = useRouter();
   return (
-    <select
+    <SearchableSelect
       value={value}
-      onChange={(e) => router.push(e.target.value ? `/editor?assignee=${e.target.value}` : '/editor')}
-      className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]"
-    >
-      <option value="">All editors</option>
-      {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-    </select>
+      onChange={(v) => router.push(v ? `/editor?assignee=${v}` : '/editor')}
+      options={assignees.map((a) => ({ value: a.id, label: a.name, group: a.group }))}
+      allLabel="All assignees"
+      placeholder="All assignees"
+      searchPlaceholder="Search people…"
+      ariaLabel="Filter by assignee"
+      width={260}
+    />
   );
 }

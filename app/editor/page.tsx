@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { AppShell } from '@/components/ui/AppShell';
-import { getQueueTickets, getActiveEmployees } from '@/lib/tickets/data';
+import { getQueueTickets, getEligibleAssignees } from '@/lib/tickets/data';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { EmployeePicker } from '@/components/tickets/EmployeePicker';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
@@ -55,13 +55,13 @@ async function EditorBody({ assignee }: { assignee?: string }) {
 export default async function EditorPage({ searchParams }: { searchParams: Promise<{ assignee?: string }> }) {
   await guardRoute('/editor');
   const { assignee } = await searchParams;
-  const employees = await getActiveEmployees();
+  const assignees = await getEligibleAssignees();
 
   return (
     <AppShell
       title="Editor — My Queue"
       subtitle={assignee ? 'assigned · next up first' : 'Pick an editor to see their assigned work'}
-      actions={<EmployeePicker employees={employees} value={assignee ?? ''} />}
+      actions={<EmployeePicker assignees={assignees} value={assignee ?? ''} />}
     >
       <Suspense fallback={<QueueSkeleton kpis={3} />}>
         <EditorBody assignee={assignee} />
