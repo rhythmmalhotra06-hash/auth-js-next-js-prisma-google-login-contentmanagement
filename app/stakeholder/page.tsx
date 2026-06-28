@@ -5,7 +5,6 @@ import { getMyRequests } from '@/lib/tickets/data';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
-import { guardRoute } from '@/lib/auth/route-guard';
 import { getEmployeeForSession } from '@/lib/employee';
 
 export const dynamic = 'force-dynamic';
@@ -54,7 +53,6 @@ async function MyRequestsBody() {
 // "My requests" — the read-only stakeholder/agency surface. A person sees only the
 // requests they raised, their status, and a read-only detail per request.
 export default async function MyRequestsPage() {
-  await guardRoute('/stakeholder');
   return (
     <AppShell title="My requests" subtitle="Read-only · every request you’ve raised and where it stands.">
       <Suspense fallback={<QueueSkeleton kpis={3} />}>

@@ -6,7 +6,6 @@ import { TierBadge } from '@/components/ui/TierBadge';
 import { BriefText } from '@/components/ui/BriefText';
 import { Icon } from '@/components/ui/Icon';
 import { getTicketDetail } from '@/lib/tickets/data';
-import { guardRoute } from '@/lib/auth/route-guard';
 import { getEmployeeForSession } from '@/lib/employee';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +22,6 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 // Read-only request detail for the person who raised it. Visible to them only —
 // a request raised by someone else 404s here (they have no edit surface at all).
 export default async function MyRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await guardRoute('/stakeholder');
   const { id } = await params;
   const [t, me] = await Promise.all([getTicketDetail(id), getEmployeeForSession()]);
   if (!t || !me || t.requesterId !== me.id) notFound();

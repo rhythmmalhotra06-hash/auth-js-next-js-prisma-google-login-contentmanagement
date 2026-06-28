@@ -98,15 +98,13 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   const exec = r.includes('Executive / CEO');
   const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
   const ed = isAdmin || r.includes('Editor') || r.includes('Designer');
-  // Shares (read-only stakeholder/agency surface) only for external/read-only roles
-  // who have no Queue or My-work of their own — for managers/editors/founders it's a
-  // redundant view of the same tickets, so it's hidden from their nav.
-  const externalOnly = !mgr && !ed && !exec && (r.includes('Stakeholder') || r.includes('Agency / External'));
   const items: NavItem[] = [];
   if (isAdmin || exec) items.push({ href: '/studio', label: 'Studio', icon: 'sparkle' });
   if (mgr) items.push({ href: '/manager', label: 'Queue', icon: 'list' });
   if (ed) items.push({ href: '/editor', label: 'My work', icon: 'play' });
-  if (externalOnly) items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox' });
+  // "My requests" — the read-only view of the requests YOU raised. Useful to every
+  // role (anyone can submit intake), and for pure stakeholders it's their main surface.
+  items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox' });
   if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film' });
   items.push({ href: '/performance', label: 'Insights', icon: 'chart' });
   if (isAdmin) {
