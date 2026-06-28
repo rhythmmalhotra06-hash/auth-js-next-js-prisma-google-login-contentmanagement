@@ -43,7 +43,7 @@ async function MyRequestsBody() {
       ) : (
         <>
           <div className="sec-head"><h3>Your requests</h3><span className="hint">status of everything you’ve raised</span></div>
-          <QueueTable tickets={mine} basePath="/stakeholder" />
+          <QueueTable tickets={mine} basePath="/stakeholder" storageKey="stakeholder-queue" />
         </>
       )}
     </>

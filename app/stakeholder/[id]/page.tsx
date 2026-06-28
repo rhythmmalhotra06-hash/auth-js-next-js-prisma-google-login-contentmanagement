@@ -45,40 +45,40 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
               <div className="v"><BriefText text={t.creativeBrief} /></div>
             </div>
             <div className="grid2">
-              <Field label="Call to action" value={t.cta} />
+              <Field label="Event type" value={t.eventType} />
+              <Field label="Asset type" value={t.assetType} />
+              <Field label="Project" value={t.project} />
+              <Field label="Dimensions" value={t.dimensions} />
+              <Field label="Team" value={t.team} />
+              <Field label="Service level" value={t.teamServiceLevel} />
+              <Field label="Team lead" value={t.teamLead} />
+              <Field label="Requested by" value={t.requester} />
+              <Field label="Assigned creative" value={t.assignee} />
               <Field label="Type of request" value={t.typeOfRequest} />
-              <Field label="Made by" value={t.assignee} />
               <Field label="Due date" value={t.dueDate} />
+              <Field label="Call to action" value={t.cta} />
               <Field label="Official calendar" value={t.officialCalendar} />
               <Field label="Speakers / authors" value={t.authors.join(', ')} />
             </div>
             {t.notes && <Field label="Notes" value={t.notes} />}
           </div>
 
-          {t.assets.length > 0 && (
-            <div className="card pad">
-              <div className="sec-head" style={{ margin: '0 0 12px' }}><h3>Deliverables</h3></div>
-              <div className="vstack">
-                {t.assets.map((a) => (
-                  <div key={a.id} className="vrow">
-                    <div className="vthumb" style={{ background: a.kind === 'final' ? 'var(--brand)' : 'var(--g500)' }}>{a.kind === 'final' ? 'FIN' : 'RAW'}</div>
-                    <div className="meta">
-                      <b>{a.kind === 'final' ? 'Final asset' : 'Raw source'}</b>
-                      {a.fileUrl && <a href={a.fileUrl} target="_blank" rel="noopener noreferrer">{a.fileUrl}</a>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="card pad">
+            <div className="sec-head" style={{ margin: '0 0 12px' }}><h3>Files</h3><span className="hint">final asset &amp; working files</span></div>
+            <Deliverables assets={t.assets} folderUrl={t.folderUrl} />
+          </div>
         </div>
 
         <div className="stack">
           <div className="card pad">
-            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 12 }}>Status</div>
+            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 12 }}>Status &amp; priority</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div><div className="subtle" style={{ fontSize: 11.5, marginBottom: 4 }}>Production</div><TicketStatusBadge status={t.ticketStatus} /></div>
               <div><div className="subtle" style={{ fontSize: 11.5, marginBottom: 4 }}>Priority</div><PrioStatusBadge status={t.prioStatus} /></div>
+              <div className="grid2" style={{ gap: 10 }}>
+                <div><div className="subtle" style={{ fontSize: 11.5, marginBottom: 2 }}>Priority score</div><span className="score">{t.priorityScore ?? '—'}</span></div>
+                <div><div className="subtle" style={{ fontSize: 11.5, marginBottom: 2 }}>Ranking</div><span className="score">{t.queueRank ?? '—'}</span></div>
+              </div>
               <div><div className="subtle" style={{ fontSize: 11.5, marginBottom: 4 }}>Assigned to</div><span>{t.assignee || <span className="subtle">unassigned</span>}</span></div>
             </div>
           </div>
@@ -89,5 +89,35 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
         </div>
       </div>
     </AppShell>
+  );
+}
+
+const FILE_META: Record<string, { label: string; tag: string; bg: string }> = {
+  final: { label: 'Final asset', tag: 'FIN', bg: 'var(--brand)' },
+  raw: { label: 'Working file', tag: 'RAW', bg: 'var(--g500)' },
+  folder: { label: 'Asset folder', tag: 'DIR', bg: 'var(--blue)' },
+};
+
+function Deliverables({ assets, folderUrl }: { assets: { id: string; kind: string; fileUrl: string | null }[]; folderUrl: string | null }) {
+  const rows = assets.filter((a) => a.fileUrl);
+  if (rows.length === 0) {
+    return <p className="subtle" style={{ fontSize: 13 }}>No files attached yet — they’ll appear here once the team uploads them.{folderUrl ? '' : ''}</p>;
+  }
+  return (
+    <div className="vstack">
+      {rows.map((a) => {
+        const m = FILE_META[a.kind] ?? FILE_META.final;
+        return (
+          <a key={a.id} href={a.fileUrl!} target="_blank" rel="noopener noreferrer" className="vrow" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className="vthumb" style={{ background: m.bg }}>{m.tag}</div>
+            <div className="meta">
+              <b>{m.label}</b>
+              <span style={{ wordBreak: 'break-all' }}>{a.fileUrl}</span>
+            </div>
+            <Icon name="ext" size={15} />
+          </a>
+        );
+      })}
+    </div>
   );
 }

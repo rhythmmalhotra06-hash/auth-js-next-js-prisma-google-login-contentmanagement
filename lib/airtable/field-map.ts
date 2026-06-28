@@ -33,6 +33,10 @@ export const TICKETS = {
     publishedAt: 'fldq55IEq3aZMDwRn', // "📅 Published Date"
     typeOfRequest: 'fldlfaGYlYlTxNy1s', // "Type of Request" (Video | Design)
     teamServiceLevel: 'fldHGT2p5SObJEzPh', // "Team/Service Level"
+    creativeServiceType: 'fldHav5N7f7Rpi08Q', // "Creative Service Type" (multipleSelects) → team
+    teamLeadLookup: 'fldXKxwZThvwjpaeU', // "Team Lead (from 🛎️ Asset Type)" (lookup)
+    dimensionsLookup: 'fldDSN1qrA8Yqbwb1', // "Dimensions (from 🛎️ Asset Type)" (lookup)
+    creativeTeamLookup: 'flddD9CYSvUSB0yVx', // "Creative Team (Editors)" (lookup)
     notes: 'fldVoECGWiDrOhbAt', // "V's Notes" (multilineText)
     score: 'fldjY4VfI44oGmtuS', // "SCORE" (formula) → priorityScore
     // file/link fields → assets (Stage 2a)

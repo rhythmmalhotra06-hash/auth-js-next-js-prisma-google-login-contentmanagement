@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 async function TicketsBody() {
   const tickets = await getQueueTickets();
-  return <QueueTable tickets={tickets} />;
+  return <QueueTable tickets={tickets} storageKey="all-queue" />;
 }
 
 export default function TicketsPage() {

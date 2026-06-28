@@ -51,7 +51,7 @@ async function EditorBody({ assignee }: { assignee?: string }) {
         <ApprovedClipsSection />
       </Suspense>
       <div className="sec-head"><h3>Up next in your queue</h3><span className="hint">pulled in priority order</span></div>
-      <QueueTable tickets={tickets} />
+      <QueueTable tickets={tickets} storageKey="editor-queue" />
     </>
   );
 }

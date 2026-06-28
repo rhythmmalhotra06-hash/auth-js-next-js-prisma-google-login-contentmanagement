@@ -48,14 +48,18 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               <div className="v"><BriefText text={t.creativeBrief} /></div>
             </div>
             <div className="grid2">
+              <Field label="Project" value={t.project} />
+              <Field label="Dimensions" value={t.dimensions} lookup />
+              <Field label="Team" value={t.team} />
+              <Field label="Service level" value={t.teamServiceLevel} />
+              <Field label="Team lead" value={t.teamLead} lookup />
+              <Field label="Requested by" value={t.requester} lookup />
               <Field label="Call to action" value={t.cta} />
               <Field label="Type of request" value={t.typeOfRequest} />
-              <Field label="Team / service level" value={t.teamServiceLevel} />
               <Field label="Due date" value={t.dueDate} />
-              <Field label="Requested by" value={t.requester} lookup />
               <Field label="Official calendar" value={t.officialCalendar} lookup />
               <Field label="Speakers / authors" value={t.authors.join(', ')} />
-              <Field label="Priority score" value={t.priorityScore ?? 'unscored'} />
+              <Field label="Priority · ranking" value={`${t.priorityScore ?? 'unscored'} · #${t.queueRank ?? '—'}`} />
             </div>
             {t.notes && <Field label="Notes" value={t.notes} />}
           </div>

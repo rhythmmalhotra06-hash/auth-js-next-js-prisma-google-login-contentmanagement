@@ -31,7 +31,7 @@ async function ManagerBody() {
       <Suspense fallback={<CardSkeleton />}>
         <ApprovedClipsSection />
       </Suspense>
-      <QueueTable tickets={tickets} />
+      <QueueTable tickets={tickets} storageKey="manager-queue" />
     </>
   );
 }

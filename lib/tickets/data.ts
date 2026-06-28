@@ -41,6 +41,16 @@ const str = (v: unknown): string | null => {
   return String(v);
 };
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
+// Lookup / multipleSelects fields arrive as arrays of strings or {name} objects.
+const arr = (v: unknown): string | null => {
+  if (Array.isArray(v)) {
+    const parts = v
+      .map((x) => (typeof x === 'string' ? x : x && typeof x === 'object' && 'name' in x ? String((x as { name: unknown }).name) : null))
+      .filter((s): s is string => !!s);
+    return parts.length ? [...new Set(parts)].join(', ') : null;
+  }
+  return str(v);
+};
 
 // Active = everything except terminal states; keeps us well under the 10k table size.
 const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
@@ -171,6 +181,12 @@ export interface TicketDetail {
   prioStatus: string | null;
   typeOfRequest: string | null;
   teamServiceLevel: string | null;
+  team: string | null;
+  project: string | null;
+  dimensions: string | null;
+  teamLead: string | null;
+  queueRank: number | null;
+  folderUrl: string | null;
   sourceLinks: string | null;
   notes: string | null;
   priorityScore: string | null;
@@ -206,6 +222,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   pushAsset('final', f[F.final9x16]);
   pushAsset('final', f[F.final4x5]);
   pushAsset('final', f[F.outputLink]);
+  pushAsset('folder', f[F.assetFolderLink]);
 
   const speakerNames = Array.isArray(f[L.speakers])
     ? (f[L.speakers] as unknown[]).map((rid) => (typeof rid === 'string' ? authorsMap.get(rid) : null)).filter((n): n is string => !!n)
@@ -221,6 +238,12 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     prioStatus: str(f[F.prioStatus]),
     typeOfRequest: str(f[F.typeOfRequest]),
     teamServiceLevel: str(f[F.teamServiceLevel]),
+    team: arr(f[F.creativeServiceType]),
+    project: str(f[F.projectProgram]),
+    dimensions: arr(f[F.dimensionsLookup]),
+    teamLead: arr(f[F.teamLeadLookup]),
+    queueRank: num(f[F.queueRank]),
+    folderUrl: str(f[F.assetFolderLink]),
     sourceLinks: str(f[F.rawFileUrl]),
     notes: cleanBrief(str(f[F.notes])),
     priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
