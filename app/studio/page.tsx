@@ -9,6 +9,7 @@ import { TicketStatusBadge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getQueueTickets, getRecentShipped } from '@/lib/tickets/data';
+import { getTicketMetrics, asOf } from '@/lib/metrics/snapshot';
 import { listMediaSources } from '@/lib/media/repository';
 import { getAdminAccess } from '@/lib/admin/access';
 import { isFounder, homeRouteForRoles } from '@/lib/roles';
@@ -18,11 +19,13 @@ export const dynamic = 'force-dynamic';
 const IN_PROD = ['In Progress', 'In Revision', 'Review', 'Approved', 'Shipping'];
 
 async function StudioBody() {
-  // Active (628 rows) drives the live picture; recent-shipped is capped so we never
-  // scan the ~9k Done history. Both run in parallel with the media inbox.
-  const [active, shipped, mediaRes] = await Promise.all([
+  // Active (628 rows) drives the live picture; recent-shipped is capped + the
+  // all-time Shipped count comes from the nightly snapshot — so we never scan the
+  // ~9k Done history. All run in parallel with the media inbox.
+  const [active, shipped, metrics, mediaRes] = await Promise.all([
     getQueueTickets(),
     getRecentShipped(12),
+    getTicketMetrics(),
     listMediaSources(100),
   ]);
   const media = mediaRes.ok ? mediaRes.data : [];
@@ -42,7 +45,8 @@ async function StudioBody() {
         <Kpi label="Active requests" value={active.length} sub="in flight" i={0} />
         <Kpi label="In production" value={inProd} sub="being made now" i={1} />
         <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={2} />
-        <Kpi tone="alert" icon={<Icon name="check" size={13} />} label="Awaiting you" value={awaiting.length} sub="need your sign-off" i={3} />
+        <Kpi label="Shipped" value={metrics ? metrics.shipped.toLocaleString() : '—'} sub={metrics ? `all-time · ${asOf(metrics.computedAt)}` : 'awaiting first sync'} i={3} />
+        <Kpi tone="alert" icon={<Icon name="check" size={13} />} label="Awaiting you" value={awaiting.length} sub="need your sign-off" i={4} />
       </KpiGrid>
 
       {awaiting.length > 0 && (
@@ -112,7 +116,7 @@ export default async function StudioPage() {
 
   return (
     <AppShell title="Studio" subtitle="Founder overview — what the team is producing for you">
-      <Suspense fallback={<QueueSkeleton kpis={4} />}>
+      <Suspense fallback={<QueueSkeleton kpis={5} />}>
         <StudioBody />
       </Suspense>
     </AppShell>

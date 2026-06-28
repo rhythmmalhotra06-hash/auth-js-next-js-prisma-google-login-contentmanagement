@@ -35,7 +35,12 @@ export default async function Home() {
         <div className="cover-eyebrow cv cv1">Mindvalley Content Studio</div>
         <h1 className="cover-h1 cv cv2">Everything the team makes, <span className="em">end&nbsp;to&nbsp;end</span>.</h1>
         <p className="cover-sub cv cv3">One home for creative production — from request to performance. Sign in with your Mindvalley account to continue.</p>
-        <div className="cover-cta cv cv4">
+        <div className="cover-stats cv cv4">
+          <div className="cover-stat"><div className="n">4+ <span className="u">→ 1</span></div><div className="l">Airtable bases &amp; Jira, unified</div></div>
+          <div className="cover-stat"><div className="n">8</div><div className="l">lifecycle stages, one queue</div></div>
+          <div className="cover-stat"><div className="n">Unlimited</div><div className="l">external reviewers, no paid seat</div></div>
+        </div>
+        <div className="cover-cta cv cv5">
           <form action={async () => { 'use server'; await signIn('google', { redirectTo: '/' }); }}>
             <button type="submit" className="btn primary" style={{ padding: '13px 22px', fontSize: 14.5 }}>
               <GoogleIcon /> Continue with Google
@@ -44,7 +49,7 @@ export default async function Home() {
           <span className="muted" style={{ fontSize: 12.5, alignSelf: 'center' }}>Team-only · @mindvalley.com</span>
         </div>
         {DEV_LOGIN && (
-          <div className="cv cv5" style={{ marginTop: 22, maxWidth: 460 }}>
+          <div className="cv cv6" style={{ marginTop: 22, maxWidth: 460 }}>
             <DevLogin />
           </div>
         )}

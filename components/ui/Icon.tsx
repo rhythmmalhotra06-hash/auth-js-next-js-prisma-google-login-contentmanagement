@@ -23,6 +23,8 @@ const PATHS: Record<string, string> = {
   refresh: 'M21 12a9 9 0 1 1-3-6.7L21 8|M21 3v5h-5',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z|M12 7v5l3 2',
   arrow: 'M5 12h14M13 6l6 6-6 6',
+  chevron: 'M6 9l6 6 6-6',
+  columns: 'M3 4h18v16H3z|M9 4v16M15 4v16',
   menu: 'M3 6h18M3 12h18M3 18h18',
   doc: 'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z|M14 3v6h6',
   link: 'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1|M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1',

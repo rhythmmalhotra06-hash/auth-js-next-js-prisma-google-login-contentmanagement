@@ -5,8 +5,10 @@ import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { FunnelCapacity } from '@/components/ui/FunnelCapacity';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { Icon } from '@/components/ui/Icon';
+import { InsightCard } from '@/components/ui/InsightCard';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
+import { getTicketMetrics, asOf } from '@/lib/metrics/snapshot';
 import { loadMap, riskOf, dueDays } from '@/lib/tickets/intel';
 import { getAdminAccess } from '@/lib/admin/access';
 import { getEmployeeForSession } from '@/lib/employee';
@@ -40,11 +42,11 @@ function RiskList({ tickets }: { tickets: QueueTicket[] }) {
 
 // Manager / admin → operational insights.
 async function ManagerInsights() {
-  // Active (628) + capped recent ships — never scan the ~9k Done history.
-  const [active, recentShipped] = await Promise.all([getQueueTickets(), getRecentShipped(12)]);
+  // Active (628) + capped recent ships + the nightly all-time snapshot — never scan
+  // the ~9k Done history.
+  const [active, recentShipped, metrics] = await Promise.all([getQueueTickets(), getRecentShipped(12), getTicketMetrics()]);
   const load = loadMap(active);
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
-  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
   const unassigned = active.filter((t) => !t.assignee).length;
   const atRisk = active.filter((t) => riskOf(t, load).level).length;
   const eds = [...load.keys()];
@@ -52,7 +54,7 @@ async function ManagerInsights() {
   return (
     <>
       <KpiGrid>
-        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={0} />
+        <Kpi label="Shipped" value={metrics ? metrics.shipped.toLocaleString() : '—'} sub={metrics ? `all-time · ${asOf(metrics.computedAt)}` : 'awaiting first sync'} i={0} />
         <Kpi label="In production" value={inProd} sub="moving now" i={1} />
         <Kpi tone="alert" icon={<Icon name="user" size={13} />} label="Unassigned" value={unassigned} sub="need an editor" i={2} />
         <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="At risk" value={atRisk} sub="likely to slip" i={3} />
@@ -90,9 +92,8 @@ async function EditorInsights() {
 
 // Founder / stakeholder → performance (deferred until a metrics source is wired).
 async function PerformanceInsights() {
-  const [active, published] = await Promise.all([getQueueTickets(), getRecentShipped(10)]);
+  const [active, published, metrics] = await Promise.all([getQueueTickets(), getRecentShipped(10), getTicketMetrics()]);
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
-  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
   return (
     <>
       <div className="banner future" style={{ marginBottom: 16 }}>
@@ -100,9 +101,18 @@ async function PerformanceInsights() {
         <div><b>Performance tracking arrives in a later phase.</b> Once published assets carry distribution links and Clarisights / Amplitude are connected, CTR, ROAS and views will surface here per asset. For now, here’s production throughput.</div>
       </div>
       <KpiGrid>
-        <Kpi label="In production" value={inProd} sub="moving now" i={0} />
-        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={1} />
+        <Kpi label="Shipped" value={metrics ? metrics.shipped.toLocaleString() : '—'} sub={metrics ? `all-time · ${asOf(metrics.computedAt)}` : 'awaiting first sync'} i={0} />
+        <Kpi label="In production" value={inProd} sub="moving now" i={1} />
       </KpiGrid>
+      <div className="sec-head"><h3>What’s working</h3><span className="hint"><Icon name="sparkle" size={12} /> propose-only · human approves</span></div>
+      <div className="stack" style={{ marginBottom: 18 }}>
+        <InsightCard
+          tone="warn"
+          icon="chart"
+          title="No performance signal connected yet"
+          detail="CTR, ROAS and views surface here per asset once published work carries a distribution link and a metrics source (Clarisights / Amplitude) is wired. Until then this stays empty rather than guessing."
+        />
+      </div>
       <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
       <div className="tw"><div className="tscroll"><table className="list">
         <thead><tr><th>Title</th><th>Made by</th></tr></thead>

@@ -10,6 +10,7 @@ import { StatusUpdater } from '@/components/tickets/StatusUpdater';
 import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
 import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 import { AssetPanel } from '@/components/tickets/AssetPanel';
+import { ApprovalRows } from '@/components/tickets/ApprovalRows';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +75,11 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <PrioStatusUpdater ticketId={t.id} current={t.prioStatus} />
             <label style={{ marginTop: 12 }}>Assignee</label>
             <AssigneeUpdater ticketId={t.id} current={t.assigneeId} employees={employees} />
+          </div>
+
+          <div className="card pad">
+            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Review &amp; approval</div>
+            <ApprovalRows approvals={t.approvals} />
           </div>
 
           <div className="card pad">

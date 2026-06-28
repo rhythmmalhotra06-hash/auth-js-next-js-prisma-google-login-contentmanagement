@@ -23,7 +23,7 @@ async function MyRequestsBody() {
       </div>
     );
   }
-  const mine = await getMyRequests(employee.id);
+  const mine = await getMyRequests({ id: employee.id, name: employee.name });
   const open = mine.filter((t) => !DONE(t.ticketStatus)).length;
   const inProd = mine.filter((t) => IN_PROD(t.ticketStatus)).length;
   const done = mine.filter((t) => DONE(t.ticketStatus)).length;
@@ -33,7 +33,7 @@ async function MyRequestsBody() {
       <KpiGrid>
         <Kpi label="Open requests" value={open} sub="in flight" i={0} />
         <Kpi label="In production" value={inProd} sub="being made now" i={1} />
-        <Kpi label="Delivered" value={done} sub="recently shipped" i={2} />
+        <Kpi label="Delivered" value={done} sub="all-time" i={2} />
       </KpiGrid>
 
       {mine.length === 0 ? (
@@ -56,7 +56,7 @@ async function MyRequestsBody() {
 export default async function MyRequestsPage() {
   await guardRoute('/stakeholder');
   return (
-    <AppShell title="My requests" subtitle="Read-only · the requests you’ve raised and where they stand.">
+    <AppShell title="My requests" subtitle="Read-only · every request you’ve raised and where it stands.">
       <Suspense fallback={<QueueSkeleton kpis={3} />}>
         <MyRequestsBody />
       </Suspense>

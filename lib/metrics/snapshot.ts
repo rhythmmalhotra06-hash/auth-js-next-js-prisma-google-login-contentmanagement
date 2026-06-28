@@ -1,0 +1,70 @@
+// Precomputed aggregate snapshots. Lifetime ticket counts (e.g. all-time Shipped)
+// require scanning the whole ~10k-row Airtable ticket table — far too slow for a
+// page load and uncomputable cheaply via the REST API (no server-side count). So a
+// nightly job (POST /api/metrics/refresh) scans once and persists the tally to
+// Postgres; dashboards read one cheap row via getTicketMetrics().
+
+import { prisma } from '@/lib/prisma';
+import { TICKETS } from '@/lib/airtable/field-map';
+import { listAll } from '@/lib/airtable/rest';
+
+const STATUS_FIELD = TICKETS.fields.ticketStatus;
+const SNAPSHOT_KEY = 'ticket_status_counts';
+
+export interface TicketMetrics {
+  total: number;
+  byStatus: Record<string, number>;
+  shipped: number; // count of the terminal "Done" status
+  computedAt: string; // ISO timestamp of the last refresh
+}
+
+const statusName = (v: unknown): string => {
+  if (typeof v === 'string') return v || '(none)';
+  if (v && typeof v === 'object' && 'name' in (v as object)) return String((v as { name: unknown }).name);
+  return '(none)';
+};
+
+/**
+ * Scan the full Airtable ticket table once (status field only), tally counts by
+ * status, and persist the snapshot. Background-only — pulls ~10k rows over ~100
+ * paced requests, so never call this from a page render.
+ */
+export async function refreshTicketMetrics(): Promise<TicketMetrics> {
+  const res = await listAll(TICKETS.baseId, TICKETS.tableId, { fields: [STATUS_FIELD] });
+  if (!res.ok) throw new Error(`Airtable read failed: ${res.error.message}`);
+
+  const byStatus: Record<string, number> = {};
+  for (const rec of res.data) {
+    const s = statusName((rec.fields as Record<string, unknown>)[STATUS_FIELD]);
+    byStatus[s] = (byStatus[s] ?? 0) + 1;
+  }
+  const data = { total: res.data.length, byStatus, shipped: byStatus['Done'] ?? 0 };
+
+  const row = await prisma.metricSnapshot.upsert({
+    where: { key: SNAPSHOT_KEY },
+    create: { key: SNAPSHOT_KEY, data },
+    update: { data },
+  });
+  return { ...data, computedAt: row.computedAt.toISOString() };
+}
+
+/**
+ * Cheap read of the latest ticket-status snapshot (one indexed row), or null if it
+ * has never been computed / the DB is unreachable — callers hide the lifetime KPI.
+ */
+export async function getTicketMetrics(): Promise<TicketMetrics | null> {
+  try {
+    const row = await prisma.metricSnapshot.findUnique({ where: { key: SNAPSHOT_KEY } });
+    if (!row) return null;
+    const d = row.data as { total: number; byStatus: Record<string, number>; shipped: number };
+    return { total: d.total, byStatus: d.byStatus, shipped: d.shipped, computedAt: row.computedAt.toISOString() };
+  } catch {
+    return null;
+  }
+}
+
+/** Short "as of" label for KPI subtitles, e.g. "as of Jun 28". */
+export function asOf(iso: string): string {
+  const d = new Date(iso);
+  return `as of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}

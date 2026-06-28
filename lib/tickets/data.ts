@@ -28,6 +28,8 @@ export interface QueueTicket {
   requesterId: string | null;
   typeOfRequest: string | null;
   dueDate: string | null;
+  /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
+  perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
 }
 
 export interface EmployeeOption { id: string; name: string }
@@ -129,15 +131,30 @@ export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
 }
 
 /**
- * All requests raised by a person (their own intake), in flight or recently shipped.
- * Requester is a link field (no server-side recId filter), so we scan the active set
- * plus a capped window of recent ships and filter by requesterId — covers a
- * stakeholder's current + recent requests without touching the ~9k Done history.
+ * The full archive of requests a person raised — every status, including the ~9k
+ * Done history. The "Requested By" link can't be filtered by recId server-side, but
+ * it resolves to the requester's Name in a formula, so we filter by name in Airtable
+ * (scans only their records, not the whole table) and then re-filter by requesterId
+ * client-side to drop any name collisions — so the result is exact.
  */
-export async function getMyRequests(employeeId: string): Promise<QueueTicket[]> {
-  const [active, recent] = await Promise.all([getQueueTickets({ includeCompleted: false }), getRecentShipped(100)]);
-  const seen = new Set<string>();
-  return [...active, ...recent].filter((t) => t.requesterId === employeeId && !seen.has(t.id) && seen.add(t.id));
+export async function getMyRequests(employee: { id: string; name: string }): Promise<QueueTicket[]> {
+  if (!employee?.name) return [];
+  const safe = employee.name.replace(/["\\]/g, '\\$&');
+  const formula = `FIND(LOWER("${safe}"), LOWER(ARRAYJOIN({Requested By}))) > 0`;
+  const [res, employees, eventTypes, assetTypes] = await Promise.all([
+    listAll(TICKETS.baseId, TICKETS.tableId, {
+      filterByFormula: formula,
+      sort: [{ field: 'Created', direction: 'desc' }],
+      maxRecords: 1000,
+      fields: QUEUE_FIELDS,
+    }),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
+  ]);
+  if (!res.ok) return [];
+  return res.data
+    .map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes))
+    .filter((t) => t.requesterId === employee.id) // exact: drop same-name collisions
+    .map(({ assigneeId: _drop, ...rest }) => rest);
 }
 
 export interface TicketEventRow { id: string; fromState: string | null; toState: string; actor: string | null; note: string | null; createdAt: string }
