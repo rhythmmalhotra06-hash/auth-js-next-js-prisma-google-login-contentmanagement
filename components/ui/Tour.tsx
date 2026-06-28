@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Icon } from '@/components/ui/Icon';
 import type { NavItem } from '@/lib/roles';
 
 const NOTE: Record<string, string> = {
@@ -28,14 +27,15 @@ export function Tour({ nav }: { nav: NavItem[] }) {
     router.push(steps[idx].href);
   }
 
-  if (i === null) {
-    return (
-      <button className="btn" onClick={() => go(0)}
-        style={{ position: 'fixed', left: 22, bottom: 22, zIndex: 50, boxShadow: 'var(--sh-2)' }}>
-        <Icon name="play" size={15} /> Guided tour
-      </button>
-    );
-  }
+  // Launched from the sidebar's "Guided tour" nav item (no floating button).
+  useEffect(() => {
+    const start = () => go(0);
+    window.addEventListener('portal:tour', start);
+    return () => window.removeEventListener('portal:tour', start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steps.length]);
+
+  if (i === null) return null;
 
   const s = steps[i];
   return (

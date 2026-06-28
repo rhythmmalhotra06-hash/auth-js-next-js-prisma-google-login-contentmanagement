@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/cn';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import type { NavItem } from '@/lib/roles';
+import { groupNav, type NavItem } from '@/lib/roles';
 import { signOutAction } from '@/app/auth-actions';
 
 export function ShellChrome({
@@ -27,20 +27,30 @@ export function ShellChrome({
       <aside className={cn('side', menu && 'show')}>
         <Link href="/studio" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="brand-mark">M</div>
-          <div className="brand-txt"><b>Studio</b><span>Mindvalley</span></div>
+          <div className="brand-txt"><b>Content Portal</b><span>Creative services</span></div>
         </Link>
-        <div className="nav-label">Navigate</div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {nav.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <Link key={item.href} href={item.href} onClick={() => setMenu(false)}
-                className={cn('nav', active && 'active')}>
-                <Icon name={item.icon as IconName} size={18} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          {groupNav(nav).map(({ group, items }) => (
+            <div key={group} style={{ display: 'contents' }}>
+              <div className="nav-label">{group}</div>
+              {items.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <Link key={item.href} href={item.href} onClick={() => setMenu(false)}
+                    className={cn('nav', active && 'active')}>
+                    <Icon name={item.icon as IconName} size={18} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+          <div className="nav-label">Help</div>
+          <button type="button" className="nav nav-tour"
+            onClick={() => { setMenu(false); window.dispatchEvent(new Event('portal:tour')); }}>
+            <Icon name="play" size={18} />
+            <span>Guided tour</span>
+          </button>
         </nav>
         <form action={signOutAction} style={{ marginTop: 'auto' }}>
           <button type="submit" className="nav" style={{ width: '100%', cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>

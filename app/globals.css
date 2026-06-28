@@ -290,6 +290,9 @@ label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margi
 .nav svg{width:18px;height:18px;flex-shrink:0;}
 .nav .pip{margin-left:auto;font-size:10px;font-weight:600;background:var(--gold-soft);color:var(--gold-content);
   padding:1px 7px;border-radius:var(--r-full);}
+.nav-tour{color:var(--brand-content);}
+.nav-tour svg{color:var(--brand);}
+.nav-tour:hover{background:var(--brand-soft);color:var(--brand-content);}
 .side-foot{margin-top:auto;padding:10px 8px 2px;border-top:1px solid var(--border);font-size:11px;color:var(--text-subtle);
   display:flex;align-items:center;gap:6px;}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;}

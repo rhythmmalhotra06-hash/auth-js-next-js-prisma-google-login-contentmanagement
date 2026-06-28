@@ -90,28 +90,39 @@ export function isFounder(roles: readonly string[] | null | undefined): boolean 
   return effectiveRoles(roles).includes('Executive / CEO');
 }
 
-export interface NavItem { href: string; label: string; icon: string }
+export interface NavItem { href: string; label: string; icon: string; group: NavGroup }
 
-/** Role-scoped top-of-funnel nav. Mirrors the prototype's per-role nav. */
+/** Sidebar category labels, in render order (mirrors the demo prototype's grouped nav). */
+export type NavGroup = 'Vishen' | 'Workflow' | 'Library & media' | 'Intelligence' | 'Admin';
+export const NAV_GROUP_ORDER: NavGroup[] = ['Vishen', 'Workflow', 'Library & media', 'Intelligence', 'Admin'];
+
+/** Role-scoped, grouped nav. Mirrors the prototype's per-role categorised sidebar. */
 export function navForRoles(roles: readonly string[] | null | undefined, isAdmin: boolean): NavItem[] {
   const r = effectiveRoles(roles);
   const exec = r.includes('Executive / CEO');
   const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
   const ed = isAdmin || r.includes('Editor') || r.includes('Designer');
   const items: NavItem[] = [];
-  if (isAdmin || exec) items.push({ href: '/studio', label: 'Studio', icon: 'sparkle' });
-  if (mgr) items.push({ href: '/manager', label: 'Queue', icon: 'list' });
-  if (ed) items.push({ href: '/editor', label: 'My work', icon: 'play' });
+  if (isAdmin || exec) items.push({ href: '/studio', label: 'Studio', icon: 'sparkle', group: 'Vishen' });
+  if (mgr) items.push({ href: '/manager', label: 'Prioritization', icon: 'list', group: 'Workflow' });
+  if (ed) items.push({ href: '/editor', label: 'My queue', icon: 'play', group: 'Workflow' });
   // "My requests" — the read-only view of the requests YOU raised. Useful to every
   // role (anyone can submit intake), and for pure stakeholders it's their main surface.
-  items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox' });
-  if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film' });
-  items.push({ href: '/performance', label: 'Insights', icon: 'chart' });
+  items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox', group: 'Workflow' });
+  if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film', group: 'Library & media' });
+  items.push({ href: '/performance', label: 'Insights', icon: 'chart', group: 'Intelligence' });
   if (isAdmin) {
-    items.push({ href: '/settings/clip-rules', label: 'Rules', icon: 'sliders' });
-    items.push({ href: '/settings/team', label: 'Admin', icon: 'user' });
+    items.push({ href: '/settings/clip-rules', label: 'Rules', icon: 'sliders', group: 'Intelligence' });
+    items.push({ href: '/settings/team', label: 'Admin', icon: 'user', group: 'Admin' });
   }
   return items.filter((it, i, a) => a.findIndex((x) => x.href === it.href) === i);
+}
+
+/** Group a flat nav list into ordered, non-empty category sections for rendering. */
+export function groupNav(items: NavItem[]): { group: NavGroup; items: NavItem[] }[] {
+  return NAV_GROUP_ORDER
+    .map((group) => ({ group, items: items.filter((it) => it.group === group) }))
+    .filter((g) => g.items.length > 0);
 }
 
 /** The surface a user lands on by default, based on their roles (untagged → Stakeholder). */
