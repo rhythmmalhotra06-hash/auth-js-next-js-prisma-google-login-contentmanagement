@@ -3,29 +3,21 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { getMediaSource, listClipSuggestions, type MediaSource } from '@/lib/media/repository';
-import { getIntakeReferenceData } from '@/lib/intake/data';
 import { MediaDetailClient } from '@/components/media/MediaDetailClient';
 import { CardSkeleton } from '@/components/ui/Skeletons';
 
 export const dynamic = 'force-dynamic';
 
 async function MediaBody({ source, autostart }: { source: MediaSource; autostart: boolean }) {
-  // Reuse the link ids already on the source record (Tier 1) + getIntakeReferenceData
-  // streams independently behind this boundary so the page chrome paints first.
-  const [clipsRes, reference] = await Promise.all([
-    listClipSuggestions(source.id, source.clipSuggestionIds),
-    getIntakeReferenceData(),
-  ]);
+  const clipsRes = await listClipSuggestions(source.id, source.clipSuggestionIds);
   const clips = clipsRes.ok ? clipsRes.data : [];
 
   return (
     <MediaDetailClient
       sourceId={source.id}
-      sourceUrl={source.sourceUrl}
       status={source.status}
       error={source.error}
       clips={clips}
-      reference={reference}
       autostart={autostart}
     />
   );

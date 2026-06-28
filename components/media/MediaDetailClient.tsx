@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { IntakeReferenceData } from '@/lib/intake/data';
 import type { ClipSuggestion } from '@/lib/media/repository';
-import { dismissClip } from '@/app/media/actions';
-import { ClipApprovalModal } from '@/components/media/ClipApprovalModal';
+import { ClipActions } from '@/components/vishen/ClipActions';
 import { CLIP_TYPES, DEFAULT_CLIP_TYPE } from '@/lib/clipping/clip-types';
-
 
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
@@ -19,21 +16,19 @@ function StatusBadge({ status }: { status: string | null }) {
   return <span className={`rounded-full px-2 py-0.5 text-xs ${map[status ?? ''] ?? 'bg-bg-subtle text-text-muted'}`}>{status ?? 'New'}</span>;
 }
 
+// Approve/dismiss only — ticket creation happens on the Manager Queue. Approving a
+// clip surfaces it in the manager's "approved clips" panel there.
 export function MediaDetailClient({
   sourceId,
-  sourceUrl,
   status,
   error,
   clips,
-  reference,
   autostart = false,
 }: {
   sourceId: string;
-  sourceUrl: string | null;
   status: string | null;
   error: string | null;
   clips: ClipSuggestion[];
-  reference: IntakeReferenceData;
   autostart?: boolean;
 }) {
   const router = useRouter();
@@ -42,19 +37,8 @@ export function MediaDetailClient({
   const [webSearch, setWebSearch] = useState(false);
   const [clipType, setClipType] = useState<string>(DEFAULT_CLIP_TYPE);
   const [pasted, setPasted] = useState('');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [modalOpen, setModalOpen] = useState(false);
 
   const hasClips = clips.length > 0;
-  const selectable = clips.filter((c) => c.status !== 'Approved');
-
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
 
   async function suggest() {
     setRunError(null);
@@ -86,11 +70,6 @@ export function MediaDetailClient({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function onDismiss(id: string) {
-    await dismissClip(id);
-    router.refresh();
-  }
 
   return (
     <div className="space-y-6">
@@ -153,18 +132,12 @@ export function MediaDetailClient({
         </div>
       </div>
 
-      {/* Clips */}
+      {/* Clips — approve / dismiss. Approved clips become tickets on the Manager Queue. */}
       {hasClips && (
         <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-text">Suggested Reels clips</h2>
-            <button
-              onClick={() => setModalOpen(true)}
-              disabled={selected.size === 0}
-              className="rounded-[8px] bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-40"
-            >
-              Convert {selected.size || ''} to ticket{selected.size === 1 ? '' : 's'}
-            </button>
+            <span className="text-xs text-text-subtle">Approve a clip → it appears in the Manager queue to convert into a ticket.</span>
           </div>
 
           <ul className="mt-4 space-y-3">
@@ -173,49 +146,29 @@ export function MediaDetailClient({
               const dismissed = c.status === 'Dismissed';
               return (
                 <li key={c.id} className={`rounded-xl border p-4 ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}>
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={selected.has(c.id)}
-                      disabled={approved || dismissed}
-                      onChange={() => toggle(c.id)}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
-                        {typeof c.viralityScore === 'number' && (
-                          <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
-                        )}
-                        {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Ticket created</span>}
-                        {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
-                      </div>
-                      <div className="mt-1 text-xs text-text-subtle">
-                        {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
-                      </div>
-                      {c.rationale && <p className="mt-2 text-sm text-text-muted">{c.rationale}</p>}
-                      {c.caption && <p className="mt-2 text-sm italic text-text-muted">“{c.caption}”</p>}
-                      {!approved && !dismissed && (
-                        <button onClick={() => onDismiss(c.id)} className="mt-2 text-xs text-text-subtle hover:text-danger">
-                          Dismiss
-                        </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
+                      {typeof c.viralityScore === 'number' && (
+                        <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
                       )}
+                      {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Approved</span>}
+                      {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
                     </div>
+                    <div className="mt-1 text-xs text-text-subtle">
+                      {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
+                    </div>
+                    {c.rationale && <p className="mt-2 text-sm text-text-muted">{c.rationale}</p>}
+                    {c.caption && <p className="mt-2 text-sm italic text-text-muted">“{c.caption}”</p>}
+                    {!approved && !dismissed && (
+                      <div className="mt-3"><ClipActions clipId={c.id} /></div>
+                    )}
                   </div>
                 </li>
               );
             })}
           </ul>
         </div>
-      )}
-
-      {modalOpen && (
-        <ClipApprovalModal
-          clipIds={[...selected].filter((id) => selectable.some((c) => c.id === id))}
-          sourceUrl={sourceUrl}
-          reference={reference}
-          onClose={() => { setModalOpen(false); setSelected(new Set()); }}
-        />
       )}
     </div>
   );
