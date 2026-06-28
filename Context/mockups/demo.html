@@ -1211,7 +1211,6 @@ function route(){
 
 /* ===== cover / hero ===== */
 function renderCover(){
-  const stats=[['4+ → 1','Airtable bases &amp; Jira, unified'],['8','lifecycle stages, one queue'],['Unlimited','external reviewers, no paid seat']];
   $('#cover').innerHTML=`<div class="dotgrid"></div>
     <div class="cover-top">
       <div class="brand-mark">M</div><div class="brand-txt"><b>Content Portal</b><span>Mindvalley · Creative Services</span></div>
@@ -1221,12 +1220,11 @@ function renderCover(){
       <div class="cover-eyebrow cv cv1">One team. One system.</div>
       <h1 class="cover-h1 cv cv2">Everything the team makes, <span class="em">end&nbsp;to&nbsp;end</span>.</h1>
       <p class="cover-sub cv cv3">Social, Ads and Content merged into one team — so the work lives in one place. Intake, prioritization, production, approval, publishing and performance, finally connected. No more hunting across Jira and four Airtable bases to answer “who made this, and how did it do?”</p>
-      <div class="cover-stats cv cv4">${stats.map(s=>`<div class="cover-stat"><div class="n">${s[0]}</div><div class="l">${s[1]}</div></div>`).join('')}</div>
-      <div class="cover-cta cv cv5">
+      <div class="cover-cta cv cv4">
         <button class="btn primary" data-action="enter">Enter the portal ${svg('arrow',16)}</button>
         <button class="btn" data-action="cover-tour">${svg('play',15)} Take the guided tour</button>
       </div>
-      <div class="cover-roles cv cv6">
+      <div class="cover-roles cv cv5">
         <span class="muted" style="font-size:12.5px;align-self:center;margin-right:2px">or jump in as:</span>
         ${Object.entries(ROLES).map(([k,v])=>`<button data-action="enter-role" data-role="${k}"><span class="rd" style="background:${v.rdot}"></span>${v.n}</button>`).join('')}
       </div>

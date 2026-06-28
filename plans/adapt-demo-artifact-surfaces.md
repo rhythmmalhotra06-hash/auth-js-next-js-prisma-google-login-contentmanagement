@@ -72,12 +72,11 @@ swap rows instantly; reduced-motion already respected via tokens.
 
 ---
 
-## 1. Cover / hero — add the stat row
-[app/page.tsx](../app/page.tsx) already renders the hero (`#cover`, eyebrow, `.cover-h1`, sub, CTA,
-`.dotgrid`, `.cv` stagger). Add the missing `.cover-stats` row between sub and CTA (`cv cv4`, bump CTA/
-dev-login to `cv5`/`cv6`): three `.cover-stat` tiles — `4+ → 1` / "Airtable bases & Jira, unified",
-`8` / "lifecycle stages, one queue", `Unlimited` / "external reviewers, no paid seat" (verbatim from
-demo). **Skip** `.cover-roles` (demo-only role preview; prod uses real auth).
+## 1. Cover / hero — NO stat row
+[app/page.tsx](../app/page.tsx) renders the hero (`#cover`, eyebrow, `.cover-h1`, sub, CTA, `.dotgrid`,
+`.cv` stagger). **DO NOT add the `.cover-stats` row** (`4+ → 1` / `8` / `Unlimited`). It was removed by
+explicit request and must never be re-added to the landing page. Also **skip** `.cover-roles`
+(demo-only role preview; prod uses real auth).
 
 ## 2. Performance — Sparkline + "What's working" insight cards
 New `components/ui/Sparkline.tsx` (JSX/SVG port of demo `sparkline()` — gradient area + faint grid +
