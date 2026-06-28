@@ -106,7 +106,7 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   if (isAdmin || exec) items.push({ href: '/studio', label: 'Studio', icon: 'sparkle' });
   if (mgr) items.push({ href: '/manager', label: 'Queue', icon: 'list' });
   if (ed) items.push({ href: '/editor', label: 'My work', icon: 'play' });
-  if (externalOnly) items.push({ href: '/stakeholder', label: 'Shares', icon: 'msg' });
+  if (externalOnly) items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox' });
   if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film' });
   items.push({ href: '/performance', label: 'Insights', icon: 'chart' });
   if (isAdmin) {

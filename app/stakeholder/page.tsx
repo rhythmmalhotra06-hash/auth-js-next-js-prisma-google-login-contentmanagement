@@ -1,88 +1,64 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
-import { getQueueTickets, getRecentShipped } from '@/lib/tickets/data';
+import { getMyRequests } from '@/lib/tickets/data';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
-import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { guardRoute } from '@/lib/auth/route-guard';
 import { getEmployeeForSession } from '@/lib/employee';
 
 export const dynamic = 'force-dynamic';
 
-// Statuses a stakeholder sees in the main board: work that's in flight or finished —
-// in progress / in review / approved / published / done. Early intake stages
-// (Requested, Prioritized, Assigned) and Won't Do are hidden. Matched case-insensitively
-// so it tolerates the base's exact enum spelling (In Production vs In Progress, etc.).
-const STAKEHOLDER_VISIBLE = new Set([
-  'in progress',
-  'in production',
-  'in review',
-  'review',
-  'in revision',
-  'approved',
-  'published',
-  'done',
-]);
-const stakeholderVisible = (s: string | null) => !!s && STAKEHOLDER_VISIBLE.has(s.trim().toLowerCase());
+const DONE = (s: string | null) => ['Done', 'Shipping'].includes(s ?? '');
+const IN_PROD = (s: string | null) => ['In Progress', 'In Revision', 'Review', 'Approved'].includes(s ?? '');
 
-async function StakeholderBody() {
-  // Active in-flight work + a capped set of recent ships, instead of scanning the
-  // ~9k Done history (which also rendered thousands of rows into the table).
-  const [active, recentShipped, employee] = await Promise.all([
-    getQueueTickets(),
-    getRecentShipped(30),
-    getEmployeeForSession(),
-  ]);
-
-  const allTickets = [...active, ...recentShipped];
-  const visible = allTickets.filter((t) => stakeholderVisible(t.ticketStatus));
-  const inProd = visible.filter((t) => ['In Progress', 'In Revision', 'Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
-  // "My requests": work this person raised that's currently in flight or recently
-  // shipped (matched by their Google email → Employees record → requester link).
-  const mine = employee ? allTickets.filter((t) => t.requesterId === employee.id) : [];
+async function MyRequestsBody() {
+  const employee = await getEmployeeForSession();
+  if (!employee) {
+    return (
+      <div className="empty">
+        We couldn’t match your account to an employee record, so there are no requests to show.
+        <br />Raise one from <Link href="/intake" style={{ fontWeight: 600 }}>New request</Link>.
+      </div>
+    );
+  }
+  const mine = await getMyRequests(employee.id);
+  const open = mine.filter((t) => !DONE(t.ticketStatus)).length;
+  const inProd = mine.filter((t) => IN_PROD(t.ticketStatus)).length;
+  const done = mine.filter((t) => DONE(t.ticketStatus)).length;
 
   return (
     <>
-      <div className="banner future" style={{ marginBottom: 16 }}>
-        <Icon name="eye" size={18} />
-        <div>The surface Vision asked for — <b>who edited each asset and where it went</b>, in one place. Live CTR/ROAS performance arrives in a later phase.</div>
-      </div>
       <KpiGrid>
-        <Kpi label="Recently shipped" value={recentShipped.length} sub="latest delivered" i={0} />
-        <Kpi label="In production" value={inProd} sub="moving now" i={1} />
-        <Kpi label="Visible to you" value={visible.length} sub="in flight → done" i={2} />
+        <Kpi label="Open requests" value={open} sub="in flight" i={0} />
+        <Kpi label="In production" value={inProd} sub="being made now" i={1} />
+        <Kpi label="Delivered" value={done} sub="recently shipped" i={2} />
       </KpiGrid>
 
-      {mine.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-2 text-sm font-semibold text-text">
-            Requests you raised <span className="font-normal text-text-muted">· {mine.length}</span>
-          </h2>
-          <QueueTable tickets={mine} />
-        </section>
+      {mine.length === 0 ? (
+        <div className="empty">
+          You haven’t raised any requests yet.
+          <br /><Link href="/intake" style={{ fontWeight: 600 }}>Submit a new request →</Link>
+        </div>
+      ) : (
+        <>
+          <div className="sec-head"><h3>Your requests</h3><span className="hint">status of everything you’ve raised</span></div>
+          <QueueTable tickets={mine} basePath="/stakeholder" />
+        </>
       )}
-
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-text">All work — in progress → done</h2>
-        <QueueTable tickets={visible} />
-      </section>
     </>
   );
 }
 
-// Read-only view — the free, unlimited stakeholder/agency surface (Ziflow pattern).
-// Distribution links + live performance metrics arrive with the Performance Loop (E7).
-export default async function StakeholderPage() {
+// "My requests" — the read-only stakeholder/agency surface. A person sees only the
+// requests they raised, their status, and a read-only detail per request.
+export default async function MyRequestsPage() {
   await guardRoute('/stakeholder');
-
   return (
-    <AppShell
-      title="Shares"
-      subtitle="Read-only · who made each asset and where it shipped. No paid seat."
-    >
+    <AppShell title="My requests" subtitle="Read-only · the requests you’ve raised and where they stand.">
       <Suspense fallback={<QueueSkeleton kpis={3} />}>
-        <StakeholderBody />
+        <MyRequestsBody />
       </Suspense>
     </AppShell>
   );

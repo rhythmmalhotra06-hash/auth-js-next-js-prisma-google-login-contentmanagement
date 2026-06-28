@@ -128,6 +128,18 @@ export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
   });
 }
 
+/**
+ * All requests raised by a person (their own intake), in flight or recently shipped.
+ * Requester is a link field (no server-side recId filter), so we scan the active set
+ * plus a capped window of recent ships and filter by requesterId — covers a
+ * stakeholder's current + recent requests without touching the ~9k Done history.
+ */
+export async function getMyRequests(employeeId: string): Promise<QueueTicket[]> {
+  const [active, recent] = await Promise.all([getQueueTickets({ includeCompleted: false }), getRecentShipped(100)]);
+  const seen = new Set<string>();
+  return [...active, ...recent].filter((t) => t.requesterId === employeeId && !seen.has(t.id) && seen.add(t.id));
+}
+
 export interface TicketEventRow { id: string; fromState: string | null; toState: string; actor: string | null; note: string | null; createdAt: string }
 export interface ApprovalRow { id: string; approver: string | null; state: string; feedback: string | null; decidedAt: string | null; createdAt: string }
 export interface AssetRow { id: string; kind: string; fileUrl: string | null; distributionUrl: string | null; publishedAt: string | null; createdAt: string }
@@ -148,6 +160,7 @@ export interface TicketDetail {
   eventType: string | null;
   assetType: string | null;
   requester: string | null;
+  requesterId: string | null;
   assignee: string | null;
   assigneeId: string | null;
   officialCalendar: string | null;
@@ -197,6 +210,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     eventType: firstLinkedName(f[L.eventTypes], eventTypes),
     assetType: firstLinkedName(f[L.assetTypes], assetTypes),
     requester: firstLinkedName(f[L.requestedBy], employees),
+    requesterId: firstLinkedId(f[L.requestedBy]),
     assignee: firstLinkedName(f[L.assignedCreative], employees),
     assigneeId: firstLinkedId(f[L.assignedCreative]),
     officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),

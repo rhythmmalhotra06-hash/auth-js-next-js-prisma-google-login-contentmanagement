@@ -233,6 +233,7 @@ export const CLIP_RULES = {
     section: 'fldTOUl3kFhLjDzvG', // "Section" (singleSelect: General | Clips | Thumbnail | Titles | Distribution)
     note: 'fld3W1tiYjtVnGQ5l', // "Note" (multilineText) — why the learning was added
     updatedBy: 'fld8E6wUBRgQjYs2V', // "Updated By" (singleLineText) — last editor email
+    updatedAt: 'fldEMpB30zAw1fOWV', // "Last Modified" (formula LAST_MODIFIED_TIME()) — auto-stamped on any edit, portal or Airtable. Read-only.
   },
   // singleSelect option values (write the plain name string).
   kind_: { basePrompt: 'Base Prompt', brandPillars: 'Brand Pillars', rule: 'Rule' },

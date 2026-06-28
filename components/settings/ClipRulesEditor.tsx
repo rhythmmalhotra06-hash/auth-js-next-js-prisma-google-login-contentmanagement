@@ -9,6 +9,13 @@ const inputCls =
 
 const RULE_SECTIONS = ['General', 'Clips', 'Thumbnail', 'Titles', 'Distribution'] as const;
 
+function fmtUpdated(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export interface EditorRule {
   id: string;
   content: string | null;
@@ -17,6 +24,7 @@ export interface EditorRule {
   note: string | null;
   active: boolean;
   updatedBy: string | null;
+  updatedAt: string | null;
 }
 
 export interface ClipRulesEditorProps {
@@ -116,6 +124,7 @@ function RuleRow({ rule, canEdit }: { rule: EditorRule; canEdit: boolean }) {
         {rule.section && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-text-muted ring-1 ring-border-default">{rule.section}</span>}
         {!rule.active && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-text-subtle">Inactive</span>}
         {rule.updatedBy && <span className="text-text-subtle">· {rule.updatedBy}</span>}
+        {fmtUpdated(rule.updatedAt) && <span className="text-text-subtle">· updated {fmtUpdated(rule.updatedAt)}</span>}
       </div>
       <textarea
         className={`${inputCls} text-[13px]`}

@@ -37,6 +37,7 @@ export interface ClipRule {
   section: string | null;
   note: string | null;
   updatedBy: string | null;
+  updatedAt: string | null; // Last Modified — auto-stamped on any edit (portal or Airtable)
   createdTime: string;
 }
 
@@ -53,6 +54,7 @@ function mapRule(rec: AirtableRecord<Raw>): ClipRule {
     section: selectName(f[RF.section]),
     note: str(f[RF.note]),
     updatedBy: str(f[RF.updatedBy]),
+    updatedAt: str(f[RF.updatedAt]),
     createdTime: rec.createdTime,
   };
 }

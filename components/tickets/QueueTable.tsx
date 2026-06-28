@@ -36,7 +36,7 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-export function QueueTable({ tickets }: { tickets: QueueTicket[] }) {
+export function QueueTable({ tickets, basePath = '/tickets' }: { tickets: QueueTicket[]; basePath?: string }) {
   const router = useRouter();
   const [sel, setSel] = useState<Record<Dim, string>>({
     prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '',
@@ -99,7 +99,7 @@ export function QueueTable({ tickets }: { tickets: QueueTicket[] }) {
           {rows.map((t) => {
             const r = riskOf(t, load);
             return (
-            <tr key={t.id} className={cn(!t.assignee && 'attn')} onClick={() => router.push(`/tickets/${t.id}`)}>
+            <tr key={t.id} className={cn(!t.assignee && 'attn')} onClick={() => router.push(`${basePath}/${t.id}`)}>
               <td>
                 <div className="t-title">{t.title}</div>
                 <div className="t-meta">
