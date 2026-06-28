@@ -1,11 +1,35 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
-import { getMediaSource, listClipSuggestions } from '@/lib/media/repository';
+import { getMediaSource, listClipSuggestions, type MediaSource } from '@/lib/media/repository';
 import { getIntakeReferenceData } from '@/lib/intake/data';
 import { MediaDetailClient } from '@/components/media/MediaDetailClient';
+import { CardSkeleton } from '@/components/ui/Skeletons';
 
 export const dynamic = 'force-dynamic';
+
+async function MediaBody({ source, autostart }: { source: MediaSource; autostart: boolean }) {
+  // Reuse the link ids already on the source record (Tier 1) + getIntakeReferenceData
+  // streams independently behind this boundary so the page chrome paints first.
+  const [clipsRes, reference] = await Promise.all([
+    listClipSuggestions(source.id, source.clipSuggestionIds),
+    getIntakeReferenceData(),
+  ]);
+  const clips = clipsRes.ok ? clipsRes.data : [];
+
+  return (
+    <MediaDetailClient
+      sourceId={source.id}
+      sourceUrl={source.sourceUrl}
+      status={source.status}
+      error={source.error}
+      clips={clips}
+      reference={reference}
+      autostart={autostart}
+    />
+  );
+}
 
 export default async function MediaDetailPage({
   params,
@@ -28,9 +52,6 @@ export default async function MediaDetailPage({
   }
   const source = srcRes.data;
 
-  const [clipsRes, reference] = await Promise.all([listClipSuggestions(id), getIntakeReferenceData()]);
-  const clips = clipsRes.ok ? clipsRes.data : [];
-
   const subtitleParts = [source.guestShow, source.submittedVia ? `via ${source.submittedVia}` : null].filter(Boolean);
 
   return (
@@ -48,15 +69,9 @@ export default async function MediaDetailPage({
       <Link href="/media" className="text-sm text-brand hover:underline">← Inbox</Link>
 
       <div className="mt-3">
-        <MediaDetailClient
-          sourceId={source.id}
-          sourceUrl={source.sourceUrl}
-          status={source.status}
-          error={source.error}
-          clips={clips}
-          reference={reference}
-          autostart={autostart === '1'}
-        />
+        <Suspense fallback={<CardSkeleton height={300} />}>
+          <MediaBody source={source} autostart={autostart === '1'} />
+        </Suspense>
       </div>
     </AppShell>
   );

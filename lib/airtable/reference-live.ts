@@ -25,7 +25,9 @@ export interface LiveReference {
 // isn't available without a sort field, so cap and let users search within it).
 const SHOOTS_MAX = 500;
 
-const TTL_MS = 60_000;
+// Taxonomy (employees/event/asset types/calendars/authors) changes rarely; a 5-min
+// cache keeps load times low while still surfacing new options within minutes.
+const TTL_MS = 5 * 60_000;
 let cache: { at: number; data: LiveReference } | null = null;
 let inflight: Promise<LiveReference> | null = null;
 

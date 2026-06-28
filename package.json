@@ -22,11 +22,14 @@
     "youtubei.js": "^17.2.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "4.1.13",
     "@types/node": "20.19.35",
     "@types/pg": "8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^15.4.10",
     "prisma": "7.0.0",
     "tailwindcss": "4.1.13",
     "typescript": "5.9.2"

@@ -59,6 +59,7 @@ export interface MediaSource {
   submittedDate: string | null;
   clipsAddedDate: string | null;
   clipCount: number;
+  clipSuggestionIds: string[];
   createdTime: string;
   // Default taxonomy for tickets created from this source's clips (checkbox convert).
   submittedById: string | null;
@@ -86,6 +87,7 @@ function mapSource(rec: AirtableRecord<Raw>): MediaSource {
     submittedDate: str(f[MF.submittedDate]),
     clipsAddedDate: str(f[MF.clipsAddedDate]),
     clipCount: Array.isArray(f[ML.clipSuggestions]) ? (f[ML.clipSuggestions] as unknown[]).length : 0,
+    clipSuggestionIds: linkedIds(f[ML.clipSuggestions]),
     createdTime: rec.createdTime,
     submittedById: firstLinkedId(f[ML.submittedBy]),
     ticketEventTypeId: firstLinkedId(f[ML.ticketEventType]),
@@ -227,11 +229,20 @@ export async function listClipsByStatus(status: string, limit = 60): Promise<Air
  * Clips for a source, ordered by Index. Airtable can't filter a link field by
  * recId via filterByFormula (formulas match the linked record's primary text, not
  * its id), so we read the parent's reverse-link array and fetch those clip rows.
+ *
+ * Pass `linkedClipIds` to skip the parent re-fetch when the caller already holds
+ * the source record (e.g. the media detail page just called getMediaSource).
  */
-export async function listClipSuggestions(mediaSourceId: string): Promise<AirtableResult<ClipSuggestion[]>> {
-  const parent = await getRecord<Raw>(M.baseId, M.tableId, mediaSourceId);
-  if (!parent.ok) return parent;
-  const ids = linkedIds(parent.data.fields[ML.clipSuggestions]);
+export async function listClipSuggestions(
+  mediaSourceId: string,
+  linkedClipIds?: string[],
+): Promise<AirtableResult<ClipSuggestion[]>> {
+  let ids = linkedClipIds;
+  if (!ids) {
+    const parent = await getRecord<Raw>(M.baseId, M.tableId, mediaSourceId);
+    if (!parent.ok) return parent;
+    ids = linkedIds(parent.data.fields[ML.clipSuggestions]);
+  }
   if (ids.length === 0) return { ok: true, data: [] };
   const res = await getClipsByIds(ids);
   if (!res.ok) return res;
@@ -253,13 +264,20 @@ export async function listClipsToConvert(limit = 100): Promise<AirtableResult<Cl
   return { ok: true, data: res.data.records.map(mapClip) };
 }
 
-/** Get clip rows by recId (for convert-to-ticket). */
+/**
+ * Get clip rows by recId (for convert-to-ticket and the source detail view).
+ * Batched: a single list call per ≤50 ids via RECORD_ID() instead of one GET per
+ * id — collapses what used to be an N+1 (50 clips = 51 requests) down to ~1.
+ */
 export async function getClipsByIds(ids: string[]): Promise<AirtableResult<ClipSuggestion[]>> {
+  if (ids.length === 0) return { ok: true, data: [] };
   const out: ClipSuggestion[] = [];
-  for (const id of ids) {
-    const res = await getRecord<Raw>(C.baseId, C.tableId, id);
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID()='${id}'`).join(',')})`;
+    const res = await listAll<Raw>(C.baseId, C.tableId, { filterByFormula: formula });
     if (!res.ok) return res;
-    out.push(mapClip(res.data));
+    out.push(...res.data.map(mapClip));
   }
   return { ok: true, data: out };
 }

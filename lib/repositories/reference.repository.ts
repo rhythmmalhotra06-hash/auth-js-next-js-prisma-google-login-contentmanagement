@@ -1,5 +1,5 @@
 // Reference name maps (recId → name) for resolving Prio Requests link fields when
-// rendering tickets. Small, slow-changing tables — cached ~60s. Airtable-direct.
+// rendering tickets. Small, slow-changing tables — cached ~5min. Airtable-direct.
 
 import { EMPLOYEES, EVENT_TYPES, ASSET_TYPES, AUTHORS, OFFICIAL_CALENDARS } from '@/lib/airtable/field-map';
 import { listAll } from '@/lib/airtable/rest';
@@ -14,7 +14,7 @@ const SOURCES: Record<string, NameSource> = {
   officialCalendars: { baseId: OFFICIAL_CALENDARS.baseId, tableId: OFFICIAL_CALENDARS.tableId, nameField: OFFICIAL_CALENDARS.fields.name },
 };
 
-const TTL_MS = 60_000;
+const TTL_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; map: Map<string, string> }>();
 const inflight = new Map<string, Promise<Map<string, string>>>();
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
@@ -6,6 +7,7 @@ import { FunnelCapacity } from '@/components/ui/FunnelCapacity';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { TicketStatusBadge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
+import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getQueueTickets } from '@/lib/tickets/data';
 import { listMediaSources } from '@/lib/media/repository';
 import { getAdminAccess } from '@/lib/admin/access';
@@ -15,10 +17,7 @@ export const dynamic = 'force-dynamic';
 
 const IN_PROD = ['In Progress', 'In Revision', 'Review', 'Approved', 'Shipping'];
 
-export default async function StudioPage() {
-  const { roles, isAdmin } = await getAdminAccess();
-  if (!isAdmin && !isFounder(roles)) redirect(homeRouteForRoles(roles));
-
+async function StudioBody() {
   const [all, mediaRes] = await Promise.all([
     getQueueTickets({ includeCompleted: true }),
     listMediaSources(100),
@@ -34,7 +33,7 @@ export default async function StudioPage() {
   );
 
   return (
-    <AppShell title="Studio" subtitle="Founder overview — what the team is producing for you">
+    <>
       <KpiGrid>
         <Kpi label="Active requests" value={active.length} sub="in flight" i={0} />
         <Kpi label="In production" value={inProd} sub="being made now" i={1} />
@@ -99,6 +98,19 @@ export default async function StudioPage() {
         <Icon name="chart" size={18} />
         <div><b>Performance tracking arrives in a later phase.</b> Once published assets carry distribution links and Clarisights / Amplitude are connected, CTR, ROAS and views will show here per asset — answering “how did it perform?” beside “who made it.” v1 focuses on production status &amp; approvals.</div>
       </div>
+    </>
+  );
+}
+
+export default async function StudioPage() {
+  const { roles, isAdmin } = await getAdminAccess();
+  if (!isAdmin && !isFounder(roles)) redirect(homeRouteForRoles(roles));
+
+  return (
+    <AppShell title="Studio" subtitle="Founder overview — what the team is producing for you">
+      <Suspense fallback={<QueueSkeleton kpis={4} />}>
+        <StudioBody />
+      </Suspense>
     </AppShell>
   );
 }
