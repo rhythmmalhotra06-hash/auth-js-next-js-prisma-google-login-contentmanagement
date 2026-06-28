@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { TicketStatusBadge, PrioStatusBadge } from '@/components/ui/Badge';
 import { TierBadge } from '@/components/ui/TierBadge';
+import { BriefText } from '@/components/ui/BriefText';
 import { Icon } from '@/components/ui/Icon';
 import { getTicketDetail, getActiveEmployees } from '@/lib/tickets/data';
 import { StatusUpdater } from '@/components/tickets/StatusUpdater';
@@ -41,7 +42,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               <div style={{ display: 'flex', gap: 7 }}><TicketStatusBadge status={t.ticketStatus} /><PrioStatusBadge status={t.prioStatus} /></div>
             </div>
             <h3 style={{ fontSize: 18, margin: '4px 0 12px' }}>{t.title}</h3>
-            <Field label="Creative brief" value={t.creativeBrief} />
+            <div className="field-row">
+              <div className="k">Creative brief</div>
+              <div className="v"><BriefText text={t.creativeBrief} /></div>
+            </div>
             <div className="grid2">
               <Field label="Call to action" value={t.cta} />
               <Field label="Type of request" value={t.typeOfRequest} />
