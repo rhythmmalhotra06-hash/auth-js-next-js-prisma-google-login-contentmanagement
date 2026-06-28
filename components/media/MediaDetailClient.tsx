@@ -94,12 +94,21 @@ export function MediaDetailClient({
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-2 text-xs text-text-muted">
+            <label
+              className="flex items-center gap-2 text-xs text-text-muted"
+              title="When on, the AI first searches the web for current context about the guest and topic, then writes clips grounded in what it finds. More accurate and up-to-date, but adds about a minute. When off, clips are generated from the transcript alone — faster, and usually enough."
+            >
               <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
-              Web-search grounding (slower)
+              Research topic on the web first
             </label>
           </div>
         </div>
+
+        <p className="mt-2 text-xs text-text-subtle">
+          {webSearch
+            ? 'On: the AI searches the web for current context on the guest & topic before writing clips — more accurate, ~1 min slower.'
+            : 'Off: clips are generated from the transcript alone — faster, and usually enough. Turn on to research the guest & topic on the web first.'}
+        </p>
 
         {error && status === 'Error' && (
           <div className="mt-3 rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{error}</div>
