@@ -41,6 +41,7 @@ export default async function ClipRulesPage() {
       note: r.note,
       active: r.active,
       updatedBy: r.updatedBy,
+      updatedAt: r.updatedAt,
     }));
 
   return (
