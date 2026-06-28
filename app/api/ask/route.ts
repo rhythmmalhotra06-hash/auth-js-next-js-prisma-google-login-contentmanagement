@@ -15,12 +15,13 @@ export async function POST(req: Request) {
   const s = (q ?? '').toLowerCase().trim();
   if (!s) return NextResponse.json({ answer: 'Ask me about capacity, blockers, what’s at risk, or the queue.' });
 
-  const [tickets, employees] = await Promise.all([
-    getQueueTickets({ includeCompleted: true }),
+  // Active-only: loadMap/riskOf ignore terminal tickets anyway, so scanning the
+  // ~9k Done history would add ~18s for zero signal.
+  const [active, employees] = await Promise.all([
+    getQueueTickets(),
     getActiveEmployees().catch(() => []),
   ]);
-  const active = tickets.filter((t) => !['Done', "Won't Do"].includes(t.ticketStatus ?? ''));
-  const load = loadMap(tickets);
+  const load = loadMap(active);
   const has = (...k: string[]) => k.some((w) => s.includes(w));
 
   let answer: string;
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
   } else {
     const unassigned = active.filter((t) => !t.assignee).length;
     const dueSoon = active.filter((t) => { const d = dueDays(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
-    answer = `Right now: **${active.length}** active requests, **${unassigned}** unassigned, **${dueSoon}** due within 3 days, **${tickets.length - active.length}** completed. Ask me about capacity, blockers, or what’s at risk.`;
+    answer = `Right now: **${active.length}** active requests, **${unassigned}** unassigned, **${dueSoon}** due within 3 days. Ask me about capacity, blockers, or what’s at risk.`;
   }
 
   return NextResponse.json({ answer });

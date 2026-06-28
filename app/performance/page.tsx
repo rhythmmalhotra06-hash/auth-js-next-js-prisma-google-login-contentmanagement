@@ -6,7 +6,7 @@ import { FunnelCapacity } from '@/components/ui/FunnelCapacity';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
-import { getQueueTickets, type QueueTicket } from '@/lib/tickets/data';
+import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { loadMap, riskOf, dueDays } from '@/lib/tickets/intel';
 import { getAdminAccess } from '@/lib/admin/access';
 import { getEmployeeForSession } from '@/lib/employee';
@@ -40,25 +40,25 @@ function RiskList({ tickets }: { tickets: QueueTicket[] }) {
 
 // Manager / admin → operational insights.
 async function ManagerInsights() {
-  const all = await getQueueTickets({ includeCompleted: true });
-  const active = all.filter((t) => !['Done', "Won't Do"].includes(t.ticketStatus ?? ''));
-  const shipped = all.filter((t) => t.ticketStatus === 'Done').length;
+  // Active (628) + capped recent ships — never scan the ~9k Done history.
+  const [active, recentShipped] = await Promise.all([getQueueTickets(), getRecentShipped(12)]);
+  const load = loadMap(active);
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
+  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
   const unassigned = active.filter((t) => !t.assignee).length;
-  const atRisk = active.filter((t) => riskOf(t, loadMap(all)).level).length;
-  const load = loadMap(all);
+  const atRisk = active.filter((t) => riskOf(t, load).level).length;
   const eds = [...load.keys()];
   const util = eds.length ? Math.round((eds.reduce((a, n) => a + (load.get(n) ?? 0), 0) / (eds.length * 4)) * 100) : 0;
   return (
     <>
       <KpiGrid>
-        <Kpi label="Shipped" value={shipped} sub="this cycle" i={0} />
+        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={0} />
         <Kpi label="In production" value={inProd} sub="moving now" i={1} />
         <Kpi tone="alert" icon={<Icon name="user" size={13} />} label="Unassigned" value={unassigned} sub="need an editor" i={2} />
         <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="At risk" value={atRisk} sub="likely to slip" i={3} />
         <Kpi label="Team utilization" value={`${util}%`} sub="of capacity" i={4} />
       </KpiGrid>
-      <FunnelCapacity tickets={all} />
+      <FunnelCapacity tickets={[...active, ...recentShipped]} />
       <div className="sec-head"><h3>At-risk work</h3><span className="hint"><Icon name="sparkle" size={12} /> flagged by the brain</span></div>
       <RiskList tickets={active} />
     </>
@@ -68,18 +68,19 @@ async function ManagerInsights() {
 // Editor / designer → personal insights.
 async function EditorInsights() {
   const me = await getEmployeeForSession();
-  const mine = me ? await getQueueTickets({ assigneeId: me.id, includeCompleted: true }) : [];
-  const active = mine.filter((t) => !['Done', "Won't Do"].includes(t.ticketStatus ?? ''));
+  // Active assigned only — a per-editor lifetime "completed" count would need a full
+  // scan of the ~9k Done set (link fields can't be filtered server-side by recId).
+  const active = me ? await getQueueTickets({ assigneeId: me.id }) : [];
   const dueSoon = active.filter((t) => { const d = dueDays(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
-  const atRisk = active.filter((t) => riskOf(t, loadMap(mine)).level).length;
-  const done = mine.filter((t) => t.ticketStatus === 'Done').length;
+  const atRisk = active.filter((t) => riskOf(t, loadMap(active)).level).length;
+  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
   return (
     <>
       <KpiGrid>
         <Kpi label="Active tickets" value={active.length} sub="of 4 capacity" i={0} />
         <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="Due ≤ 3 days" value={dueSoon} sub="tighten up" i={1} />
         <Kpi tone="alert" label="At risk" value={atRisk} sub="need attention" i={2} />
-        <Kpi label="Completed by you" value={done} sub="shipped" i={3} />
+        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={3} />
       </KpiGrid>
       <div className="sec-head"><h3>Your work at risk</h3><span className="hint">sorted by urgency</span></div>
       <RiskList tickets={active} />
@@ -89,9 +90,9 @@ async function EditorInsights() {
 
 // Founder / stakeholder → performance (deferred until a metrics source is wired).
 async function PerformanceInsights() {
-  const all = await getQueueTickets({ includeCompleted: true });
-  const published = all.filter((t) => t.ticketStatus === 'Done');
-  const inProd = all.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
+  const [active, published] = await Promise.all([getQueueTickets(), getRecentShipped(10)]);
+  const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
+  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
   return (
     <>
       <div className="banner future" style={{ marginBottom: 16 }}>
@@ -99,8 +100,8 @@ async function PerformanceInsights() {
         <div><b>Performance tracking arrives in a later phase.</b> Once published assets carry distribution links and Clarisights / Amplitude are connected, CTR, ROAS and views will surface here per asset. For now, here’s production throughput.</div>
       </div>
       <KpiGrid>
-        <Kpi label="Published" value={published.length} sub="delivered" i={0} />
-        <Kpi label="In production" value={inProd} sub="moving now" i={1} />
+        <Kpi label="In production" value={inProd} sub="moving now" i={0} />
+        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={1} />
       </KpiGrid>
       <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
       <div className="tw"><div className="tscroll"><table className="list">

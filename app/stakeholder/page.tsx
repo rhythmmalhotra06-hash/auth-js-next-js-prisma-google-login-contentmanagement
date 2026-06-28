@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { AppShell } from '@/components/ui/AppShell';
-import { getQueueTickets } from '@/lib/tickets/data';
+import { getQueueTickets, getRecentShipped } from '@/lib/tickets/data';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { Icon } from '@/components/ui/Icon';
@@ -27,16 +27,19 @@ const STAKEHOLDER_VISIBLE = new Set([
 const stakeholderVisible = (s: string | null) => !!s && STAKEHOLDER_VISIBLE.has(s.trim().toLowerCase());
 
 async function StakeholderBody() {
-  const [allTickets, employee] = await Promise.all([
-    getQueueTickets({ includeCompleted: true }),
+  // Active in-flight work + a capped set of recent ships, instead of scanning the
+  // ~9k Done history (which also rendered thousands of rows into the table).
+  const [active, recentShipped, employee] = await Promise.all([
+    getQueueTickets(),
+    getRecentShipped(30),
     getEmployeeForSession(),
   ]);
 
+  const allTickets = [...active, ...recentShipped];
   const visible = allTickets.filter((t) => stakeholderVisible(t.ticketStatus));
-  const published = allTickets.filter((t) => t.ticketStatus === 'Done').length;
   const inProd = visible.filter((t) => ['In Progress', 'In Revision', 'Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
-  // "My requests": everything this person raised, at any stage (matched by their
-  // Google email → Employees record → requester link on the ticket).
+  // "My requests": work this person raised that's currently in flight or recently
+  // shipped (matched by their Google email → Employees record → requester link).
   const mine = employee ? allTickets.filter((t) => t.requesterId === employee.id) : [];
 
   return (
@@ -46,7 +49,7 @@ async function StakeholderBody() {
         <div>The surface Vision asked for — <b>who edited each asset and where it went</b>, in one place. Live CTR/ROAS performance arrives in a later phase.</div>
       </div>
       <KpiGrid>
-        <Kpi label="Published" value={published} sub="delivered" i={0} />
+        <Kpi label="Recently shipped" value={recentShipped.length} sub="latest delivered" i={0} />
         <Kpi label="In production" value={inProd} sub="moving now" i={1} />
         <Kpi label="Visible to you" value={visible.length} sub="in flight → done" i={2} />
       </KpiGrid>
