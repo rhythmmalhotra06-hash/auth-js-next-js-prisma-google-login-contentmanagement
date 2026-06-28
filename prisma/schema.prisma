@@ -507,3 +507,19 @@ model ClipSuggestion {
   @@index([clipStrategyId], map: "idx_clip_suggestions_strategy")
   @@map("clip_suggestions")
 }
+
+// ===========================================================================
+// METRIC SNAPSHOTS — precomputed aggregates
+// ===========================================================================
+
+// Precomputed aggregate snapshots so dashboards read one cheap row instead of
+// scanning the ~10k-row Airtable ticket table on every page load. Refreshed by
+// POST /api/metrics/refresh (nightly cron). `data` holds an arbitrary payload
+// keyed by `key` (e.g. "ticket_status_counts" → { total, byStatus, shipped }).
+model MetricSnapshot {
+  key        String   @id
+  data       Json
+  computedAt DateTime @updatedAt @map("computed_at")
+
+  @@map("metric_snapshots")
+}
