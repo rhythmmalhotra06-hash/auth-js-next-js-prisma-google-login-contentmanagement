@@ -8,7 +8,7 @@ import { TierBadge } from '@/components/ui/TierBadge';
 import { TicketStatusBadge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
-import { getQueueTickets } from '@/lib/tickets/data';
+import { getQueueTickets, getRecentShipped } from '@/lib/tickets/data';
 import { listMediaSources } from '@/lib/media/repository';
 import { getAdminAccess } from '@/lib/admin/access';
 import { isFounder, homeRouteForRoles } from '@/lib/roles';
@@ -18,26 +18,30 @@ export const dynamic = 'force-dynamic';
 const IN_PROD = ['In Progress', 'In Revision', 'Review', 'Approved', 'Shipping'];
 
 async function StudioBody() {
-  const [all, mediaRes] = await Promise.all([
-    getQueueTickets({ includeCompleted: true }),
+  // Active (628 rows) drives the live picture; recent-shipped is capped so we never
+  // scan the ~9k Done history. Both run in parallel with the media inbox.
+  const [active, shipped, mediaRes] = await Promise.all([
+    getQueueTickets(),
+    getRecentShipped(12),
     listMediaSources(100),
   ]);
   const media = mediaRes.ok ? mediaRes.data : [];
 
-  const active = all.filter((t) => !['Done', "Won't Do"].includes(t.ticketStatus ?? ''));
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
-  const shipped = all.filter((t) => t.ticketStatus === 'Done');
-  const awaiting = all.filter((t) => t.prioStatus === 'To be reviewed by Vishen');
+  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
+  const awaiting = active.filter((t) => t.prioStatus === 'To be reviewed by Vishen');
   const vishenMedia = media.filter(
     (m) => `${m.guestShow ?? ''} ${m.title ?? ''}`.toLowerCase().includes('vishen'),
   );
+  // Funnel/capacity see in-flight work plus the recent ships (for the Published stage).
+  const funnelTickets = [...active, ...shipped];
 
   return (
     <>
       <KpiGrid>
         <Kpi label="Active requests" value={active.length} sub="in flight" i={0} />
         <Kpi label="In production" value={inProd} sub="being made now" i={1} />
-        <Kpi label="Shipped" value={shipped.length} sub="delivered" i={2} />
+        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={2} />
         <Kpi tone="alert" icon={<Icon name="check" size={13} />} label="Awaiting you" value={awaiting.length} sub="need your sign-off" i={3} />
       </KpiGrid>
 
@@ -58,7 +62,7 @@ async function StudioBody() {
         </>
       )}
 
-      <FunnelCapacity tickets={all} />
+      <FunnelCapacity tickets={funnelTickets} />
 
       <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
       <div className="tw"><div className="tscroll"><table className="list">

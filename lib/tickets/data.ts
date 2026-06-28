@@ -42,6 +42,36 @@ const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
 
 // Active = everything except terminal states; keeps us well under the 10k table size.
 const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
+// Shipped = the terminal Done state. The full set is ~9k rows (mostly migrated
+// history), so never scan it — read only the newest few (getRecentShipped).
+const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;
+
+const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
+  L.assignedCreative, L.requestedBy, L.eventTypes, L.assetTypes];
+
+// Maps a raw Prio Requests record to a QueueTicket (+ assigneeId for filtering).
+function mapTicketRow(
+  rec: { id: string; fields: unknown },
+  employees: Map<string, string>, eventTypes: Map<string, string>, assetTypes: Map<string, string>,
+): QueueTicket & { assigneeId: string | null } {
+  const f = rec.fields as Record<string, unknown>;
+  return {
+    id: rec.id,
+    title: str(f[F.name]) ?? '(untitled)',
+    priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
+    queueRank: num(f[F.queueRank]),
+    assignee: firstLinkedName(f[L.assignedCreative], employees),
+    assigneeId: firstLinkedId(f[L.assignedCreative]),
+    ticketStatus: str(f[F.ticketStatus]),
+    prioStatus: str(f[F.prioStatus]),
+    eventType: firstLinkedName(f[L.eventTypes], eventTypes),
+    assetType: firstLinkedName(f[L.assetTypes], assetTypes),
+    requester: firstLinkedName(f[L.requestedBy], employees),
+    requesterId: firstLinkedId(f[L.requestedBy]),
+    typeOfRequest: str(f[F.typeOfRequest]),
+    dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
+  };
+}
 
 /** Active employees for assignment pickers (recId → name) — excludes retired/inactive staff. */
 export async function getActiveEmployees(): Promise<EmployeeOption[]> {
@@ -54,32 +84,13 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
     listAll(TICKETS.baseId, TICKETS.tableId, {
       // Stakeholder/post-prod views pass includeCompleted to also surface Done/Won't Do.
       ...(opts.includeCompleted ? {} : { filterByFormula: ACTIVE_FILTER }),
-      fields: [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
-        L.assignedCreative, L.requestedBy, L.eventTypes, L.assetTypes],
+      fields: QUEUE_FIELDS,
     }),
     nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
   ]);
   if (!res.ok) return [];
 
-  let rows = res.data.map((rec) => {
-    const f = rec.fields as Record<string, unknown>;
-    return {
-      id: rec.id,
-      title: str(f[F.name]) ?? '(untitled)',
-      priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
-      queueRank: num(f[F.queueRank]),
-      assignee: firstLinkedName(f[L.assignedCreative], employees),
-      assigneeId: firstLinkedId(f[L.assignedCreative]),
-      ticketStatus: str(f[F.ticketStatus]),
-      prioStatus: str(f[F.prioStatus]),
-      eventType: firstLinkedName(f[L.eventTypes], eventTypes),
-      assetType: firstLinkedName(f[L.assetTypes], assetTypes),
-      requester: firstLinkedName(f[L.requestedBy], employees),
-      requesterId: firstLinkedId(f[L.requestedBy]),
-      typeOfRequest: str(f[F.typeOfRequest]),
-      dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
-    };
-  });
+  let rows = res.data.map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes));
 
   if (opts.assigneeId) rows = rows.filter((r) => r.assigneeId === opts.assigneeId);
 
@@ -93,6 +104,28 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
   });
 
   return rows.map(({ assigneeId: _drop, ...rest }) => rest);
+}
+
+/**
+ * The newest shipped (Done) tickets, capped. Sorted by "Created" desc (the Done set
+ * has no reliable published-date), so the founder overview reads ~1 page instead of
+ * scanning all ~9k Done rows via the includeCompleted path.
+ */
+export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
+  const [res, employees, eventTypes, assetTypes] = await Promise.all([
+    listAll(TICKETS.baseId, TICKETS.tableId, {
+      filterByFormula: SHIPPED_FILTER,
+      sort: [{ field: 'Created', direction: 'desc' }],
+      maxRecords: limit,
+      fields: QUEUE_FIELDS,
+    }),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'),
+  ]);
+  if (!res.ok) return [];
+  return res.data.map((rec) => {
+    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes);
+    return rest;
+  });
 }
 
 export interface TicketEventRow { id: string; fromState: string | null; toState: string; actor: string | null; note: string | null; createdAt: string }
