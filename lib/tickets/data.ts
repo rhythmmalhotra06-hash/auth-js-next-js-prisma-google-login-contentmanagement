@@ -7,7 +7,7 @@
 
 import { TICKETS } from '@/lib/airtable/field-map';
 import { listAll, getRecord } from '@/lib/airtable/rest';
-import { nameMap, firstLinkedName, firstLinkedId } from '@/lib/repositories/reference.repository';
+import { nameMap, firstLinkedName, firstLinkedId, resolveLinkedNames } from '@/lib/repositories/reference.repository';
 import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
 
@@ -204,9 +204,9 @@ export interface TicketDetail {
 }
 
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
-  const [res, employees, eventTypes, assetTypes, authorsMap, calendars] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, authorsMap, calendars, dimensionsMap] = await Promise.all([
     getRecord(TICKETS.baseId, TICKETS.tableId, id),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('authors'), nameMap('officialCalendars'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('authors'), nameMap('officialCalendars'), nameMap('dimensions'),
   ]);
   if (!res.ok) return null;
   const f = res.data.fields as Record<string, unknown>;
@@ -240,8 +240,8 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     teamServiceLevel: str(f[F.teamServiceLevel]),
     team: arr(f[F.creativeServiceType]),
     project: str(f[F.projectProgram]),
-    dimensions: arr(f[F.dimensionsLookup]),
-    teamLead: arr(f[F.teamLeadLookup]),
+    dimensions: resolveLinkedNames(f[F.dimensionsLookup], dimensionsMap) ?? arr(f[F.dimensionsLookup]),
+    teamLead: resolveLinkedNames(f[F.teamLeadLookup], employees) ?? arr(f[F.teamLeadLookup]),
     queueRank: num(f[F.queueRank]),
     folderUrl: str(f[F.assetFolderLink]),
     sourceLinks: str(f[F.rawFileUrl]),

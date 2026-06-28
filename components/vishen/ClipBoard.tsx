@@ -3,17 +3,43 @@
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
+import { Icon } from '@/components/ui/Icon';
 import { DetailDrawer } from '@/components/ui/DetailDrawer';
 import { ClipActions } from '@/components/vishen/ClipActions';
 import type { ClipSuggestion } from '@/lib/media/repository';
 
 type View = 'grid' | 'table';
+type ClipSortKey = 'hook' | 'format' | 'virality';
+type ClipSort = { key: ClipSortKey; dir: 'asc' | 'desc' } | null;
+
+const CLIP_ACCESSOR: Record<ClipSortKey, (c: ClipSuggestion) => string | number | null> = {
+  hook: (c) => (c.hookLine || c.name || '').toLowerCase(),
+  format: (c) => (c.format ?? '').toLowerCase(),
+  virality: (c) => c.viralityScore ?? null,
+};
+
+function sortClips(clips: ClipSuggestion[], sort: ClipSort): ClipSuggestion[] {
+  if (!sort) return clips;
+  const acc = CLIP_ACCESSOR[sort.key];
+  const mult = sort.dir === 'asc' ? 1 : -1;
+  return [...clips].sort((a, b) => {
+    const av = acc(a), bv = acc(b);
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * mult;
+    return String(av).localeCompare(String(bv)) * mult;
+  });
+}
 
 // AI-generated clips grouped by their media/asset source (compare side-by-side).
 // Click a hook → open the clip record (full detail) and Approve / Dismiss there.
 export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sourceNames: Record<string, string> }) {
   const [view, setView] = useState<View>('grid');
   const [selected, setSelected] = useState<ClipSuggestion | null>(null);
+  const [sort, setSort] = useState<ClipSort>(null);
+  const toggleSort = (key: ClipSortKey) =>
+    setSort((s) => (!s || s.key !== key ? { key, dir: 'asc' } : s.dir === 'asc' ? { key, dir: 'desc' } : null));
 
   const groups = useMemo(() => {
     const m = new Map<string, ClipSuggestion[]>();
@@ -56,12 +82,14 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
                 <table className="w-full text-sm">
                   <thead className="text-left text-[10.5px] uppercase tracking-wide text-text-subtle">
                     <tr className="border-b border-border-default">
-                      <th className="px-4 py-2.5">Hook</th><th className="px-4 py-2.5">Format</th>
-                      <th className="px-4 py-2.5 text-right">Virality</th><th className="px-4 py-2.5 text-right">Open</th>
+                      <ClipTh label="Hook" k="hook" sort={sort} onSort={toggleSort} />
+                      <ClipTh label="Format" k="format" sort={sort} onSort={toggleSort} />
+                      <ClipTh label="Virality" k="virality" sort={sort} onSort={toggleSort} align="right" />
+                      <th className="px-4 py-2.5 text-right">Open</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {g.clips.map((c) => (
+                    {sortClips(g.clips, sort).map((c) => (
                       <tr key={c.id} onClick={() => setSelected(c)} className="cursor-pointer border-b border-border-muted last:border-0 hover:bg-bg-subtle">
                         <td className="px-4 py-2.5 font-medium text-text">{c.hookLine || c.name || 'Untitled'}</td>
                         <td className="px-4 py-2.5 text-text-muted">{c.format?.replace(/_/g, ' ') ?? '—'}</td>
@@ -93,6 +121,21 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
         {selected && <ClipDetail clip={selected} />}
       </DetailDrawer>
     </div>
+  );
+}
+
+function ClipTh({ label, k, sort, onSort, align }: { label: string; k: ClipSortKey; sort: ClipSort; onSort: (k: ClipSortKey) => void; align?: 'right' }) {
+  const active = sort?.key === k;
+  const dir = active ? sort!.dir : undefined;
+  return (
+    <th className={cn('px-4 py-2.5', align === 'right' && 'text-right')} aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" onClick={() => onSort(k)}
+        className={cn('group inline-flex items-center gap-1 uppercase tracking-wide', align === 'right' && 'flex-row-reverse')}>
+        <span>{label}</span>
+        <Icon name="chevron" size={11}
+          className={cn('transition-opacity', active ? 'text-brand opacity-100' : 'opacity-0 group-hover:opacity-40', dir === 'asc' && 'rotate-180')} />
+      </button>
+    </th>
   );
 }
 

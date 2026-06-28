@@ -17,10 +17,6 @@ export interface ColumnDef<T> {
 
 export type SortState = { key: string; dir: 'asc' | 'desc' } | null;
 
-function defaultVisibility<T>(columns: ColumnDef<T>[]): Record<string, boolean> {
-  return Object.fromEntries(columns.map((c) => [c.key, c.locked || c.defaultVisible !== false && c.defaultVisible === true || !!c.locked]));
-}
-
 // Locked → always on; otherwise honor defaultVisible (default false for optional columns).
 function initialVisibility<T>(columns: ColumnDef<T>[]): Record<string, boolean> {
   return Object.fromEntries(columns.map((c) => [c.key, c.locked ? true : c.defaultVisible === true]));
@@ -105,7 +101,6 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * mult;
       return String(av).localeCompare(String(bv)) * mult;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort, columns]);
 
   return { visible, isVisible, visibleColumns, hiddenCount, sort, toggleSort, toggleColumn, reset, sortRows };

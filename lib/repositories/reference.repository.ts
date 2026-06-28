@@ -1,7 +1,7 @@
 // Reference name maps (recId → name) for resolving Prio Requests link fields when
 // rendering tickets. Small, slow-changing tables — cached ~5min. Airtable-direct.
 
-import { EMPLOYEES, EVENT_TYPES, ASSET_TYPES, AUTHORS, OFFICIAL_CALENDARS } from '@/lib/airtable/field-map';
+import { EMPLOYEES, EVENT_TYPES, ASSET_TYPES, AUTHORS, OFFICIAL_CALENDARS, DIMENSIONS } from '@/lib/airtable/field-map';
 import { listAll } from '@/lib/airtable/rest';
 
 interface NameSource { baseId: string; tableId: string; nameField: string; fallbackField?: string }
@@ -12,7 +12,25 @@ const SOURCES: Record<string, NameSource> = {
   assetTypes: { baseId: ASSET_TYPES.baseId, tableId: ASSET_TYPES.tableId, nameField: ASSET_TYPES.fields.name, fallbackField: ASSET_TYPES.fields.fullName },
   authors: { baseId: AUTHORS.baseId, tableId: AUTHORS.tableId, nameField: AUTHORS.fields.name },
   officialCalendars: { baseId: OFFICIAL_CALENDARS.baseId, tableId: OFFICIAL_CALENDARS.tableId, nameField: OFFICIAL_CALENDARS.fields.name },
+  dimensions: { baseId: DIMENSIONS.baseId, tableId: DIMENSIONS.tableId, nameField: DIMENSIONS.fields.label },
 };
+
+/** Resolve an array of linked recIds (e.g. a lookup that returns record IDs) to names. */
+export function resolveLinkedNames(value: unknown, map: Map<string, string>): string | null {
+  if (!Array.isArray(value)) return null;
+  const names = value
+    .map((x) => {
+      if (typeof x === 'string') return x.startsWith('rec') ? (map.get(x) ?? null) : x;
+      if (x && typeof x === 'object') {
+        const o = x as { id?: unknown; name?: unknown };
+        if (typeof o.name === 'string') return o.name;
+        if (typeof o.id === 'string') return map.get(o.id) ?? null;
+      }
+      return null;
+    })
+    .filter((n): n is string => !!n);
+  return names.length ? [...new Set(names)].join(', ') : null;
+}
 
 const TTL_MS = 5 * 60_000;
 const cache = new Map<string, { at: number; map: Map<string, string> }>();

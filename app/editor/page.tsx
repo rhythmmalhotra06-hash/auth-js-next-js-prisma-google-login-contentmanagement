@@ -4,12 +4,11 @@ import { AppShell } from '@/components/ui/AppShell';
 import { getQueueTickets, getActiveEmployees } from '@/lib/tickets/data';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { EmployeePicker } from '@/components/tickets/EmployeePicker';
-import { ApprovedClipsSection } from '@/components/clips/ApprovedClipsSection';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { TicketStatusBadge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
-import { QueueSkeleton, CardSkeleton } from '@/components/ui/Skeletons';
+import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { guardRoute } from '@/lib/auth/route-guard';
 
 export const dynamic = 'force-dynamic';
@@ -47,9 +46,6 @@ async function EditorBody({ assignee }: { assignee?: string }) {
         </div>
       )}
 
-      <Suspense fallback={<CardSkeleton />}>
-        <ApprovedClipsSection />
-      </Suspense>
       <div className="sec-head"><h3>Up next in your queue</h3><span className="hint">pulled in priority order</span></div>
       <QueueTable tickets={tickets} storageKey="editor-queue" />
     </>

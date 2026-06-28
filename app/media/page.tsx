@@ -3,7 +3,6 @@ import { AppShell } from '@/components/ui/AppShell';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
-import { ConvertCheckedButton } from '@/components/media/ConvertCheckedButton';
 import { listMediaSources } from '@/lib/media/repository';
 
 export const dynamic = 'force-dynamic';
@@ -25,17 +24,18 @@ export default async function MediaInboxPage() {
     <AppShell
       title="Clip engine"
       subtitle="Long-form media → AI clip strategy → production tickets."
-      actions={
-        <div className="flex shrink-0 items-center gap-2">
-          <ConvertCheckedButton />
-          <Link href="/media/new" className="btn primary sm" style={{ textDecoration: 'none' }}><Icon name="plus" size={14} /> Submit link</Link>
-        </div>
-      }
     >
-      <div className="banner future" style={{ marginBottom: 16 }}>
-        <Icon name="film" size={18} />
-        <div>Vishen’s long-form talks are transcribed and turned into a ranked clip strategy. Approve the winners and <b>batch-convert them into production tickets</b>.</div>
-      </div>
+      {/* Submit is the key action of this workflow — lead with it. */}
+      <Link href="/media/new" className="card pad submit-cta" style={{ textDecoration: 'none' }}>
+        <div className="submit-cta-ic"><Icon name="film" size={24} /></div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <h3 style={{ fontSize: 19, color: '#fff' }}>Turn a talk into clips</h3>
+          <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.92)', margin: '4px 0 0' }}>
+            Drop a YouTube or podcast link — we transcribe it and draft a ranked, platform-ready clip strategy.
+          </p>
+        </div>
+        <span className="btn submit-cta-btn"><Icon name="plus" size={16} /> Submit media link</span>
+      </Link>
 
       <KpiGrid>
         <Kpi label="Media in inbox" value={sources.length} i={0} />
