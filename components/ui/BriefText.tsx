@@ -1,20 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { cleanBrief } from '@/lib/tickets/brief';
 
-// Briefs are migrated from Jira/Airtable and carry markup noise: smart-links
-// [<url|url|smart-link>], escaped asterisks (\*), and [~accountid:…] mentions.
-// Clean it to readable text, linkify URLs, keep line breaks, collapse long briefs.
-function clean(raw: string): string {
-  return raw
-    .replace(/\[~accountid:[^\]]+\]/g, '@someone')        // Jira user mentions
-    .replace(/\[<\s*([^|>\s]+)[^\]]*?smart-link\s*>\]/g, '$1') // [<url|url|smart-link>] → first url
-    .replace(/\[([^\]|]+)\|[^\]]*?\|smart-link\]/g, '$2')  // [text|url|smart-link] → url
-    .replace(/\\([*_|>~`#-])/g, '$1')                      // unescape \* \| etc.
-    .replace(/[ \t]{3,}/g, '  ')
-    .trim();
-}
-
+// Presentation for briefs: linkify URLs, keep line breaks, collapse long ones.
+// Markup is normalized at the data layer (cleanBrief); we run it again defensively
+// (idempotent) so this component is safe for any raw input.
 const URL_RE = /(https?:\/\/[^\s)|\]<>]+)/g;
 
 function linkify(line: string, keyBase: string) {
@@ -31,8 +22,8 @@ function linkify(line: string, keyBase: string) {
 
 export function BriefText({ text }: { text: string | null }) {
   const [open, setOpen] = useState(false);
-  if (!text) return <span className="subtle">—</span>;
-  const cleaned = clean(text);
+  const cleaned = cleanBrief(text);
+  if (!cleaned) return <span className="subtle">—</span>;
   const long = cleaned.length > 700;
   const lines = cleaned.split(/\r?\n/);
 

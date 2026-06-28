@@ -9,6 +9,7 @@ import { TICKETS } from '@/lib/airtable/field-map';
 import { listAll, getRecord } from '@/lib/airtable/rest';
 import { nameMap, firstLinkedName, firstLinkedId } from '@/lib/repositories/reference.repository';
 import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
+import { cleanBrief } from '@/lib/tickets/brief';
 
 const F = TICKETS.fields;
 const L = TICKETS.links;
@@ -150,7 +151,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   return {
     id: res.data.id,
     title: str(f[F.name]) ?? '(untitled)',
-    creativeBrief: str(f[F.creativeBrief]),
+    creativeBrief: cleanBrief(str(f[F.creativeBrief])),
     cta: str(f[F.cta]),
     dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
     ticketStatus: str(f[F.ticketStatus]),
@@ -158,7 +159,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     typeOfRequest: str(f[F.typeOfRequest]),
     teamServiceLevel: str(f[F.teamServiceLevel]),
     sourceLinks: str(f[F.rawFileUrl]),
-    notes: str(f[F.notes]),
+    notes: cleanBrief(str(f[F.notes])),
     priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
     eventType: firstLinkedName(f[L.eventTypes], eventTypes),
     assetType: firstLinkedName(f[L.assetTypes], assetTypes),
