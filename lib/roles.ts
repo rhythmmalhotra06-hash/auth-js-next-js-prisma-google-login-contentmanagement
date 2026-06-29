@@ -77,6 +77,8 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
     case '/editor':
     case '/stakeholder':
       return canAccessRoute(r, href);
+    case '/shoots':
+      return true; // anyone can submit/track a shoot request
     case '/settings/clip-rules':
     case '/settings/team':
       return false; // admin-only (admins already returned true above)
@@ -110,6 +112,9 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   // role (anyone can submit intake), and for pure stakeholders it's their main surface.
   items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox', group: 'Workflow' });
   if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film', group: 'Library & media' });
+  // Shoots = pre-production filming queue. Anyone can submit a shoot request, so it's
+  // visible to every signed-in role (mirrors "New request" being open to all).
+  items.push({ href: '/shoots', label: 'Shoots', icon: 'video', group: 'Library & media' });
   items.push({ href: '/performance', label: 'Insights', icon: 'chart', group: 'Intelligence' });
   if (isAdmin) {
     items.push({ href: '/settings/clip-rules', label: 'Rules', icon: 'sliders', group: 'Intelligence' });

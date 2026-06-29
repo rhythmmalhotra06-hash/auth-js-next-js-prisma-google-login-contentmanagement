@@ -480,6 +480,9 @@ const I = {
   eye:'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z|M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   photo:'M3 5h18v14H3z|M3 15l5-5 4 4 3-3 6 6|M8.5 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   film:'M4 4h16v16H4z|M4 8h16M4 16h16M8 4v16M16 4v16',
+  video:'M15 8.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1.5l6 4v-11z',
+  calendar:'M3 5h18v16H3z|M3 9h18M8 3v4M16 3v4',
+  pin:'M12 21s7-5.5 7-12a7 7 0 1 0-14 0c0 6.5 7 12 7 12z|M12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   chart:'M3 3v18h18|M7 14l3-3 3 3 4-5',
   sliders:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
   plus:'M12 5v14M5 12h14',
@@ -594,6 +597,21 @@ const MEDIA=[
     {id:'c6',hk:'One question to ask before any big decision',ts:'19:44–20:20',vir:7,fmt:'talking_head',desc:'Decision-framework clip, high save rate expected.',state:'proposed'}
   ]}
 ];
+// Shoots = pre-production "I want to film something" requests (Airtable 📺 Shoots table).
+// status enum: Needs Vishen's Review · Approved by Vishen · To Film · Done - Filmed · Cancelled
+// "To Film in Studio Time" view = created after 2026-05-31 AND filmDate set.
+const SHFORMATS=['Studio','VLOG','Broll','Testimonial','Livestream','Interview'];
+const SHSTATUS=["Needs Vishen's Review",'Approved by Vishen','To Film','Done - Filmed','Cancelled'];
+const SHSTATUS_TONE={"Needs Vishen's Review":'warning','Approved by Vishen':'brand','To Film':'info','Done - Filmed':'success','Cancelled':'neutral'};
+let SHID=6;
+const SHOOTS=[
+  {id:'s-1',title:'Quest launch — studio sit-down',requester:'nina',status:'To Film',format:'Studio',filmDate:'2026-07-02',location:'KL Studio A',created:'2026-06-12',authors:['Vishen Lakhiani'],brief:'Hero sit-down for the Quest launch trailer. Two camera setup, teleprompter for the offer block.',support:'Teleprompter, lav mics ×2, key-light kit',vishenApproved:true,tickets:['t-014']},
+  {id:'s-2',title:'Mastery testimonial interviews (cohort 12)',requester:'nina',status:'Approved by Vishen',format:'Testimonial',filmDate:'2026-07-08',location:'KL Studio B',created:'2026-06-18',authors:['Cohort guests'],brief:'Five 1-on-1 testimonial interviews with standout Mastery graduates. Feeds the warm-nurture cutdowns.',support:'Interview backdrop, 3-point lighting',vishenApproved:true,tickets:['t-020']},
+  {id:'s-3',title:'Pathway daily-ritual b-roll day',requester:'carlos',status:'To Film',format:'Broll',filmDate:'2026-07-04',location:'Rooftop + studio',created:'2026-06-20',authors:[],brief:'Morning-ritual b-roll: candles, journaling, breathwork. Serene, slow motion where possible.',support:'Gimbal, slider, natural-light setup',vishenApproved:false,tickets:[]},
+  {id:'s-4',title:'Summit fireside — the inner game',requester:'nina',status:"Needs Vishen's Review",format:'Interview',filmDate:'',location:'',created:'2026-06-25',authors:['Guest panel'],brief:'Multi-guest fireside for the Summit feature reel. Awaiting Vishen sign-off on the guest list before we lock a date.',support:'4-person panel audio, multicam',vishenApproved:false,tickets:[]},
+  {id:'s-5',title:'States app — founder VLOG',requester:'millie',status:"Needs Vishen's Review",format:'VLOG',filmDate:'',location:'',created:'2026-06-27',authors:['Vishen Lakhiani'],brief:'Casual handheld VLOG walking through the States app daily flow. Needs Vishen review before scheduling.',support:'Handheld rig, wireless mic',vishenApproved:false,tickets:[]},
+  {id:'s-6',title:'Legacy brand-film reshoot',requester:'paul',status:'Done - Filmed',format:'Studio',filmDate:'2026-05-20',location:'KL Studio A',created:'2026-05-10',authors:['Vishen Lakhiani'],brief:'Reshoot of the 2025 brand film cold open. Already filmed — kept for reference (pre-window, hidden from default view).',support:'Cinema package',vishenApproved:true,tickets:[]}
+];
 const INSIGHTS=[
   {t:'9:16 cold Masterclass trailers outperform average CTR by 40%',d:'Across 14 published assets in the last 90 days. Consider defaulting trailers to vertical-first.',tone:'good'},
   {t:'Warm-audience pathway shorts hold 2× the watch-through of cold',d:'Organic shorts to warm followers retain to 78% vs 41% cold. Route nurture content here.',tone:'good'},
@@ -616,7 +634,9 @@ const ROLES={
   stakeholder:{n:'Stakeholder / agency',ds:'Read-only status & performance',home:'#/stakeholder',emp:null,rdot:'var(--green)'},
   admin:{n:'Content engine admin',ds:'Clip pipeline & rules',home:'#/media',rdot:'var(--gold)'}
 };
-const STATE={role:'manager',theme:'light',roleMenu:false};
+const STATE={role:'manager',theme:'light',roleMenu:false,
+  // Shoots queue saved-view state. view: 'studio' (To Film in Studio Time) | 'all' | 'custom'
+  shootView:{view:'studio',status:'',format:'',hasDate:'',createdAfter:'2026-05-31'}};
 
 const NAV=[
   {grp:'Vishen',items:[
@@ -630,7 +650,8 @@ const NAV=[
   ]},
   {grp:'Library & media',items:[
     {r:'#/assets',n:'Asset library',ic:'photo'},
-    {r:'#/media',n:'Clip engine',ic:'film',pip:()=>MEDIA.reduce((a,m)=>a+m.clips.filter(c=>c.state==='proposed').length,0)}
+    {r:'#/media',n:'Clip engine',ic:'film',pip:()=>MEDIA.reduce((a,m)=>a+m.clips.filter(c=>c.state==='proposed').length,0)},
+    {r:'#/shoots',n:'Shoots',ic:'video',pip:()=>SHOOTS.filter(s=>s.status==="Needs Vishen's Review").length}
   ]},
   {grp:'Intelligence',items:[
     {r:'#/performance',n:'Insights',ic:'chart'},
@@ -995,10 +1016,59 @@ function vTicket(id){
     </div>`;
 }
 
-function vIntake(){
-  renderTop('New creative request','Intake · routed automatically — no priority or assignee here');
+function vNewRequest(){
+  renderTop('New request','Pick what you need — we route it to the right team automatically');
+  $('#view').innerHTML=`
+    <div class="banner future" style="margin-bottom:18px">${svg('sparkle',18)}<div>Two intake paths: a <b>creative request</b> for editing/design work on an asset, or a <b>shoot request</b> when you want to film something. ${fmtLive()}</div></div>
+    <div class="grid2" style="grid-template-columns:1fr 1fr;gap:16px;max-width:760px">
+      <div class="card pad choose" data-action="nav" data-route="#/intake/creative" style="cursor:pointer">
+        <div class="thumb" style="width:42px;height:42px">${svg('sparkle',22)}</div>
+        <h3 style="font-size:16px;margin:12px 0 6px">Creative request</h3>
+        <p class="muted" style="font-size:13px;line-height:1.5">An edit or design job for an existing asset — trailer, reel, banner, VSSL. Routed by event &amp; asset type.</p>
+        <span class="btn sm primary" style="margin-top:14px">${svg('arrow',14)} Start creative request</span>
+      </div>
+      <div class="card pad choose" data-action="nav" data-route="#/intake/shoot" style="cursor:pointer">
+        <div class="thumb" style="width:42px;height:42px">${svg('video',22)}</div>
+        <h3 style="font-size:16px;margin:12px 0 6px">Shoot request</h3>
+        <p class="muted" style="font-size:13px;line-height:1.5">You want to film or shoot something — studio, VLOG, interview, b-roll. Goes to the studio queue for scheduling.</p>
+        <span class="btn sm primary" style="margin-top:14px">${svg('arrow',14)} Start shoot request</span>
+      </div>
+    </div>`;
+}
+
+function vIntakeShoot(){
+  renderTop('Shoot & production request','Intake · films flow into the studio queue');
+  const evOpts=`<option value="">Select event type…</option>`+Object.entries(EVENTS).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join('');
+  const empOpts=`<option value="">Select…</option>`+Object.values(EMP).map(e=>`<option value="${e.id}">${e.n}</option>`).join('');
+  $('#view').innerHTML=`
+    <button class="btn ghost sm" data-action="nav" data-route="#/intake" style="margin-bottom:14px">${svg('arrow',14)} Back to request type</button>
+    <div class="banner future" style="margin-bottom:18px">${svg('video',18)}<div>Tell us what you want to film. Approved shoots appear in <b>Shoots → To Film in Studio Time</b> and link to the tickets they feed. ${fmtLive()}</div></div>
+    <div class="card pad" style="max-width:760px">
+      <div class="form-grid">
+        <div><label>Your name *</label><select id="s-req">${empOpts}</select></div>
+        <div><label>Product / event type *</label><select id="s-event">${evOpts}</select></div>
+        <div class="fg-full"><label>Title *</label><input id="s-title" placeholder="e.g. Quest launch — studio sit-down"></div>
+        <div class="fg-full"><label>What is your format? *</label><div class="segmented" id="s-format" data-action="shoot-format">${SHFORMATS.map((f,i)=>`<button class="${i===0?'on':''}" data-v="${f}">${f}</button>`).join('')}</div></div>
+        <div class="fg-full"><label>Short description *</label><input id="s-desc" placeholder="One line on what we're filming"></div>
+        <div class="fg-full"><label>Notes / brief *</label><textarea id="s-brief" rows="4" placeholder="What's the shoot, who's in it, and what's the goal?"></textarea></div>
+        <div class="fg-full"><label>Production support</label><textarea id="s-support" rows="2" placeholder="Tech (e.g. teleprompter) or props needed to film the asset"></textarea></div>
+        <div><label>📍 Filming location <span class="subtle">optional</span></label><input id="s-loc" placeholder="e.g. KL Studio A"></div>
+        <div><label>📆 Filming date <span class="subtle">if known</span></label><input id="s-date" type="date"></div>
+        <div class="fg-full"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="s-vishen" style="width:auto"> Vishen's approval — tick if this shoot is already approved by Vishen</label></div>
+      </div>
+      <div class="divider" style="margin:18px 0"></div>
+      <div class="row" style="display:flex;gap:9px;justify-content:flex-end">
+        <button class="btn" data-action="nav" data-route="#/intake">Cancel</button>
+        <button class="btn primary" data-action="submit-shoot">${svg('check',15)}Submit shoot request</button>
+      </div>
+    </div>`;
+}
+
+function vIntakeCreative(){
+  renderTop('Creative request','Intake · routed automatically — no priority or assignee here');
   const evOpts=`<option value="">Select event type…</option>`+Object.entries(EVENTS).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join('');
   $('#view').innerHTML=`
+    <button class="btn ghost sm" data-action="nav" data-route="#/intake" style="margin-bottom:14px">${svg('arrow',14)} Back to request type</button>
     <div class="banner future" style="margin-bottom:18px">${svg('sparkle',18)}<div>Order is enforced: <b>Event type → Asset type → auto-filled lookups</b>, then the creative fields. Team lead, editor &amp; dimensions are read-only — they come from the asset type. ${fmtLive()}</div></div>
     <div class="card pad" style="max-width:760px">
       <div class="form-grid">
@@ -1139,6 +1209,102 @@ function vMediaDetail(id){
     <div class="clipgrid" style="margin-top:8px">${clips}</div>`;
 }
 
+/* ---- Shoots: pre-production filming queue ---- */
+function shootMatches(s,f){
+  if(f.view==='studio'){ if(!(s.created>'2026-05-31' && s.filmDate)) return false; }
+  if(f.status && s.status!==f.status) return false;
+  if(f.format && s.format!==f.format) return false;
+  if(f.hasDate==='yes' && !s.filmDate) return false;
+  if(f.hasDate==='no' && s.filmDate) return false;
+  if(f.view==='custom' && f.createdAfter && !(s.created>f.createdAfter)) return false;
+  return true;
+}
+function shootRow(s){
+  const tone=SHSTATUS_TONE[s.status]||'neutral';
+  const meta=[emp(s.requester)?.n||'',s.format,
+    s.filmDate?`📆 ${s.filmDate}`:'<span class="subtle">no date yet</span>',
+    s.location||''].filter(Boolean).join(' · ');
+  const tc=s.tickets.length?`feeds ${s.tickets.length} ticket${s.tickets.length>1?'s':''}`:'—';
+  return `<div class="mrow" data-action="open-shoot" data-id="${s.id}">
+    <div class="thumb">${svg('video',20)}</div>
+    <div style="flex:1;min-width:0"><b style="font-size:13.5px">${s.title}</b>
+      <div class="t-meta">${meta}</div></div>
+    <div style="display:flex;gap:10px;align-items:center">${badge(tone,s.status)}<span class="muted" style="font-size:12px;width:96px;text-align:right">${tc}</span></div>
+  </div>`;
+}
+function vShoots(){
+  renderTop('Shoots','Pre-production filming requests → studio queue → production tickets');
+  const f=STATE.shootView;
+  const awaiting=SHOOTS.filter(s=>s.status==="Needs Vishen's Review").length;
+  const toFilm=SHOOTS.filter(s=>s.status==='To Film'||s.status==='Approved by Vishen').length;
+  const filmed=SHOOTS.filter(s=>s.status==='Done - Filmed').length;
+  const matched=SHOOTS.filter(s=>shootMatches(s,f));
+  // group matched rows by status in lifecycle order
+  let groups=SHSTATUS.map(st=>{
+    const rows=matched.filter(s=>s.status===st);
+    if(!rows.length) return '';
+    return `<div class="sec-head" style="margin:14px 0 8px"><h3 style="font-size:13px">${badge(SHSTATUS_TONE[st],st)}</h3><span class="hint">${rows.length}</span></div>
+      <div class="stack">${rows.map(shootRow).join('')}</div>`;
+  }).join('');
+  if(!matched.length) groups=`<div class="empty" style="padding:34px;text-align:center;color:var(--text-muted)">No shoots match this view. Try <b>All shoots</b> or widen the filters.</div>`;
+  const opt=(v,sel)=>`<option value="${v}" ${sel===v?'selected':''}>`;
+  $('#view').innerHTML=`
+    <div class="banner future" style="margin-bottom:16px">${svg('video',18)}<div>Anyone who wants to <b>film or shoot</b> submits a shoot request. Approved shoots flow into the studio queue and link to the production tickets they feed. ${fmtLive()}</div></div>
+    <div class="kpis">
+      <div class="kpi alert"><div class="lab">Awaiting Vishen</div><div class="val">${awaiting}</div><div class="sub">needs review</div></div>
+      <div class="kpi"><div class="lab">In studio queue</div><div class="val">${toFilm}</div><div class="sub">approved / to film</div></div>
+      <div class="kpi"><div class="lab">Filmed</div><div class="val">${filmed}</div></div>
+    </div>
+    <div class="row-between" style="margin-bottom:10px"><h3 style="font-size:15px">Shoot queue</h3>
+      <button class="btn primary" data-action="nav" data-route="#/intake/shoot">${svg('plus',15)}New shoot request</button></div>
+    <div class="seg-views" style="display:flex;gap:6px;margin-bottom:12px">
+      <button class="btn sm ${f.view==='studio'?'primary':''}" data-action="shoot-view" data-view="studio">${svg('video',13)} To Film in Studio Time</button>
+      <button class="btn sm ${f.view==='all'?'primary':''}" data-action="shoot-view" data-view="all">All shoots</button>
+      <button class="btn sm ${f.view==='custom'?'primary':''}" data-action="shoot-view" data-view="custom">${svg('sliders',13)} Custom view</button>
+    </div>
+    ${f.view==='studio'?`<p class="subtle" style="font-size:12px;margin:-4px 0 12px">Showing shoots created after <b>31 May 2026</b> with a filming date set — the live studio-time list.</p>`:''}
+    <div class="toolbar" style="margin-bottom:6px">
+      <select data-action="shoot-filter" data-k="status"><option value="">All statuses</option>${SHSTATUS.map(s=>`${opt(s,f.status)}${s}</option>`).join('')}</select>
+      <select data-action="shoot-filter" data-k="format"><option value="">All formats</option>${SHFORMATS.map(s=>`${opt(s,f.format)}${s}</option>`).join('')}</select>
+      <select data-action="shoot-filter" data-k="hasDate"><option value="">Any filming date</option>${opt('yes',f.hasDate)}Has filming date</option>${opt('no',f.hasDate)}No date yet</option></select>
+      ${f.view==='custom'?`<label class="subtle" style="display:flex;align-items:center;gap:6px;font-size:12px">Created after <input type="date" data-action="shoot-filter" data-k="createdAfter" value="${f.createdAfter}" style="width:auto"></label>`:''}
+      <span class="muted" style="margin-left:auto;font-size:12px;align-self:center">${matched.length} of ${SHOOTS.length}</span>
+    </div>
+    ${groups}`;
+}
+function vShootDetail(id){
+  const s=SHOOTS.find(x=>x.id===id); if(!s){location.hash='#/shoots';return;}
+  renderTop(s.title,`Shoot · ${s.format} · ${s.location||'location TBD'}`);
+  const tix=s.tickets.map(tid=>{const t=TICKETS.find(x=>x.id===tid);if(!t)return '';
+    return `<div class="vrow" data-action="open-ticket" data-id="${t.id}" style="cursor:pointer">
+      <div class="vthumb" style="background:var(--brand);font-size:11px">${t.id.replace('t-','')}</div>
+      <div class="meta"><b>${t.title}</b><span>${at(t.at)?.n||''} · ${badge(TSTATUS_TONE[t.ts]||'neutral',t.ts)}</span></div>${svg('arrow',16)}</div>`;}).join('');
+  $('#view').innerHTML=`<button class="btn ghost sm" data-action="nav" data-route="#/shoots" style="margin-bottom:14px">${svg('arrow',14)} Back to shoots</button>
+    <div class="row-between" style="margin-bottom:14px">
+      <div><div class="eyebrow">${svg('video',12)} Shoot request</div><h3 style="font-size:17px;margin-top:4px">${s.title}</h3>
+        <div class="t-meta">${emp(s.requester)?.n||'—'} · requested ${s.created}</div></div>
+      <div style="display:flex;gap:8px;align-items:center">${badge(SHSTATUS_TONE[s.status],s.status)}${s.vishenApproved?badge('success','✓ Vishen approved'):badge('warning','Vishen review pending')}</div>
+    </div>
+    <div class="grid2" style="grid-template-columns:1.4fr 1fr;align-items:start;gap:18px">
+      <div class="card pad">
+        <div class="sec-head" style="margin:0 0 12px"><h3>Brief</h3></div>
+        <p style="font-size:13.5px;line-height:1.55">${s.brief}</p>
+        <div class="divider" style="margin:14px 0"></div>
+        <div class="autofill">
+          <div class="row"><span class="k">Format</span><span>${s.format}</span></div>
+          <div class="row"><span class="k">📆 Filming date</span><span>${s.filmDate||'<span class="subtle">not scheduled</span>'}</span></div>
+          <div class="row"><span class="k">📍 Location</span><span>${s.location||'<span class="subtle">TBD</span>'}</span></div>
+          <div class="row"><span class="k">Authors</span><span>${s.authors.length?s.authors.join(', '):'<span class="subtle">—</span>'}</span></div>
+          <div class="row"><span class="k">Production support</span><span>${s.support||'—'}</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-head" style="margin:0 0 10px"><h3>Linked tickets</h3><span class="hint">post-production</span></div>
+        ${tix?`<div class="vstack">${tix}</div>`:`<div class="empty" style="padding:22px;text-align:center;color:var(--text-muted);font-size:13px">No production tickets linked yet. Tickets created from this shoot will appear here.</div>`}
+      </div>
+    </div>`;
+}
+
 function vPerformance(){
   renderTop('Insights','Intelligence layer · propose-only, human approves');
   const pub=TICKETS.filter(t=>t.perf);
@@ -1202,8 +1368,10 @@ function route(){
   renderSide();
   if(h.startsWith('#/ticket/')) vTicket(h.split('/')[2]);
   else if(h.startsWith('#/media/')) vMediaDetail(h.split('/')[2]);
-  else { const map={'#/studio':vStudio,'#/queue':vQueue,'#/editor':vEditor,'#/stakeholder':vStakeholder,'#/intake':vIntake,
-    '#/assets':vAssets,'#/media':vMedia,'#/performance':vPerformance,'#/rules':vRules}; (map[h]||vQueue)(); }
+  else if(h.startsWith('#/shoot/')) vShootDetail(h.split('/')[2]);
+  else { const map={'#/studio':vStudio,'#/queue':vQueue,'#/editor':vEditor,'#/stakeholder':vStakeholder,
+    '#/intake':vNewRequest,'#/intake/creative':vIntakeCreative,'#/intake/shoot':vIntakeShoot,
+    '#/assets':vAssets,'#/media':vMedia,'#/shoots':vShoots,'#/performance':vPerformance,'#/rules':vRules}; (map[h]||vQueue)(); }
   postRender();
   window.scrollTo(0,0);
   $('#side').classList.remove('show');
@@ -1316,6 +1484,7 @@ document.addEventListener('click',e=>{
       toast(`Now viewing as ${ROLES[STATE.role].n}`,'user'); break;
     case 'open-ticket': location.hash='#/ticket/'+el.dataset.id; break;
     case 'open-media': location.hash='#/media/'+el.dataset.id; break;
+    case 'open-shoot': location.hash='#/shoot/'+el.dataset.id; break;
     case 'toast': toast(el.dataset.msg||'Done'); break;
     case 'assign': openAssign(el.dataset.id); break;
     case 'scrim': if(e.target.classList.contains('scrim'))closeModal(); break;
@@ -1327,6 +1496,9 @@ document.addEventListener('click',e=>{
     case 'autorank': openAutorank(); break;
     case 'autorank-apply': closeModal(); toast('Queue re-ranked by the algorithm','sparkle'); route(); break;
     case 'intake-aud': el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); break;
+    case 'shoot-format': el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on')); el.classList.add('on'); break;
+    case 'shoot-view': STATE.shootView.view=el.dataset.view; if(el.dataset.view!=='custom'){STATE.shootView.status='';STATE.shootView.format='';STATE.shootView.hasDate='';} vShoots(); break;
+    case 'submit-shoot': submitShoot(); break;
     case 'draft-brief': $('#f-brief').value="Open on the transformation promise (top-performing hook for this asset type), intercut testimonial b-roll, and land the enrolment CTA before 0:75. Mirror the 9:16 cold cut that beat the set by 40% CTR."; toast('Brief drafted from top performers','sparkle'); break;
     case 'submit-intake': submitIntake(); break;
     case 'submit-media': openSubmitMedia(); break;
@@ -1353,6 +1525,7 @@ document.addEventListener('change',e=>{
   if(a==='set-assignee'){const t=TICKETS.find(x=>x.id===id);t.assignee=el.value||null;toast(t.assignee?`Assigned to ${emp(t.assignee).n}`:'Unassigned');route();}
   if(a==='intake-event'){renderAutofill();}
   if(a==='intake-asset'){renderLockbox(el.value);}
+  if(a==='shoot-filter'){STATE.shootView[el.dataset.k]=el.value; vShoots();}
 });
 
 /* ---- actions ---- */
@@ -1396,6 +1569,21 @@ function submitIntake(){const ek=$('#f-event').value,ak=$('#f-asset').value,titl
       <h3 style="font-size:17px">Request submitted</h3><p class="muted" style="font-size:13px;margin:8px 0 18px">${id} entered the queue. The manager will rank and assign it.</p>
       <div style="display:flex;gap:9px;justify-content:center"><button class="btn" data-action="modal-close">Submit another</button>
         <button class="btn primary" onclick="closeModal();location.hash='#/queue'">View in queue</button></div></div></div>`);}
+
+function submitShoot(){const req=$('#s-req').value,title=$('#s-title').value.trim();
+  if(!req||!title){toast('Fill your name and a title','x');return;}
+  const vishen=$('#s-vishen').checked;const date=$('#s-date').value;
+  const id='s-'+(++SHID);
+  SHOOTS.unshift({id,title,requester:req,status:vishen?'Approved by Vishen':"Needs Vishen's Review",
+    format:document.querySelector('#s-format .on').dataset.v,filmDate:date,location:$('#s-loc').value||'',
+    created:'2026-06-29',authors:[],brief:$('#s-brief').value||$('#s-desc').value||'(brief pending)',
+    support:$('#s-support').value||'',vishenApproved:vishen,tickets:[]});
+  STATE.shootView.view=vishen&&date?'studio':'all';
+  modal(`<div class="modal"><div class="mb" style="text-align:center;padding:36px 24px">
+      <div style="width:50px;height:50px;border-radius:50%;background:var(--green-soft);color:var(--green-content);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">${svg('check',24)}</div>
+      <h3 style="font-size:17px">Shoot request submitted</h3><p class="muted" style="font-size:13px;margin:8px 0 18px">${id} added to the shoot queue${vishen?' — Vishen-approved, ready to schedule.':'. We\'ll get Vishen to review it.'}</p>
+      <div style="display:flex;gap:9px;justify-content:center"><button class="btn" data-action="modal-close">Submit another</button>
+        <button class="btn primary" onclick="closeModal();location.hash='#/shoots'">View in shoots</button></div></div></div>`);}
 
 function openSubmitMedia(){modal(`<div class="modal"><div class="mh"><b>Submit media link</b><button class="icobtn" data-action="modal-close">${svg('x',16)}</button></div>
     <div class="mb"><label>YouTube or podcast URL</label><input id="md-url" placeholder="https://youtube.com/watch?v=…">

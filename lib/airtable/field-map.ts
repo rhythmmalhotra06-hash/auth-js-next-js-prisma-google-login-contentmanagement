@@ -59,13 +59,41 @@ export const TICKETS = {
   },
 } as const;
 
-// 📺 Shoots & Raw Assets — the raw source/shoot a request can optionally link to.
+// 📺 Shoots — pre-production filming requests (the "New 🎬 Shoots" form) that feed
+// production tickets. Field IDs resolved against the live schema 2026-06-29
+// (Context/airtable-schema/creative_services.raw.json). Also the optional raw-source
+// link target for a creative ticket (TICKETS.links.shoots → this table).
 export const SHOOTS = {
   baseId: BASES.creativeServices,
   tableId: 'tblcZ8OIxfgnlUowC',
   fields: {
-    title: 'fldiXdLvABVQsQx6C', // "Asset Title" (primary)
+    title: 'fldiXdLvABVQsQx6C', // "Asset Title" (singleLineText, primary)
+    status: 'fldfz4B7S765leTIT', // "Status" (singleSelect) — see status_ below
+    notes: 'fldTuCEBQmXYnxCZM', // "Notes/Brief" (richText)
+    filmingLocation: 'fldTpntyVFFiWCw49', // "📍 Filming Location" (singleSelect: "Studio Time - …" etc.)
+    filmingDate: 'fld2d5m4pvwaCkFt4', // "📆 Filming Date" (date)
+    format: 'fldI9Zq1MsLmkH1rC', // "Format" (singleSelect) — see format_ below
+    productionSupport: 'fldpGBd4gOiCooTOv', // "Production Support" (multilineText)
+    vishenApproval: 'fldhqZbEmxjEK703f', // "Vishen's Approval" (checkbox)
+    created: 'fld5oUk5TNQvchDx0', // "Created" (createdTime, READ-ONLY)
+    requester: 'flddyAgUEUaKnaHSm', // "Requester" (singleLineText, free-text fallback name)
   },
+  links: {
+    requestedBy: 'fldnLRFDHVXuUvUba', // → 👬 Employees
+    authors: 'fldTkTRGlh5dj7cUp', // → Authors 🧠
+    eventTypes: 'fldRlBQIifsGQ4LWr', // → 🧩 Event Type
+    assetTypes: 'fldqNdJkJxT0kXuxy', // → 🛎️ Creative Asset Type
+    postProductionTicket: 'fldIQrDNJ0Q6vfihB', // → 🎯 Prio Requests (tickets this shoot feeds)
+  },
+  // singleSelect option values (write the plain name string — note the "New Requests - " prefix).
+  status_: {
+    approved: 'New Requests - Approved by Vishen',
+    needsReview: "New Requests - Needs Vishen's Review",
+    toFilm: 'To Film',
+    filmed: 'Done - Filmed',
+    cancelled: 'Cancelled',
+  },
+  format_: { studio: 'Studio', vlog: 'VLOG', broll: 'Broll', testimonial: 'Testimonial', livestream: 'Livestream' },
 } as const;
 
 // Ad Creatives — standalone content/creative records.
