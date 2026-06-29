@@ -63,6 +63,7 @@ export function mapAssetType(r: AirtableRecord) {
     airtableId: r.id,
     name: str(r.fields[ASSET_TYPES.fields.name]) ?? str(r.fields[ASSET_TYPES.fields.fullName]) ?? '(unnamed)',
     category: str(r.fields[ASSET_TYPES.fields.category]),
+    creativeCategory: str(r.fields[ASSET_TYPES.fields.creativeCategory]), // Creative Video/Brand Design/Event Design Type
     active: str(r.fields[ASSET_TYPES.fields.status]) === 'Active',
     links: {
       eventTypes: linkIds(r.fields[ASSET_TYPES.links.eventTypes]),

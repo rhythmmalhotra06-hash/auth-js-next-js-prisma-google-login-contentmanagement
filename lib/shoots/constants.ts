@@ -2,13 +2,14 @@
 // client components (forms, the queue board) and the server repository can use them.
 
 // Live singleSelect option values (must match Airtable exactly — see field-map.ts SHOOTS).
-export const SHOOT_FORMATS = ['Studio', 'VLOG', 'Broll', 'Testimonial', 'Livestream'] as const;
+export const SHOOT_FORMATS = ['Studio', 'VLOG', 'Broll', 'Testimonial', 'Livestream', 'Interview'] as const;
 export const SHOOT_LOCATIONS = [
   'Studio Time - Tallinn',
   'Studio Time - KL',
   'Studio Time - London',
   'MVU 2025',
   'MVU 2026',
+  'External Recording',
 ] as const;
 
 // Status values (the "New Requests - " prefix is part of the live enum).
@@ -54,7 +55,6 @@ export interface ShootRow {
   brief: string | null;
   productionSupport: string | null;
   vishenApproved: boolean;
-  requesterName: string | null;
   requestedById: string | null;
   authorIds: string[];
   ticketIds: string[];

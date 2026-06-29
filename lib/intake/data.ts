@@ -14,6 +14,7 @@ export interface Option {
 export interface AssetTypeOption extends Option {
   category: string | null;
   eventTypeIds: string[]; // Asset Type is filtered to those linked to the chosen Event Type
+  isVideo: boolean; // Category === "Creative Video Type" — used to restrict the shoot form to video assets
 }
 
 export interface IntakeReferenceData {

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { Icon } from '@/components/ui/Icon';
+import { cn } from '@/lib/cn';
 import {
   type ShootRow, SHOOT_FORMATS, SHOOT_STATUS, SHOOT_STATUS_ORDER, SHOOT_STATUS_TONE,
   shortStatus, isToFilmInStudioTime, STUDIO_TIME_SINCE,
@@ -30,9 +31,6 @@ function matches(s: ShootRow, f: ViewState): boolean {
   if (f.hasDate === 'no' && s.filmingDate) return false;
   return true;
 }
-
-const selectCls =
-  'rounded-[8px] border border-border-default bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus-visible:border-brand';
 
 export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employeeNames: Record<string, string> }) {
   const [f, setF] = useState<ViewState>(DEFAULT);
@@ -65,17 +63,11 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
   }
 
   const pill = (view: ViewKind, label: React.ReactNode) => (
-    <button
-      type="button"
-      onClick={() => setView(view)}
-      className={
-        'rounded-[8px] px-3 py-1.5 text-xs font-medium transition-colors ' +
-        (f.view === view ? 'bg-brand text-white' : 'border border-border-default text-text-muted hover:bg-bg-subtle')
-      }
-    >
+    <button type="button" onClick={() => setView(view)} className={cn('chipbtn', f.view === view && 'on')}>
       {label}
     </button>
   );
+  const hasFilters = !!(f.status || f.format || f.hasDate);
 
   return (
     <>
@@ -92,39 +84,42 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5" style={{ marginBottom: 12 }}>
+      <div className="sortchips" style={{ marginBottom: 12 }}>
         {pill('studio', <><Icon name="video" size={13} /> To Film in Studio Time</>)}
         {pill('all', 'All shoots')}
         {pill('custom', <><Icon name="sliders" size={13} /> Custom view</>)}
       </div>
 
       {f.view === 'studio' && (
-        <p className="text-xs text-text-subtle" style={{ margin: '-4px 0 12px' }}>
+        <p className="subtle" style={{ fontSize: 12, margin: '-4px 0 12px' }}>
           Showing shoots created after <b>31 May 2026</b> with a filming date set — the live studio-time list.
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: 10 }}>
-        <select className={selectCls} value={f.status} onChange={(e) => setF((p) => ({ ...p, status: e.target.value }))}>
+      <div className="filters">
+        <select value={f.status} onChange={(e) => setF((p) => ({ ...p, status: e.target.value }))}>
           <option value="">All statuses</option>
           {SHOOT_STATUS_ORDER.map((s) => <option key={s} value={s}>{shortStatus(s)}</option>)}
         </select>
-        <select className={selectCls} value={f.format} onChange={(e) => setF((p) => ({ ...p, format: e.target.value }))}>
+        <select value={f.format} onChange={(e) => setF((p) => ({ ...p, format: e.target.value }))}>
           <option value="">All formats</option>
           {SHOOT_FORMATS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select className={selectCls} value={f.hasDate} onChange={(e) => setF((p) => ({ ...p, hasDate: e.target.value as ViewState['hasDate'] }))}>
+        <select value={f.hasDate} onChange={(e) => setF((p) => ({ ...p, hasDate: e.target.value as ViewState['hasDate'] }))}>
           <option value="">Any filming date</option>
           <option value="yes">Has filming date</option>
           <option value="no">No date yet</option>
         </select>
         {f.view === 'custom' && (
-          <label className="flex items-center gap-1.5 text-xs text-text-subtle">
+          <label className="subtle" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             Created after
-            <input type="date" className={selectCls} value={f.createdAfter} onChange={(e) => setF((p) => ({ ...p, createdAfter: e.target.value }))} />
+            <input type="date" value={f.createdAfter} onChange={(e) => setF((p) => ({ ...p, createdAfter: e.target.value }))} style={{ width: 'auto' }} />
           </label>
         )}
-        <span className="muted ml-auto text-xs">{matched.length} of {rows.length}</span>
+        {hasFilters && (
+          <button className="btn sm ghost" onClick={() => setF((p) => ({ ...p, status: '', format: '', hasDate: '' }))}>Clear</button>
+        )}
+        <span className="subtle" style={{ fontSize: 12, marginLeft: 'auto' }}>{matched.length} of {rows.length}</span>
       </div>
 
       {matched.length === 0 ? (
@@ -141,7 +136,7 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
             <div className="stack">
               {g.items.map((s) => {
                 const meta = [
-                  s.requestedById ? employeeNames[s.requestedById] : s.requesterName,
+                  s.requestedById ? employeeNames[s.requestedById] : null,
                   s.format,
                   s.filmingDate ? `📆 ${s.filmingDate}` : null,
                   s.filmingLocation,

@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { getShoot } from '@/lib/shoots/repository';
 import { shortStatus, SHOOT_STATUS_TONE } from '@/lib/shoots/constants';
 import { listActiveTickets } from '@/lib/repositories/ticket.repository';
+import { getIntakeReferenceData } from '@/lib/intake/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +16,16 @@ export default async function ShootDetailPage({ params }: { params: Promise<{ id
   if (!res.ok) notFound();
   const s = res.data;
 
-  // Linked production tickets — match the shoot's links against active tickets.
-  let linkedTickets: { id: string; title: string; ticketStatus: string | null }[] = [];
-  if (s.ticketIds.length) {
-    const t = await listActiveTickets(100);
-    if (t.ok) linkedTickets = t.data.filter((x) => s.ticketIds.includes(x.id));
-  }
+  // Resolve requester name + linked production tickets.
+  const [ref, ticketsRes] = await Promise.all([
+    getIntakeReferenceData(),
+    s.ticketIds.length ? listActiveTickets(100) : Promise.resolve(null),
+  ]);
+  const requesterName = s.requestedById
+    ? ref.employees.find((e) => e.id === s.requestedById)?.name ?? null
+    : null;
+  const linkedTickets =
+    ticketsRes && ticketsRes.ok ? ticketsRes.data.filter((x) => s.ticketIds.includes(x.id)) : [];
 
   const Row = ({ k, children }: { k: string; children: React.ReactNode }) => (
     <div className="row"><span className="k">{k}</span><span>{children}</span></div>
@@ -34,7 +39,7 @@ export default async function ShootDetailPage({ params }: { params: Promise<{ id
         <div>
           <div className="eyebrow"><Icon name="video" size={12} /> Shoot request</div>
           <h3 style={{ fontSize: 17, marginTop: 4 }}>{s.title}</h3>
-          <div className="t-meta">{s.requesterName ?? '—'} · requested {s.createdTime.slice(0, 10)}</div>
+          <div className="t-meta">{requesterName ?? '—'} · requested {s.createdTime.slice(0, 10)}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Badge tone={SHOOT_STATUS_TONE[s.status ?? ''] ?? 'neutral'}>{shortStatus(s.status)}</Badge>
