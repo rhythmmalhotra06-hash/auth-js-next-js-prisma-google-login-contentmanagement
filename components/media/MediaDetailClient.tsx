@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { ClipSuggestion } from '@/lib/media/repository';
 import { ClipActions } from '@/components/vishen/ClipActions';
 import { CLIP_TYPES, DEFAULT_CLIP_TYPE } from '@/lib/clipping/clip-types';
+import { StrategyDetail, parseStrategy } from '@/components/media/StrategyDetail';
 
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
@@ -23,12 +24,14 @@ export function MediaDetailClient({
   status,
   error,
   clips,
+  strategyJson = null,
   autostart = false,
 }: {
   sourceId: string;
   status: string | null;
   error: string | null;
   clips: ClipSuggestion[];
+  strategyJson?: string | null;
   autostart?: boolean;
 }) {
   const router = useRouter();
@@ -37,8 +40,18 @@ export function MediaDetailClient({
   const [webSearch, setWebSearch] = useState(false);
   const [clipType, setClipType] = useState<string>(DEFAULT_CLIP_TYPE);
   const [pasted, setPasted] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [showStrategy, setShowStrategy] = useState(false);
 
   const hasClips = clips.length > 0;
+  const strategy = parseStrategy(strategyJson);
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   async function suggest() {
     setRunError(null);
@@ -153,30 +166,69 @@ export function MediaDetailClient({
             {clips.map((c) => {
               const approved = c.status === 'Approved';
               const dismissed = c.status === 'Dismissed';
+              const isOpen = expanded.has(c.id);
               return (
-                <li key={c.id} className={`rounded-xl border p-4 ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
-                      {typeof c.viralityScore === 'number' && (
-                        <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
-                      )}
-                      {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Approved</span>}
-                      {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
-                    </div>
-                    <div className="mt-1 text-xs text-text-subtle">
-                      {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
-                    </div>
-                    {c.rationale && <p className="mt-2 text-sm text-text-muted">{c.rationale}</p>}
-                    {c.caption && <p className="mt-2 text-sm italic text-text-muted">“{c.caption}”</p>}
-                    {!approved && !dismissed && (
-                      <div className="mt-3"><ClipActions clipId={c.id} /></div>
+                <li key={c.id} className={`rounded-xl border ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}>
+                  {/* Header — click to expand/collapse the clip's full details */}
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(c.id)}
+                    className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left hover:bg-bg-subtle"
+                    aria-expanded={isOpen}
+                  >
+                    <span className={`text-text-subtle transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                    <span className="font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
+                    {typeof c.viralityScore === 'number' && (
+                      <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
                     )}
-                  </div>
+                    {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Approved</span>}
+                    {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
+                    <span className="ml-auto text-xs text-text-subtle">
+                      {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
+                    </span>
+                  </button>
+
+                  {/* Body — revealed on click */}
+                  {isOpen && (
+                    <div className="border-t border-border-muted px-4 py-3">
+                      {c.rationale && (
+                        <p className="text-sm text-text-muted"><span className="font-medium text-text">Why this clip: </span>{c.rationale}</p>
+                      )}
+                      {c.caption && (
+                        <p className="mt-2 text-sm italic text-text-muted"><span className="font-medium not-italic text-text">Caption: </span>“{c.caption}”</p>
+                      )}
+                      {!c.rationale && !c.caption && <p className="text-sm text-text-subtle">No additional details.</p>}
+                      {!approved && !dismissed && (
+                        <div className="mt-3"><ClipActions clipId={c.id} /></div>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
           </ul>
+        </div>
+      )}
+
+      {/* Full content strategy — the rest of the generated output (titles, hook,
+          thumbnail, pull quotes, show notes, distribution). Collapsed by default. */}
+      {strategy && (
+        <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+          <button
+            type="button"
+            onClick={() => setShowStrategy((v) => !v)}
+            className="flex w-full items-center gap-2 text-left"
+            aria-expanded={showStrategy}
+          >
+            <span className={`text-text-subtle transition-transform ${showStrategy ? 'rotate-90' : ''}`}>›</span>
+            <h2 className="text-sm font-semibold text-text">Full content strategy</h2>
+            <span className="ml-auto text-xs text-text-subtle">titles · hook · thumbnail · pull quotes · show notes · distribution</span>
+          </button>
+          {showStrategy && (
+            <div className="mt-4">
+              <StrategyDetail strategy={strategy} />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -18,6 +18,7 @@ async function MediaBody({ source, autostart }: { source: MediaSource; autostart
       status={source.status}
       error={source.error}
       clips={clips}
+      strategyJson={source.strategyJson}
       autostart={autostart}
     />
   );
