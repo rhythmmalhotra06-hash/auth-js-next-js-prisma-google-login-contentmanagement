@@ -148,6 +148,7 @@ export const EMPLOYEES = {
     employmentStatus: 'fldE56Vg1wJFXgZ7J', // "Employment Status"
     activeStatus: 'fldVpmhLINGDPxJNG', // "Active Status" → active = (value === "Active")
     roles: 'fldZmbGqc6GXvLPDq', // "Roles" (multipleSelects) — app access roles, managed from /settings/team
+    capacity: 'fldrJNmpjvPvZDhbo', // "Capacity" (number) — weighted load = 100%; blank → global default. From /settings/scoring
   },
 } as const;
 
@@ -161,6 +162,7 @@ export const CONTRACTORS = {
     name: 'flddODE3TVJ1REDTY', // "Name"
     status: 'fldrpLK9VCaXgykQD', // "Status" (singleSelect) → active = (value === "Active")
     serviceLevel: 'fldJIpVXOavKBOYet', // "Team/Service Level" (singleSelect)
+    capacity: 'fldBhNMSaMVZGuAHC', // "Capacity" (number) — weighted load = 100%; blank → global default. From /settings/scoring
   },
 } as const;
 
@@ -178,6 +180,8 @@ export const EVENT_TYPES = {
   fields: {
     name: 'fldAthwfuZIZ1Ip1L', // "Event Type"
     status: 'fld9zPjkF542hVinq', // "Status" → active = (value === "Active")
+    loadWeight: 'fldXPpMwgvKWcRwF5', // "Load Weight" (number) — capacity cost per ticket; blank → 1. From /settings/scoring
+    tierNorm: 'fldT7qw1xr1B6zMeR', // "Tier Norm" (number 0–1) — priority event tier; blank → name-pattern fallback. From /settings/scoring
   },
 } as const;
 
@@ -190,6 +194,8 @@ export const ASSET_TYPES = {
     category: 'fld86vEJhhWbheWDU', // "Type of Asset" (Print | Digital)
     creativeCategory: 'fldmDywGRsFPjwNPb', // "Category" (Creative Video Type | Creative Brand Design Type | Creative Event Design Type)
     status: 'fldfCsqOjPO2LH9Ye', // "Status" (Active | Inactive)
+    loadWeight: 'fld7d85oMy4ELYmDi', // "Load Weight" (number) — capacity cost per ticket; blank → 1. From /settings/scoring
+    effortNorm: 'fldKEQQQnkQK9XL3q', // "Effort Norm" (number 0–1) — priority complexity effort; blank → 0.5. From /settings/scoring
   },
   // Multi-record links → resolved to our join tables in pass 2.
   links: {
@@ -284,6 +290,23 @@ export const CLIP_RULES = {
   },
   // singleSelect option values (write the plain name string).
   kind_: { basePrompt: 'Base Prompt', brandPillars: 'Brand Pillars', rule: 'Rule' },
+} as const;
+
+// ⚙️ Scoring Config — app-owned global knobs for capacity & priority scoring
+// (created 2026-06-29). Key→number rows. Per-type weights live on Event Type /
+// Asset Type; per-person capacity on Employees / Contractors. Edited from
+// /settings/scoring; read by lib/scoring-config (cached, hardcoded fallback).
+export const SCORING_CONFIG = {
+  baseId: BASES.creativeServices,
+  tableId: 'tbl2a6Qh9Gj6Wpw6b',
+  fields: {
+    key: 'fldrnwvfBYjUwDCpb', // "Key" (singleLineText, primary) — stable config key
+    value: 'fldZ9hzoiQmXf4IBL', // "Value" (number)
+    label: 'fld6XjTiIsr6zRfuM', // "Label" (singleLineText) — admin-panel label
+    group: 'fldphOgeFY7ss7psS', // "Group" (singleSelect: Capacity | Priority weights | Thresholds)
+    note: 'fldspoos8i5d8tk9Y', // "Note" (multilineText)
+    updatedBy: 'flduNMv7q1SyXzGDH', // "Updated By" (singleLineText) — last editor email
+  },
 } as const;
 
 // 🎬 Clip Suggestions — one row per proposed clip from a Media Source.

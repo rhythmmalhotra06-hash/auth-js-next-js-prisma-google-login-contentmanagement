@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AppShell } from '@/components/ui/AppShell';
 import { getQueueTickets, getEligibleAssignees } from '@/lib/tickets/data';
+import { getScoringConfig } from '@/lib/scoring-config/repository';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { EmployeePicker } from '@/components/tickets/EmployeePicker';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 const days = (due: string | null) => (due ? Math.ceil((new Date(due).getTime() - Date.now()) / 86400000) : null);
 
 async function EditorBody({ assignee }: { assignee?: string }) {
-  const tickets = await getQueueTickets({ assigneeId: assignee });
+  const [tickets, cfg] = await Promise.all([getQueueTickets({ assigneeId: assignee }), getScoringConfig()]);
   const dueSoon = tickets.filter((t) => { const d = days(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
   const inReview = tickets.filter((t) => t.ticketStatus === 'Review').length;
   const nextUp = tickets[0];
@@ -47,7 +48,7 @@ async function EditorBody({ assignee }: { assignee?: string }) {
       )}
 
       <div className="sec-head"><h3>Up next in your queue</h3><span className="hint">pulled in priority order</span></div>
-      <QueueTable tickets={tickets} storageKey="editor-queue" />
+      <QueueTable tickets={tickets} storageKey="editor-queue" scoringConfig={cfg} />
     </>
   );
 }

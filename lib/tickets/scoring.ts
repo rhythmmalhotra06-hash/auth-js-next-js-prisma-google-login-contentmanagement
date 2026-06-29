@@ -4,16 +4,20 @@
 //   complexity     = w_effort * effort_norm + w_variants * variants_norm + w_shoot * shoot
 //   priority_score = urgency + lead_time_adjustment(complexity)
 //
-// Phase-1 seed weights — tune after a real week (OODA). Pure + framework-free.
+// Phase-1 seed weights — now admin-editable via lib/scoring-config (/settings/scoring).
+// These constants remain the fallback when no config is supplied. Pure + framework-free.
 //
 // Inputs not yet available use documented defaults:
-//  - event tiers: PROVISIONAL name-based heuristic pending Moniek's ranking
-//  - asset effort + shoot flag: not synced yet → effort 0.5, shoot false
+//  - event tiers: per-event-type "Tier Norm" config, else a name-based heuristic
+//  - asset effort: per-asset-type "Effort Norm" config, else 0.5
+//  - shoot flag: not synced yet → false
 
-export const WEIGHTS = { due: 0.5, event: 0.5, effort: 0.3, variants: 0.2, shoot: 0.5 } as const;
+import { type ScoringConfig, DEFAULTS } from '@/lib/scoring-config/config';
+
+export const WEIGHTS = { ...DEFAULTS.weights } as const;
 
 // Provisional event-tier → norm. Matched on the event type NAME; default 0.5.
-// [CONFIRM with Moniek] — replace with the real tier ranking once decided.
+// Used only when an event type has no explicit "Tier Norm" set in the config.
 const TIER_PATTERNS: { re: RegExp; norm: number }[] = [
   { re: /mastery|summit|\bmbu\b|festival/i, norm: 1.0 },
   { re: /masterclass|academy|membership/i, norm: 0.7 },
@@ -21,17 +25,19 @@ const TIER_PATTERNS: { re: RegExp; norm: number }[] = [
   { re: /states/i, norm: 0.4 },
 ];
 
-export function eventTierNorm(eventTypeName: string | null): number {
+/** Event tier 0–1: the config's per-type value wins; else the name-pattern heuristic. */
+export function eventTierNorm(eventTypeName: string | null, cfg?: ScoringConfig): number {
   if (!eventTypeName) return 0.5;
+  if (cfg && eventTypeName in cfg.tierByEventType) return cfg.tierByEventType[eventTypeName];
   for (const t of TIER_PATTERNS) if (t.re.test(eventTypeName)) return t.norm;
   return 0.5;
 }
 
-// Closer due date = higher. max(0, 1 - days_until_due / 30), clamped to [0,1].
-export function dueProximityNorm(dueDate: Date | null, now: Date): number {
+// Closer due date = higher. max(0, 1 - days_until_due / window), clamped to [0,1].
+export function dueProximityNorm(dueDate: Date | null, now: Date, windowDays: number = DEFAULTS.dueProximityWindowDays): number {
   if (!dueDate) return 0;
   const days = (dueDate.getTime() - now.getTime()) / 86_400_000;
-  return Math.max(0, Math.min(1, 1 - days / 30));
+  return Math.max(0, Math.min(1, 1 - days / windowDays));
 }
 
 export interface ScoreInputs {
@@ -52,16 +58,20 @@ export interface Score {
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
 
-export function scoreTicket(i: ScoreInputs): Score {
-  const urgency = WEIGHTS.due * dueProximityNorm(i.dueDate, i.now) + WEIGHTS.event * eventTierNorm(i.eventTypeName);
+export function scoreTicket(i: ScoreInputs, cfg?: ScoringConfig): Score {
+  const w = cfg?.weights ?? WEIGHTS;
+  const leadtime = cfg?.leadtimeFactor ?? DEFAULTS.leadtimeFactor;
+  const window = cfg?.dueProximityWindowDays ?? DEFAULTS.dueProximityWindowDays;
+
+  const urgency = w.due * dueProximityNorm(i.dueDate, i.now, window) + w.event * eventTierNorm(i.eventTypeName, cfg);
 
   const variantsNorm = i.maxVariants > 0 ? Math.min(1, i.variantCount / i.maxVariants) : 0;
   const complexity =
-    WEIGHTS.effort * (i.effortNorm ?? 0.5) + WEIGHTS.variants * variantsNorm + WEIGHTS.shoot * (i.shootFlag ? 1 : 0);
+    w.effort * (i.effortNorm ?? DEFAULTS.effortNorm) + w.variants * variantsNorm + w.shoot * (i.shootFlag ? 1 : 0);
 
   // Lead-time adjustment: nudge high-complexity items earlier (gentle, additive —
   // NOT a multiplier, so a trivial-but-urgent task can't outrank a critical campaign).
-  const priorityScore = urgency + 0.2 * complexity;
+  const priorityScore = urgency + leadtime * complexity;
 
   return { urgency: round(urgency), complexity: round(complexity), priorityScore: round(priorityScore) };
 }

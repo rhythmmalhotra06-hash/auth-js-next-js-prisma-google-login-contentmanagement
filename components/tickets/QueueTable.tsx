@@ -12,6 +12,7 @@ import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { loadMap, riskOf } from '@/lib/tickets/intel';
 import type { QueueTicket } from '@/lib/tickets/data';
+import type { ScoringConfig } from '@/lib/scoring-config/config';
 
 // Filterable, sortable, configurable queue table — ported to the prototype `.list`
 // look. Mandated first five columns (CLAUDE.md §7): Title · Priority · Assigned ·
@@ -56,7 +57,7 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue' }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string }) {
+export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig }) {
   const router = useRouter();
   const tableRef = useRef<HTMLTableElement>(null);
   const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
@@ -80,7 +81,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
   }, [tickets, sel, q]);
   const rows = useMemo(() => view.sortRows(filtered), [view, filtered]);
 
-  const load = useMemo(() => loadMap(tickets), [tickets]);
+  const load = useMemo(() => loadMap(tickets, scoringConfig), [tickets, scoringConfig]);
   const funnel = useMemo(() => {
     const scoped = tickets.filter((t) => FILTERS.every((f) => !sel[f.key] || t[f.key] === sel[f.key]));
     const counts = new Map<string, number>();
@@ -209,7 +210,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         </tr></thead>
         <tbody>
           {rows.map((t) => {
-            const r = riskOf(t, load);
+            const r = riskOf(t, load, scoringConfig);
             return (
               <tr key={t.id} className={cn(!t.assignee && 'attn')} onClick={() => router.push(`${basePath}/${t.id}`)}>
                 {view.visibleColumns.map((c) => cell(c.key, t, r))}
