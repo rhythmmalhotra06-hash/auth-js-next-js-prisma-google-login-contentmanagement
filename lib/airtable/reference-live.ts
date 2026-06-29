@@ -44,7 +44,8 @@ async function fetchLive(): Promise<LiveReference> {
 
   const assetTypes = (await listRecords(ASSET_TYPES.baseId, ASSET_TYPES.tableId))
     .map(mapAssetType).filter((a) => a.active)
-    .map((a) => ({ id: a.airtableId, name: a.name, category: a.category, eventTypeIds: a.links.eventTypes }));
+    .map((a) => ({ id: a.airtableId, name: a.name, category: a.category, eventTypeIds: a.links.eventTypes,
+      isVideo: a.creativeCategory === 'Creative Video Type' }));
 
   const officialCalendars = (await listRecords(OFFICIAL_CALENDARS.baseId, OFFICIAL_CALENDARS.tableId))
     .map(mapOfficialCalendar)

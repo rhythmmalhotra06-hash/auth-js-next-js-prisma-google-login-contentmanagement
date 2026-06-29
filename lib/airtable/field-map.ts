@@ -66,9 +66,11 @@ export const TICKETS = {
 export const SHOOTS = {
   baseId: BASES.creativeServices,
   tableId: 'tblcZ8OIxfgnlUowC',
+  // Field NAME (for filterByFormula, which matches names not IDs).
+  statusFieldName: 'Filming Status',
   fields: {
     title: 'fldiXdLvABVQsQx6C', // "Asset Title" (singleLineText, primary)
-    status: 'fldfz4B7S765leTIT', // "Status" (singleSelect) — see status_ below
+    status: 'fldfz4B7S765leTIT', // "Filming Status" (singleSelect) — see status_ below
     notes: 'fldTuCEBQmXYnxCZM', // "Notes/Brief" (richText)
     filmingLocation: 'fldTpntyVFFiWCw49', // "📍 Filming Location" (singleSelect: "Studio Time - …" etc.)
     filmingDate: 'fld2d5m4pvwaCkFt4', // "📆 Filming Date" (date)
@@ -76,14 +78,13 @@ export const SHOOTS = {
     productionSupport: 'fldpGBd4gOiCooTOv', // "Production Support" (multilineText)
     vishenApproval: 'fldhqZbEmxjEK703f', // "Vishen's Approval" (checkbox)
     created: 'fld5oUk5TNQvchDx0', // "Created" (createdTime, READ-ONLY)
-    requester: 'flddyAgUEUaKnaHSm', // "Requester" (singleLineText, free-text fallback name)
   },
   links: {
-    requestedBy: 'fldnLRFDHVXuUvUba', // → 👬 Employees
+    requestedBy: 'fldnLRFDHVXuUvUba', // "Requester" → 👬 Employees
     authors: 'fldTkTRGlh5dj7cUp', // → Authors 🧠
     eventTypes: 'fldRlBQIifsGQ4LWr', // → 🧩 Event Type
     assetTypes: 'fldqNdJkJxT0kXuxy', // → 🛎️ Creative Asset Type
-    postProductionTicket: 'fldIQrDNJ0Q6vfihB', // → 🎯 Prio Requests (tickets this shoot feeds)
+    postProductionTicket: 'fldK6lVl9cO59ICUt', // "Post-Production Ticket (AT)" → 🎯 Prio Requests
   },
   // singleSelect option values (write the plain name string — note the "New Requests - " prefix).
   status_: {
@@ -93,7 +94,7 @@ export const SHOOTS = {
     filmed: 'Done - Filmed',
     cancelled: 'Cancelled',
   },
-  format_: { studio: 'Studio', vlog: 'VLOG', broll: 'Broll', testimonial: 'Testimonial', livestream: 'Livestream' },
+  format_: { studio: 'Studio', vlog: 'VLOG', broll: 'Broll', testimonial: 'Testimonial', livestream: 'Livestream', interview: 'Interview' },
 } as const;
 
 // Ad Creatives — standalone content/creative records.
@@ -191,6 +192,7 @@ export const ASSET_TYPES = {
     name: 'fldNRpVclLnbT3jRR', // "Asset type"
     fullName: 'fldP6YGDBvf4DWXld', // "Asset Type (Full title)" — fallback when short name is blank
     category: 'fld86vEJhhWbheWDU', // "Type of Asset" (Print | Digital)
+    creativeCategory: 'fldmDywGRsFPjwNPb', // "Category" (Creative Video Type | Creative Brand Design Type | Creative Event Design Type)
     status: 'fldfCsqOjPO2LH9Ye', // "Status" (Active | Inactive)
     loadWeight: 'fld7d85oMy4ELYmDi', // "Load Weight" (number) — capacity cost per ticket; blank → 1. From /settings/scoring
     effortNorm: 'fldKEQQQnkQK9XL3q', // "Effort Norm" (number 0–1) — priority complexity effort; blank → 0.5. From /settings/scoring

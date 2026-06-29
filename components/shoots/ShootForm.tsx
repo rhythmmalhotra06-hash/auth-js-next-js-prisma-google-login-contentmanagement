@@ -50,8 +50,9 @@ export function ShootForm({ data }: { data: IntakeReferenceData }) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Shoots are always filmed, so only video asset types are offered.
   const filteredAssetTypes = useMemo(
-    () => (eventTypeId ? data.assetTypes.filter((a) => a.eventTypeIds.includes(eventTypeId)) : []),
+    () => (eventTypeId ? data.assetTypes.filter((a) => a.isVideo && a.eventTypeIds.includes(eventTypeId)) : []),
     [eventTypeId, data.assetTypes],
   );
 

@@ -54,7 +54,6 @@ function mapShoot(rec: AirtableRecord<Raw>): ShootRow {
     brief: str(f[SF.notes]),
     productionSupport: str(f[SF.productionSupport]),
     vishenApproved: f[SF.vishenApproval] === true,
-    requesterName: str(f[SF.requester]),
     requestedById: linkedIds(f[SL.requestedBy])[0] ?? null,
     authorIds: linkedIds(f[SL.authors]),
     ticketIds: linkedIds(f[SL.postProductionTicket]),
@@ -65,7 +64,7 @@ function mapShoot(rec: AirtableRecord<Raw>): ShootRow {
 
 const LIST_FIELDS = [
   SF.title, SF.status, SF.format, SF.filmingDate, SF.filmingLocation, SF.notes,
-  SF.productionSupport, SF.vishenApproval, SF.requester, SL.requestedBy, SL.authors,
+  SF.productionSupport, SF.vishenApproval, SL.requestedBy, SL.authors,
   SL.postProductionTicket,
 ];
 
@@ -73,7 +72,7 @@ const LIST_FIELDS = [
 export async function listShoots(limit = 200): Promise<AirtableResult<ShootRow[]>> {
   const res = await listRecords<Raw>(S.baseId, S.tableId, {
     fields: LIST_FIELDS,
-    filterByFormula: `NOT({Status} = '${S.status_.cancelled}')`,
+    filterByFormula: `NOT({${S.statusFieldName}} = '${S.status_.cancelled}')`,
     maxRecords: limit,
   });
   if (!res.ok) return res;
@@ -98,8 +97,7 @@ export interface CreateShootInput {
   filmingLocation?: string | null; // must match a Filming Location option
   filmingDate?: string | null; // ISO date
   vishenApproved?: boolean;
-  requesterName?: string | null; // free-text name
-  requestedByRecId?: string | null; // Employee recId
+  requestedByRecId?: string | null; // Employee recId ("Requester" link)
   authorRecIds?: string[];
   eventTypeRecIds?: string[];
   assetTypeRecIds?: string[];
@@ -117,7 +115,6 @@ export async function createShoot(input: CreateShootInput): Promise<AirtableResu
   if (input.productionSupport) fields[SF.productionSupport] = input.productionSupport;
   if (input.filmingLocation) fields[SF.filmingLocation] = input.filmingLocation;
   if (input.filmingDate) fields[SF.filmingDate] = input.filmingDate;
-  if (input.requesterName) fields[SF.requester] = input.requesterName;
   if (input.requestedByRecId) fields[SL.requestedBy] = [input.requestedByRecId];
   if (input.authorRecIds?.length) fields[SL.authors] = input.authorRecIds;
   if (input.eventTypeRecIds?.length) fields[SL.eventTypes] = input.eventTypeRecIds;
