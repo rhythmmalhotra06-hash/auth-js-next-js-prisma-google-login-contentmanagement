@@ -40,6 +40,41 @@ export function dueProximityNorm(dueDate: Date | null, now: Date, windowDays: nu
   return Math.max(0, Math.min(1, 1 - days / windowDays));
 }
 
+// Campaign-window proximity 0–1 (E9.5). No dates → 0 (no boost). Inside the active
+// window (start..end) → 1. Otherwise ramps up as the start (or end, if no start)
+// approaches, like dueProximityNorm; once past the window's end → 0.
+export function campaignProximityNorm(
+  start: Date | null,
+  end: Date | null,
+  now: Date,
+  windowDays: number = DEFAULTS.dueProximityWindowDays,
+): number {
+  if (!start && !end) return 0;
+  if (start && end && now >= start && now <= end) return 1;
+  if (end && !start && now <= end) {
+    const days = (end.getTime() - now.getTime()) / 86_400_000;
+    return Math.max(0, Math.min(1, 1 - days / windowDays));
+  }
+  const target = start ?? end;
+  if (!target) return 0;
+  const days = (target.getTime() - now.getTime()) / 86_400_000;
+  if (days < 0) return 0; // window has passed
+  return Math.max(0, Math.min(1, 1 - days / windowDays));
+}
+
+/**
+ * Blend the (normalized) Airtable SCORE base with app-side deadline + campaign
+ * urgency for the live queue order (E9.5). Additive so an imminent deadline lifts
+ * an item without letting a trivial-but-urgent task bury a high-revenue one.
+ */
+export function blendQueueScore(
+  parts: { scoreNorm: number; dueNorm: number; campaignNorm: number },
+  cfg?: ScoringConfig,
+): number {
+  const w = cfg?.weights ?? WEIGHTS;
+  return parts.scoreNorm + w.due * parts.dueNorm + w.campaign * parts.campaignNorm;
+}
+
 export interface ScoreInputs {
   dueDate: Date | null;
   eventTypeName: string | null;

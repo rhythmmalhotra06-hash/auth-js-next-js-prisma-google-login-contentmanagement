@@ -31,13 +31,13 @@ let inflight: Promise<ScoringConfig> | null = null;
 // Scoring Config key → target on ScoringConfig (weights live under .weights).
 const G = {
   default_capacity: 'defaultCapacity',
-  w_due: 'due', w_event: 'event', w_effort: 'effort', w_variants: 'variants', w_shoot: 'shoot',
+  w_due: 'due', w_event: 'event', w_effort: 'effort', w_variants: 'variants', w_shoot: 'shoot', w_campaign: 'campaign',
   leadtime_factor: 'leadtimeFactor',
   amber_pct: 'amberPct', red_pct: 'redPct',
   risk_capacity_days: 'riskCapacityDays',
   due_proximity_window_days: 'dueProximityWindowDays',
 } as const;
-const WEIGHT_KEYS = new Set(['due', 'event', 'effort', 'variants', 'shoot']);
+const WEIGHT_KEYS = new Set(['due', 'event', 'effort', 'variants', 'shoot', 'campaign']);
 
 async function fetchConfig(): Promise<ScoringConfig> {
   const cfg = emptyConfig();

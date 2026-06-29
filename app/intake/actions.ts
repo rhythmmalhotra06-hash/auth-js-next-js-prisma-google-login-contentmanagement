@@ -1,6 +1,8 @@
 'use server';
 
 import { createTicket as createTicketRecord } from '@/lib/repositories/ticket.repository';
+import { resolveAutoAssignee } from '@/lib/tickets/auto-assign';
+import { notifyAssignment } from '@/lib/notify/triggers';
 
 export interface CreateTicketInput {
   requesterId: string; // Airtable recId (Employees)
@@ -16,6 +18,7 @@ export interface CreateTicketInput {
   cta?: string;
   dueDate: string; // ISO date
   sourceLinks?: string;
+  downloadLink?: string; // editor download link (e.g. Dropbox) — E9.1
   notes?: string;
 }
 
@@ -23,6 +26,7 @@ export interface CreateTicketResult {
   ok: boolean;
   ticketId?: string;
   error?: string;
+  assignedCreativeId?: string; // E9.6: set when auto-assigned to the sole preferred editor (seam for E9.4 DM)
 }
 
 const REQUIRED: [keyof CreateTicketInput, string][] = [
@@ -56,6 +60,15 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     return { ok: false, error: 'Invalid due date' };
   }
 
+  // E9.6: auto-assign the sole preferred editor for this asset type (else leave for
+  // the manager). Failure to resolve must never block ticket creation.
+  let autoAssignee: string | null = null;
+  try {
+    autoAssignee = await resolveAutoAssignee(input.assetTypeId);
+  } catch {
+    autoAssignee = null;
+  }
+
   const res = await createTicketRecord({
     title: input.title.trim(),
     creativeBrief: input.creativeBrief.trim(),
@@ -65,14 +78,19 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     teamServiceLevel: input.teamServiceLevel,
     notes: input.notes?.trim() || null,
     sourceLinks: input.sourceLinks?.trim() || null,
+    downloadLink: input.downloadLink?.trim() || null,
     eventTypeRecId: input.eventTypeId,
     assetTypeRecId: input.assetTypeId,
     requesterRecId: input.requesterId,
     officialCalendarRecId: input.officialCalendarId || null,
     authorRecIds: input.authorIds ?? [],
     shootRecIds: input.shootIds ?? [],
+    assignedCreativeRecId: autoAssignee,
+    ticketStatus: autoAssignee ? 'To Do' : undefined,
   });
 
   if (!res.ok) return { ok: false, error: res.error.message };
-  return { ok: true, ticketId: res.data.id };
+  // E9.4 — DM the auto-assigned editor (best-effort; never blocks ticket creation).
+  if (autoAssignee) await notifyAssignment(res.data.id, autoAssignee);
+  return { ok: true, ticketId: res.data.id, assignedCreativeId: autoAssignee ?? undefined };
 }

@@ -30,6 +30,7 @@ export const TICKETS = {
     prioStatus: 'fldFH3scvUfjnOwhg', // "Prio. Status" (singleSelect)
     ticketStatus: 'fldanOtkhcohQbnK1', // "Ticket Status" (singleSelect)
     queueRank: 'fldaG3TQINrA1c9X0', // "Priority ranking (Manual)" (rating)
+    assetReadyNotified: 'fld1STKbdnsSc4ovK', // "Asset Ready Notified" (checkbox) — E9.4 dedupe; app-managed
     publishedAt: 'fldq55IEq3aZMDwRn', // "📅 Published Date"
     typeOfRequest: 'fldlfaGYlYlTxNy1s', // "Type of Request" (Video | Design)
     teamServiceLevel: 'fldHGT2p5SObJEzPh', // "Team/Service Level"
@@ -46,6 +47,7 @@ export const TICKETS = {
     final9x16: 'fldExLdKe6qiJvtph', // "9x16 Final Link"
     final4x5: 'fld4BuuOm2rnWYoIR', // "4x5 Final Link"
     assetFolderLink: 'fldRQRCJXQ6U4SKLq', // "Asset Folder Link"
+    downloadLink: 'fldrwGSNIJ3pAsO20', // "Download link" (url) — editor download (e.g. Dropbox), distinct from source URL (E9.1)
   },
   links: {
     eventTypes: 'fldKGGZMuyqnF7gP8', // → 🧩 Event Type
@@ -196,6 +198,9 @@ export const ASSET_TYPES = {
     status: 'fldfCsqOjPO2LH9Ye', // "Status" (Active | Inactive)
     loadWeight: 'fld7d85oMy4ELYmDi', // "Load Weight" (number) — capacity cost per ticket; blank → 1. From /settings/scoring
     effortNorm: 'fldKEQQQnkQK9XL3q', // "Effort Norm" (number 0–1) — priority complexity effort; blank → 0.5. From /settings/scoring
+    dnaRequirements: 'fldogRGYGUJq6rHIX', // "DNA / Requirements" (multilineText) — E9.7, edited at /settings/asset-types
+    feedbackStandards: 'fldhlP1atHGC6diSS', // "Feedback Standards" (multilineText) — E9.7
+    dnaUpdatedBy: 'fldb3LMpdlPikEVKf', // "DNA Updated By" (singleLineText) — last portal editor email (E9.7 audit)
   },
   // Multi-record links → resolved to our join tables in pass 2.
   links: {
@@ -243,6 +248,7 @@ export const MEDIA_SOURCES = {
   fields: {
     title: 'fldumFfoeH2aMzKFZ', // "Title" (singleLineText, primary)
     sourceUrl: 'fldWw36iQ2Rm6DP41', // "Source URL" (url)
+    downloadUrl: 'fldHS8zfP5K9OtnQi', // "Download URL" (url) — optional editor download link, carried onto tickets (E9.1)
     platform: 'fldYCIo2Dricj0QiQ', // "Platform" (singleSelect: YouTube | Spotify | Apple Podcasts | Other)
     status: 'fldnX0Qu6uWHtmN5I', // "Status" (New | Transcribing | Clips Suggested | Error | Archived)
     guestShow: 'fldRdZmAVVmFcLM1l', // "Guest / Show"

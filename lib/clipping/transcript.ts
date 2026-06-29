@@ -45,6 +45,44 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * timestamp lines, and the WEBVTT header; passes plain text through. Collapses
  * excess blank lines. Safe to run on any input (idempotent on plain text).
  */
+/**
+ * Best-effort verbatim excerpt for a clip's editor brief (E9.1). The stored transcript
+ * is normalized plain text (timestamps stripped), so we can't slice by mm:ss. Instead
+ * we anchor on the clip's hook line (a near-verbatim quote): find it in the transcript
+ * and return a window of surrounding spoken text. If the hook can't be located, fall
+ * back to the opening window and flag it `approximate` so the brief can warn the editor.
+ * Returns null when there's no usable transcript.
+ */
+export function sliceTranscriptForClip(
+  transcript: string | null | undefined,
+  clip: { hookLine?: string | null },
+  windowChars = 1200,
+): { text: string; approximate: boolean } | null {
+  const text = transcript?.trim();
+  if (!text || text.length < 50) return null;
+
+  const hook = clip.hookLine?.trim();
+  if (hook) {
+    // Hooks are often lightly edited — match on the first several words.
+    const anchor = hook.split(/\s+/).slice(0, 6).join(' ');
+    if (anchor.length >= 8) {
+      const idx = text.toLowerCase().indexOf(anchor.toLowerCase());
+      if (idx >= 0) {
+        const from = Math.max(0, idx - Math.floor(windowChars / 4));
+        const to = Math.min(text.length, idx + windowChars);
+        let slice = text.slice(from, to).trim();
+        if (from > 0) slice = `…${slice}`;
+        if (to < text.length) slice = `${slice}…`;
+        return { text: slice, approximate: false };
+      }
+    }
+  }
+
+  // No anchor — opening window, flagged so the editor verifies against the source.
+  const head = text.slice(0, windowChars).trim();
+  return { text: text.length > windowChars ? `${head}…` : head, approximate: true };
+}
+
 export function normalizeTranscript(raw: string): string {
   if (!raw) return '';
   const lines = raw.replace(/\r\n/g, '\n').split('\n');

@@ -7,6 +7,7 @@ import {
   listRecords,
   getRecord,
   createRecord,
+  updateRecord,
   type AirtableRecord,
   type AirtableResult,
 } from '@/lib/airtable/rest';
@@ -121,6 +122,16 @@ export async function createShoot(input: CreateShootInput): Promise<AirtableResu
   if (input.assetTypeRecIds?.length) fields[SL.assetTypes] = input.assetTypeRecIds;
 
   const res = await createRecord<Raw>(S.baseId, S.tableId, fields);
+  if (!res.ok) return res;
+  return { ok: true, data: mapShoot(res.data) };
+}
+
+/** Patch a shoot by field-id. Data-only; orchestration (status transitions) lives in the caller. */
+export async function updateShoot(
+  id: string,
+  fields: Record<string, unknown>,
+): Promise<AirtableResult<ShootRow>> {
+  const res = await updateRecord<Raw>(S.baseId, S.tableId, id, fields);
   if (!res.ok) return res;
   return { ok: true, data: mapShoot(res.data) };
 }

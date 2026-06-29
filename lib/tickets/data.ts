@@ -5,12 +5,14 @@
 // Reads come straight from Airtable; linked names (assignee/event/asset/...) are
 // resolved via cached reference maps. No Postgres.
 
-import { TICKETS } from '@/lib/airtable/field-map';
+import { TICKETS, OFFICIAL_CALENDARS } from '@/lib/airtable/field-map';
 import { listAll, getRecord } from '@/lib/airtable/rest';
 import { nameMap, firstLinkedName, firstLinkedId, resolveLinkedNames } from '@/lib/repositories/reference.repository';
 import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
+import { dueProximityNorm, campaignProximityNorm, blendQueueScore } from '@/lib/tickets/scoring';
+import { getScoringConfig } from '@/lib/scoring-config/repository';
 
 const F = TICKETS.fields;
 const L = TICKETS.links;
@@ -27,6 +29,8 @@ export interface QueueTicket {
   assetType: string | null;
   requester: string | null;
   requesterId: string | null;
+  officialCalendar: string | null;
+  officialCalendarId: string | null;
   typeOfRequest: string | null;
   dueDate: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
@@ -64,7 +68,7 @@ const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't
 const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;
 
 const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
-  L.assignedCreative, L.assignedContractor, L.requestedBy, L.eventTypes, L.assetTypes];
+  L.assignedCreative, L.assignedContractor, L.requestedBy, L.eventTypes, L.assetTypes, L.officialCalendar];
 
 // Maps a raw Prio Requests record to a QueueTicket (+ assigneeId for filtering).
 // Assignee can be an Employee creative OR a Contractor/Freelancer — resolve whichever
@@ -72,7 +76,7 @@ const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus
 function mapTicketRow(
   rec: { id: string; fields: unknown },
   employees: Map<string, string>, eventTypes: Map<string, string>, assetTypes: Map<string, string>,
-  contractors: Map<string, string> = new Map(),
+  contractors: Map<string, string> = new Map(), calendars: Map<string, string> = new Map(),
 ): QueueTicket & { assigneeId: string | null } {
   const f = rec.fields as Record<string, unknown>;
   return {
@@ -88,6 +92,8 @@ function mapTicketRow(
     assetType: firstLinkedName(f[L.assetTypes], assetTypes),
     requester: firstLinkedName(f[L.requestedBy], employees),
     requesterId: firstLinkedId(f[L.requestedBy]),
+    officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),
+    officialCalendarId: firstLinkedId(f[L.officialCalendar]),
     typeOfRequest: str(f[F.typeOfRequest]),
     dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
   };
@@ -121,30 +127,67 @@ export async function getEligibleAssignees(): Promise<AssigneeOption[]> {
 }
 
 export async function getQueueTickets(opts: { assigneeId?: string; includeCompleted?: boolean } = {}): Promise<QueueTicket[]> {
-  const [res, employees, eventTypes, assetTypes, contractors] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, contractors, calendars, calWinRes, cfg] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
       // Stakeholder/post-prod views pass includeCompleted to also surface Done/Won't Do.
       ...(opts.includeCompleted ? {} : { filterByFormula: ACTIVE_FILTER }),
       fields: QUEUE_FIELDS,
     }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
+    listAll(OFFICIAL_CALENDARS.baseId, OFFICIAL_CALENDARS.tableId, { fields: [OFFICIAL_CALENDARS.fields.startDate, OFFICIAL_CALENDARS.fields.endDate] }),
+    getScoringConfig(),
   ]);
   if (!res.ok) return [];
 
-  let rows = res.data.map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors));
+  let rows = res.data.map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars));
 
   if (opts.assigneeId) rows = rows.filter((r) => r.assigneeId === opts.assigneeId);
 
-  // queue_rank (manual) overrides score; unranked fall back to score desc.
-  rows.sort((a, b) => {
-    const ar = a.queueRank, br = b.queueRank;
+  // E9.5 — blend the Airtable SCORE base (revenue + importance + complexity) with an
+  // app-side deadline + campaign urgency layer. SCORE is min-max normalized across the
+  // loaded set so it's comparable to the 0–1 urgency norms; the displayed Priority is
+  // the blended 0–100 value so the number matches the order. Manual rank still wins.
+  const calWin = new Map<string, { start: Date | null; end: Date | null }>();
+  if (calWinRes.ok) {
+    for (const rec of calWinRes.data) {
+      const s = rec.fields[OFFICIAL_CALENDARS.fields.startDate];
+      const e = rec.fields[OFFICIAL_CALENDARS.fields.endDate];
+      calWin.set(rec.id, {
+        start: typeof s === 'string' ? new Date(s) : null,
+        end: typeof e === 'string' ? new Date(e) : null,
+      });
+    }
+  }
+  const now = new Date();
+  const win = cfg.dueProximityWindowDays;
+  const nums = rows.map((r) => Number(r.priorityScore) || 0);
+  const min = nums.length ? Math.min(...nums) : 0;
+  const max = nums.length ? Math.max(...nums) : 0;
+  const span = max - min;
+  const blendMax = 1 + cfg.weights.due + cfg.weights.campaign; // for 0–100 display scaling
+
+  const ranked = rows.map((r) => {
+    const scoreNorm = span > 0 ? ((Number(r.priorityScore) || 0) - min) / span : 0.5;
+    const dueNorm = dueProximityNorm(r.dueDate ? new Date(r.dueDate) : null, now, win);
+    const w = r.officialCalendarId ? calWin.get(r.officialCalendarId) : undefined;
+    const campaignNorm = w ? campaignProximityNorm(w.start, w.end, now, win) : 0;
+    const blended = blendQueueScore({ scoreNorm, dueNorm, campaignNorm }, cfg);
+    return { row: r, blended };
+  });
+
+  // queue_rank (manual) overrides the blended score; unranked fall back to blended desc.
+  ranked.sort((a, b) => {
+    const ar = a.row.queueRank, br = b.row.queueRank;
     if (ar != null && br != null) return ar - br;
     if (ar != null) return -1;
     if (br != null) return 1;
-    return (Number(b.priorityScore) || 0) - (Number(a.priorityScore) || 0);
+    return b.blended - a.blended;
   });
 
-  return rows.map(({ assigneeId: _drop, ...rest }) => rest);
+  return ranked.map(({ row, blended }) => {
+    const { assigneeId: _drop, ...rest } = row;
+    return { ...rest, priorityScore: String(Math.round((blended / blendMax) * 100)) };
+  });
 }
 
 /**
@@ -153,18 +196,18 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
  * scanning all ~9k Done rows via the includeCompleted path.
  */
 export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
-  const [res, employees, eventTypes, assetTypes, contractors] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, contractors, calendars] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
       filterByFormula: SHIPPED_FILTER,
       sort: [{ field: 'Created', direction: 'desc' }],
       maxRecords: limit,
       fields: QUEUE_FIELDS,
     }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
   ]);
   if (!res.ok) return [];
   return res.data.map((rec) => {
-    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes, contractors);
+    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars);
     return rest;
   });
 }
@@ -180,20 +223,58 @@ export async function getMyRequests(employee: { id: string; name: string }): Pro
   if (!employee?.name) return [];
   const safe = employee.name.replace(/["\\]/g, '\\$&');
   const formula = `FIND(LOWER("${safe}"), LOWER(ARRAYJOIN({Requested By}))) > 0`;
-  const [res, employees, eventTypes, assetTypes, contractors] = await Promise.all([
+  const [res, employees, eventTypes, assetTypes, contractors, calendars] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {
       filterByFormula: formula,
       sort: [{ field: 'Created', direction: 'desc' }],
       maxRecords: 1000,
       fields: QUEUE_FIELDS,
     }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
   ]);
   if (!res.ok) return [];
   return res.data
-    .map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors))
+    .map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars))
     .filter((t) => t.requesterId === employee.id) // exact: drop same-name collisions
     .map(({ assigneeId: _drop, ...rest }) => rest);
+}
+
+// ── Scoped requests view (E9.3) ──────────────────────────────────────────────
+
+export type RequestScope = 'mine' | 'team' | 'campaign' | 'all';
+
+/**
+ * Requests for a stakeholder view, scoped by the chosen lens:
+ *  - mine     → every request the person raised (full archive, incl. Done)
+ *  - team     → active requests raised by anyone on the person's team
+ *  - campaign → active requests linked to the chosen Official Calendar
+ *  - all      → all active requests (caller must gate to managers/admins)
+ * Team/campaign/all intentionally scope to the *active* set (not the ~9k Done
+ * history) to stay fast; "mine" keeps the full archive it always had.
+ */
+export async function getRequestsForScope(
+  employee: { id: string; name: string; team: string | null },
+  scope: RequestScope,
+  opts: { calendarId?: string } = {},
+): Promise<QueueTicket[]> {
+  switch (scope) {
+    case 'team': {
+      if (!employee.team) return [];
+      const [active, emps] = await Promise.all([getQueueTickets(), listActiveEmployeeRecords()]);
+      const teamOf = new Map(emps.map((e) => [e.id, e.team]));
+      return active.filter((t) => !!t.requesterId && teamOf.get(t.requesterId) === employee.team);
+    }
+    case 'campaign': {
+      if (!opts.calendarId) return [];
+      const active = await getQueueTickets();
+      return active.filter((t) => t.officialCalendarId === opts.calendarId);
+    }
+    case 'all':
+      return getQueueTickets();
+    case 'mine':
+    default:
+      return getMyRequests(employee);
+  }
 }
 
 export interface TicketEventRow { id: string; fromState: string | null; toState: string; actor: string | null; note: string | null; createdAt: string }
@@ -217,6 +298,7 @@ export interface TicketDetail {
   queueRank: number | null;
   folderUrl: string | null;
   sourceLinks: string | null;
+  downloadLink: string | null;
   notes: string | null;
   priorityScore: string | null;
   eventType: string | null;
@@ -274,6 +356,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     queueRank: num(f[F.queueRank]),
     folderUrl: str(f[F.assetFolderLink]),
     sourceLinks: str(f[F.rawFileUrl]),
+    downloadLink: str(f[F.downloadLink]),
     notes: cleanBrief(str(f[F.notes])),
     priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
     eventType: firstLinkedName(f[L.eventTypes], eventTypes),

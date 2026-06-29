@@ -20,6 +20,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 export function MediaLinkForm() {
   const router = useRouter();
   const [url, setUrl] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState('');
   const [title, setTitle] = useState('');
   const [guestShow, setGuestShow] = useState('');
   const [audience, setAudience] = useState('');
@@ -30,7 +31,7 @@ export function MediaLinkForm() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const res = await submitMediaLink({ url, title, guestShow, audience });
+    const res = await submitMediaLink({ url, downloadUrl, title, guestShow, audience });
     setSubmitting(false);
     if (res.ok && res.id) {
       router.push(`/media/${res.id}`);
@@ -46,6 +47,9 @@ export function MediaLinkForm() {
       </Field>
       <Field label="Title" hint="Optional — auto-filled from YouTube when we fetch the transcript.">
         <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Episode / interview title" />
+      </Field>
+      <Field label="Download link" hint="Optional — Dropbox/Drive link editors download to cut. Carried onto every ticket made from this media.">
+        <input className={inputCls} value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} placeholder="https://www.dropbox.com/…" />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Guest / Show" hint="Optional context for the clip prompt.">

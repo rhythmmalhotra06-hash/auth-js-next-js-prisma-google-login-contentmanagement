@@ -58,6 +58,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               <Field label="Type of request" value={t.typeOfRequest} />
               <Field label="Due date" value={t.dueDate} />
               <Field label="Official calendar" value={t.officialCalendar} lookup />
+              <Field label="Download link" value={t.downloadLink ? <a href={t.downloadLink} target="_blank" rel="noopener noreferrer">Download media <Icon name="arrow" size={12} /></a> : null} />
               <Field label="Speakers / authors" value={t.authors.join(', ')} />
               <Field label="Priority · ranking" value={`${t.priorityScore ?? 'unscored'} · #${t.queueRank ?? '—'}`} />
             </div>

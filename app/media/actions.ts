@@ -11,12 +11,15 @@ import {
   updateClipSuggestion,
   updateMediaSource,
   type ClipSuggestion,
+  type MediaSource,
 } from '@/lib/media/repository';
+import { sliceTranscriptForClip } from '@/lib/clipping/transcript';
 
 // ── Submit a media link (portal intake) ─────────────────────────────────────
 
 export interface SubmitMediaInput {
   url: string;
+  downloadUrl?: string; // optional editor download link (e.g. Dropbox) (E9.1)
   title?: string;
   guestShow?: string;
   audience?: string; // Cold | Warm
@@ -40,6 +43,7 @@ export async function submitMediaLink(input: SubmitMediaInput): Promise<SubmitMe
 
   const res = await createMediaSource({
     url,
+    downloadUrl: input.downloadUrl?.trim() || null,
     title: input.title?.trim() || null,
     platform: 'YouTube',
     guestShow: input.guestShow?.trim() || null,
@@ -83,18 +87,28 @@ export interface ConvertClipsResult {
   error?: string;
 }
 
-function brief(c: {
-  rationale: string | null;
-  caption: string | null;
-  hookLine: string | null;
-  timestampStart: string | null;
-  timestampEnd: string | null;
-}): string {
+function brief(
+  c: {
+    rationale: string | null;
+    caption: string | null;
+    hookLine: string | null;
+    timestampStart: string | null;
+    timestampEnd: string | null;
+  },
+  verbatim?: { text: string; approximate: boolean } | null,
+): string {
   const parts: string[] = [];
   if (c.hookLine) parts.push(`Hook: ${c.hookLine}`);
   if (c.rationale) parts.push(`Why this clip: ${c.rationale}`);
   if (c.caption) parts.push(`Suggested caption: ${c.caption}`);
   if (c.timestampStart || c.timestampEnd) parts.push(`Clip range: ${c.timestampStart ?? '?'}–${c.timestampEnd ?? '?'}`);
+  // E9.1 — verbatim transcript excerpt so the editor can cut without chasing the source.
+  if (verbatim) {
+    const label = verbatim.approximate
+      ? 'Verbatim (approx — locate the clip range in the full transcript)'
+      : 'Verbatim (around the hook)';
+    parts.push(`${label}:\n${verbatim.text}`);
+  }
   return parts.join('\n\n');
 }
 
@@ -122,6 +136,13 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
   const clipsRes = await getClipsByIds(input.clipIds);
   if (!clipsRes.ok) return { ok: false, created: 0, failed: [], error: clipsRes.error.message };
 
+  // E9.1 — load each clip's parent Media Source once (for the transcript + download link).
+  const sources = new Map<string, MediaSource>();
+  for (const sid of [...new Set(clipsRes.data.map((c) => c.mediaSourceId).filter((s): s is string => !!s))]) {
+    const r = await getMediaSource(sid);
+    if (r.ok) sources.set(sid, r.data);
+  }
+
   let created = 0;
   const failed: { clipId: string; error: string }[] = [];
 
@@ -130,6 +151,9 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
 
     const range = c.timestampStart || c.timestampEnd ? ` (${c.timestampStart ?? '?'}–${c.timestampEnd ?? '?'})` : '';
     const sourceLinks = [input.sourceUrl, input.sourceUrl ? range.trim() : range.trim()].filter(Boolean).join(' ').trim();
+
+    const src = c.mediaSourceId ? sources.get(c.mediaSourceId) : undefined;
+    const verbatim = sliceTranscriptForClip(src?.transcript, { hookLine: c.hookLine });
 
     const res = await createTicket({
       requesterId,
@@ -140,9 +164,10 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
       assetTypeId: input.assetTypeId,
       officialCalendarId: input.officialCalendarId,
       authorIds: [],
-      creativeBrief: brief(c),
+      creativeBrief: brief(c, verbatim),
       dueDate: input.dueDate,
       sourceLinks: sourceLinks || undefined,
+      downloadLink: src?.downloadUrl ?? undefined,
     });
 
     if (res.ok && res.ticketId) {

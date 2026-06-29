@@ -5,7 +5,7 @@
 
 export interface ScoringConfig {
   defaultCapacity: number;
-  weights: { due: number; event: number; effort: number; variants: number; shoot: number };
+  weights: { due: number; event: number; effort: number; variants: number; shoot: number; campaign: number };
   leadtimeFactor: number;
   amberPct: number;
   redPct: number;
@@ -28,7 +28,7 @@ export interface ScoringConfig {
 // until an admin changes something.
 export const DEFAULTS = {
   defaultCapacity: 4,
-  weights: { due: 0.5, event: 0.5, effort: 0.3, variants: 0.2, shoot: 0.5 },
+  weights: { due: 0.5, event: 0.5, effort: 0.3, variants: 0.2, shoot: 0.5, campaign: 0.5 },
   leadtimeFactor: 0.2,
   amberPct: 75,
   redPct: 100,

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { TICKET_STATUSES, PRIO_STATUSES } from '@/lib/tickets/constants';
 import { updateTicketFields, TICKET_FIELD as F, TICKET_LINK as L } from '@/lib/repositories/ticket.repository';
+import { maybeNotifyAssetReady, notifyAssignment } from '@/lib/notify/triggers';
 
 export interface UpdateStatusResult {
   ok: boolean;
@@ -38,6 +39,7 @@ export async function updatePrioStatus(ticketId: string, newStatus: string): Pro
 export async function assignTicket(ticketId: string, assigneeId: string): Promise<UpdateStatusResult> {
   const res = await updateTicketFields(ticketId, { [L.assignedCreative]: assigneeId ? [assigneeId] : [] });
   if (!res.ok) return { ok: false, error: res.error.message };
+  if (assigneeId) await notifyAssignment(ticketId, assigneeId); // E9.4 — DM the editor (best-effort)
   return done(ticketId);
 }
 
@@ -74,6 +76,8 @@ export async function addAsset(
   const field = kind === 'raw' ? F.rawFileUrl : F.outputLink;
   const res = await updateTicketFields(ticketId, { [field]: fileUrl.trim() });
   if (!res.ok) return { ok: false, error: res.error.message };
+  // E9.4 — a final asset link is the "ready" signal: DM the requester + post to #content-ready (once, best-effort).
+  if (kind === 'final') await maybeNotifyAssetReady(ticketId, fileUrl.trim());
   return done(ticketId);
 }
 

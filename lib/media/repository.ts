@@ -47,6 +47,7 @@ export interface MediaSource {
   id: string;
   title: string | null;
   sourceUrl: string | null;
+  downloadUrl: string | null;
   platform: string | null;
   status: string | null;
   guestShow: string | null;
@@ -75,6 +76,7 @@ function mapSource(rec: AirtableRecord<Raw>): MediaSource {
     id: rec.id,
     title: str(f[MF.title]),
     sourceUrl: str(f[MF.sourceUrl]),
+    downloadUrl: str(f[MF.downloadUrl]),
     platform: selectName(f[MF.platform]),
     status: selectName(f[MF.status]),
     guestShow: str(f[MF.guestShow]),
@@ -98,7 +100,7 @@ function mapSource(rec: AirtableRecord<Raw>): MediaSource {
 }
 
 const LIST_FIELDS = [
-  MF.title, MF.sourceUrl, MF.platform, MF.status, MF.guestShow, MF.audience,
+  MF.title, MF.sourceUrl, MF.downloadUrl, MF.platform, MF.status, MF.guestShow, MF.audience,
   MF.submittedVia, MF.usedWebSearch, MF.error, MF.submittedDate, MF.clipsAddedDate, ML.clipSuggestions,
 ];
 
@@ -125,6 +127,7 @@ export async function getMediaSource(id: string): Promise<AirtableResult<MediaSo
 
 export interface CreateMediaSourceInput {
   url?: string | null; // optional — pasted/uploaded transcripts (Content Engine) have no URL
+  downloadUrl?: string | null; // optional editor download link (e.g. Dropbox) (E9.1)
   title?: string | null;
   platform?: string; // defaults YouTube
   guestShow?: string | null;
@@ -143,6 +146,7 @@ export async function createMediaSource(input: CreateMediaSourceInput): Promise<
     [MF.submittedDate]: new Date().toISOString(), // capture submission timestamp
   };
   if (input.url) fields[MF.sourceUrl] = input.url;
+  if (input.downloadUrl) fields[MF.downloadUrl] = input.downloadUrl;
   if (input.title) fields[MF.title] = input.title;
   if (input.guestShow) fields[MF.guestShow] = input.guestShow;
   if (input.audience) fields[MF.audience] = input.audience;

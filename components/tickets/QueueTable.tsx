@@ -20,13 +20,18 @@ import type { ScoringConfig } from '@/lib/scoring-config/config';
 // Ticket Status · Priority Status — those are locked (always visible, always first).
 // Sorting reorders rows only; optional columns append to the right when revealed.
 
-type Dim = 'prioStatus' | 'ticketStatus' | 'eventType' | 'assetType' | 'typeOfRequest';
+type Dim = 'prioStatus' | 'ticketStatus' | 'eventType' | 'assetType' | 'typeOfRequest' | 'officialCalendar';
 const FILTERS: { key: Dim; label: string }[] = [
   { key: 'eventType', label: 'All event types' },
   { key: 'assetType', label: 'All asset types' },
+  { key: 'officialCalendar', label: 'All campaigns' },
   { key: 'prioStatus', label: 'All priority statuses' },
   { key: 'typeOfRequest', label: 'All request types' },
 ];
+
+const EMPTY_SEL: Record<Dim, string> = {
+  prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '', officialCalendar: '',
+};
 
 const uniq = (rows: QueueTicket[], key: Dim) =>
   [...new Set(rows.map((r) => r[key]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
@@ -46,6 +51,7 @@ const COLUMNS: ColumnDef<QueueTicket>[] = [
   { key: 'assetType', label: 'Asset type', sortable: true, width: 150, sortAccessor: (t) => lower(t.assetType) },
   { key: 'dueDate', label: 'Due date', sortable: true, numeric: true, width: 110, sortAccessor: (t) => (t.dueDate ? new Date(t.dueDate).getTime() : null) },
   { key: 'requester', label: 'Requester', sortable: true, width: 150, sortAccessor: (t) => lower(t.requester) },
+  { key: 'campaign', label: 'Campaign', sortable: true, width: 160, sortAccessor: (t) => lower(t.officialCalendar) },
   { key: 'typeOfRequest', label: 'Request type', sortable: true, width: 150, sortAccessor: (t) => lower(t.typeOfRequest) },
 ];
 
@@ -62,9 +68,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
   const router = useRouter();
   const tableRef = useRef<HTMLTableElement>(null);
   const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
-  const [sel, setSel] = useState<Record<Dim, string>>({
-    prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '',
-  });
+  const [sel, setSel] = useState<Record<Dim, string>>({ ...EMPTY_SEL });
   const [q, setQ] = useState('');
 
   const view = useTableView({ columns: COLUMNS, storageKey });
@@ -158,6 +162,8 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         return <td key={key}>{t.dueDate ?? <span className="subtle">—</span>}</td>;
       case 'requester':
         return <td key={key}>{t.requester ?? <span className="subtle">—</span>}</td>;
+      case 'campaign':
+        return <td key={key}>{t.officialCalendar ?? <span className="subtle">—</span>}</td>;
       case 'typeOfRequest':
         return <td key={key}>{t.typeOfRequest ?? <span className="subtle">—</span>}</td>;
       default:
@@ -188,7 +194,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
             onChange={(v) => setSel((s) => ({ ...s, [f.key]: v }))} />
         ))}
         {(activeFilters > 0 || q) && (
-          <button className="btn sm ghost" onClick={() => { setSel({ prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '' }); setQ(''); }}>
+          <button className="btn sm ghost" onClick={() => { setSel({ ...EMPTY_SEL }); setQ(''); }}>
             Clear{activeFilters > 0 ? ` (${activeFilters})` : ''}
           </button>
         )}

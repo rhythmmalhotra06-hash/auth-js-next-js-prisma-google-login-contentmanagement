@@ -13,8 +13,9 @@ children:
   - content-production-management/two-way-sync.md
   - content-production-management/performance-loop.md
   - content-production-management/content-clipping-engine.md
+  - content-production-management/portal-feedback-round-1.md
 created: 2026-06-25
-updated: 2026-06-26
+updated: 2026-06-29
 resolution: 5/8
 imported-from: "CLAUDE.md"
 ---
@@ -171,5 +172,7 @@ Phase 1 is six epics (E1–E6). E7 (Performance Loop) is deferred to Phase 2. Ea
 | E5 | [Lifecycle, Views & Approvals](content-production-management/lifecycle-views-approvals.md) | State machine + `ticket_events` audit, the three role views (5-column header), approvals/decision-locks, asset version-stacking, distribution link. | E3 (E4 parallel) | 1 |
 | E6 | [Two-Way Sync (outbound)](content-production-management/two-way-sync.md) | Push tickets/assets back to Airtable — batched ≤10, 429 backoff. Built last, after reads are stable. | E5 | 1 |
 | E7 | [Performance Loop](content-production-management/performance-loop.md) | Wire `performance` to published assets + the stakeholder performance view. The differentiator. | E5 | **2** |
+| E8 | [AI Content Clipping Engine](content-production-management/content-clipping-engine.md) | Long-form transcript → 10-section viral strategy via Claude; clips become proposed tickets. | E3 | 1 |
+| E9 | [Portal Feedback / Usability Round 1](content-production-management/portal-feedback-round-1.md) | Jun 29 feedback round: cut-ready editor briefs, shoot approvals in Studio, team/campaign visibility, Slack notifications, revenue/campaign scoring, auto-assign, DNA editor, multi-asset requests. | E3, E4, E5, E8 | 1 |
 
-**Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6. E7 follows in Phase 2.
+**Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6. E7 follows in Phase 2. E8 and E9 extend the Phase-1 surfaces.

@@ -123,6 +123,9 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   // visible to every signed-in role (mirrors "New request" being open to all).
   items.push({ href: '/shoots', label: 'Shoots', icon: 'video', group: 'Library & media' });
   items.push({ href: '/performance', label: 'Insights', icon: 'chart', group: 'Intelligence' });
+  // Asset-type DNA editor (E9.7): admins + managers get the nav entry; a team lead who
+  // isn't a manager can still reach it via link (the page authorizes them per asset type).
+  if (mgr) items.push({ href: '/settings/asset-types', label: 'Asset types & DNA', icon: 'sliders', group: 'Admin' });
   if (isAdmin) {
     items.push({ href: '/settings/clip-rules', label: 'Rules', icon: 'sliders', group: 'Intelligence' });
     items.push({ href: '/settings/scoring', label: 'Capacity & scoring', icon: 'sliders', group: 'Admin' });

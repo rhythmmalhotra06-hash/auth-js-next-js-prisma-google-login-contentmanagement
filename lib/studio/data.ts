@@ -5,6 +5,7 @@
 import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { getTicketMetrics, asOf, type TicketMetrics } from '@/lib/metrics/snapshot';
 import { listMediaSources, type MediaSource } from '@/lib/media/repository';
+import { listShoots, SHOOT_STATUS, type ShootRow } from '@/lib/shoots/repository';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 import type { ScoringConfig } from '@/lib/scoring-config/config';
 
@@ -19,16 +20,18 @@ export interface StudioData {
   recentShipped: QueueTicket[];
   metrics: TicketMetrics | null;
   media: MediaSource[];
+  shoots: ShootRow[];
   scoringConfig: ScoringConfig;
 }
 
 /** Single parallel fetch shared by the landing + every sub-route. */
 export async function loadStudio(): Promise<StudioData> {
-  const [active, recentShipped, metrics, mediaRes, scoringConfig] = await Promise.all([
+  const [active, recentShipped, metrics, mediaRes, shootsRes, scoringConfig] = await Promise.all([
     getQueueTickets(),
     getRecentShipped(12),
     getTicketMetrics(),
     listMediaSources(100),
+    listShoots(200),
     getScoringConfig(),
   ]);
   return {
@@ -36,6 +39,7 @@ export async function loadStudio(): Promise<StudioData> {
     recentShipped,
     metrics,
     media: mediaRes.ok ? mediaRes.data : [],
+    shoots: shootsRes.ok ? shootsRes.data : [],
     scoringConfig,
   };
 }
@@ -58,6 +62,34 @@ export interface ReviewItem {
 
 export function toReviewItem(t: QueueTicket): ReviewItem {
   return { id: t.id, title: t.title, event: t.eventType, score: t.priorityScore, rank: t.queueRank };
+}
+
+// ── Shoots awaiting Vishen's sign-off ────────────────────────────────────────
+
+/** Shoots waiting on Vishen's approval (Filming Status = "Needs Vishen's Review"). */
+export function getPendingShoots(shoots: ShootRow[]): ShootRow[] {
+  return shoots.filter((s) => s.status === SHOOT_STATUS.needsReview);
+}
+
+/** Serializable row for the client shoot sign-off component. */
+export interface ShootSignOffItem {
+  id: string;
+  title: string;
+  format: string | null;
+  filmingDate: string | null;
+  filmingLocation: string | null;
+  brief: string | null;
+}
+
+export function toShootSignOffItem(s: ShootRow): ShootSignOffItem {
+  return {
+    id: s.id,
+    title: s.title ?? 'Untitled shoot',
+    format: s.format,
+    filmingDate: s.filmingDate,
+    filmingLocation: s.filmingLocation,
+    brief: s.brief,
+  };
 }
 
 // ── Pulse ────────────────────────────────────────────────────────────────────

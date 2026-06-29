@@ -5,8 +5,10 @@ import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import {
   loadStudio, getReviewQueue, toReviewItem, pulseCounts, getLaunches, getVishenMedia,
+  getPendingShoots, toShootSignOffItem,
 } from '@/lib/studio/data';
 import { SignOffHero } from '@/components/studio/SignOffHero';
+import { ShootSignOff } from '@/components/studio/ShootSignOff';
 import { Pulse } from '@/components/studio/Pulse';
 import { LaunchCard } from '@/components/studio/LaunchCard';
 import { ClipsList } from '@/components/studio/ClipsList';
@@ -20,11 +22,15 @@ async function StudioBody() {
   const pulse = pulseCounts(data.active, data.metrics);
   const launches = getLaunches(data.active, data.recentShipped);
   const clips = getVishenMedia(data.media);
+  const pendingShoots = getPendingShoots(data.shoots).map(toShootSignOffItem);
 
   return (
     <>
       {/* 1. Sign-off — the hero */}
       <SignOffHero items={review} />
+
+      {/* 1b. Shoots awaiting sign-off */}
+      <ShootSignOff items={pendingShoots} />
 
       {/* 2. The pulse */}
       <div className="sec-head"><h3>The pulse</h3>{pulse.asOf && <span className="hint">{pulse.asOf}</span>}</div>

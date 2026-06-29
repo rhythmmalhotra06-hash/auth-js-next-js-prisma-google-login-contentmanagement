@@ -1,9 +1,13 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
-import { getMyRequests } from '@/lib/tickets/data';
+import { getRequestsForScope, type RequestScope } from '@/lib/tickets/data';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
+import { getLiveIntakeReference } from '@/lib/airtable/reference-live';
+import { getAdminAccess } from '@/lib/admin/access';
+import { hasRole } from '@/lib/roles';
 import { QueueTable } from '@/components/tickets/QueueTable';
+import { ScopeSwitch } from '@/components/tickets/ScopeSwitch';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getEmployeeForSession } from '@/lib/employee';
@@ -13,7 +17,19 @@ export const dynamic = 'force-dynamic';
 const DONE = (s: string | null) => ['Done', 'Shipping'].includes(s ?? '');
 const IN_PROD = (s: string | null) => ['In Progress', 'In Revision', 'Review', 'Approved'].includes(s ?? '');
 
-async function MyRequestsBody() {
+const SCOPES: RequestScope[] = ['mine', 'team', 'campaign', 'all'];
+function parseScope(v: string | undefined): RequestScope {
+  return SCOPES.includes(v as RequestScope) ? (v as RequestScope) : 'mine';
+}
+
+const SCOPE_HEADING: Record<RequestScope, { title: string; hint: string }> = {
+  mine: { title: 'Your requests', hint: 'status of everything you’ve raised' },
+  team: { title: 'Your team’s requests', hint: 'everything your team has raised' },
+  campaign: { title: 'Campaign requests', hint: 'everything raised for the selected campaign' },
+  all: { title: 'All requests', hint: 'every active request across the org' },
+};
+
+async function MyRequestsBody({ scope, calendarId }: { scope: RequestScope; calendarId?: string }) {
   const employee = await getEmployeeForSession();
   if (!employee) {
     return (
@@ -23,41 +39,68 @@ async function MyRequestsBody() {
       </div>
     );
   }
-  const [mine, cfg] = await Promise.all([getMyRequests({ id: employee.id, name: employee.name }), getScoringConfig()]);
-  const open = mine.filter((t) => !DONE(t.ticketStatus)).length;
-  const inProd = mine.filter((t) => IN_PROD(t.ticketStatus)).length;
-  const done = mine.filter((t) => DONE(t.ticketStatus)).length;
+
+  // "All" is gated to managers/approvers/admins; non-eligible users fall back to "mine".
+  const access = await getAdminAccess();
+  const canViewAll = access.isAdmin || hasRole(access.roles, 'Manager') || hasRole(access.roles, 'Approver');
+  const effectiveScope: RequestScope = scope === 'all' && !canViewAll ? 'mine' : scope;
+
+  const [tickets, cfg, ref] = await Promise.all([
+    getRequestsForScope({ id: employee.id, name: employee.name, team: employee.team }, effectiveScope, { calendarId }),
+    getScoringConfig(),
+    getLiveIntakeReference().catch(() => null),
+  ]);
+  const calendars = (ref?.officialCalendars ?? []).map((c) => ({ value: c.id, label: c.name }));
+
+  const open = tickets.filter((t) => !DONE(t.ticketStatus)).length;
+  const inProd = tickets.filter((t) => IN_PROD(t.ticketStatus)).length;
+  const done = tickets.filter((t) => DONE(t.ticketStatus)).length;
+  const heading = SCOPE_HEADING[effectiveScope];
 
   return (
     <>
+      <ScopeSwitch
+        scope={effectiveScope}
+        canViewAll={canViewAll}
+        hasTeam={!!employee.team}
+        calendars={calendars}
+        calendarId={calendarId}
+      />
+
       <KpiGrid>
         <Kpi label="Open requests" value={open} sub="in flight" i={0} />
         <Kpi label="In production" value={inProd} sub="being made now" i={1} />
-        <Kpi label="Delivered" value={done} sub="all-time" i={2} />
+        <Kpi label="Delivered" value={done} sub={effectiveScope === 'mine' ? 'all-time' : 'in this view'} i={2} />
       </KpiGrid>
 
-      {mine.length === 0 ? (
+      {tickets.length === 0 ? (
         <div className="empty">
-          You haven’t raised any requests yet.
-          <br /><Link href="/intake" style={{ fontWeight: 600 }}>Submit a new request →</Link>
+          {effectiveScope === 'mine' ? (
+            <>You haven’t raised any requests yet.<br /><Link href="/intake" style={{ fontWeight: 600 }}>Submit a new request →</Link></>
+          ) : effectiveScope === 'campaign' && !calendarId ? (
+            'Pick a campaign above to see its requests.'
+          ) : (
+            'No requests in this view.'
+          )}
         </div>
       ) : (
         <>
-          <div className="sec-head"><h3>Your requests</h3><span className="hint">status of everything you’ve raised</span></div>
-          <QueueTable tickets={mine} basePath="/stakeholder" storageKey="stakeholder-queue" scoringConfig={cfg} />
+          <div className="sec-head"><h3>{heading.title}</h3><span className="hint">{heading.hint}</span></div>
+          <QueueTable tickets={tickets} basePath="/stakeholder" storageKey="stakeholder-queue" scoringConfig={cfg} />
         </>
       )}
     </>
   );
 }
 
-// "My requests" — the read-only stakeholder/agency surface. A person sees only the
-// requests they raised, their status, and a read-only detail per request.
-export default async function MyRequestsPage() {
+// "My requests" — the stakeholder/agency surface. Defaults to the requests you raised;
+// a scope switch widens to your team, a campaign, or (for managers/admins) everything.
+export default async function MyRequestsPage({ searchParams }: { searchParams: Promise<{ scope?: string; cal?: string }> }) {
+  const { scope, cal } = await searchParams;
   return (
-    <AppShell title="My requests" subtitle="Read-only · every request you’ve raised and where it stands.">
+    <AppShell title="My requests" subtitle="Every request you’ve raised — switch scope to see your team or a campaign.">
       <Suspense fallback={<QueueSkeleton kpis={3} />}>
-        <MyRequestsBody />
+        <MyRequestsBody scope={parseScope(scope)} calendarId={cal} />
       </Suspense>
     </AppShell>
   );

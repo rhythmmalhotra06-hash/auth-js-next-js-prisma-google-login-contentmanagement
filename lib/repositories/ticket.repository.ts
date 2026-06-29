@@ -65,12 +65,15 @@ export interface CreateTicketFields {
   teamServiceLevel: string;
   notes?: string | null;
   sourceLinks?: string | null;
+  downloadLink?: string | null; // editor download link (e.g. Dropbox) — E9.1
   eventTypeRecId: string;
   assetTypeRecId: string;
   requesterRecId: string;
   officialCalendarRecId?: string | null;
   authorRecIds?: string[];
   shootRecIds?: string[];
+  assignedCreativeRecId?: string | null; // E9.6 auto-assign: sole preferred editor
+  ticketStatus?: string; // defaults to "Backlog"; auto-assign sets "To Do"
 }
 
 /** Create a ticket directly in the Prio Requests table (link fields = reference recIds). */
@@ -83,11 +86,12 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
     [F.typeOfRequest]: input.typeOfRequest,
     [F.teamServiceLevel]: input.teamServiceLevel,
     [F.prioStatus]: 'New Request',
-    [F.ticketStatus]: 'Backlog',
+    [F.ticketStatus]: input.ticketStatus ?? 'Backlog',
     [L.eventTypes]: [input.eventTypeRecId],
     [L.assetTypes]: [input.assetTypeRecId],
     [L.requestedBy]: [input.requesterRecId],
   };
+  if (input.assignedCreativeRecId) fields[L.assignedCreative] = [input.assignedCreativeRecId];
   if (input.cta) fields[F.cta] = input.cta;
   // "Raw File/URL Links" is a URL-typed field; only write a real URL there, otherwise
   // fold the free text into notes so a non-URL value can't make Airtable reject the create.
@@ -97,6 +101,7 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
     else notes = notes ? `${notes}\n\nSource/links: ${input.sourceLinks.trim()}` : `Source/links: ${input.sourceLinks.trim()}`;
   }
   if (notes) fields[F.notes] = notes;
+  if (input.downloadLink && /^https?:\/\//i.test(input.downloadLink)) fields[F.downloadLink] = input.downloadLink;
   if (input.officialCalendarRecId) fields[L.officialCalendar] = [input.officialCalendarRecId];
   if (input.authorRecIds?.length) fields[L.speakers] = input.authorRecIds;
   if (input.shootRecIds?.length) fields[L.shoots] = input.shootRecIds;

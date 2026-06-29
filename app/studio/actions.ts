@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { PRIO_STATUSES, TICKET_STATUSES } from '@/lib/tickets/constants';
 import { getTicketDetail } from '@/lib/tickets/data';
 import { updateTicketFields, TICKET_FIELD as F } from '@/lib/repositories/ticket.repository';
+import { getShoot, updateShoot, SHOOT_STATUS } from '@/lib/shoots/repository';
+import { SHOOTS as S } from '@/lib/airtable/field-map';
 
 export interface ActionResult {
   ok: boolean;
@@ -14,7 +16,7 @@ export interface ActionResult {
 // explicit Vishen tap (Approve / Send back / star). No staged value reaches a live
 // field without one of these.
 function revalidateStudio(): void {
-  for (const p of ['/studio', '/studio/sign-off', '/studio/ranking', '/studio/launches']) {
+  for (const p of ['/studio', '/studio/sign-off', '/studio/ranking', '/studio/launches', '/shoots']) {
     revalidatePath(p);
   }
 }
@@ -52,6 +54,44 @@ export async function sendBackForRevision(ticketId: string, note: string): Promi
     [F.prioStatus]: PRIO_IN_QUEUE,
     [F.notes]: merged,
   });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateStudio();
+  return { ok: true };
+}
+
+// ── Shoot sign-off (founder approves/declines pending shoot requests) ─────────
+// Same propose-only commit boundary as ticket review: a shoot only advances on an
+// explicit Vishen tap. Approve ticks the live "Vishen's Approval" checkbox + moves
+// Filming Status forward; Decline cancels it (with an optional note).
+
+/** Approve a pending shoot — Filming Status → "Approved by Vishen" + tick the approval checkbox. */
+export async function approveShoot(shootId: string): Promise<ActionResult> {
+  const res = await updateShoot(shootId, {
+    [S.fields.status]: SHOOT_STATUS.approved,
+    [S.fields.vishenApproval]: true,
+  });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateStudio();
+  return { ok: true };
+}
+
+/**
+ * Decline a pending shoot — Filming Status → "Cancelled". The note is optional;
+ * when present it's appended to Notes/Brief with a light Vishen attribution stamp.
+ */
+export async function declineShoot(shootId: string, note?: string): Promise<ActionResult> {
+  const fields: Record<string, unknown> = { [S.fields.status]: SHOOT_STATUS.cancelled };
+
+  const trimmed = note?.trim();
+  if (trimmed) {
+    const detail = await getShoot(shootId);
+    const stamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const entry = `[Vishen · ${stamp}] ${trimmed}`;
+    const existing = detail.ok ? detail.data.brief : null;
+    fields[S.fields.notes] = existing ? `${existing}\n\n${entry}` : entry;
+  }
+
+  const res = await updateShoot(shootId, fields);
   if (!res.ok) return { ok: false, error: res.error.message };
   revalidateStudio();
   return { ok: true };
