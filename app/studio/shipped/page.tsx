@@ -1,6 +1,6 @@
 import { AppShell } from '@/components/ui/AppShell';
 import { BackLink } from '@/components/studio/BackLink';
-import { ShippedTable } from '@/components/studio/ShippedTable';
+import { QueueTable } from '@/components/tickets/QueueTable';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import { loadStudio } from '@/lib/studio/data';
 
@@ -13,7 +13,7 @@ export default async function ShippedPage() {
   return (
     <AppShell title="Recently shipped" subtitle="Delivered work, newest first">
       <BackLink />
-      <ShippedTable tickets={data.recentShipped} />
+      <QueueTable tickets={data.recentShipped} basePath="/tickets" storageKey="studio-shipped" scoringConfig={data.scoringConfig} />
     </AppShell>
   );
 }

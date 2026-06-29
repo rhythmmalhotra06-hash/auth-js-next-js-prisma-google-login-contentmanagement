@@ -9,7 +9,9 @@ export function StarRating({ ticketId, value }: { ticketId: string; value: numbe
   const [rank, setRank] = useState(value ?? 0);
   const [pending, start] = useTransition();
 
-  function set(n: number) {
+  function set(e: React.MouseEvent, n: number) {
+    // Used inside clickable grid rows — never let a star click navigate the row.
+    e.stopPropagation();
     if (n === rank || pending) return;
     const prev = rank;
     setRank(n); // optimistic
@@ -24,7 +26,7 @@ export function StarRating({ ticketId, value }: { ticketId: string; value: numbe
       style={pending ? { opacity: 0.6 } : undefined}>
       {[1, 2, 3, 4, 5].map((n) => (
         <button key={n} type="button" className={cn('st-starbtn', n <= rank && 'on')}
-          onClick={() => set(n)} aria-label={`Set priority rank to ${n}`} aria-pressed={n <= rank}>
+          onClick={(e) => set(e, n)} aria-label={`Set priority rank to ${n}`} aria-pressed={n <= rank}>
           ★
         </button>
       ))}

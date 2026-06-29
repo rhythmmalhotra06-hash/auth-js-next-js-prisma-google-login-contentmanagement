@@ -10,6 +10,7 @@ import { useTableView, type ColumnDef } from '@/components/ui/table/useTableView
 import { SortableTh } from '@/components/ui/table/SortableTh';
 import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { StarRating } from '@/components/studio/StarRating';
 import { loadMap, riskOf } from '@/lib/tickets/intel';
 import type { QueueTicket } from '@/lib/tickets/data';
 import type { ScoringConfig } from '@/lib/scoring-config/config';
@@ -57,7 +58,7 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig }) {
+export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean }) {
   const router = useRouter();
   const tableRef = useRef<HTMLTableElement>(null);
   const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
@@ -140,7 +141,9 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
           </td>
         );
       case 'priority':
-        return <td key={key}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
+        return editableRank
+          ? <td key={key}><StarRating ticketId={t.id} value={t.queueRank} /> {dueChip(t.dueDate)}</td>
+          : <td key={key}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
       case 'assigned':
         return <td key={key}>{t.assignee ?? <span className="subtle">Unassigned</span>}</td>;
       case 'ticketStatus':
