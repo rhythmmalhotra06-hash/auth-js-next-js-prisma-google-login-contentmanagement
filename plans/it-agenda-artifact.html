@@ -1,0 +1,349 @@
+<title>IT Access & Integrations — Meeting Agenda</title>
+<style>
+  :root{
+    --ground:#FAF9FC;
+    --paper:#FFFFFF;
+    --ink:#1B1626;
+    --muted:#6B6478;
+    --faint:#9A92AB;
+    --primary:#572280;
+    --primary-soft:#F1EAF7;
+    --gold:#F5B000;
+    --gold-soft:#FDF3D8;
+    --gold-ink:#7A5800;
+    --hair:#E7E2EF;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding:0 24px 96px;
+  }
+  .page{max-width:880px;margin:0 auto}
+
+  /* progress bar */
+  .progress{
+    position:sticky;top:0;z-index:20;
+    margin:0 -24px 0;padding:14px 24px;
+    background:rgba(250,249,252,.86);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--hair);
+    display:flex;align-items:center;gap:16px;
+  }
+  .progress .meter{
+    flex:1;height:6px;border-radius:999px;background:var(--hair);overflow:hidden;
+  }
+  .progress .fill{
+    height:100%;width:0;border-radius:999px;
+    background:linear-gradient(90deg,var(--primary),#7a3aad);
+    transition:width .35s cubic-bezier(.4,0,.2,1);
+  }
+  .progress .count{
+    font-family:var(--mono);font-size:.8rem;color:var(--muted);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .progress .count b{color:var(--primary);font-weight:600}
+
+  /* masthead */
+  header.mast{padding:56px 0 36px;border-bottom:1px solid var(--hair)}
+  .eyebrow{
+    font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--primary);font-weight:600;margin:0 0 14px;
+  }
+  h1{
+    font-size:clamp(1.9rem,4.5vw,2.7rem);line-height:1.08;margin:0;
+    font-weight:700;letter-spacing:-.02em;text-wrap:balance;
+  }
+  .sub{margin:16px 0 0;color:var(--muted);max-width:60ch;font-size:1.02rem}
+  .meta{
+    margin:24px 0 0;display:flex;flex-wrap:wrap;gap:10px;
+    font-family:var(--mono);font-size:.74rem;color:var(--muted);
+  }
+  .meta span{
+    background:var(--paper);border:1px solid var(--hair);
+    border-radius:7px;padding:5px 10px;
+  }
+
+  /* lead callout */
+  .lead{
+    margin:28px 0 0;padding:18px 20px;
+    background:var(--gold-soft);border:1px solid #F0D998;border-radius:12px;
+    display:flex;gap:14px;align-items:flex-start;
+  }
+  .lead .tag{
+    flex:none;font-family:var(--mono);font-size:.66rem;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink);
+    background:#FBE7B0;border-radius:6px;padding:5px 9px;margin-top:1px;
+  }
+  .lead p{margin:0;font-size:.95rem;color:#5b4a1f}
+  .lead code{background:#FBE7B0;color:var(--gold-ink)}
+
+  /* sections */
+  section{
+    display:grid;grid-template-columns:64px 1fr;gap:0 22px;
+    padding:34px 0;border-bottom:1px solid var(--hair);
+  }
+  .rail{
+    font-family:var(--mono);font-size:.95rem;color:var(--muted);
+    font-variant-numeric:tabular-nums;padding-top:3px;font-weight:500;
+  }
+  section.blk .rail{color:var(--gold-ink)}
+  .head{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 4px}
+  h2{font-size:1.18rem;font-weight:650;margin:0;letter-spacing:-.01em}
+  .chip{
+    font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;padding:4px 8px;border-radius:6px;
+    background:var(--gold);color:#3d2c00;
+  }
+  .note{margin:2px 0 16px;color:var(--muted);font-size:.9rem;max-width:62ch}
+
+  /* checklist */
+  ul.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  li.item{
+    display:flex;gap:12px;align-items:flex-start;
+    padding:9px 10px 9px 8px;border-radius:9px;cursor:pointer;
+    transition:background .15s;
+  }
+  li.item:hover{background:var(--primary-soft)}
+  li.item:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+  .box{
+    flex:none;width:19px;height:19px;border-radius:6px;margin-top:2px;
+    border:1.8px solid #C9C0D8;background:var(--paper);
+    display:grid;place-items:center;transition:all .15s;
+  }
+  .box svg{width:11px;height:11px;opacity:0;transform:scale(.6);transition:all .15s}
+  li.done .box{background:var(--primary);border-color:var(--primary)}
+  li.done .box svg{opacity:1;transform:scale(1)}
+  .txt{font-size:.95rem}
+  li.done .txt{color:var(--faint);text-decoration:line-through;text-decoration-color:#C9C0D8}
+  .txt code{
+    font-family:var(--mono);font-size:.82em;background:var(--primary-soft);
+    color:var(--primary);padding:1.5px 6px;border-radius:5px;
+  }
+  li.done .txt code{background:var(--hair);color:var(--faint)}
+
+  /* decisions block */
+  section.decide{
+    grid-template-columns:1fr;background:#1B1626;color:#EDE9F2;
+    border:0;border-radius:16px;margin-top:40px;padding:34px 32px;
+  }
+  section.decide h2{color:#fff;font-size:1.3rem}
+  section.decide .eyebrow{color:var(--gold)}
+  section.decide .note{color:#B7AEC6}
+  section.decide li.item:hover{background:rgba(255,255,255,.06)}
+  section.decide .box{border-color:#5a5072;background:transparent}
+  section.decide li.done .box{background:var(--gold);border-color:var(--gold)}
+  section.decide li.done .box svg path{stroke:#3d2c00}
+  section.decide .txt{color:#EDE9F2}
+  section.decide li.done .txt{color:#8a7fa6}
+  section.decide .txt code{background:rgba(245,176,0,.16);color:var(--gold)}
+
+  footer{margin:36px 0 0;color:var(--faint);font-size:.78rem;font-family:var(--mono);text-align:center}
+
+  @media(max-width:560px){
+    section{grid-template-columns:1fr;gap:0}
+    .rail{margin-bottom:8px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<div class="progress">
+  <div class="meter"><div class="fill" id="fill"></div></div>
+  <div class="count"><b id="done">0</b> / <span id="total">0</span> resolved</div>
+</div>
+
+<div class="page">
+  <header class="mast">
+    <p class="eyebrow">IT Sync · Content Production System</p>
+    <h1>Access &amp; Integrations</h1>
+    <p class="sub">What we need from IT to ship the Content Production &amp; Management system — service accounts, an IAP path for automation, and org-owned API keys. Not personal tokens.</p>
+    <div class="meta">
+      <span>Stack · Next.js → Kessel / Cloud Run</span>
+      <span>DB · Kessel-managed Postgres</span>
+      <span>Perimeter · IAP-gated</span>
+    </div>
+    <div class="lead">
+      <span class="tag">Start here</span>
+      <p>Two items block everything else: the <strong>IAP path for cron &amp; webhooks</strong> (§2) and moving <strong>Airtable</strong> (§5) and <strong>Anthropic</strong> (§4) onto shared service accounts instead of personal keys. Drive these first.</p>
+    </div>
+  </header>
+
+  <section>
+    <div class="rail">01</div>
+    <div>
+      <div class="head"><h2>Identity &amp; Access</h2></div>
+      <p class="note">How people log in, and who counts as an admin.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt">Who provisions the <strong>Google OAuth client</strong> (<code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code>) in the MV GCP project?</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Restrict login to <code>@mindvalley.com</code>? Confirm final auth provider (moving GitHub → Google).</span></li>
+        <li class="item"><span class="box"></span><span class="txt"><strong>Blinkwork SSO</strong> mapping to the <code>employees</code> table — in scope now or later?</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Agree the initial <strong>admin list</strong> (<code>ADMIN_BOOTSTRAP_EMAILS</code>).</span></li>
+        <li class="item"><span class="box"></span><span class="txt"><strong>External reviewers</strong> (Vision, agencies) need access <em>without</em> a paid seat or MV SSO — how do they get past IAP? (ties to §2)</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="rail">02</div>
+    <div>
+      <div class="head"><h2>IAP &amp; the Cloud Run perimeter</h2><span class="chip">Blocker</span></div>
+      <p class="note">The app is IAP-gated (<code>@mindvalley.com</code> only), which breaks all inbound and scheduled traffic.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt"><strong>Scheduled jobs:</strong> need a <strong>service account with an OIDC identity</strong> IAP accepts, or an <strong>internal Cloud Scheduler</strong>. Blocks metrics refresh, YouTube auto-discover, Slack scan, sync.</span></li>
+        <li class="item"><span class="box"></span><span class="txt"><strong>Inbound webhooks</strong> (Airtable, Slack) can't reach the app — confirm we stay <strong>poll / outbound-only</strong>, or get the sources allowlisted.</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Reconcile <strong>public stakeholder access</strong> with IAP (the free-reviewer requirement).</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="rail">03</div>
+    <div>
+      <div class="head"><h2>Database &amp; Hosting</h2></div>
+      <p class="note">Kessel-managed Postgres — ownership and operations.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt">Owner of the <strong>Kessel project + managed Postgres</strong> — backups, retention, prod migrations, scaling.</span></li>
+        <li class="item"><span class="box"></span><span class="txt"><strong>Secrets</strong> all flow through <code>kessel env secret</code> — agree who holds and rotates them. No env edits outside Kessel (platform overwrites).</span></li>
+        <li class="item"><span class="box"></span><span class="txt"><em>Only if</em> Supabase is genuinely being weighed against Kessel Postgres — decide here. Nothing in the code uses it today.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="rail">04</div>
+    <div>
+      <div class="head"><h2>Anthropic / Claude API</h2><span class="chip">Blocker</span></div>
+      <p class="note">Powers the Content Clipping Engine.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt"><code>ANTHROPIC_API_KEY</code> on an <strong>MV org / billing account</strong>, not personal. Owner, monthly budget, rate limits?</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Data-governance sign-off: transcripts &amp; content are sent to Anthropic — acceptable?</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="blk">
+    <div class="rail">05</div>
+    <div>
+      <div class="head"><h2>Airtable</h2><span class="chip">Blocker</span></div>
+      <p class="note">Reference sync + two-way ticket push.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt">Move from a <strong>personal access token</strong> → <strong>shared service-account token</strong> (<code>AIRTABLE_TOKEN</code>).</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Scopes: <code>schema.bases:read</code> + <code>data.records:read</code> now; <strong>add <code>data.records:write</code></strong> before two-way push.</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Token reaches all bases: Prio <code>appFEFygXo2pRc8AR</code>, Titus Video <code>appDZnMnJGehbSOo5</code>, Ads <code>appWYOr2p4RKHf2LR</code>.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="rail">06</div>
+    <div>
+      <div class="head"><h2>YouTube Data API</h2></div>
+      <p class="note">Feeds the Vishen media → clip auto-discover poller.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt"><code>YOUTUBE_API_KEY</code> (Data API v3) — which GCP project, and <strong>quota</strong> for the poller?</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Confirm Vishen channel ID <code>UCgAvK6yXl3BtasS9mS0kefQ</code>.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="rail">07</div>
+    <div>
+      <div class="head"><h2>Supadata (transcript vendor)</h2></div>
+      <p class="note">External service that proxies YouTube — exists because Cloud Run's IP is blocked by YouTube.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt"><strong>Vendor / procurement + data-egress approval</strong> for <code>SUPADATA_API_KEY</code>. Or do we stand up an internal proxy instead?</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="rail">08</div>
+    <div>
+      <div class="head"><h2>Slack</h2></div>
+      <p class="note">Inbox intake of shared links + content-ready notifications.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt">Who creates the <strong>Slack app + bot token</strong> (<code>SLACK_BOT_TOKEN</code>)?</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Scopes <code>channels:history</code> / <code>groups:history</code>; bot invited to the media + content-ready channels.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="rail">09</div>
+    <div>
+      <div class="head"><h2>BlinkLife / Blinkwork</h2></div>
+      <p class="note">Portal → BlinkLife task &amp; review push over MCP.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt"><strong>Token model:</strong> single shared bearer (<code>BLINKLIFE_TOKEN</code>) vs <strong>per-user OAuth</strong> (open spike). Decide.</span></li>
+        <li class="item"><span class="box"></span><span class="txt">Confirm <code>BLINKLIFE_MCP_URL</code>, target project name, and <code>APP_BASE_URL</code> deep links.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="rail">10</div>
+    <div>
+      <div class="head"><h2>Shared route secrets</h2></div>
+      <p class="note">Bearer secrets guarding the internal API routes.</p>
+      <ul class="checks">
+        <li class="item"><span class="box"></span><span class="txt">Ownership &amp; rotation of <code>SYNC_SECRET</code>, <code>DISCOVER_SHARED_SECRET</code>, <code>BLINKLIFE_SYNC_SECRET</code>.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="decide">
+    <p class="eyebrow">Don't leave without</p>
+    <h2>Decisions to walk out with</h2>
+    <p class="note">Each of these should have a named owner or a chosen path by end of meeting.</p>
+    <ul class="checks">
+      <li class="item"><span class="box"></span><span class="txt">IAP path for <strong>cron jobs</strong> chosen — service account vs internal scheduler.</span></li>
+      <li class="item"><span class="box"></span><span class="txt">IAP path for <strong>external reviewers</strong> chosen.</span></li>
+      <li class="item"><span class="box"></span><span class="txt">Owner assigned for: <strong>Anthropic key</strong>, <strong>Airtable service token</strong>, <strong>Google OAuth client</strong>.</span></li>
+      <li class="item"><span class="box"></span><span class="txt"><strong>Procurement</strong> kicked off for Supadata (if approved).</span></li>
+      <li class="item"><span class="box"></span><span class="txt"><strong>Secrets-management owner</strong> named.</span></li>
+    </ul>
+  </section>
+
+  <footer>Content Production &amp; Management · prepared for the IT access &amp; integrations review</footer>
+</div>
+</div>
+
+<script>
+  (function(){
+    var check = '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6.2l2.6 2.6L10 3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var items = Array.prototype.slice.call(document.querySelectorAll('li.item'));
+    var fill = document.getElementById('fill');
+    var doneEl = document.getElementById('done');
+    document.getElementById('total').textContent = items.length;
+    items.forEach(function(li){
+      li.querySelector('.box').innerHTML = check;
+      li.setAttribute('tabindex','0');
+      li.setAttribute('role','checkbox');
+      li.setAttribute('aria-checked','false');
+      function toggle(){
+        var on = li.classList.toggle('done');
+        li.setAttribute('aria-checked', on ? 'true' : 'false');
+        update();
+      }
+      li.addEventListener('click', toggle);
+      li.addEventListener('keydown', function(e){
+        if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); }
+      });
+    });
+    function update(){
+      var n = document.querySelectorAll('li.done').length;
+      doneEl.textContent = n;
+      fill.style.width = (n/items.length*100)+'%';
+    }
+    update();
+  })();
+</script>
