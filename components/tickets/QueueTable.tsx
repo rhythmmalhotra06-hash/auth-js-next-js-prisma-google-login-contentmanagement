@@ -151,7 +151,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
       case 'assetType':
         return <td key={key}>{t.assetType ?? <span className="subtle">—</span>}</td>;
       case 'dueDate':
-        return <td key={key} style={{ width: w }}>{t.dueDate ?? <span className="subtle">—</span>}</td>;
+        return <td key={key}>{t.dueDate ?? <span className="subtle">—</span>}</td>;
       case 'requester':
         return <td key={key}>{t.requester ?? <span className="subtle">—</span>}</td>;
       case 'typeOfRequest':
