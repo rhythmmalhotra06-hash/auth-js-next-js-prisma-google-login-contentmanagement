@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
 import { getMyRequests } from '@/lib/tickets/data';
+import { getScoringConfig } from '@/lib/scoring-config/repository';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
@@ -22,7 +23,7 @@ async function MyRequestsBody() {
       </div>
     );
   }
-  const mine = await getMyRequests({ id: employee.id, name: employee.name });
+  const [mine, cfg] = await Promise.all([getMyRequests({ id: employee.id, name: employee.name }), getScoringConfig()]);
   const open = mine.filter((t) => !DONE(t.ticketStatus)).length;
   const inProd = mine.filter((t) => IN_PROD(t.ticketStatus)).length;
   const done = mine.filter((t) => DONE(t.ticketStatus)).length;
@@ -43,7 +44,7 @@ async function MyRequestsBody() {
       ) : (
         <>
           <div className="sec-head"><h3>Your requests</h3><span className="hint">status of everything you’ve raised</span></div>
-          <QueueTable tickets={mine} basePath="/stakeholder" storageKey="stakeholder-queue" />
+          <QueueTable tickets={mine} basePath="/stakeholder" storageKey="stakeholder-queue" scoringConfig={cfg} />
         </>
       )}
     </>

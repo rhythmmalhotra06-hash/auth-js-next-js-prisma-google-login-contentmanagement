@@ -10,6 +10,7 @@ import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { getTicketMetrics, asOf } from '@/lib/metrics/snapshot';
 import { loadMap, riskOf, dueDays } from '@/lib/tickets/intel';
+import { getScoringConfig, capacityFor, type ScoringConfig } from '@/lib/scoring-config/repository';
 import { getAdminAccess } from '@/lib/admin/access';
 import { getEmployeeForSession } from '@/lib/employee';
 import { effectiveRoles } from '@/lib/roles';
@@ -18,10 +19,10 @@ export const dynamic = 'force-dynamic';
 
 const IN_PROD = ['In Progress', 'In Revision', 'Review', 'Approved', 'Shipping'];
 
-function RiskList({ tickets }: { tickets: QueueTicket[] }) {
-  const load = loadMap(tickets);
+function RiskList({ tickets, cfg }: { tickets: QueueTicket[]; cfg?: ScoringConfig }) {
+  const load = loadMap(tickets, cfg);
   const risky = tickets
-    .map((t) => ({ t, r: riskOf(t, load) }))
+    .map((t) => ({ t, r: riskOf(t, load, cfg) }))
     .filter((x) => x.r.level)
     .sort((a, b) => (b.r.level === 'high' ? 1 : 0) - (a.r.level === 'high' ? 1 : 0));
   if (!risky.length) return <div className="empty">Nothing at risk — everything is tracking to its due date.</div>;
@@ -44,13 +45,15 @@ function RiskList({ tickets }: { tickets: QueueTicket[] }) {
 async function ManagerInsights() {
   // Active (628) + capped recent ships + the nightly all-time snapshot — never scan
   // the ~9k Done history.
-  const [active, recentShipped, metrics] = await Promise.all([getQueueTickets(), getRecentShipped(12), getTicketMetrics()]);
-  const load = loadMap(active);
+  const [active, recentShipped, metrics, cfg] = await Promise.all([getQueueTickets(), getRecentShipped(12), getTicketMetrics(), getScoringConfig()]);
+  const load = loadMap(active, cfg);
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
   const unassigned = active.filter((t) => !t.assignee).length;
-  const atRisk = active.filter((t) => riskOf(t, load).level).length;
+  const atRisk = active.filter((t) => riskOf(t, load, cfg).level).length;
   const eds = [...load.keys()];
-  const util = eds.length ? Math.round((eds.reduce((a, n) => a + (load.get(n) ?? 0), 0) / (eds.length * 4)) * 100) : 0;
+  // Utilization = total weighted load ÷ total editor capacity (per-person caps respected).
+  const totalCap = eds.reduce((a, n) => a + capacityFor(cfg, n), 0);
+  const util = totalCap > 0 ? Math.round((eds.reduce((a, n) => a + (load.get(n) ?? 0), 0) / totalCap) * 100) : 0;
   return (
     <>
       <KpiGrid>
@@ -60,9 +63,9 @@ async function ManagerInsights() {
         <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="At risk" value={atRisk} sub="likely to slip" i={3} />
         <Kpi label="Team utilization" value={`${util}%`} sub="of capacity" i={4} />
       </KpiGrid>
-      <FunnelCapacity tickets={[...active, ...recentShipped]} />
+      <FunnelCapacity tickets={[...active, ...recentShipped]} cfg={cfg} />
       <div className="sec-head"><h3>At-risk work</h3><span className="hint"><Icon name="sparkle" size={12} /> flagged by the brain</span></div>
-      <RiskList tickets={active} />
+      <RiskList tickets={active} cfg={cfg} />
     </>
   );
 }
@@ -72,20 +75,25 @@ async function EditorInsights() {
   const me = await getEmployeeForSession();
   // Active assigned only — a per-editor lifetime "completed" count would need a full
   // scan of the ~9k Done set (link fields can't be filtered server-side by recId).
-  const active = me ? await getQueueTickets({ assigneeId: me.id }) : [];
+  const [active, cfg] = await Promise.all([
+    me ? getQueueTickets({ assigneeId: me.id }) : Promise.resolve([] as QueueTicket[]),
+    getScoringConfig(),
+  ]);
+  const myCap = capacityFor(cfg, me?.name ?? null);
+  const load = loadMap(active, cfg);
   const dueSoon = active.filter((t) => { const d = dueDays(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
-  const atRisk = active.filter((t) => riskOf(t, loadMap(active)).level).length;
+  const atRisk = active.filter((t) => riskOf(t, load, cfg).level).length;
   const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
   return (
     <>
       <KpiGrid>
-        <Kpi label="Active tickets" value={active.length} sub="of 4 capacity" i={0} />
+        <Kpi label="Active tickets" value={active.length} sub={`of ${Math.round(myCap * 10) / 10} capacity`} i={0} />
         <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="Due ≤ 3 days" value={dueSoon} sub="tighten up" i={1} />
         <Kpi tone="alert" label="At risk" value={atRisk} sub="need attention" i={2} />
         <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={3} />
       </KpiGrid>
       <div className="sec-head"><h3>Your work at risk</h3><span className="hint">sorted by urgency</span></div>
-      <RiskList tickets={active} />
+      <RiskList tickets={active} cfg={cfg} />
     </>
   );
 }

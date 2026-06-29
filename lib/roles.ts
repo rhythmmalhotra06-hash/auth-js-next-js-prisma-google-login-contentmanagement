@@ -80,6 +80,7 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
     case '/shoots':
       return true; // anyone can submit/track a shoot request
     case '/settings/clip-rules':
+    case '/settings/scoring':
     case '/settings/team':
       return false; // admin-only (admins already returned true above)
     default:
@@ -118,6 +119,7 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   items.push({ href: '/performance', label: 'Insights', icon: 'chart', group: 'Intelligence' });
   if (isAdmin) {
     items.push({ href: '/settings/clip-rules', label: 'Rules', icon: 'sliders', group: 'Intelligence' });
+    items.push({ href: '/settings/scoring', label: 'Capacity & scoring', icon: 'sliders', group: 'Admin' });
     items.push({ href: '/settings/team', label: 'Admin', icon: 'user', group: 'Admin' });
   }
   return items.filter((it, i, a) => a.findIndex((x) => x.href === it.href) === i);

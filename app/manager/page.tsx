@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { AppShell } from '@/components/ui/AppShell';
 import { getQueueTickets } from '@/lib/tickets/data';
+import { getScoringConfig } from '@/lib/scoring-config/repository';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { ApprovedClipsSection } from '@/components/clips/ApprovedClipsSection';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 const days = (due: string | null) => (due ? Math.ceil((new Date(due).getTime() - Date.now()) / 86400000) : null);
 
 async function ManagerBody() {
-  const tickets = await getQueueTickets();
+  const [tickets, cfg] = await Promise.all([getQueueTickets(), getScoringConfig()]);
   const unassigned = tickets.filter((t) => !t.assignee).length;
   const dueSoon = tickets.filter((t) => { const d = days(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
   const inReview = tickets.filter((t) => t.ticketStatus === 'Review').length;
@@ -27,11 +28,11 @@ async function ManagerBody() {
         <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="Due ≤ 3 days" value={dueSoon} sub="at risk" i={2} />
         <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={3} />
       </KpiGrid>
-      <FunnelCapacity tickets={tickets} />
+      <FunnelCapacity tickets={tickets} cfg={cfg} />
       <Suspense fallback={<CardSkeleton />}>
         <ApprovedClipsSection />
       </Suspense>
-      <QueueTable tickets={tickets} storageKey="manager-queue" />
+      <QueueTable tickets={tickets} storageKey="manager-queue" scoringConfig={cfg} />
     </>
   );
 }
