@@ -11,15 +11,26 @@ export interface ColumnDef<T> {
   defaultVisible?: boolean;
   sortable?: boolean;
   numeric?: boolean;
+  /** Default column width in px (resizable by the user; persisted per view). */
+  width?: number;
   /** Value used for comparison; strings compared case-insensitively, numbers numerically. */
   sortAccessor?: (row: T) => string | number | null;
 }
+
+const DEFAULT_COL_WIDTH = 150;
+const MIN_COL_WIDTH = 80;
+const MAX_COL_WIDTH = 640;
+const clampWidth = (px: number) => Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, Math.round(px)));
 
 export type SortState = { key: string; dir: 'asc' | 'desc' } | null;
 
 // Locked → always on; otherwise honor defaultVisible (default false for optional columns).
 function initialVisibility<T>(columns: ColumnDef<T>[]): Record<string, boolean> {
   return Object.fromEntries(columns.map((c) => [c.key, c.locked ? true : c.defaultVisible === true]));
+}
+
+function initialWidths<T>(columns: ColumnDef<T>[]): Record<string, number> {
+  return Object.fromEntries(columns.map((c) => [c.key, c.width ?? DEFAULT_COL_WIDTH]));
 }
 
 /**
@@ -31,6 +42,7 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
 }) {
   const [visible, setVisible] = useState<Record<string, boolean>>(() => initialVisibility(columns));
   const [sort, setSort] = useState<SortState>(defaultSort);
+  const [widths, setWidths] = useState<Record<string, number>>(() => initialWidths(columns));
   const [hydrated, setHydrated] = useState(false);
 
   // Hydrate saved prefs after mount (avoids server/client mismatch).
@@ -38,7 +50,7 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
     try {
       const raw = localStorage.getItem(`tableview:${storageKey}`);
       if (raw) {
-        const saved = JSON.parse(raw) as { visible?: Record<string, boolean>; sort?: SortState };
+        const saved = JSON.parse(raw) as { visible?: Record<string, boolean>; sort?: SortState; widths?: Record<string, number> };
         if (saved.visible) {
           setVisible((v) => {
             const next = { ...v };
@@ -47,6 +59,13 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
           });
         }
         if (saved.sort !== undefined) setSort(saved.sort);
+        if (saved.widths) {
+          setWidths((w) => {
+            const next = { ...w };
+            for (const c of columns) if (typeof saved.widths![c.key] === 'number') next[c.key] = clampWidth(saved.widths![c.key]);
+            return next;
+          });
+        }
       }
     } catch {
       /* ignore malformed storage */
@@ -59,11 +78,11 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(`tableview:${storageKey}`, JSON.stringify({ visible, sort }));
+      localStorage.setItem(`tableview:${storageKey}`, JSON.stringify({ visible, sort, widths }));
     } catch {
       /* storage full / unavailable */
     }
-  }, [visible, sort, hydrated, storageKey]);
+  }, [visible, sort, widths, hydrated, storageKey]);
 
   const toggleSort = useCallback((key: string) => {
     setSort((s) => {
@@ -80,8 +99,17 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
   const reset = useCallback(() => {
     setVisible(initialVisibility(columns));
     setSort(defaultSort);
+    setWidths(initialWidths(columns));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setWidth = useCallback((key: string, px: number) => {
+    setWidths((w) => ({ ...w, [key]: clampWidth(px) }));
+  }, []);
+  const widthOf = useCallback(
+    (key: string) => widths[key] ?? columns.find((c) => c.key === key)?.width ?? DEFAULT_COL_WIDTH,
+    [widths, columns],
+  );
 
   const isVisible = useCallback((key: string) => visible[key] ?? false, [visible]);
   const visibleColumns = useMemo(() => columns.filter((c) => visible[c.key]), [columns, visible]);
@@ -103,5 +131,5 @@ export function useTableView<T>({ columns, storageKey, defaultSort = null }: {
     });
   }, [sort, columns]);
 
-  return { visible, isVisible, visibleColumns, hiddenCount, sort, toggleSort, toggleColumn, reset, sortRows };
+  return { visible, isVisible, visibleColumns, hiddenCount, sort, toggleSort, toggleColumn, reset, sortRows, widths, widthOf, setWidth };
 }

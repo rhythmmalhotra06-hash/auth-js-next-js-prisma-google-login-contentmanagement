@@ -367,13 +367,13 @@ label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margi
 .tscroll{overflow-x:auto;}
 table.list{font-size:13px;min-width:760px;}
 table.list thead th{background:var(--bg-subtle);color:var(--text-muted);text-align:left;font-weight:600;
-  font-size:11.5px;letter-spacing:.02em;padding:10px 10px;text-transform:uppercase;}
-table.list tbody td{padding:11px 10px;border-top:1px solid var(--border);vertical-align:middle;}
+  font-size:11.5px;letter-spacing:.02em;padding:10px 10px;text-transform:uppercase;position:relative;}
+table.list tbody td{padding:11px 10px;border-top:1px solid var(--border);vertical-align:middle;overflow-wrap:anywhere;}
 table.list tbody tr{cursor:pointer;transition:background var(--ease) .1s;}
 table.list tbody tr:hover{background:var(--bg-subtle);}
 table.list tbody tr.attn{background:var(--gold-soft);}
 table.list tbody tr.attn:hover{background:color-mix(in srgb,var(--gold-soft) 80%,var(--text));}
-.t-title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.t-title{font-weight:600;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .t-meta{font-size:11.5px;color:var(--text-muted);display:flex;gap:6px;align-items:center;margin-top:3px;}
 /* sortable column headers */
 table.list th .th-sort{all:unset;display:inline-flex;align-items:center;gap:5px;width:100%;cursor:pointer;box-sizing:border-box;}
@@ -382,6 +382,10 @@ table.list th .th-sort:hover .th-caret,table.list th .th-sort:focus-visible .th-
 table.list th .th-caret.on{opacity:1;color:var(--brand);}
 table.list th .th-caret.up{transform:rotate(180deg);}
 table.list th .th-sort:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:4px;}
+/* drag-to-resize column handle (right edge of each header cell) */
+table.list th .th-resize{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none;user-select:none;}
+table.list th .th-resize::after{content:"";position:absolute;top:25%;right:3px;width:2px;height:50%;background:var(--border-strong);opacity:0;transition:opacity var(--ease) .12s;}
+table.list th .th-resize:hover::after,table.list th .th-resize:active::after{opacity:1;background:var(--brand);}
 /* queue toolbar: filter label, search, selects, funnel chips */
 .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .flab{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-subtle);}

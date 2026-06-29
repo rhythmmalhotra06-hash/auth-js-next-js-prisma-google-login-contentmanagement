@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { TicketStatusBadge, PrioStatusBadge } from '@/components/ui/Badge';
@@ -35,16 +35,16 @@ const lower = (v: string | null) => (v ?? '').toLowerCase();
 const priorityVal = (t: QueueTicket) => Number(t.queueRank ?? t.priorityScore ?? 0);
 
 const COLUMNS: ColumnDef<QueueTicket>[] = [
-  { key: 'title', label: 'Title', locked: true, sortable: true, sortAccessor: (t) => lower(t.title) },
-  { key: 'priority', label: 'Priority', locked: true, sortable: true, numeric: true, sortAccessor: priorityVal },
-  { key: 'assigned', label: 'Assigned', locked: true, sortable: true, sortAccessor: (t) => lower(t.assignee) },
-  { key: 'ticketStatus', label: 'Ticket status', locked: true, sortable: true, sortAccessor: (t) => orderIdx(t.ticketStatus ?? '') },
-  { key: 'prioStatus', label: 'Priority status', locked: true, sortable: true, sortAccessor: (t) => lower(t.prioStatus) },
-  { key: 'eventType', label: 'Event type', sortable: true, sortAccessor: (t) => lower(t.eventType) },
-  { key: 'assetType', label: 'Asset type', sortable: true, sortAccessor: (t) => lower(t.assetType) },
-  { key: 'dueDate', label: 'Due date', sortable: true, numeric: true, sortAccessor: (t) => (t.dueDate ? new Date(t.dueDate).getTime() : null) },
-  { key: 'requester', label: 'Requester', sortable: true, sortAccessor: (t) => lower(t.requester) },
-  { key: 'typeOfRequest', label: 'Request type', sortable: true, sortAccessor: (t) => lower(t.typeOfRequest) },
+  { key: 'title', label: 'Title', locked: true, sortable: true, width: 300, sortAccessor: (t) => lower(t.title) },
+  { key: 'priority', label: 'Priority', locked: true, sortable: true, numeric: true, width: 120, sortAccessor: priorityVal },
+  { key: 'assigned', label: 'Assigned', locked: true, sortable: true, width: 150, sortAccessor: (t) => lower(t.assignee) },
+  { key: 'ticketStatus', label: 'Ticket status', locked: true, sortable: true, width: 130, sortAccessor: (t) => orderIdx(t.ticketStatus ?? '') },
+  { key: 'prioStatus', label: 'Priority status', locked: true, sortable: true, width: 150, sortAccessor: (t) => lower(t.prioStatus) },
+  { key: 'eventType', label: 'Event type', sortable: true, width: 150, sortAccessor: (t) => lower(t.eventType) },
+  { key: 'assetType', label: 'Asset type', sortable: true, width: 150, sortAccessor: (t) => lower(t.assetType) },
+  { key: 'dueDate', label: 'Due date', sortable: true, numeric: true, width: 110, sortAccessor: (t) => (t.dueDate ? new Date(t.dueDate).getTime() : null) },
+  { key: 'requester', label: 'Requester', sortable: true, width: 150, sortAccessor: (t) => lower(t.requester) },
+  { key: 'typeOfRequest', label: 'Request type', sortable: true, width: 150, sortAccessor: (t) => lower(t.typeOfRequest) },
 ];
 
 function dueChip(due: string | null) {
@@ -56,10 +56,10 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-const COL_WIDTH: Record<string, number> = { priority: 120, assigned: 150, ticketStatus: 130, prioStatus: 150, dueDate: 110 };
-
 export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue' }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string }) {
   const router = useRouter();
+  const tableRef = useRef<HTMLTableElement>(null);
+  const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
   const [sel, setSel] = useState<Record<Dim, string>>({
     prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '',
   });
@@ -90,8 +90,39 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
 
   const activeFilters = (Object.keys(sel) as Dim[]).filter((k) => sel[k]).length;
 
+  // Live column resize: mutate the <col> + table width directly during the drag
+  // (no React re-render per move), then commit the final width to state on release.
+  function startResize(key: string, e: React.PointerEvent<HTMLElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = view.widthOf(key);
+    const baseTotal = view.visibleColumns.reduce((sum, c) => sum + view.widthOf(c.key), 0);
+    const col = colRefs.current[key];
+    const table = tableRef.current;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const compute = (ev: PointerEvent) => Math.max(80, Math.min(640, startW + (ev.clientX - startX)));
+    const onMove = (ev: PointerEvent) => {
+      const w = compute(ev);
+      if (col) col.style.width = `${w}px`;
+      if (table) { const total = baseTotal - startW + w; table.style.width = `${total}px`; table.style.minWidth = `${total}px`; }
+    };
+    const onUp = (ev: PointerEvent) => {
+      view.setWidth(key, compute(ev));
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  const tableWidth = view.visibleColumns.reduce((sum, c) => sum + view.widthOf(c.key), 0);
+
   function cell(key: string, t: QueueTicket, r: ReturnType<typeof riskOf>) {
-    const w = COL_WIDTH[key];
     switch (key) {
       case 'title':
         return (
@@ -108,13 +139,13 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
           </td>
         );
       case 'priority':
-        return <td key={key} style={{ width: w }}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
+        return <td key={key}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
       case 'assigned':
-        return <td key={key} style={{ width: w }}>{t.assignee ?? <span className="subtle">Unassigned</span>}</td>;
+        return <td key={key}>{t.assignee ?? <span className="subtle">Unassigned</span>}</td>;
       case 'ticketStatus':
-        return <td key={key} style={{ width: w }}><TicketStatusBadge status={t.ticketStatus} /></td>;
+        return <td key={key}><TicketStatusBadge status={t.ticketStatus} /></td>;
       case 'prioStatus':
-        return <td key={key} style={{ width: w }}><PrioStatusBadge status={t.prioStatus} /></td>;
+        return <td key={key}><PrioStatusBadge status={t.prioStatus} /></td>;
       case 'eventType':
         return <td key={key}>{t.eventType ?? <span className="subtle">—</span>}</td>;
       case 'assetType':
@@ -163,11 +194,17 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         </div>
       </div>
 
-      <div className="tw"><div className="tscroll"><table className="list">
+      <div className="tw"><div className="tscroll"><table ref={tableRef} className="list" style={{ tableLayout: 'fixed', width: tableWidth, minWidth: tableWidth }}>
+        <colgroup>
+          {view.visibleColumns.map((c) => (
+            <col key={c.key} ref={(el) => { colRefs.current[c.key] = el; }} style={{ width: view.widthOf(c.key) }} />
+          ))}
+        </colgroup>
         <thead><tr>
           {view.visibleColumns.map((c) => (
             <SortableTh key={c.key} label={c.label} sortKey={c.key} sort={view.sort}
-              onSort={c.sortable ? view.toggleSort : undefined} style={COL_WIDTH[c.key] ? { width: COL_WIDTH[c.key] } : undefined} />
+              onSort={c.sortable ? view.toggleSort : undefined}
+              onResizeStart={(e) => startResize(c.key, e)} />
           ))}
         </tr></thead>
         <tbody>
