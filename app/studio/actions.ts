@@ -14,7 +14,7 @@ export interface ActionResult {
 // explicit Vishen tap (Approve / Send back / star). No staged value reaches a live
 // field without one of these.
 function revalidateStudio(): void {
-  for (const p of ['/studio', '/studio/sign-off', '/studio/ranking', '/studio/launches', '/studio/at-risk']) {
+  for (const p of ['/studio', '/studio/sign-off', '/studio/ranking', '/studio/launches']) {
     revalidatePath(p);
   }
 }

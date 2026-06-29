@@ -4,12 +4,11 @@ import { AppShell } from '@/components/ui/AppShell';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import {
-  loadStudio, getReviewQueue, toReviewItem, pulseCounts, getLaunches, getAtRisk, getVishenMedia,
+  loadStudio, getReviewQueue, toReviewItem, pulseCounts, getLaunches, getVishenMedia,
 } from '@/lib/studio/data';
 import { SignOffHero } from '@/components/studio/SignOffHero';
 import { Pulse } from '@/components/studio/Pulse';
 import { LaunchCard } from '@/components/studio/LaunchCard';
-import { AtRiskBlock } from '@/components/studio/AtRiskBlock';
 import { ClipsList } from '@/components/studio/ClipsList';
 import { ProposeFootnote } from '@/components/studio/ProposeFootnote';
 
@@ -20,7 +19,6 @@ async function StudioBody() {
   const review = getReviewQueue(data.active).map(toReviewItem);
   const pulse = pulseCounts(data.active, data.metrics);
   const launches = getLaunches(data.active, data.recentShipped);
-  const risk = getAtRisk(data.active, data.shoots);
   const clips = getVishenMedia(data.media);
 
   return (
@@ -42,18 +40,10 @@ async function StudioBody() {
         ? <div className="empty">No active launches.</div>
         : launches.slice(0, 3).map((l) => <LaunchCard key={l.slug} launch={l} />)}
 
-      {/* 4. At risk */}
-      <div className="sec-head">
-        <h3>At risk</h3>
-        <span className="hint">decisions only you can make</span>
-        {risk.length > 3 && <Link href="/studio/at-risk" className="st-seeall">See all →</Link>}
-      </div>
-      <AtRiskBlock items={risk} limit={3} />
-
-      {/* 5. Your content → clip ideas */}
+      {/* 4. Main Videos → clip ideas */}
       {clips.length > 0 && (
         <>
-          <div className="sec-head"><h3>Your content → clip ideas</h3><span className="hint">from your talks and podcast appearances</span></div>
+          <div className="sec-head"><h3>Main Videos → clip ideas</h3><span className="hint">from your talks and podcast appearances</span></div>
           <ClipsList media={clips.slice(0, 3)} />
         </>
       )}

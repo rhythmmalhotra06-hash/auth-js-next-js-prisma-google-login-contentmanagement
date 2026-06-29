@@ -4,7 +4,6 @@
 
 import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { getTicketMetrics, asOf, type TicketMetrics } from '@/lib/metrics/snapshot';
-import { listShoots, SHOOT_STATUS, type ShootRow } from '@/lib/shoots/repository';
 import { listMediaSources, type MediaSource } from '@/lib/media/repository';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 import type { ScoringConfig } from '@/lib/scoring-config/config';
@@ -19,18 +18,16 @@ export interface StudioData {
   active: QueueTicket[];
   recentShipped: QueueTicket[];
   metrics: TicketMetrics | null;
-  shoots: ShootRow[];
   media: MediaSource[];
   scoringConfig: ScoringConfig;
 }
 
 /** Single parallel fetch shared by the landing + every sub-route. */
 export async function loadStudio(): Promise<StudioData> {
-  const [active, recentShipped, metrics, shootsRes, mediaRes, scoringConfig] = await Promise.all([
+  const [active, recentShipped, metrics, mediaRes, scoringConfig] = await Promise.all([
     getQueueTickets(),
     getRecentShipped(12),
     getTicketMetrics(),
-    listShoots(200),
     listMediaSources(100),
     getScoringConfig(),
   ]);
@@ -38,7 +35,6 @@ export async function loadStudio(): Promise<StudioData> {
     active,
     recentShipped,
     metrics,
-    shoots: shootsRes.ok ? shootsRes.data : [],
     media: mediaRes.ok ? mediaRes.data : [],
     scoringConfig,
   };
@@ -165,92 +161,6 @@ export function launchTickets(slug: string, active: QueueTicket[], recentShipped
   const match = (t: QueueTicket) => t.eventType === launch.event;
   const tickets = [...active.filter(match), ...recentShipped.filter(match)];
   return { launch, tickets };
-}
-
-// ── At risk (founder-decision items only) ────────────────────────────────────
-
-export type RiskKind = 'shoot' | 'untagged' | 'aged';
-
-export interface RiskItem {
-  id: string;
-  kind: RiskKind;
-  icon: 'video' | 'calendar' | 'clock';
-  text: string;
-  age: string;
-  fixLabel: string;
-  href: string;
-}
-
-const DAY = 86_400_000;
-
-/** Whole days between an ISO date and now (negative = in the future). */
-function daysAgo(iso: string | null): number | null {
-  if (!iso) return null;
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return null;
-  return Math.floor((Date.now() - t) / DAY);
-}
-
-/**
- * Founder-decision items only (not every stalled ticket — the team clears those):
- *  1. a filmed/to-film shoot with no post-production ticket,
- *  2. an untagged ticket the priority score can't read (no event link),
- *  3. active work aged past its due date.
- * Capped so the founder view stays a short decision list, not a backlog dump.
- */
-export function getAtRisk(active: QueueTicket[], shoots: ShootRow[], cap = 50): RiskItem[] {
-  const items: RiskItem[] = [];
-
-  // 1. Shoots with no post-production ticket.
-  for (const s of shoots) {
-    if (s.ticketCount > 0) continue;
-    if (s.status !== SHOOT_STATUS.toFilm && s.status !== SHOOT_STATUS.filmed) continue;
-    const d = daysAgo(s.filmingDate ?? s.createdTime);
-    items.push({
-      id: s.id,
-      kind: 'shoot',
-      icon: 'video',
-      text: `${s.title ?? 'Shoot'} — no post-production ticket`,
-      age: d != null && d >= 0 ? `${d} days idle` : 'awaiting edit',
-      fixLabel: 'Assign',
-      href: `/shoots/${s.id}`,
-    });
-  }
-
-  // 2. Untagged — no event link, so it can't be grouped or scored.
-  for (const t of active) {
-    if (t.eventType) continue;
-    items.push({
-      id: t.id,
-      kind: 'untagged',
-      icon: 'calendar',
-      text: `${t.title} — no event link, the score can't read it`,
-      age: 'untagged',
-      fixLabel: 'Tag',
-      href: `/tickets/${t.id}`,
-    });
-  }
-
-  // 3. Aged past its due date.
-  for (const t of active) {
-    if (!t.eventType) continue; // already surfaced as untagged
-    const overdue = daysAgo(t.dueDate);
-    if (overdue == null || overdue <= 0) continue;
-    items.push({
-      id: t.id,
-      kind: 'aged',
-      icon: 'clock',
-      text: `${t.title} — past its due date`,
-      age: `${overdue} days overdue`,
-      fixLabel: 'Review',
-      href: `/tickets/${t.id}`,
-    });
-  }
-
-  // Shoots first, then most-overdue, then untagged; cap for the founder view.
-  const order: Record<RiskKind, number> = { shoot: 0, aged: 1, untagged: 2 };
-  items.sort((a, b) => order[a.kind] - order[b.kind]);
-  return items.slice(0, cap);
 }
 
 // ── Clips (Vishen's own content → suggested clips) ───────────────────────────
