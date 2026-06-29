@@ -1,4 +1,4 @@
-import { anthropic, CLIP_MODEL } from '@/lib/clipping/anthropic';
+import { anthropic, CLIP_MODEL, friendlyAnthropicError } from '@/lib/clipping/anthropic';
 import { STRATEGY_SCHEMA, validateStrategy, type Strategy } from '@/lib/clipping/schema';
 import { buildUserMessage, buildResearchPrompt, type GenerationContext } from '@/lib/clipping/prompt';
 import { getClipEngineConfig } from '@/lib/clipping/config';
@@ -77,16 +77,26 @@ export async function generateStrategy(
   const researchSummary = opts.webSearch ? await research(ctx, brandPillars) : '';
   const usedWebSearch = opts.webSearch && researchSummary.length > 0;
 
-  const stream = anthropic.messages.stream({
-    model: CLIP_MODEL,
-    max_tokens: 16000,
-    thinking: { type: 'adaptive' },
-    output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } },
-    system: systemPrompt,
-    messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary, brandPillars) }],
-  } as AnyParams as never);
+  // Wrapped so any Anthropic API failure (usage limit, rate limit, auth, 5xx)
+  // surfaces as a clear sentence rather than a raw "400 {...}" SDK error.
+  const final = await (async () => {
+    try {
+      const stream = anthropic.messages.stream({
+        model: CLIP_MODEL,
+        max_tokens: 16000,
+        thinking: { type: 'adaptive' },
+        output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } },
+        system: systemPrompt,
+        messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary, brandPillars) }],
+      } as AnyParams as never);
 
-  const final = await stream.finalMessage();
+      return await stream.finalMessage();
+    } catch (e) {
+      const friendly = friendlyAnthropicError(e);
+      if (friendly) throw new Error(friendly);
+      throw e;
+    }
+  })();
 
   if (final.stop_reason === 'refusal') {
     throw new Error('The model declined to generate a strategy for this transcript.');
