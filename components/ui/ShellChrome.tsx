@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -18,6 +18,12 @@ export function ShellChrome({
 }) {
   const pathname = usePathname();
   const [menu, setMenu] = useState(false);
+  // Only the single most-specific nav item is active — so /studio/sign-off lights up
+  // "Review queue", not also "Studio" (longest matching href wins).
+  const activeHref = useMemo(() => {
+    const matches = nav.filter((i) => pathname === i.href || pathname.startsWith(i.href + '/'));
+    return matches.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+  }, [nav, pathname]);
   const { resolvedTheme, setTheme } = useTheme();
 
   return (
@@ -34,7 +40,7 @@ export function ShellChrome({
             <div key={group} style={{ display: 'contents' }}>
               <div className="nav-label">{group}</div>
               {items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                const active = item.href === activeHref;
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setMenu(false)}
                     className={cn('nav', active && 'active')}>

@@ -6,6 +6,8 @@ import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/ticke
 import { getTicketMetrics, asOf, type TicketMetrics } from '@/lib/metrics/snapshot';
 import { listShoots, SHOOT_STATUS, type ShootRow } from '@/lib/shoots/repository';
 import { listMediaSources, type MediaSource } from '@/lib/media/repository';
+import { getScoringConfig } from '@/lib/scoring-config/repository';
+import type { ScoringConfig } from '@/lib/scoring-config/config';
 
 // Re-export the client-safe display helpers so server callers can import from here.
 export { starString, shortDate } from '@/lib/studio/format';
@@ -19,16 +21,18 @@ export interface StudioData {
   metrics: TicketMetrics | null;
   shoots: ShootRow[];
   media: MediaSource[];
+  scoringConfig: ScoringConfig;
 }
 
 /** Single parallel fetch shared by the landing + every sub-route. */
 export async function loadStudio(): Promise<StudioData> {
-  const [active, recentShipped, metrics, shootsRes, mediaRes] = await Promise.all([
+  const [active, recentShipped, metrics, shootsRes, mediaRes, scoringConfig] = await Promise.all([
     getQueueTickets(),
     getRecentShipped(12),
     getTicketMetrics(),
     listShoots(200),
     listMediaSources(100),
+    getScoringConfig(),
   ]);
   return {
     active,
@@ -36,6 +40,7 @@ export async function loadStudio(): Promise<StudioData> {
     metrics,
     shoots: shootsRes.ok ? shootsRes.data : [],
     media: mediaRes.ok ? mediaRes.data : [],
+    scoringConfig,
   };
 }
 
@@ -57,20 +62,6 @@ export interface ReviewItem {
 
 export function toReviewItem(t: QueueTicket): ReviewItem {
   return { id: t.id, title: t.title, event: t.eventType, score: t.priorityScore, rank: t.queueRank };
-}
-
-/** Serializable row for the priority-ranking client component. */
-export interface RankItem {
-  id: string;
-  title: string;
-  event: string | null;
-  assetType: string | null;
-  score: string | null;
-  rank: number | null;
-}
-
-export function toRankItem(t: QueueTicket): RankItem {
-  return { id: t.id, title: t.title, event: t.eventType, assetType: t.assetType, score: t.priorityScore, rank: t.queueRank };
 }
 
 // ── Pulse ────────────────────────────────────────────────────────────────────

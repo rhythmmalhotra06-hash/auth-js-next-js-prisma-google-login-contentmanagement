@@ -1,73 +1,150 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { Icon } from '@/components/ui/Icon';
-import { cn } from '@/lib/cn';
+import { useTableView, type ColumnDef } from '@/components/ui/table/useTableView';
+import { SortableTh } from '@/components/ui/table/SortableTh';
+import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import {
-  type ShootRow, SHOOT_FORMATS, SHOOT_STATUS, SHOOT_STATUS_ORDER, SHOOT_STATUS_TONE,
+  type ShootRow, SHOOT_STATUS, SHOOT_STATUS_ORDER, SHOOT_STATUS_TONE,
   shortStatus, isToFilmInStudioTime, STUDIO_TIME_SINCE,
 } from '@/lib/shoots/constants';
 
-type ViewKind = 'studio' | 'all' | 'custom';
-interface ViewState {
-  view: ViewKind;
-  status: string;
-  format: string;
-  hasDate: '' | 'yes' | 'no';
-  createdAfter: string;
-}
-const DEFAULT: ViewState = { view: 'studio', status: '', format: '', hasDate: '', createdAfter: STUDIO_TIME_SINCE };
-const STORAGE_KEY = 'tableview:shoots';
+// Grid view for the shoot queue — mirrors the ticket QueueTable (sortable/resizable/
+// configurable columns + dropdown filters), so the dense shoot list is scannable.
 
-function matches(s: ShootRow, f: ViewState): boolean {
-  if (f.view === 'studio' && !isToFilmInStudioTime(s)) return false;
-  if (f.view === 'custom' && f.createdAfter && !(s.createdTime > f.createdAfter)) return false;
-  if (f.status && s.status !== f.status) return false;
-  if (f.format && s.format !== f.format) return false;
-  if (f.hasDate === 'yes' && !s.filmingDate) return false;
-  if (f.hasDate === 'no' && s.filmingDate) return false;
-  return true;
-}
+interface ShootView extends ShootRow { requester: string | null }
+
+type ViewKind = 'studio' | 'all' | 'custom';
+type Dim = 'status' | 'format' | 'filmingLocation' | 'requester';
+
+const FILTERS: { key: Dim; label: string }[] = [
+  { key: 'status', label: 'All statuses' },
+  { key: 'format', label: 'All formats' },
+  { key: 'filmingLocation', label: 'All locations' },
+  { key: 'requester', label: 'All requesters' },
+];
+
+const lower = (v: string | null) => (v ?? '').toLowerCase();
+const dateVal = (v: string | null) => (v ? new Date(v).getTime() : null);
+const shortDate = (v: string | null) => {
+  const t = v ? Date.parse(v) : NaN;
+  return Number.isNaN(t) ? null : new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+const uniq = (rows: ShootView[], key: Dim) =>
+  [...new Set(rows.map((r) => r[key]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
+
+const COLUMNS: ColumnDef<ShootView>[] = [
+  { key: 'title', label: 'Title', locked: true, sortable: true, width: 280, sortAccessor: (s) => lower(s.title) },
+  { key: 'status', label: 'Status', locked: true, sortable: true, width: 150, sortAccessor: (s) => SHOOT_STATUS_ORDER.indexOf(s.status ?? '') },
+  { key: 'format', label: 'Format', locked: true, sortable: true, width: 120, sortAccessor: (s) => lower(s.format) },
+  { key: 'filmingDate', label: 'Filming date', locked: true, sortable: true, numeric: true, width: 130, sortAccessor: (s) => dateVal(s.filmingDate) },
+  { key: 'requester', label: 'Requested by', locked: true, sortable: true, width: 150, sortAccessor: (s) => lower(s.requester) },
+  { key: 'filmingLocation', label: 'Location', sortable: true, defaultVisible: true, width: 170, sortAccessor: (s) => lower(s.filmingLocation) },
+  { key: 'created', label: 'Date created', sortable: true, numeric: true, defaultVisible: true, width: 140, sortAccessor: (s) => dateVal(s.createdTime) },
+  { key: 'feeds', label: 'Feeds tickets', sortable: true, numeric: true, width: 130, sortAccessor: (s) => s.ticketCount },
+];
 
 export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employeeNames: Record<string, string> }) {
-  const [f, setF] = useState<ViewState>(DEFAULT);
-  const [hydrated, setHydrated] = useState(false);
+  const router = useRouter();
+  const tableRef = useRef<HTMLTableElement>(null);
+  const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
 
-  // Hydrate saved view after mount (SSR-safe).
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setF({ ...DEFAULT, ...JSON.parse(raw) });
-    } catch { /* ignore */ }
-    setHydrated(true);
-  }, []);
-  useEffect(() => {
-    if (hydrated) try { localStorage.setItem(STORAGE_KEY, JSON.stringify(f)); } catch { /* ignore */ }
-  }, [f, hydrated]);
-
-  const awaiting = rows.filter((s) => s.status === SHOOT_STATUS.needsReview).length;
-  const inQueue = rows.filter((s) => s.status === SHOOT_STATUS.toFilm || s.status === SHOOT_STATUS.approved).length;
-  const filmed = rows.filter((s) => s.status === SHOOT_STATUS.filmed).length;
-
-  const matched = useMemo(() => rows.filter((s) => matches(s, f)), [rows, f]);
-  const groups = useMemo(
-    () => SHOOT_STATUS_ORDER.map((st) => ({ status: st, items: matched.filter((s) => s.status === st) })).filter((g) => g.items.length),
-    [matched],
+  const views: ShootView[] = useMemo(
+    () => rows.map((s) => ({ ...s, requester: s.requestedById ? employeeNames[s.requestedById] ?? null : null })),
+    [rows, employeeNames],
   );
 
-  function setView(view: ViewKind) {
-    setF((p) => (view === 'custom' ? { ...p, view } : { ...DEFAULT, view, createdAfter: p.createdAfter }));
+  const [view, setViewKind] = useState<ViewKind>('studio');
+  const [createdAfter, setCreatedAfter] = useState(STUDIO_TIME_SINCE);
+  const [sel, setSel] = useState<Record<Dim, string>>({ status: '', format: '', filmingLocation: '', requester: '' });
+  const [q, setQ] = useState('');
+  const tv = useTableView({ columns: COLUMNS, storageKey: 'shoots' });
+
+  const awaiting = views.filter((s) => s.status === SHOOT_STATUS.needsReview).length;
+  const inQueue = views.filter((s) => s.status === SHOOT_STATUS.toFilm || s.status === SHOOT_STATUS.approved).length;
+  const filmed = views.filter((s) => s.status === SHOOT_STATUS.filmed).length;
+
+  const options = useMemo(
+    () => Object.fromEntries(FILTERS.map((f) => [f.key, uniq(views, f.key)])) as Record<Dim, string[]>,
+    [views],
+  );
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return views.filter((s) => {
+      if (view === 'studio' && !isToFilmInStudioTime(s)) return false;
+      if (view === 'custom' && createdAfter && !(s.createdTime > createdAfter)) return false;
+      if (!(Object.keys(sel) as Dim[]).every((k) => !sel[k] || s[k] === sel[k])) return false;
+      if (needle && !(s.title ?? '').toLowerCase().includes(needle)) return false;
+      return true;
+    });
+  }, [views, view, createdAfter, sel, q]);
+  const sorted = useMemo(() => tv.sortRows(filtered), [tv, filtered]);
+
+  const activeFilters = (Object.keys(sel) as Dim[]).filter((k) => sel[k]).length;
+
+  function startResize(key: string, e: React.PointerEvent<HTMLElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = tv.widthOf(key);
+    const baseTotal = tv.visibleColumns.reduce((sum, c) => sum + tv.widthOf(c.key), 0);
+    const col = colRefs.current[key];
+    const table = tableRef.current;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const compute = (ev: PointerEvent) => Math.max(80, Math.min(640, startW + (ev.clientX - startX)));
+    const onMove = (ev: PointerEvent) => {
+      const w = compute(ev);
+      if (col) col.style.width = `${w}px`;
+      if (table) { const total = baseTotal - startW + w; table.style.width = `${total}px`; table.style.minWidth = `${total}px`; }
+    };
+    const onUp = (ev: PointerEvent) => {
+      tv.setWidth(key, compute(ev));
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   }
 
-  const pill = (view: ViewKind, label: React.ReactNode) => (
-    <button type="button" onClick={() => setView(view)} className={cn('chipbtn', f.view === view && 'on')}>
-      {label}
-    </button>
+  const tableWidth = tv.visibleColumns.reduce((sum, c) => sum + tv.widthOf(c.key), 0);
+
+  function cell(key: string, s: ShootView) {
+    switch (key) {
+      case 'title':
+        return <td key={key}><div className="t-title">{s.title || '(untitled shoot)'}</div></td>;
+      case 'status':
+        return <td key={key}><Badge tone={SHOOT_STATUS_TONE[s.status ?? ''] ?? 'neutral'}>{shortStatus(s.status)}</Badge></td>;
+      case 'format':
+        return <td key={key}>{s.format ?? <span className="subtle">—</span>}</td>;
+      case 'filmingDate':
+        return <td key={key}>{shortDate(s.filmingDate) ?? <span className="subtle">no date</span>}</td>;
+      case 'requester':
+        return <td key={key}>{s.requester ?? <span className="subtle">—</span>}</td>;
+      case 'filmingLocation':
+        return <td key={key}>{s.filmingLocation ?? <span className="subtle">—</span>}</td>;
+      case 'created':
+        return <td key={key}>{shortDate(s.createdTime) ?? <span className="subtle">—</span>}</td>;
+      case 'feeds':
+        return <td key={key}>{s.ticketCount ? `${s.ticketCount} ticket${s.ticketCount > 1 ? 's' : ''}` : <span className="subtle">—</span>}</td>;
+      default:
+        return <td key={key} />;
+    }
+  }
+
+  const pill = (kind: ViewKind, label: React.ReactNode) => (
+    <button type="button" onClick={() => setViewKind(kind)} className={cn('chipbtn', view === kind && 'on')}>{label}</button>
   );
-  const hasFilters = !!(f.status || f.format || f.hasDate);
 
   return (
     <>
@@ -90,77 +167,65 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
         {pill('custom', <><Icon name="sliders" size={13} /> Custom view</>)}
       </div>
 
-      {f.view === 'studio' && (
+      {view === 'studio' && (
         <p className="subtle" style={{ fontSize: 12, margin: '-4px 0 12px' }}>
           Showing shoots created after <b>31 May 2026</b> with a filming date set — the live studio-time list.
         </p>
       )}
 
       <div className="filters">
-        <select value={f.status} onChange={(e) => setF((p) => ({ ...p, status: e.target.value }))}>
-          <option value="">All statuses</option>
-          {SHOOT_STATUS_ORDER.map((s) => <option key={s} value={s}>{shortStatus(s)}</option>)}
-        </select>
-        <select value={f.format} onChange={(e) => setF((p) => ({ ...p, format: e.target.value }))}>
-          <option value="">All formats</option>
-          {SHOOT_FORMATS.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select value={f.hasDate} onChange={(e) => setF((p) => ({ ...p, hasDate: e.target.value as ViewState['hasDate'] }))}>
-          <option value="">Any filming date</option>
-          <option value="yes">Has filming date</option>
-          <option value="no">No date yet</option>
-        </select>
-        {f.view === 'custom' && (
+        <input className="qsearch" type="search" placeholder="Search shoots…" value={q} onChange={(e) => setQ(e.target.value)}
+          style={{ width: 200, flex: '0 1 200px' }} aria-label="Search shoots by title" />
+        {FILTERS.map((f) => (
+          <SearchableSelect key={f.key} value={sel[f.key]} allLabel={f.label} placeholder={f.label} ariaLabel={f.label}
+            searchPlaceholder="Search…"
+            options={options[f.key].map((o) => ({ value: o, label: f.key === 'status' ? shortStatus(o) : o }))}
+            onChange={(v) => setSel((s) => ({ ...s, [f.key]: v }))} />
+        ))}
+        {view === 'custom' && (
           <label className="subtle" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             Created after
-            <input type="date" value={f.createdAfter} onChange={(e) => setF((p) => ({ ...p, createdAfter: e.target.value }))} style={{ width: 'auto' }} />
+            <input type="date" value={createdAfter} onChange={(e) => setCreatedAfter(e.target.value)} style={{ width: 'auto' }} />
           </label>
         )}
-        {hasFilters && (
-          <button className="btn sm ghost" onClick={() => setF((p) => ({ ...p, status: '', format: '', hasDate: '' }))}>Clear</button>
+        {(activeFilters > 0 || q) && (
+          <button className="btn sm ghost" onClick={() => { setSel({ status: '', format: '', filmingLocation: '', requester: '' }); setQ(''); }}>
+            Clear{activeFilters > 0 ? ` (${activeFilters})` : ''}
+          </button>
         )}
-        <span className="subtle" style={{ fontSize: 12, marginLeft: 'auto' }}>{matched.length} of {rows.length}</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="subtle" style={{ fontSize: 12 }}>{sorted.length} of {rows.length}</span>
+          <ColumnsMenu columns={COLUMNS} isVisible={tv.isVisible} onToggle={tv.toggleColumn} onReset={tv.reset} hiddenCount={tv.hiddenCount} />
+        </div>
       </div>
 
-      {matched.length === 0 ? (
-        <div className="empty" style={{ padding: 34, textAlign: 'center' }}>
-          No shoots match this view. Try <b>All shoots</b> or widen the filters.
-        </div>
-      ) : (
-        groups.map((g) => (
-          <div key={g.status}>
-            <div className="sec-head" style={{ margin: '14px 0 8px' }}>
-              <h3 style={{ fontSize: 13 }}><Badge tone={SHOOT_STATUS_TONE[g.status] ?? 'neutral'}>{shortStatus(g.status)}</Badge></h3>
-              <span className="hint">{g.items.length}</span>
-            </div>
-            <div className="stack">
-              {g.items.map((s) => {
-                const meta = [
-                  s.requestedById ? employeeNames[s.requestedById] : null,
-                  s.format,
-                  s.filmingDate ? `📆 ${s.filmingDate}` : null,
-                  s.filmingLocation,
-                ].filter(Boolean).join(' · ');
-                return (
-                  <Link key={s.id} href={`/shoots/${s.id}`} className="mrow" style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div className="thumb"><Icon name="video" size={20} /></div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <b style={{ fontSize: 13.5 }}>{s.title || '(untitled shoot)'}</b>
-                      <div className="t-meta">{meta || (s.filmingDate ? '' : 'no date yet')}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <Badge tone={SHOOT_STATUS_TONE[s.status ?? ''] ?? 'neutral'}>{shortStatus(s.status)}</Badge>
-                      <span className="muted" style={{ fontSize: 12, width: 92, textAlign: 'right' }}>
-                        {s.ticketCount ? `feeds ${s.ticketCount} ticket${s.ticketCount > 1 ? 's' : ''}` : '—'}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))
-      )}
+      <div className="tw"><div className="tscroll"><table ref={tableRef} className="list" style={{ tableLayout: 'fixed', width: tableWidth, minWidth: tableWidth }}>
+        <colgroup>
+          {tv.visibleColumns.map((c) => (
+            <col key={c.key} ref={(el) => { colRefs.current[c.key] = el; }} style={{ width: tv.widthOf(c.key) }} />
+          ))}
+        </colgroup>
+        <thead><tr>
+          {tv.visibleColumns.map((c) => (
+            <SortableTh key={c.key} label={c.label} sortKey={c.key} sort={tv.sort}
+              onSort={c.sortable ? tv.toggleSort : undefined} onResizeStart={(e) => startResize(c.key, e)} />
+          ))}
+        </tr></thead>
+        <tbody>
+          {sorted.map((s) => (
+            <tr key={s.id} onClick={() => router.push(`/shoots/${s.id}`)}>
+              {tv.visibleColumns.map((c) => cell(c.key, s))}
+            </tr>
+          ))}
+          {sorted.length === 0 && (
+            <tr><td colSpan={tv.visibleColumns.length} className="empty">No shoots match this view. Try <b>All shoots</b> or widen the filters.</td></tr>
+          )}
+        </tbody>
+      </table></div></div>
+
+      <div className="legend">
+        <span className="subtle">Click a column to sort · use Columns to show or hide fields</span>
+      </div>
     </>
   );
 }
