@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { getMediaSource, listClipSuggestions, type MediaSource } from '@/lib/media/repository';
 import { MediaDetailClient } from '@/components/media/MediaDetailClient';
+import { MediaHero } from '@/components/media/MediaHero';
 import { CardSkeleton } from '@/components/ui/Skeletons';
 
 export const dynamic = 'force-dynamic';
@@ -45,23 +46,12 @@ export default async function MediaDetailPage({
   }
   const source = srcRes.data;
 
-  const subtitleParts = [source.guestShow, source.submittedVia ? `via ${source.submittedVia}` : null].filter(Boolean);
-
   return (
-    <AppShell
-      title={source.title || source.sourceUrl || '(untitled)'}
-      subtitle={subtitleParts.join(' · ') || undefined}
-      actions={
-        source.sourceUrl ? (
-          <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="text-sm text-brand hover:underline">
-            {source.platform ?? 'Link'} ↗
-          </a>
-        ) : undefined
-      }
-    >
-      <Link href="/media" className="text-sm text-brand hover:underline">← Inbox</Link>
+    <AppShell title="Clips" subtitle={source.guestShow || undefined}>
+      <Link href="/media" className="text-sm text-brand hover:underline">← All clips</Link>
 
-      <div className="mt-3">
+      <div className="mt-3 space-y-6">
+        <MediaHero source={source} />
         <Suspense fallback={<CardSkeleton height={300} />}>
           <MediaBody source={source} autostart={autostart === '1'} />
         </Suspense>
