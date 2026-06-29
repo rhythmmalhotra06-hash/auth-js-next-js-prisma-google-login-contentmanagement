@@ -42,6 +42,7 @@ export function MediaDetailClient({
   const [pasted, setPasted] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showStrategy, setShowStrategy] = useState(false);
+  const [view, setView] = useState<'card' | 'grid'>('card');
 
   const hasClips = clips.length > 0;
   const strategy = parseStrategy(strategyJson);
@@ -157,34 +158,57 @@ export function MediaDetailClient({
       {/* Clips — approve / dismiss. Approved clips become tickets on the Manager Queue. */}
       {hasClips && (
         <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-text">Suggested Reels clips</h2>
-            <span className="text-xs text-text-subtle">Approve a clip → it appears in the Manager queue to convert into a ticket.</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-text">Suggested Reels clips</h2>
+              <span className="text-xs text-text-subtle">Click a clip to see details · approve it to send it to the Manager queue.</span>
+            </div>
+            {/* Card / Grid view toggle */}
+            <div className="inline-flex rounded-[8px] border border-border-default p-0.5 text-xs">
+              {(['card', 'grid'] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  aria-pressed={view === v}
+                  className={`rounded-[6px] px-3 py-1 capitalize ${view === v ? 'bg-brand text-white' : 'text-text-muted hover:text-text'}`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <ul className="mt-4 space-y-3">
+          <div className={`mt-4 ${view === 'grid' ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}`}>
             {clips.map((c) => {
               const approved = c.status === 'Approved';
               const dismissed = c.status === 'Dismissed';
               const isOpen = expanded.has(c.id);
               return (
-                <li key={c.id} className={`rounded-xl border ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}>
+                <div
+                  key={c.id}
+                  className={`flex flex-col rounded-xl border ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}
+                >
                   {/* Header — click to expand/collapse the clip's full details */}
                   <button
                     type="button"
                     onClick={() => toggleExpanded(c.id)}
-                    className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left hover:bg-bg-subtle"
+                    className="flex w-full items-start gap-2 rounded-xl px-4 py-3 text-left hover:bg-bg-subtle"
                     aria-expanded={isOpen}
                   >
-                    <span className={`text-text-subtle transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
-                    <span className="font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
-                    {typeof c.viralityScore === 'number' && (
-                      <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
-                    )}
-                    {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Approved</span>}
-                    {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
-                    <span className="ml-auto text-xs text-text-subtle">
-                      {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
+                    <span className={`mt-0.5 text-text-subtle transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        {typeof c.viralityScore === 'number' && (
+                          <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
+                        )}
+                        {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Approved</span>}
+                        {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
+                        <span className="text-xs text-text-subtle">
+                          {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
+                        </span>
+                      </span>
+                      <span className="mt-1 block font-medium text-text">{c.hookLine || c.name || `Clip ${c.index ?? ''}`}</span>
                     </span>
                   </button>
 
@@ -203,10 +227,10 @@ export function MediaDetailClient({
                       )}
                     </div>
                   )}
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </div>
         </div>
       )}
 
