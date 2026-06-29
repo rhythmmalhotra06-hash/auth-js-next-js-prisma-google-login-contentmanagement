@@ -106,7 +106,13 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
   const ed = isAdmin || r.includes('Editor') || r.includes('Designer');
   const items: NavItem[] = [];
-  if (isAdmin || exec) items.push({ href: '/studio', label: 'Studio', icon: 'sparkle', group: 'Vishen' });
+  if (isAdmin || exec) {
+    items.push({ href: '/studio', label: 'Studio', icon: 'sparkle', group: 'Vishen' });
+    // Vishen's two queues, surfaced as first-class founder surfaces (the rest of the
+    // expanded views are reached via in-page "See all" links).
+    items.push({ href: '/studio/sign-off', label: 'Review queue', icon: 'check', group: 'Vishen' });
+    items.push({ href: '/studio/ranking', label: 'Priority ranking', icon: 'list', group: 'Vishen' });
+  }
   if (mgr) items.push({ href: '/manager', label: 'Prioritization', icon: 'list', group: 'Workflow' });
   if (ed) items.push({ href: '/editor', label: 'My queue', icon: 'play', group: 'Workflow' });
   // "My requests" — the read-only view of the requests YOU raised. Useful to every
