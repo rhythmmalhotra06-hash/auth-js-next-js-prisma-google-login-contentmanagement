@@ -35,6 +35,7 @@ const PATHS: Record<string, string> = {
   bolt: 'M13 2 3 14h7l-1 8 10-12h-7z',
   msg: 'M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-4-1L3 20l1.1-5A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z',
   logout: 'M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4',
+  share: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
 };
 
 export type IconName = keyof typeof PATHS;

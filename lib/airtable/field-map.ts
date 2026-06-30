@@ -9,6 +9,7 @@ export const BASES = {
   creativeServices: 'appFEFygXo2pRc8AR',
   adsCreativeLib: 'appWYOr2p4RKHf2LR',
   vishenContent: 'appvBtCYdaSrD1y11', // Vishen's personal content base (Major Videos lives here)
+  contentComms: 'app9YRZOVeE65fJPA', // 📣 MV Content & Comms — Marketing division's base (Social board + its own Prio table)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -360,6 +361,89 @@ export const CLIP_SUGGESTIONS = {
     ticket: 'fldTcZh1Z5YvugMFX', // → 🎯 Prio Requests (set on approve)
   },
   status_: { proposed: 'Proposed', approved: 'Approved', dismissed: 'Dismissed' },
+} as const;
+
+// ---------------------------------------------------------------------------
+// Social Media clip section (created 2026-06-30) — Marketing division's surface.
+// Lives in the 📣 MV Content & Comms base (NOT Creative Services). The clip engine
+// writes Proposal rows directly into the team's live 📣 Social table; a human sets
+// an Asset Type + checks "Raise Request (Creative)" and an Airtable automation fans
+// out Prio tickets (same base) with a link-back. The portal is propose-only — it
+// never writes tickets. Field IDs verified live against the base on 2026-06-30.
+// ---------------------------------------------------------------------------
+
+// 📣 Social — the Marketing content board. Engine proposals are rows with a
+// non-empty Clip Source URL (our origin marker — the Source singleSelect is left
+// untouched, it has its own meaning for an existing creative-services sync).
+export const SOCIAL = {
+  baseId: BASES.contentComms,
+  tableId: 'tblCcrdkHzOakOGnm',
+  fields: {
+    title: 'fldBDHsk0YiLMiCqX', // "Title" (multilineText) — clip hook / title
+    notes: 'fldJc3ZNwn42yMW35', // "Notes / Brief" (richText) — rationale + caption + timestamps
+    status: 'fld8F8Z05DIzh5BJM', // "Status" (singleSelect) — staging gate
+    socialFormat: 'fldo8ICzfKnVyLcTG', // "💿 Social Format" (singleSelect) — human-set (engine enum doesn't map 1:1)
+    contentType: 'fld8uZNn5D7jzPc3Z', // "🛎️ Content Type" (singleSelect)
+    captions: 'fldCpBMCWeGwmyYpx', // "✍️ Social Media Captions" (richText) — engine caption
+    transcript: 'fldyonJXP12e5Sbv8', // "► Transcript" (richText) — source transcript segment
+    raiseRequest: 'fldrNumf2EpoRetuf', // "Raise Request (Creative)" (checkbox) — the fan-out trigger
+    clipSourceUrl: 'fldXi03EEUtKThsBv', // "Clip Source URL" (url) — engine-origin marker + grouping key (app-created 2026-06-30)
+    // Read-only mirror lookups (from the linked Creative Request) — surfaced on the card.
+    ticketStatusLookup: 'fldUGnlpLFdtiJ7L1', // "Ticket Status (from Creative Request)"
+    prioStatusLookup: 'fld64iay3SwDuZ3hY', // "Prio. Status (from Creative Request)"
+    assignedCreativeLookup: 'fld14fMuJKBy3q75v', // "Assigned Creative (from Creative Request)"
+    assetLinkLookup: 'fldul5ssC2XaZ8FRL', // "🔗 Asset Link (from Creative Request)"
+    eventTypeLookup: 'fldkXRTBoribSHwQw', // "Event type (from 📅 Official Cal)" (lookup)
+  },
+  links: {
+    assetType: 'fldWJgCJ10WnRe62U', // → 🛎️ Creative Asset Type (human sets before raising)
+    creativeRequest: 'flddCgrgYAcBMFcs9', // → 🎯 Prio Requests (set by the fan-out automation)
+    shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)
+  },
+  // singleSelect option values (write the plain name string).
+  status_: {
+    proposal: '1: Proposal',
+    approved: '2: Approved',
+    ticketRaised: '2A. Ticket Raised',
+    reject: '13: Reject',
+  },
+} as const;
+
+// 🎯 Prio: Creatives Requests (New) — the Social fan-out ticket target. SAME base as
+// 📣 Social (intra-base), so the fan-out is a native Airtable automation. The portal
+// only READS ticket state here for the status mirror (most display needs are already
+// covered by the lookups on 📣 Social above).
+export const SOCIAL_PRIO = {
+  baseId: BASES.contentComms,
+  tableId: 'tblojUG9wmfTru9Wc',
+  fields: {
+    name: 'fldcLqx95hRTklFFq', // "Name" (multilineText, primary)
+    notes: 'fldcyhu1RbiQkijhp', // "Creatives Ticket Notes" (richText)
+    assignedCreative: 'fldOjbSHDCt0RWOD8', // "Assigned Creative" (singleLineText)
+    assetLink: 'fldWiQd06dYvjzugW', // "🔗 Asset Link" (multilineText)
+    prioStatus: 'fld7kNhgIYw5tk0au', // "Prio. Status" (singleSelect) — new tickets → "New Request"
+    ticketStatus: 'fldrNakesPfMX1I08', // "Ticket Status" (singleSelect)
+    teamServiceLevel: 'fldHWXRcyhKshGaS2', // "Team/Service Level" (singleSelect) — Social default "Social Media Video"
+  },
+  links: {
+    assetType: 'fldN8xTDWr9wnAPzd', // → 🛎️ Asset Type
+    eventType: 'fldmgva6SQHXPAMUr', // → 🧩 Event Type
+    social: 'fldaBYvP6gkirDDw8', // → 📣 Social (reciprocal link-back)
+  },
+  teamServiceLevel_: { socialMediaVideo: 'Social Media Video' },
+} as const;
+
+// 🛎️ Creative Asset Type — the Content & Comms base's own asset-type list (distinct
+// from Creative Services' table). Target of SOCIAL.links.assetType; listed in the
+// portal's "raise request" Asset Type picker.
+export const SOCIAL_ASSET_TYPES = {
+  baseId: BASES.contentComms,
+  tableId: 'tbllRbb2EN4eFyNcF',
+  fields: {
+    name: 'fld4DjIC4R7fBZNvL', // "Asset Type (Full title)" (multilineText, primary)
+    shortName: 'fld7MaxhwLP35BEtv', // "Asset type" (singleLineText)
+    status: 'fldyK7xbIBLBYTZwc', // "Status" (singleSelect)
+  },
 } as const;
 
 // 🎬 Clips — Vishen's own clip list in his content base, linked to Major Videos via Source.
