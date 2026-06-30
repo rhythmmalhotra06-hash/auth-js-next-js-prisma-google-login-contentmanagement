@@ -64,11 +64,15 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean }) {
+export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false, initialFilters }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean; initialFilters?: Partial<Record<Dim, string>> }) {
   const router = useRouter();
   const tableRef = useRef<HTMLTableElement>(null);
   const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
-  const [sel, setSel] = useState<Record<Dim, string>>({ ...EMPTY_SEL });
+  const [sel, setSel] = useState<Record<Dim, string>>(() => {
+    const base = { ...EMPTY_SEL };
+    for (const k of Object.keys(base) as Dim[]) { const v = initialFilters?.[k]; if (v) base[k] = v; }
+    return base;
+  });
   const [q, setQ] = useState('');
 
   const view = useTableView({ columns: COLUMNS, storageKey });

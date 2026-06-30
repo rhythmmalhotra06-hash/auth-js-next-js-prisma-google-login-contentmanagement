@@ -24,5 +24,6 @@
 | [E9.6 · Auto-assign by preferred editor](content-production-management/portal-feedback-round-1/auto-assign-preferred-editor.md) | feature | discovery | 7/7 | 2026-06-29 |
 | [E9.7 · Asset-type DNA editor](content-production-management/portal-feedback-round-1/asset-type-dna-editor.md) | feature | discovery | 7/7 | 2026-06-29 |
 | [E9.8 · Multi-asset campaign requests](content-production-management/portal-feedback-round-1/multi-asset-requests.md) | feature | deferred | 4/7 | 2026-06-29 |
+| [E9.9 · Studio bento redesign](content-production-management/portal-feedback-round-1/studio-bento-redesign.md) | feature | discovery | 7/7 | 2026-06-30 |
 
-_Total: 22 documents, 114/155 sections resolved (74%). E9.8 deferred to a later effort._
+_Total: 23 documents, 121/162 sections resolved (75%). E9.8 deferred to a later effort._

@@ -13,6 +13,7 @@ children:
   - content-production-management/portal-feedback-round-1/auto-assign-preferred-editor.md
   - content-production-management/portal-feedback-round-1/asset-type-dna-editor.md
   - content-production-management/portal-feedback-round-1/multi-asset-requests.md
+  - content-production-management/portal-feedback-round-1/studio-bento-redesign.md
 created: 2026-06-29
 updated: 2026-06-29
 resolution: 7/7

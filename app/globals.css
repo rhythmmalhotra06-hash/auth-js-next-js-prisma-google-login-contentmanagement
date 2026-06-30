@@ -895,3 +895,50 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
   padding:16px 18px;color:var(--brand-content);font-size:13px;line-height:1.55;}
 .phase2 .ph-head{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px;}
 .phase2 .ph-head .future-tag{margin-left:2px;}
+
+/* ================================================================
+   Studio — Bento layout + engine pipeline funnel (E9.9).
+   Grid leads with the funnel hero; sign-off is the tall focal right
+   column. Funnel namespaced .st-funnel/.st-lane (.funnel is taken).
+   ================================================================ */
+.studio-bento{display:grid;gap:16px;align-items:start;grid-template-columns:1fr 1fr 1fr;
+  grid-template-areas:
+    "funnel funnel funnel"
+    "media media signoff"
+    "pulse pulse signoff"
+    "launches launches shipped"
+    "foot foot foot";}
+.sz-funnel{grid-area:funnel;min-width:0;} .sz-media{grid-area:media;min-width:0;}
+.sz-signoff{grid-area:signoff;min-width:0;} .sz-pulse{grid-area:pulse;min-width:0;}
+.sz-launches{grid-area:launches;min-width:0;} .sz-shipped{grid-area:shipped;min-width:0;}
+.sz-foot{grid-area:foot;min-width:0;}
+/* zones own their spacing via grid gap — neutralise the section-head top margin */
+.studio-bento .sec-head{margin:0 0 12px;}
+@media(max-width:920px){
+  .studio-bento{grid-template-columns:1fr;
+    grid-template-areas:"funnel" "media" "signoff" "pulse" "launches" "shipped" "foot";}
+}
+
+/* engine pipeline funnel — the hero on top */
+.st-funnel{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);
+  border:1px solid var(--border);border-top:3px solid var(--brand);border-radius:var(--r-md);
+  overflow:hidden;box-shadow:var(--sh-2);}
+.st-lane{padding:18px 17px 20px;border-right:1px solid var(--border);position:relative;
+  text-decoration:none;color:inherit;transition:background var(--ease) .12s;}
+.st-lane:last-child{border-right:0;}
+.st-lane:hover{background:var(--bg-subtle);}
+.st-lane .st-arrow{position:absolute;right:-9px;top:19px;z-index:2;width:18px;height:18px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--text-subtle);font-size:10px;}
+.st-lane:last-child .st-arrow{display:none;}
+.st-lane .st-stage{display:flex;align-items:center;gap:8px;}
+.st-lane .st-stage .ic{width:28px;height:28px;border-radius:7px;background:var(--brand-soft);color:var(--brand-content);
+  display:grid;place-items:center;flex-shrink:0;}
+.st-lane .st-stage .ic svg{width:15px;height:15px;}
+.st-lane.gold .st-stage .ic{background:var(--gold-soft);color:var(--gold-content);}
+.st-lane .st-stage .nm{font-size:12px;font-weight:600;color:var(--text-muted);}
+.st-lane .st-count{font-family:var(--font-display);font-size:31px;font-weight:700;margin:9px 0 2px;
+  letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums;}
+.st-lane .st-cap{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-subtle);}
+.st-lane .st-sub{font-size:11.5px;color:var(--text-muted);margin-top:8px;display:flex;gap:7px;align-items:center;}
+.st-lane .st-sub .d{width:5px;height:5px;border-radius:50%;background:var(--text-subtle);flex-shrink:0;}
+@media(max-width:680px){.st-funnel{grid-template-columns:1fr 1fr;}.st-lane:nth-child(2) .st-arrow{display:none;}}

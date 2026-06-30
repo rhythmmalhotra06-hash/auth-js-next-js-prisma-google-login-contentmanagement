@@ -14,6 +14,7 @@ import { LaunchCard } from '@/components/studio/LaunchCard';
 import { ClipsList, type ClipRow } from '@/components/studio/ClipsList';
 import { AddVishenMedia } from '@/components/studio/AddVishenMedia';
 import { ProposeFootnote } from '@/components/studio/ProposeFootnote';
+import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
 import { getClipsByIds } from '@/lib/media/repository';
 
 export const dynamic = 'force-dynamic';
@@ -42,43 +43,67 @@ async function StudioBody() {
     }
   }
 
+  // Engine funnel — counts derived from existing selectors (no new data source).
+  const funnelStages: FunnelStage[] = [
+    { key: 'media', label: 'Media → clips', count: clipIds.length, cap: `ideas · ${vishenMedia.length} sources`, href: '/vishen', icon: '🎬' },
+    { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️' },
+    { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting, cap: 'in review', href: '/studio/sign-off', icon: '⏳', gold: true },
+    { key: 'ship', label: 'Shipped', count: pulse.shippedAll != null ? pulse.shippedAll.toLocaleString() : '—', cap: 'all-time', href: '/studio/shipped', icon: '✓' },
+  ];
+
   return (
-    <>
-      {/* 0. Your media → clip ideas — pinned top; the work closest to Vishen */}
-      <div className="sec-head"><h3>Your media → clip ideas</h3><span className="hint">your films, podcasts and talks — and the clips we can ship from them</span></div>
-      <AddVishenMedia />
-      {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} clipsByMedia={clipsByMedia} /></div>}
+    <div className="studio-bento">
+      {/* Engine — the hero on top */}
+      <section className="sz-funnel">
+        <div className="sec-head"><h3>The engine</h3><span className="hint">your pipeline, stage by stage — click a stage to open its grid</span></div>
+        <PipelineFunnel stages={funnelStages} />
+      </section>
 
-      {/* 1. Sign-off — the hero */}
-      <div className="sec-head" style={{ marginTop: 20 }}><h3>Needs your sign-off</h3></div>
-      <SignOffHero items={review} />
+      {/* Your media → clip ideas — the work closest to Vishen */}
+      <section className="sz-media">
+        <div className="sec-head"><h3>Your media → clip ideas</h3><span className="hint">your films, podcasts and talks — and the clips we can ship from them</span></div>
+        <AddVishenMedia />
+        {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} clipsByMedia={clipsByMedia} /></div>}
+      </section>
 
-      {/* 1b. Shoots awaiting sign-off */}
-      <ShootSignOff items={pendingShoots} />
+      {/* Needs your sign-off — tall focal column */}
+      <section className="sz-signoff">
+        <div className="sec-head"><h3>Needs your sign-off</h3></div>
+        <SignOffHero items={review} />
+        <ShootSignOff items={pendingShoots} />
+      </section>
 
-      {/* 2. The pulse */}
-      <div className="sec-head"><h3>The pulse</h3>{pulse.asOf && <span className="hint">{pulse.asOf}</span>}</div>
-      <Pulse pulse={pulse} />
+      {/* The pulse */}
+      <section className="sz-pulse">
+        <div className="sec-head"><h3>The pulse</h3>{pulse.asOf && <span className="hint">{pulse.asOf}</span>}</div>
+        <Pulse pulse={pulse} />
+      </section>
 
-      {/* 3. Flowing to your launches */}
-      <div className="sec-head">
-        <h3>Flowing to your launches</h3>
-        <span className="hint">work grouped by the event it serves</span>
-        {launches.length > 3 && <Link href="/studio/launches" className="st-seeall">See all →</Link>}
-      </div>
-      {launches.length === 0
-        ? <div className="empty">No active launches.</div>
-        : launches.slice(0, 3).map((l) => <LaunchCard key={l.slug} launch={l} />)}
+      {/* Flowing to your launches */}
+      <section className="sz-launches">
+        <div className="sec-head">
+          <h3>Flowing to your launches</h3>
+          <span className="hint">work grouped by the event it serves</span>
+          {launches.length > 3 && <Link href="/studio/launches" className="st-seeall">See all →</Link>}
+        </div>
+        {launches.length === 0
+          ? <div className="empty">No active launches.</div>
+          : launches.slice(0, 3).map((l) => <LaunchCard key={l.slug} launch={l} />)}
+      </section>
 
-      {/* 6. Recently shipped — thin proof strip */}
-      <div className="sec-head" style={{ marginBottom: 8 }}><h3>Recently shipped</h3><span className="hint">who made it</span></div>
-      <div className="st-shipstrip">
-        <div className="lhs"><b>{data.recentShipped.length} recently shipped</b> · all delivered</div>
-        <Link href="/studio/shipped" className="st-seeall">See all →</Link>
-      </div>
+      {/* Recently shipped — thin proof strip */}
+      <section className="sz-shipped">
+        <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
+        <div className="st-shipstrip">
+          <div className="lhs"><b>{data.recentShipped.length} recently shipped</b> · all delivered</div>
+          <Link href="/studio/shipped" className="st-seeall">See all →</Link>
+        </div>
+      </section>
 
-      <ProposeFootnote />
-    </>
+      <section className="sz-foot">
+        <ProposeFootnote />
+      </section>
+    </div>
   );
 }
 
