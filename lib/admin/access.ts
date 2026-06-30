@@ -19,6 +19,7 @@ export interface AdminAccess {
   email: string | null;
   isAdmin: boolean;
   roles: string[];
+  division: string | null; // org division from the Employees record (e.g. "Marketing")
 }
 
 export async function getAdminAccess(): Promise<AdminAccess> {
@@ -30,7 +31,8 @@ export async function getAdminAccess(): Promise<AdminAccess> {
     const devRoles = (session as { devRoles?: string } | null)?.devRoles;
     if (devRoles !== undefined) {
       const roles = devRoles.split(',').map((s) => s.trim()).filter(Boolean);
-      return { email: session?.user?.email ?? null, isAdmin: roles.includes(ADMIN_ROLE), roles };
+      const devDivision = (session as { devDivision?: string } | null)?.devDivision ?? null;
+      return { email: session?.user?.email ?? null, isAdmin: roles.includes(ADMIN_ROLE), roles, division: devDivision };
     }
   }
 
@@ -38,5 +40,5 @@ export async function getAdminAccess(): Promise<AdminAccess> {
   const email = employee?.email ?? session?.user?.email ?? null;
   const byRole = hasRole(employee?.roles, ADMIN_ROLE);
   const byBootstrap = !!email && bootstrapEmails().includes(email.toLowerCase());
-  return { email, isAdmin: byRole || byBootstrap, roles: employee?.roles ?? [] };
+  return { email, isAdmin: byRole || byBootstrap, roles: employee?.roles ?? [], division: employee?.division ?? null };
 }

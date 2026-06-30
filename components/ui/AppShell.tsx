@@ -20,8 +20,8 @@ export async function AppShell({ title, subtitle, actions, children }: {
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const { roles, isAdmin, email } = await getAdminAccess();
-  const nav = navForRoles(roles, isAdmin);
+  const { roles, isAdmin, email, division } = await getAdminAccess();
+  const nav = navForRoles(roles, isAdmin, division);
   const role = roleLabel(roles, isAdmin);
   const initials =
     (email ?? 'You').split('@')[0].split(/[.\-_]/).map((s) => s[0]?.toUpperCase() ?? '').slice(0, 2).join('') || 'YOU';

@@ -37,6 +37,16 @@ export function hasRole(roles: readonly string[] | null | undefined, role: Role)
   return !!roles && roles.includes(role);
 }
 
+/**
+ * Whether the user's org division is Marketing. The Clip library (`/media`) is
+ * surfaced to the whole Marketing division regardless of their production role —
+ * everyone in Marketing can browse/submit clips, not just editors/managers/execs.
+ * `division` is free-text synced from the Airtable Employees "Division" field.
+ */
+export function isMarketingDivision(division: string | null | undefined): boolean {
+  return (division ?? '').trim().toLowerCase() === 'marketing';
+}
+
 // ── Role-based routing ───────────────────────────────────────────────────────
 // The three role surfaces and which roles may open each. Untagged users are NOT
 // gated (rollout-safe — they keep the legacy open access until someone tags them);
@@ -69,7 +79,7 @@ export function canAccessRoute(roles: readonly string[] | null | undefined, rout
  * canAccessRoute; settings is admin-only; the internal production tools
  * (/vishen, /intake, /media) show only to production/management roles.
  */
-export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: boolean, href: string): boolean {
+export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: boolean, href: string, division?: string | null): boolean {
   if (isAdmin) return true;
   const r = effectiveRoles(roles);
   switch (href) {
@@ -77,6 +87,9 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
     case '/editor':
     case '/stakeholder':
       return canAccessRoute(r, href);
+    case '/media':
+      // Clip library: production roles OR anyone in the Marketing division.
+      return isMarketingDivision(division) || canAccessRoute(r, '/editor') || canAccessRoute(r, '/manager');
     case '/shoots':
       return true; // anyone can submit/track a shoot request
     case '/settings/clip-rules':
@@ -100,9 +113,10 @@ export type NavGroup = 'Vishen' | 'Workflow' | 'Library & media' | 'Intelligence
 export const NAV_GROUP_ORDER: NavGroup[] = ['Vishen', 'Workflow', 'Library & media', 'Intelligence', 'Admin'];
 
 /** Role-scoped, grouped nav. Mirrors the prototype's per-role categorised sidebar. */
-export function navForRoles(roles: readonly string[] | null | undefined, isAdmin: boolean): NavItem[] {
+export function navForRoles(roles: readonly string[] | null | undefined, isAdmin: boolean, division?: string | null): NavItem[] {
   const r = effectiveRoles(roles);
   const exec = r.includes('Executive / CEO');
+  const marketing = isMarketingDivision(division);
   const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
   const ed = isAdmin || r.includes('Editor') || r.includes('Designer');
   const items: NavItem[] = [];
@@ -118,7 +132,7 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   // "My requests" — the read-only view of the requests YOU raised. Useful to every
   // role (anyone can submit intake), and for pure stakeholders it's their main surface.
   items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox', group: 'Workflow' });
-  if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film', group: 'Library & media' });
+  if (mgr || ed || exec || isAdmin || marketing) items.push({ href: '/media', label: 'Clips', icon: 'film', group: 'Library & media' });
   // Shoots = pre-production filming queue. Anyone can submit a shoot request, so it's
   // visible to every signed-in role (mirrors "New request" being open to all).
   items.push({ href: '/shoots', label: 'Shoots', icon: 'video', group: 'Library & media' });
