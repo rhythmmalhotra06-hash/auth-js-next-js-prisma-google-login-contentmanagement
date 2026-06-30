@@ -59,6 +59,36 @@ export async function sendBackForRevision(ticketId: string, note: string): Promi
   return { ok: true };
 }
 
+// ── Content review (Review queue: approve work or send it back) ───────────────
+
+const APPROVED_STATUS = 'Approved';
+
+/** Content review: approve the work — Ticket Status → "Approved". */
+export async function approveContentReview(ticketId: string): Promise<ActionResult> {
+  if (!(TICKET_STATUSES as readonly string[]).includes(APPROVED_STATUS)) return { ok: false, error: 'Config error' };
+  const res = await updateTicketFields(ticketId, { [F.ticketStatus]: APPROVED_STATUS });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateStudio();
+  return { ok: true };
+}
+
+/** Content review: send work back — Ticket Status → "In Revision" + append note to V's Notes. */
+export async function sendBackContentReview(ticketId: string, note: string): Promise<ActionResult> {
+  const trimmed = note?.trim();
+  if (!trimmed) return { ok: false, error: 'A note is required when sending back' };
+  if (!(TICKET_STATUSES as readonly string[]).includes(REVISION_STATUS)) return { ok: false, error: 'Config error' };
+
+  const detail = await getTicketDetail(ticketId);
+  const stamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const entry = `[Vishen · ${stamp}] ${trimmed}`;
+  const merged = detail?.notes ? `${detail.notes}\n\n${entry}` : entry;
+
+  const res = await updateTicketFields(ticketId, { [F.ticketStatus]: REVISION_STATUS, [F.notes]: merged });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateStudio();
+  return { ok: true };
+}
+
 // ── Shoot sign-off (founder approves/declines pending shoot requests) ─────────
 // Same propose-only commit boundary as ticket review: a shoot only advances on an
 // explicit Vishen tap. Approve ticks the live "Vishen's Approval" checkbox + moves
