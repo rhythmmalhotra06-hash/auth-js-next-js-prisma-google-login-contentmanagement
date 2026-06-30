@@ -20,23 +20,15 @@ single source of sync.
 | 3 | Creative Services | created/updated on **📺 Media Sources** | [`media-sources-to-major-videos.js`](media-sources-to-major-videos.js) | Media Sources → MV (**update-only**, never creates) |
 | 4 | Creative Services | created/updated on **🎬 Clip Suggestions** | [`clip-suggestions-to-vishen-clips.js`](clip-suggestions-to-vishen-clips.js) | Clip Suggestions → Clips (update; creates only for Vishen media) |
 | 5 | Creative Services | **scheduled, hourly** | [`reconcile-deletes.js`](reconcile-deletes.js) | Vishen delete → archive/dismiss the portal mirror |
-| 6 | Content & Comms | matches on **📣 Social** (Approved + Raise Request checked) | [`social-proposals-to-prio.js`](social-proposals-to-prio.js) | Social proposal → Prio ticket(s) fan-out (intra-base; link-back) |
 
 1 & 3 are inverses (Major Videos ⇆ Media Sources); 2 & 4 are inverses (Clips ⇆ Clip Suggestions).
 
-## Social fan-out (#6) — separate from the Vishen sync above
-
-The **Social Media** portal section (Marketing division) writes AI clip suggestions as
-`1: Proposal` rows into **📣 Social** in the Content & Comms base (`app9YRZOVeE65fJPA`). The
-portal is **propose-only** — it never creates tickets. When a human sets an **Asset Type** and
-checks **Raise Request (Creative)** on an approved suggestion, automation #6 fans out one Prio
-ticket per asset type into **🎯 Prio: Creatives Requests (New)** (same base), links each back via
-**Creative Request**, and flips Status → `2A. Ticket Raised`. It's idempotent (skips rows that
-already have a Creative Request) and leaves the checkbox checked.
-
-Because both tables are in the **same base**, #6 uses the **native scripting API** (`base.getTable`)
-— no PAT, no `apiKey` input. Its only input variable is `recordId`. This is independent of the
-Vishen ⇆ Creative Services sync (#1–#5) and needs no token setup.
+> **Social fan-out is NOT an Airtable automation.** The Marketing **Social Media** section
+> (`/social`) raises tickets directly from the portal into the Creative Services Prio queue
+> (`tblhrRl8GzsDMv0DD`) via the app's `createTicket` path — the same one the Clips flow uses. The
+> `🎯 Prio` table in the Content & Comms base is a **read-only synced mirror** of that Creative
+> Services table, so records can't be created there; an in-base automation is impossible. No
+> automation or PAT is needed for the Social flow.
 
 ## Why there's no infinite loop
 - **Diff-guarded:** every write compares against the current value and writes only changed fields;

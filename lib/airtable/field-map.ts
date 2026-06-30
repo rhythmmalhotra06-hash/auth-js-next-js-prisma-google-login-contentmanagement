@@ -386,19 +386,15 @@ export const SOCIAL = {
     contentType: 'fld8uZNn5D7jzPc3Z', // "🛎️ Content Type" (singleSelect)
     captions: 'fldCpBMCWeGwmyYpx', // "✍️ Social Media Captions" (richText) — engine caption
     transcript: 'fldyonJXP12e5Sbv8', // "► Transcript" (richText) — source transcript segment
-    raiseRequest: 'fldrNumf2EpoRetuf', // "Raise Request (Creative)" (checkbox) — the fan-out trigger
+    raiseRequest: 'fldrNumf2EpoRetuf', // "Raise Request (Creative)" (checkbox) — kept for the team's manual flow; the portal uses Creative Ticket ID below
     clipSourceUrl: 'fldXi03EEUtKThsBv', // "Clip Source URL" (url) — engine-origin marker + grouping key (app-created 2026-06-30)
-    // Read-only mirror lookups (from the linked Creative Request) — surfaced on the card.
-    ticketStatusLookup: 'fldUGnlpLFdtiJ7L1', // "Ticket Status (from Creative Request)"
-    prioStatusLookup: 'fld64iay3SwDuZ3hY', // "Prio. Status (from Creative Request)"
-    assignedCreativeLookup: 'fld14fMuJKBy3q75v', // "Assigned Creative (from Creative Request)"
-    assetLinkLookup: 'fldul5ssC2XaZ8FRL', // "🔗 Asset Link (from Creative Request)"
-    eventTypeLookup: 'fldkXRTBoribSHwQw', // "Event type (from 📅 Official Cal)" (lookup)
+    creativeTicketId: 'fldZxIaWrFImce9H9', // "Creative Ticket ID" (singleLineText) — recId of the ticket the portal created in the Creative Services Prio queue (cross-base, so a plain id). Presence ⇒ raised. (app-created 2026-06-30)
   },
   links: {
-    assetType: 'fldWJgCJ10WnRe62U', // → 🛎️ Creative Asset Type (human sets before raising)
-    creativeRequest: 'flddCgrgYAcBMFcs9', // → 🎯 Prio Requests (set by the fan-out automation)
     shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)
+    // NOTE: the "Creative Request" link (flddCgrgYAcBMFcs9) points at a synced mirror of the
+    // Creative Services Prio table — records there can't be created cross-base, so the portal
+    // stores the real ticket recId in creativeTicketId instead and reads status from that base.
   },
   // singleSelect option values (write the plain name string).
   status_: {
@@ -409,42 +405,11 @@ export const SOCIAL = {
   },
 } as const;
 
-// 🎯 Prio: Creatives Requests (New) — the Social fan-out ticket target. SAME base as
-// 📣 Social (intra-base), so the fan-out is a native Airtable automation. The portal
-// only READS ticket state here for the status mirror (most display needs are already
-// covered by the lookups on 📣 Social above).
-export const SOCIAL_PRIO = {
-  baseId: BASES.contentComms,
-  tableId: 'tblojUG9wmfTru9Wc',
-  fields: {
-    name: 'fldcLqx95hRTklFFq', // "Name" (multilineText, primary)
-    notes: 'fldcyhu1RbiQkijhp', // "Creatives Ticket Notes" (richText)
-    assignedCreative: 'fldOjbSHDCt0RWOD8', // "Assigned Creative" (singleLineText)
-    assetLink: 'fldWiQd06dYvjzugW', // "🔗 Asset Link" (multilineText)
-    prioStatus: 'fld7kNhgIYw5tk0au', // "Prio. Status" (singleSelect) — new tickets → "New Request"
-    ticketStatus: 'fldrNakesPfMX1I08', // "Ticket Status" (singleSelect)
-    teamServiceLevel: 'fldHWXRcyhKshGaS2', // "Team/Service Level" (singleSelect) — Social default "Social Media Video"
-  },
-  links: {
-    assetType: 'fldN8xTDWr9wnAPzd', // → 🛎️ Asset Type
-    eventType: 'fldmgva6SQHXPAMUr', // → 🧩 Event Type
-    social: 'fldaBYvP6gkirDDw8', // → 📣 Social (reciprocal link-back)
-  },
-  teamServiceLevel_: { socialMediaVideo: 'Social Media Video' },
-} as const;
-
-// 🛎️ Creative Asset Type — the Content & Comms base's own asset-type list (distinct
-// from Creative Services' table). Target of SOCIAL.links.assetType; listed in the
-// portal's "raise request" Asset Type picker.
-export const SOCIAL_ASSET_TYPES = {
-  baseId: BASES.contentComms,
-  tableId: 'tbllRbb2EN4eFyNcF',
-  fields: {
-    name: 'fld4DjIC4R7fBZNvL', // "Asset Type (Full title)" (multilineText, primary)
-    shortName: 'fld7MaxhwLP35BEtv', // "Asset type" (singleLineText)
-    status: 'fldyK7xbIBLBYTZwc', // "Status" (singleSelect)
-  },
-} as const;
+// NOTE: tickets for raised social clips are created in the Creative Services Prio table
+// (TICKETS, tblhrRl8GzsDMv0DD) via the app's createTicket path — NOT in this base. The
+// Content & Comms 🎯 Prio table (tblojUG9wmfTru9Wc) is a read-only synced mirror of that
+// Creative Services table, so it can't be written to. The Social raise picker uses the
+// shared intake reference data (Creative Services event/asset types).
 
 // 🎬 Clips — Vishen's own clip list in his content base, linked to Major Videos via Source.
 // Two-way synced with 🎬 Clip Suggestions (see plans/vishen-two-way-sync.md). App-generated clips

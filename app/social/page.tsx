@@ -3,7 +3,8 @@ import { AppShell } from '@/components/ui/AppShell';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { Icon } from '@/components/ui/Icon';
 import { requireSocialAccess } from '@/lib/social/guard';
-import { listSocialSuggestions, listSocialAssetTypes } from '@/lib/social/repository';
+import { listSocialSuggestions, getSocialTicketStates } from '@/lib/social/repository';
+import { getIntakeReferenceData } from '@/lib/intake/data';
 import { SocialBoard } from '@/components/social/SocialBoard';
 
 export const dynamic = 'force-dynamic';
@@ -11,17 +12,19 @@ export const dynamic = 'force-dynamic';
 export default async function SocialPage() {
   await requireSocialAccess();
 
-  const [sugRes, atRes] = await Promise.all([listSocialSuggestions(), listSocialAssetTypes()]);
+  const [sugRes, reference] = await Promise.all([listSocialSuggestions(), getIntakeReferenceData()]);
   const suggestions = sugRes.ok ? sugRes.data : [];
-  const assetTypes = atRes.ok ? atRes.data : [];
+  const ticketStates = await getSocialTicketStates(
+    suggestions.map((s) => s.creativeTicketId).filter((id): id is string => !!id),
+  );
 
   const proposals = suggestions.filter((s) => (s.status ?? '').startsWith('1')).length;
-  const raised = suggestions.filter((s) => s.ticketRaised || (s.status ?? '').startsWith('2A')).length;
+  const raised = suggestions.filter((s) => s.ticketRaised).length;
 
   return (
     <AppShell
       title="Social Media"
-      subtitle="Long-form media → AI clip suggestions → social tickets. Propose-only — a ticket is raised only when you check the box."
+      subtitle="Long-form media → AI clip suggestions → Creatives tickets. Propose-only — a ticket is raised only when you choose to."
     >
       <Link href="/social/new" className="card pad submit-cta" style={{ textDecoration: 'none' }}>
         <div className="submit-cta-ic"><Icon name="share" size={24} /></div>
@@ -47,7 +50,7 @@ export default async function SocialPage() {
       )}
 
       <div className="sec-head" style={{ marginTop: 6 }}><h3>Clip suggestions</h3></div>
-      <SocialBoard suggestions={suggestions} assetTypes={assetTypes} />
+      <SocialBoard suggestions={suggestions} reference={reference} ticketStates={ticketStates} />
     </AppShell>
   );
 }

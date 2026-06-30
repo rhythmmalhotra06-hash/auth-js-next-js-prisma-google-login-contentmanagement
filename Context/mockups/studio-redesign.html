@@ -1,0 +1,373 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Studio — layout exploration</title>
+<style>
+  /* ── Brand tokens (copied from app/globals.css; self-contained) ───────────── */
+  :root{
+    --brand:#572280; --brand-bright:#6d34a0; --brand-content:#3f1860; --brand-strong:#3f1860; --brand-soft:#f1eaf7; --brand-border:#e3d4f0;
+    --violet:#7c3aed; --violet-soft:#c9a6f0;
+    --gold:#f5b000; --gold-bright:#ffc62e; --gold-content:#6b4e00; --gold-soft:#fff6e0;
+    --green:#159f65; --green-content:#0e6742; --green-soft:#e8f9f1;
+    --amber:#c9801a; --amber-content:#7a5600; --amber-soft:#fff4d9;
+    --blue:#2563cf; --blue-content:#1c3bd4; --blue-soft:#ebf2ff;
+    --g100:#faf9fc; --g200:#ece9f1; --g300:#d8d3e0; --g400:#a59db4; --g500:#6b6478; --g600:#463f54; --g700:#1a1523;
+    --bg:#fff; --bg-muted:#faf9fc; --bg-subtle:#f4f2f8; --surface:#fff; --surface-2:#fff;
+    --text:#1a1523; --text-muted:#6b6478; --text-subtle:#a59db4;
+    --border:rgba(40,20,60,.12); --border-strong:rgba(40,20,60,.22);
+    --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-full:9999px;
+    --sh-1:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05);
+    --sh-2:0 4px 16px 0 rgba(40,20,60,.10);
+    --sh-3:0 16px 40px 0 rgba(40,20,60,.18);
+    --ease:cubic-bezier(.2,0,0,1);
+    --font-display:"Bricolage Grotesque", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-body:"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+  [data-theme="dark"]{
+    --brand:#b98fe0; --brand-bright:#cda9ec; --brand-content:#e9dcf6; --brand-soft:#2a1c3a; --brand-border:#3d2c52;
+    --gold-soft:#2e2410; --green-soft:#11291f; --amber-soft:#2e2410; --blue-soft:#14233f;
+    --bg:#15101d; --bg-muted:#110c18; --bg-subtle:#1f1730; --surface:#1b1426; --surface-2:#241a33;
+    --text:#f3eefa; --text-muted:#b3a9c4; --text-subtle:#877c99;
+    --border:rgba(200,180,230,.14); --border-strong:rgba(200,180,230,.26);
+    --sh-1:0 1px 2px 0 rgba(0,0,0,.5), 0 4px 12px 0 rgba(0,0,0,.4);
+    --sh-2:0 4px 16px 0 rgba(0,0,0,.55); --sh-3:0 20px 40px 0 rgba(0,0,0,.65);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--text);
+    background:var(--bg-muted);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{margin:0;font-family:var(--font-display);font-weight:700;letter-spacing:-.015em;text-wrap:balance;}
+  button{font-family:inherit;cursor:pointer;}
+  :focus-visible{outline:2px solid var(--brand-bright);outline-offset:2px;border-radius:4px;}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+  /* ── Ambient background ───────────────────────────────────────────────────── */
+  #atmo{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(60vw 50vh at 80% -8%, color-mix(in srgb,var(--brand) 13%,transparent), transparent 60%),
+      radial-gradient(46vw 40vh at -6% 6%, color-mix(in srgb,var(--brand) 8%,transparent), transparent 55%),
+      radial-gradient(42vw 45vh at 60% 110%, color-mix(in srgb,var(--gold) 6%,transparent), transparent 60%);}
+
+  /* ── Topbar ───────────────────────────────────────────────────────────────── */
+  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:16px;padding:12px 26px;
+    background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:saturate(150%) blur(10px);
+    border-bottom:1px solid var(--border);}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));
+    color:#fff;display:grid;place-items:center;font-size:16px;position:relative;flex:none;}
+  .mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid var(--bg);}
+  .brand b{font-family:var(--font-display);font-size:15px;letter-spacing:-.01em;display:block;line-height:1.1;}
+  .brand small{font-size:11px;color:var(--text-subtle);}
+  .tb-spacer{flex:1;}
+  .seg{display:inline-flex;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--r-full);padding:3px;gap:2px;}
+  .seg button{border:none;background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600;
+    padding:6px 14px;border-radius:var(--r-full);display:inline-flex;align-items:center;gap:6px;transition:all .15s var(--ease);}
+  .seg button[aria-pressed="true"]{background:var(--brand);color:#fff;box-shadow:var(--sh-1);}
+  .seg .k{font-size:10px;opacity:.7;font-weight:700;}
+  .icobtn{width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);
+    color:var(--text-muted);display:grid;place-items:center;font-size:15px;}
+  .icobtn:hover{background:var(--bg-subtle);color:var(--text);}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--brand-soft);color:var(--brand-content);
+    display:grid;place-items:center;font-weight:700;font-size:12px;flex:none;}
+  .pagehead{max-width:1240px;margin:0 auto;padding:22px 26px 4px;}
+  .pagehead h1{font-size:23px;letter-spacing:-.02em;}
+  .pagehead p{margin:3px 0 0;color:var(--text-muted);font-size:13.5px;}
+
+  /* ── Canvas grid — the two layouts ────────────────────────────────────────── */
+  .canvas{max-width:1240px;margin:0 auto;padding:14px 26px 70px;display:grid;gap:16px;align-items:start;}
+  .canvas[data-layout="bento"]{
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-areas:
+      "media media signoff"
+      "pulse pulse signoff"
+      "launches launches shipped"
+      "foot foot foot";}
+  .canvas[data-layout="hybrid"]{
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "media media"
+      "signoff signoff"
+      "pulse pulse"
+      "launches shipped"
+      "foot foot";}
+  .z-media{grid-area:media;} .z-signoff{grid-area:signoff;} .z-pulse{grid-area:pulse;}
+  .z-launches{grid-area:launches;} .z-shipped{grid-area:shipped;} .z-foot{grid-area:foot;}
+  @media(max-width:920px){
+    .canvas[data-layout]{grid-template-columns:1fr!important;
+      grid-template-areas:"media" "signoff" "pulse" "launches" "shipped" "foot"!important;}
+  }
+
+  /* ── Shared section chrome ────────────────────────────────────────────────── */
+  .zone{min-width:0;display:flex;flex-direction:column;gap:12px;}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);
+    display:inline-flex;align-items:center;gap:8px;}
+  .eyebrow.gold{color:var(--gold-content);}
+  .sechead h2{font-size:16px;}
+  .sechead .hint{font-size:12.5px;color:var(--text-subtle);}
+  .sechead .seeall{margin-left:auto;font-size:12.5px;color:var(--brand-content);font-weight:600;text-decoration:none;}
+  .sechead{display:flex;align-items:baseline;gap:10px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);}
+  .pad{padding:16px 17px;}
+
+  /* ── Media → clips ────────────────────────────────────────────────────────── */
+  .addsrc{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--r-md);padding:13px 15px;box-shadow:var(--sh-1);flex-wrap:wrap;}
+  .addsrc .ic{width:36px;height:36px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:18px;flex:none;}
+  .addsrc .lab b{font-size:13.5px;} .addsrc .lab span{display:block;font-size:11.5px;color:var(--text-muted);}
+  .addsrc input,.addsrc select{font-family:inherit;font-size:12.5px;padding:8px 10px;border:1px solid var(--border-strong);
+    border-radius:var(--r-sm);background:var(--bg);color:var(--text);min-width:0;}
+  .addsrc input{flex:1;min-width:120px;} .addsrc .btn-add{margin-left:auto;}
+  .mediacard{border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);box-shadow:var(--sh-1);
+    overflow:hidden;transition:border-color .15s var(--ease),box-shadow .15s var(--ease),transform .15s var(--ease);}
+  .mediacard:hover{border-color:var(--brand-border);box-shadow:var(--sh-2);transform:translateY(-2px);}
+  .mc-top{display:flex;align-items:center;gap:12px;padding:13px 15px;}
+  .mc-play{width:38px;height:38px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:14px;flex:none;}
+  .mc-top .meta{flex:1;min-width:0;}
+  .mc-top .meta b{font-size:14px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mc-top .meta span{font-size:11.5px;color:var(--text-muted);}
+  .mc-arrow{color:var(--text-subtle);font-size:16px;}
+  .mc-clips{border-top:1px solid var(--border);padding:8px 15px 12px;display:flex;flex-direction:column;}
+  .clipline{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:13px;color:var(--text);}
+  .clipline .tri{color:var(--brand);font-size:9px;flex:none;}
+  .clipline .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .vir{flex:none;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--brand-soft);color:var(--brand-content);
+    border-radius:var(--r-full);padding:1px 8px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;border-radius:var(--r-sm);padding:2px 8px;}
+  .b-new{background:var(--gold-soft);color:var(--gold-content);}
+  .b-sug{background:var(--brand-soft);color:var(--brand-content);}
+
+  /* ── Sign-off (focal saturated block) ─────────────────────────────────────── */
+  .commit{background:linear-gradient(150deg,var(--brand) 0%,var(--violet) 100%);border-radius:var(--r-md);
+    padding:17px 18px;color:#fff;box-shadow:var(--sh-3);}
+  .commit-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;}
+  .commit-head h3{font-size:15.5px;color:#fff;}
+  .commit-head .cnt{margin-left:auto;background:rgba(255,255,255,.2);font-size:11px;font-weight:700;padding:2px 9px;border-radius:var(--r-full);}
+  .commit-row{background:var(--surface);border-radius:var(--r-sm);padding:12px 13px;display:flex;align-items:center;gap:12px;margin-bottom:9px;}
+  .commit-row:last-child{margin-bottom:0;}
+  .commit-row .body{flex:1;min-width:0;color:var(--text);}
+  .commit-row .body b{font-size:13px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .commit-row .body span{font-size:11.5px;color:var(--text-muted);}
+  .commit-row .ic{width:34px;height:34px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:14px;flex:none;}
+  .acts{display:flex;gap:7px;flex:none;}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1;padding:8px 13px;
+    border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);transition:all .12s var(--ease);white-space:nowrap;}
+  .btn:hover{background:var(--bg-subtle);transform:translateY(-1px);}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .btn.primary:hover{background:var(--brand-bright);}
+  .btn.add{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .btn.add:hover{background:var(--brand-bright);}
+  .btn.sm{padding:6px 11px;font-size:12px;}
+  .btn.onfill{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;}
+  .btn.onfill:hover{background:rgba(255,255,255,.26);}
+  .btn.approve{background:#fff;border-color:#fff;color:var(--brand);}
+
+  /* ── Pulse (KPIs) ─────────────────────────────────────────────────────────── */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:15px 16px;box-shadow:var(--sh-1);
+    transition:transform .15s var(--ease),box-shadow .15s var(--ease),border-color .15s var(--ease);}
+  .kpi:hover{transform:translateY(-2px);box-shadow:var(--sh-2);border-color:var(--brand-border);}
+  .kpi .lbl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}
+  .kpi .val{font-family:var(--font-display);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:7px;font-variant-numeric:tabular-nums;}
+  .kpi .sub{font-size:11.5px;color:var(--text-subtle);margin-top:4px;}
+  .kpi.attention{border-color:var(--gold);background:linear-gradient(180deg,var(--gold-soft),var(--surface) 62%);}
+  .kpi.attention .val{color:var(--gold-content);} .kpi.attention .lbl{color:var(--gold-content);}
+
+  /* ── Launches ─────────────────────────────────────────────────────────────── */
+  .launch{display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;
+    box-shadow:var(--sh-1);text-decoration:none;color:inherit;transition:border-color .15s var(--ease),box-shadow .15s var(--ease),transform .15s var(--ease);}
+  .launch:hover{border-color:var(--brand-border);box-shadow:var(--sh-2);transform:translateY(-2px);}
+  .launch-top{display:flex;align-items:center;gap:9px;margin-bottom:11px;}
+  .launch-top .nm{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .launch-top .cnt{margin-left:auto;font-size:12px;color:var(--text-subtle);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .meter{display:flex;gap:3px;height:8px;border-radius:var(--r-full);overflow:hidden;background:var(--bg-subtle);}
+  .meter span{display:block;height:100%;}
+  .m-ship{background:var(--green);} .m-rev{background:var(--violet);} .m-prod{background:var(--violet-soft);} .m-todo{background:var(--border-strong);}
+  .legend{display:flex;gap:13px;flex-wrap:wrap;margin-top:9px;font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+  .legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+
+  /* ── Shipped strip + footnote ─────────────────────────────────────────────── */
+  .shipstrip{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--sh-1);}
+  .shipstrip b{font-weight:700;} .shipstrip .lhs{font-size:13px;color:var(--text-muted);}
+  .shipstrip .seeall{margin-left:auto;font-size:12.5px;color:var(--brand-content);font-weight:600;text-decoration:none;}
+  .foot{display:flex;gap:11px;align-items:flex-start;background:var(--brand-soft);color:var(--brand-content);border-radius:var(--r-md);padding:14px 16px;font-size:12.5px;line-height:1.55;}
+  .foot .ic{flex:none;font-size:15px;}
+
+  /* ── Load reveal ──────────────────────────────────────────────────────────── */
+  .rise{animation:rise .5s var(--ease) both;}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .note{max-width:1240px;margin:0 auto;padding:0 26px 8px;font-size:12px;color:var(--text-subtle);}
+</style>
+
+<div id="atmo"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">▶</span>
+    <span><b>Content Portal</b><small>Studio · Vishen</small></span>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="seg" role="group" aria-label="Layout">
+    <button id="t-bento" aria-pressed="true" onclick="setLayout('bento')">Bento cockpit</button>
+    <button id="t-hybrid" aria-pressed="false" onclick="setLayout('hybrid')">Hybrid</button>
+  </div>
+  <button class="icobtn" id="themebtn" title="Toggle light / dark" onclick="toggleTheme()">◐</button>
+  <button class="btn add sm">+ New request</button>
+  <span class="avatar">VL</span>
+</header>
+
+<div class="pagehead">
+  <h1>Studio</h1>
+  <p>What's moving, and what needs you.</p>
+</div>
+<p class="note">Brainstorm mock · flip <b>Bento cockpit ↔ Hybrid</b> (top right) and <b>◐</b> for dark. Both lead with your media → clips.</p>
+
+<main class="canvas" id="canvas" data-layout="bento">
+
+  <!-- ZONE: Media → clips (lead) -->
+  <section class="zone z-media rise" style="animation-delay:.04s">
+    <div class="sechead">
+      <div>
+        <span class="eyebrow">◆ Your input</span>
+        <h2 style="margin-top:5px">Your media → clip ideas</h2>
+      </div>
+      <span class="hint">films, podcasts &amp; talks — and the clips we can ship from them</span>
+    </div>
+
+    <div class="addsrc">
+      <span class="ic">+</span>
+      <div class="lab"><b>Add a media source</b><span>Adds it to your pipeline &amp; Major Videos base</span></div>
+      <input placeholder="https://… (YouTube, Dropbox, link)" />
+      <input placeholder="Title (optional)" style="flex:0 1 160px" />
+      <select><option>Type (optional)</option><option>YouTube Long</option><option>Podcast</option></select>
+      <button class="btn add btn-add">Add</button>
+    </div>
+
+    <div class="mediacard">
+      <div class="mc-top">
+        <span class="mc-play">▶</span>
+        <div class="meta"><b>What I learned from Naveen</b><span><span class="badge b-new">New</span> · 2 clip ideas · YouTube Long</span></div>
+        <span class="mc-arrow">→</span>
+      </div>
+      <div class="mc-clips">
+        <div class="clipline"><span class="tri">▶</span><span class="txt">What I learned from Naveen</span></div>
+        <div class="clipline"><span class="tri">▶</span><span class="txt">Why Keeping Promises Matters: From Family to the Boardroom</span></div>
+      </div>
+    </div>
+
+    <div class="mediacard">
+      <div class="mc-top">
+        <span class="mc-play">▶</span>
+        <div class="meta"><b>Interview (Fire-Side Chat) with Eve × Vishen</b><span><span class="badge b-sug">Clips suggested</span> · 8 clip ideas · Vishen YT Channel</span></div>
+        <span class="mc-arrow">→</span>
+      </div>
+      <div class="mc-clips">
+        <div class="clipline"><span class="tri">▶</span><span class="txt">"I call them my team — God, Angels, Ancestors, and Universe."</span><span class="vir">9</span></div>
+        <div class="clipline"><span class="tri">▶</span><span class="txt">"For years I thought I couldn't do both."</span><span class="vir">9</span></div>
+        <div class="clipline"><span class="tri">▶</span><span class="txt">"I thought I was cursed until my early 20s."</span><span class="vir">9</span></div>
+      </div>
+    </div>
+
+    <div class="mediacard">
+      <div class="mc-top">
+        <span class="mc-play">▶</span>
+        <div class="meta"><b>Podcast with Tim Gray</b><span><span class="badge b-sug">Clips suggested</span> · 13 clip ideas · Podcast Featuring Vishen</span></div>
+        <span class="mc-arrow">→</span>
+      </div>
+      <div class="mc-clips">
+        <div class="clipline"><span class="tri">▶</span><span class="txt">"You can meditate all you want — it won't fix this."</span><span class="vir">9</span></div>
+        <div class="clipline"><span class="tri">▶</span><span class="txt">"The thing that really raises your HRV? Spooning."</span><span class="vir">9</span></div>
+        <div class="clipline"><span class="tri">▶</span><span class="txt">"If you're still working 40 hours, you have no idea what you're doing."</span><span class="vir">8</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZONE: Needs your sign-off (focal) -->
+  <section class="zone z-signoff rise" style="animation-delay:.1s">
+    <div class="sechead">
+      <div><span class="eyebrow gold">● Needs you</span><h2 style="margin-top:5px">Awaiting your sign-off</h2></div>
+    </div>
+
+    <div class="commit">
+      <div class="commit-head"><span>🎬</span><h3>Shoots awaiting you</h3><span class="cnt">1</span></div>
+      <div class="commit-row">
+        <span class="ic">🎥</span>
+        <div class="body"><b>Video 1: The Blind Spot Keeping Smart Entrepreneurs Stuck</b><span>Vishen's Invite Video · Jun 29 · Studio Time — London</span></div>
+        <div class="acts"><button class="btn sm onfill">Decline</button><button class="btn sm approve">✓ Approve</button></div>
+      </div>
+    </div>
+
+    <div class="card pad">
+      <div class="eyebrow" style="margin-bottom:10px">✦ Clips awaiting you · 12</div>
+      <div class="clipline" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="vir">9</span><span class="txt">"I call them my team — God, Angels, Ancestors…"</span><button class="btn sm primary">Review</button>
+      </div>
+      <div class="clipline" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="vir">9</span><span class="txt">"The thing that really raises your HRV? Spooning."</span><button class="btn sm primary">Review</button>
+      </div>
+      <div class="clipline" style="padding:8px 0 0">
+        <span class="vir">8</span><span class="txt">"If you're still working 40 hours…"</span><button class="btn sm primary">Review</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ZONE: The pulse -->
+  <section class="zone z-pulse rise" style="animation-delay:.16s">
+    <div class="sechead"><div><span class="eyebrow">◷ The pulse</span><h2 style="margin-top:5px">How the engine is doing</h2></div><span class="hint">as of Jun 28</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">In flight</div><div class="val">568</div><div class="sub">active across all teams</div></div>
+      <div class="kpi"><div class="lbl">Being made now</div><div class="val">54</div><div class="sub">in production</div></div>
+      <div class="kpi attention"><div class="lbl">Awaiting sign-off</div><div class="val">39</div><div class="sub">in review across teams</div></div>
+      <div class="kpi"><div class="lbl">Shipped all-time</div><div class="val">9,109</div><div class="sub">as of Jun 28</div></div>
+    </div>
+  </section>
+
+  <!-- ZONE: Launches -->
+  <section class="zone z-launches rise" style="animation-delay:.22s">
+    <div class="sechead"><div><span class="eyebrow">⛁ Launches</span><h2 style="margin-top:5px">Flowing to your launches</h2></div><span class="hint">grouped by the event it serves</span><a class="seeall" href="#">See all →</a></div>
+
+    <a class="launch" href="#">
+      <div class="launch-top"><span>🖥️</span><span class="nm">VSL Funnel</span><span class="cnt">224 assets · due Apr 7</span></div>
+      <div class="meter"><span class="m-prod" style="width:.4%"></span><span class="m-todo" style="width:99.6%"></span></div>
+      <div class="legend"><span><i class="m-ship"></i>0 shipped</span><span><i class="m-rev"></i>0 in review</span><span><i class="m-prod"></i>1 in production</span><span><i class="m-todo"></i>223 to do</span></div>
+    </a>
+
+    <a class="launch" href="#">
+      <div class="launch-top"><span>🖥️</span><span class="nm">VSL Video</span><span class="cnt">134 assets</span></div>
+      <div class="meter"><span class="m-todo" style="width:100%"></span></div>
+      <div class="legend"><span><i class="m-ship"></i>0 shipped</span><span><i class="m-rev"></i>0 in review</span><span><i class="m-prod"></i>0 in production</span><span><i class="m-todo"></i>134 to do</span></div>
+    </a>
+
+    <a class="launch" href="#">
+      <div class="launch-top"><span>🌐</span><span class="nm">Mastery Online Summit</span><span class="cnt">29 assets · due Apr 20</span></div>
+      <div class="meter"><span class="m-rev" style="width:31%"></span><span class="m-prod" style="width:62%"></span><span class="m-todo" style="width:7%"></span></div>
+      <div class="legend"><span><i class="m-ship"></i>0 shipped</span><span><i class="m-rev"></i>9 in review</span><span><i class="m-prod"></i>18 in production</span><span><i class="m-todo"></i>2 to do</span></div>
+    </a>
+  </section>
+
+  <!-- ZONE: Recently shipped -->
+  <section class="zone z-shipped rise" style="animation-delay:.28s">
+    <div class="sechead"><div><span class="eyebrow">✓ Delivered</span><h2 style="margin-top:5px">Recently shipped</h2></div><span class="hint">who made it</span></div>
+    <div class="shipstrip">
+      <div class="lhs"><b>12 recently shipped</b> · all delivered</div>
+      <a class="seeall" href="#">See all →</a>
+    </div>
+  </section>
+
+  <!-- ZONE: Footnote -->
+  <footer class="zone z-foot rise" style="animation-delay:.34s">
+    <div class="foot">
+      <span class="ic">🔒</span>
+      <div><b>Nothing here changes without you.</b> Everything the AI and the team suggest lands as a proposal. It goes live the moment you approve — and downstream production reads only what you've committed.</div>
+    </div>
+  </footer>
+</main>
+
+<script>
+  function setLayout(name){
+    document.getElementById('canvas').setAttribute('data-layout', name);
+    document.getElementById('t-bento').setAttribute('aria-pressed', String(name==='bento'));
+    document.getElementById('t-hybrid').setAttribute('aria-pressed', String(name==='hybrid'));
+  }
+  function toggleTheme(){
+    var el=document.documentElement;
+    el.setAttribute('data-theme', el.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
+  }
+</script>
