@@ -1,5 +1,14 @@
 # Plan — Social Media Clips Section (marketing-facing clip engine)
 
+> **⚠️ SHIPPED (2026-06-30) with one architecture correction.** The brief assumed an in-base
+> Airtable automation could create Prio tickets in the Content & Comms base. That base's `🎯 Prio`
+> table is a **read-only synced mirror** of the Creative Services Prio table — records can't be
+> created in it. **As built:** "Raise request" creates the ticket **portal-direct in the Creative
+> Services Prio queue** via the app's `createTicket` (same path as `/media`), stores the recId in
+> `📣 Social` → **Creative Ticket ID**, and reads status back cross-base. **No Airtable automation**;
+> the §6 script was removed. The raise picker uses shared intake reference data (Creative Services
+> Event/Asset types), not the Content & Comms `Asset Type` link.
+
 > **Plan location:** on approval, this is saved to the repo at `plans/social-media-clips-section.md` (project convention — plans live in-repo, version-controlled with the code).
 >
 > **Build method:** implement directly, matching this repo's patterns. Do **not** use the `/build-feature` skill — it targets the BlinkWork monorepo (`apps/api` NestJS domains, `packages/shared` Zod DTOs, `pnpm turbo`) and a resolved `prd/` feature PRD, neither of which applies to this standalone Next.js App-Router app.
