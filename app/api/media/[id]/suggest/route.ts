@@ -1,4 +1,5 @@
 import { getMediaSource, updateMediaSource, createClipSuggestions } from '@/lib/media/repository';
+import { mirrorClipsToVishenBase } from '@/lib/media/vishen-sync';
 import { generateStrategy } from '@/lib/clipping/generate';
 import { fetchYouTubeTranscript, normalizeTranscript, TranscriptFetchError } from '@/lib/clipping/transcript';
 import { DEFAULT_CLIP_TYPE, isClipType } from '@/lib/clipping/clip-types';
@@ -65,6 +66,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const clipRes = await createClipSuggestions(id, strategy.reelsClips);
     if (!clipRes.ok) throw new Error(`Failed to write clips: ${clipRes.error.message}`);
+
+    // Mirror the generated clips into Vishen's Clips table when this source came from his base.
+    if (source.sourceRecordId) {
+      try {
+        await mirrorClipsToVishenBase(source.sourceRecordId, strategy.reelsClips, clipRes.data.ids);
+      } catch {
+        /* sync is best-effort — never fail clip generation on a mirror error */
+      }
+    }
 
     await updateMediaSource(id, {
       status: 'Clips Suggested',

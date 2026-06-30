@@ -291,6 +291,9 @@ export const MAJOR_VIDEOS = {
     draftUrl: 'fldsqShd2qV1K1sae', // "Draft URL" (url)
     finalUrl: 'fldxHwImLHdsDWfuL', // "Final URL" (url)
   },
+  links: {
+    clips: 'fldADk2WtsJawXAQy', // → 🎬 Clips (Vishen's), inverse of VISHEN_CLIPS.links.source
+  },
 } as const;
 
 // 🧠 Clip Rules — editable config for the clip-generation engine (created 2026-06-27).
@@ -350,10 +353,31 @@ export const CLIP_SUGGESTIONS = {
     status: 'fldpnlfTD2UwXS8su', // "Status" (Proposed | Approved | Dismissed)
     addedDate: 'fldwmRqAJf2kcUrp3', // "Added Date" (dateTime) — set on create
     createTicket: 'fldNHVmcWAMuYVeXb', // "Create Ticket" (checkbox) — tick to convert to a ticket; convert cron unchecks it
+    vishenClipId: 'fld4Qcvv1Q2biaJAO', // "Vishen Clip ID" (singleLineText) — recId of the mirrored row in Vishen's Clips table
   },
   links: {
     mediaSource: 'fldcmDia3CiWEWJkI', // → 📺 Media Sources (parent)
     ticket: 'fldTcZh1Z5YvugMFX', // → 🎯 Prio Requests (set on approve)
   },
   status_: { proposed: 'Proposed', approved: 'Approved', dismissed: 'Dismissed' },
+} as const;
+
+// 🎬 Clips — Vishen's own clip list in his content base, linked to Major Videos via Source.
+// Two-way synced with 🎬 Clip Suggestions (see plans/vishen-two-way-sync.md). App-generated clips
+// are mirrored here (App Clip ID set); clips Vishen adds by hand flow back into Clip Suggestions.
+export const VISHEN_CLIPS = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblgGCaDK7W22UvSG',
+  fields: {
+    name: 'fldgUxxaSXsYeplFe', // "Name" (singleLineText, primary)
+    status: 'fldrBTX1eD26lPZx1', // "Status" (singleSelect: Todo | In progress | Done)
+    type: 'fldgy2VapMn4X6iti', // "Type" (singleSelect: duration buckets) — not synced (no app equivalent)
+    draft: 'fldFih8GgfX0u5IU5', // "Draft" (url)
+    notes: 'fldD5qTTkth62Fuyy', // "Notes" (multilineText)
+    appClipId: 'fld8zMOlMzFG4Bn3v', // "App Clip ID" (singleLineText) — recId of the mirrored Clip Suggestion
+  },
+  links: {
+    source: 'fldAyfIU17piBfHZQ', // → 🎬 Major Videos (parent), inverse of MAJOR_VIDEOS.links.clips
+  },
+  status_: { todo: 'Todo', inProgress: 'In progress', done: 'Done' },
 } as const;

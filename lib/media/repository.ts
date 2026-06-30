@@ -14,6 +14,7 @@ import {
   type AirtableResult,
 } from '@/lib/airtable/rest';
 import type { ReelsClip } from '@/lib/clipping/schema';
+import { pushMediaSourceToMajorVideo, pushClipStatusToVishen } from '@/lib/media/vishen-sync';
 
 const MF = M.fields;
 const ML = M.links;
@@ -172,7 +173,12 @@ export async function updateMediaSource(
   for (const [k, v] of Object.entries(patch)) fields[MF[k as keyof typeof MF]] = v;
   const res = await updateRecord<Raw>(M.baseId, M.tableId, id, fields);
   if (!res.ok) return res;
-  return { ok: true, data: mapSource(res.data) };
+  const updated = mapSource(res.data);
+  // Outbound: mirror shared fields onto the linked Major Video (best-effort, diff-guarded).
+  if (updated.sourceRecordId) {
+    try { await pushMediaSourceToMajorVideo(updated); } catch { /* sync is best-effort */ }
+  }
+  return { ok: true, data: updated };
 }
 
 /** Existing source URLs (for auto-discover dedupe). */
@@ -215,6 +221,7 @@ export interface ClipSuggestion {
   status: string | null;
   ticketId: string | null;
   mediaSourceId: string | null;
+  vishenClipId: string | null;
 }
 
 function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
@@ -233,6 +240,7 @@ function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
     status: selectName(f[CF.status]),
     ticketId: firstLinkedId(f[CL.ticket]),
     mediaSourceId: firstLinkedId(f[CL.mediaSource]),
+    vishenClipId: str(f[CF.vishenClipId]),
   };
 }
 
@@ -308,7 +316,7 @@ export async function getClipsByIds(ids: string[]): Promise<AirtableResult<ClipS
 export async function createClipSuggestions(
   mediaSourceId: string,
   clips: ReelsClip[],
-): Promise<AirtableResult<{ count: number }>> {
+): Promise<AirtableResult<{ count: number; ids: string[] }>> {
   const now = new Date().toISOString();
   const records = clips.map((c, i) => ({
     fields: {
@@ -328,7 +336,8 @@ export async function createClipSuggestions(
   }));
   const res = await createRecords(C.baseId, C.tableId, records);
   if (!res.ok) return res;
-  return { ok: true, data: { count: res.data.length } };
+  // ids are in clip order — the caller zips them with `clips` to mirror into Vishen's base.
+  return { ok: true, data: { count: res.data.length, ids: res.data.map((r) => r.id) } };
 }
 
 export async function updateClipSuggestion(
@@ -341,5 +350,10 @@ export async function updateClipSuggestion(
   if (patch.createTicket !== undefined) fields[CF.createTicket] = patch.createTicket;
   const res = await updateRecord<Raw>(C.baseId, C.tableId, id, fields);
   if (!res.ok) return res;
-  return { ok: true, data: mapClip(res.data) };
+  const clip = mapClip(res.data);
+  // Outbound: when status changes, mirror it onto the linked Vishen Clips row (best-effort).
+  if (patch.status) {
+    try { await pushClipStatusToVishen(clip.vishenClipId, clip.status); } catch { /* best-effort */ }
+  }
+  return { ok: true, data: clip };
 }
