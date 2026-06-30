@@ -1,7 +1,7 @@
 import { AppShell } from '@/components/ui/AppShell';
 import { BackLink } from '@/components/studio/BackLink';
 import { ShootSignOff } from '@/components/studio/ShootSignOff';
-import { FounderShootsGrid } from '@/components/studio/FounderShootsGrid';
+import { FounderShoots } from '@/components/studio/FounderShoots';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import { loadStudio, getPendingShoots, toShootSignOffItem } from '@/lib/studio/data';
 
@@ -20,9 +20,9 @@ export default async function StudioShootsPage() {
       <ShootSignOff items={pending} showSeeAll={false} />
       <div className="sec-head" style={{ marginTop: 20 }}>
         <h3>All shoots</h3>
-        <span className="hint">{data.shoots.length} total</span>
+        <span className="hint">every shoot, cards or grid</span>
       </div>
-      <FounderShootsGrid shoots={data.shoots} />
+      <FounderShoots shoots={data.shoots} />
     </AppShell>
   );
 }

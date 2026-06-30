@@ -278,24 +278,28 @@ input:not([type="checkbox"]):not([type="radio"]):focus,select:focus,textarea:foc
 input[type="checkbox"],input[type="radio"]{width:auto;accent-color:var(--brand);cursor:pointer;}
 label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:5px;}
 .app{display:flex;min-height:100vh;}
-.side{width:236px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
-  padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;}
-.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;}
-.brand-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));color:#fff;display:flex;
-  align-items:center;justify-content:center;font-weight:700;font-size:15px;position:relative;flex-shrink:0;}
+.side{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  padding:0 10px 14px;display:flex;flex-direction:column;gap:1px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.brand{display:flex;align-items:center;gap:10px;padding:15px 18px 14px;margin:0 -10px 6px;
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;
+  background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(140%) blur(8px);}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));color:#fff;display:flex;
+  align-items:center;justify-content:center;font-weight:700;font-size:16px;font-family:var(--font-display);position:relative;flex-shrink:0;box-shadow:var(--sh-1);}
 .brand-mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;
   background:var(--gold);border:2px solid var(--surface);}
 .brand-txt{display:flex;flex-direction:column;line-height:1.15;}
-.brand-txt b{font-size:13.5px;font-weight:700;font-family:var(--font-display);letter-spacing:-.01em;}
+.brand-txt b{font-size:14px;font-weight:700;font-family:var(--font-display);letter-spacing:-.01em;}
 .brand-txt span{font-size:11px;color:var(--text-subtle);}
-.nav-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);
-  padding:14px 11px 5px;}
-.nav{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:var(--r-sm);cursor:pointer;
+.nav-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-subtle);
+  padding:16px 11px 6px;}
+.nav{display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:var(--r-sm);cursor:pointer;
   font-size:13.5px;color:var(--text-muted);border:none;background:transparent;width:100%;text-align:left;
   transition:background var(--ease) .12s,color var(--ease) .12s;}
+.nav svg{width:18px;height:18px;flex-shrink:0;color:var(--text-subtle);transition:color var(--ease) .12s;}
 .nav:hover{background:var(--bg-subtle);color:var(--text);}
-.nav.active{background:var(--brand-soft);color:var(--brand-content);font-weight:600;box-shadow:inset 2px 0 0 var(--brand);}
-.nav svg{width:18px;height:18px;flex-shrink:0;}
+.nav:hover svg{color:var(--text);}
+.nav.active{background:var(--brand-soft);color:var(--brand-content);font-weight:600;}
+.nav.active svg{color:var(--brand);}
 .nav .pip{margin-left:auto;font-size:10px;font-weight:600;background:var(--gold-soft);color:var(--gold-content);
   padding:1px 7px;border-radius:var(--r-full);}
 .nav-tour{color:var(--brand-content);}
@@ -901,11 +905,11 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
    Grid leads with the funnel hero; sign-off is the tall focal right
    column. Funnel namespaced .st-funnel/.st-lane (.funnel is taken).
    ================================================================ */
-.studio-bento{display:grid;gap:16px;align-items:start;grid-template-columns:1fr 1fr 1fr;
+.studio-bento{display:grid;gap:16px 18px;align-items:start;grid-template-columns:1fr 1fr;
   grid-template-areas:
-    "funnel funnel funnel"
-    "media media signoff"
-    "launches launches shipped";}
+    "funnel funnel"
+    "media launches"
+    "signoff shipped";}
 .sz-funnel{grid-area:funnel;min-width:0;} .sz-media{grid-area:media;min-width:0;}
 .sz-signoff{grid-area:signoff;min-width:0;}
 .sz-launches{grid-area:launches;min-width:0;} .sz-shipped{grid-area:shipped;min-width:0;}

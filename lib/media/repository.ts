@@ -109,15 +109,20 @@ const LIST_FIELDS = [
   MF.sourceRecordId,
 ];
 
-/** Inbox list — newest first. Excludes Archived. */
+/**
+ * Inbox list — newest first. Excludes Archived. Paginates: the non-archived set is
+ * small today but grows over time, and a single page caps at 100 — without paging,
+ * the newest sources could fall beyond page 1 (default order) and vanish before the
+ * client-side createdTime sort. `limit` still caps the total.
+ */
 export async function listMediaSources(limit = 100): Promise<AirtableResult<MediaSource[]>> {
-  const res = await listRecords<Raw>(M.baseId, M.tableId, {
+  const res = await listAll<Raw>(M.baseId, M.tableId, {
     fields: LIST_FIELDS,
     filterByFormula: `NOT({Status} = 'Archived')`,
     maxRecords: limit,
   });
   if (!res.ok) return res;
-  const rows = res.data.records
+  const rows = res.data
     .map(mapSource)
     .sort((a, b) => (a.createdTime < b.createdTime ? 1 : -1));
   return { ok: true, data: rows };
@@ -244,10 +249,16 @@ function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
   };
 }
 
-/** All clips with a given Status (across sources), highest virality first. For the cockpit. */
+/**
+ * All clips with a given Status (across sources), highest virality first. For the cockpit.
+ * Sorts by Virality Score server-side so the single page (capped at `limit` ≤100) holds
+ * the genuinely top clips — without it, a status with >100 clips would return an arbitrary
+ * page and the most-viral ones could be missing. The client re-sort is then a no-op safety.
+ */
 export async function listClipsByStatus(status: string, limit = 60): Promise<AirtableResult<ClipSuggestion[]>> {
   const res = await listRecords<Raw>(C.baseId, C.tableId, {
     filterByFormula: `{Status} = '${status.replace(/'/g, "\\'")}'`,
+    sort: [{ field: CF.viralityScore, direction: 'desc' }],
     maxRecords: limit,
   });
   if (!res.ok) return res;
@@ -286,12 +297,12 @@ export async function listClipSuggestions(
  * by convertClipsToTickets; the convert cron also unticks the box after success.
  */
 export async function listClipsToConvert(limit = 100): Promise<AirtableResult<ClipSuggestion[]>> {
-  const res = await listRecords<Raw>(C.baseId, C.tableId, {
+  const res = await listAll<Raw>(C.baseId, C.tableId, {
     filterByFormula: `AND({Create Ticket} = TRUE(), {Status} != '${C.status_.dismissed}')`,
     maxRecords: limit,
   });
   if (!res.ok) return res;
-  return { ok: true, data: res.data.records.map(mapClip) };
+  return { ok: true, data: res.data.map(mapClip) };
 }
 
 /**

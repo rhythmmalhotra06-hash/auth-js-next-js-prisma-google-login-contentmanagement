@@ -2,7 +2,7 @@
 // tickets + set status. Expands as the Airtable-direct migration proceeds.
 
 import { TICKETS } from '@/lib/airtable/field-map';
-import { listRecords, createRecord, updateRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
+import { listAll, createRecord, updateRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
 
 const F = TICKETS.fields;
 const L = TICKETS.links;
@@ -37,15 +37,20 @@ function mapTicket(rec: AirtableRecord<RawTicket>): TicketRow {
   };
 }
 
-/** Active tickets (excludes Done / Won't Do), newest-scored first. Capped for the POC. */
+/**
+ * Active tickets (excludes Done / Won't Do), newest-scored first. Paginates across
+ * all pages: the active filter keeps this well under the 10k guardrail, and a single
+ * page caps at 100 — without paging, tickets beyond the first 100 (in default order)
+ * would be dropped before the client-side score sort runs. `limit` caps the total.
+ */
 export async function listActiveTickets(limit = 50): Promise<AirtableResult<TicketRow[]>> {
-  const res = await listRecords<RawTicket>(TICKETS.baseId, TICKETS.tableId, {
+  const res = await listAll<RawTicket>(TICKETS.baseId, TICKETS.tableId, {
     fields: [F.name, F.ticketStatus, F.prioStatus, F.dueDate, F.score],
     filterByFormula: `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`,
     maxRecords: limit,
   });
   if (!res.ok) return res;
-  const rows = res.data.records.map(mapTicket).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const rows = res.data.map(mapTicket).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   return { ok: true, data: rows };
 }
 
@@ -111,16 +116,20 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
   return { ok: true, data: { id: res.data.id } };
 }
 
-/** Count tickets whose Ticket Status is in the given set (e.g. Shipping/Done for "published"). */
+/**
+ * Count tickets whose Ticket Status is in the given set (e.g. Shipping/Done for "published").
+ * Paginates so the count is exact — a single page caps at 100 and would undercount any
+ * status with more rows. NOTE: scans every matching row, so do NOT call on hot paths for
+ * large terminal statuses (Done ≈ 9k); lifetime counts come from the nightly snapshot.
+ */
 export async function countTicketsByStatus(statuses: string[]): Promise<number> {
   if (statuses.length === 0) return 0;
   const ors = statuses.map((s) => `{Ticket Status} = '${s.replace(/'/g, "\\'")}'`).join(', ');
-  const res = await listRecords(TICKETS.baseId, TICKETS.tableId, {
+  const res = await listAll(TICKETS.baseId, TICKETS.tableId, {
     filterByFormula: `OR(${ors})`,
     fields: [F.ticketStatus],
-    maxRecords: 1000,
   });
-  return res.ok ? res.data.records.length : 0;
+  return res.ok ? res.data.length : 0;
 }
 
 /** Patch arbitrary writable fields on a ticket (status, prio status, links, asset URLs). */

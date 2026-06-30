@@ -11,7 +11,6 @@
 import { SOCIAL as S, TICKETS as T } from '@/lib/airtable/field-map';
 import {
   listAll,
-  listRecords,
   getRecord,
   createRecords,
   updateRecord,
@@ -146,19 +145,23 @@ export interface TicketState {
 export async function getSocialTicketStates(ticketIds: string[]): Promise<Record<string, TicketState>> {
   const ids = [...new Set(ticketIds.filter(Boolean))];
   if (!ids.length) return {};
-  const formula = `OR(${ids.map((id) => `RECORD_ID() = '${id}'`).join(',')})`;
-  const res = await listRecords<Raw>(T.baseId, T.tableId, {
-    filterByFormula: formula,
-    fields: [T.fields.prioStatus, T.fields.ticketStatus],
-    pageSize: ids.length,
-  });
-  if (!res.ok) return {};
   const out: Record<string, TicketState> = {};
-  for (const rec of res.data.records) {
-    out[rec.id] = {
-      prioStatus: selectName(rec.fields[T.fields.prioStatus]),
-      ticketStatus: selectName(rec.fields[T.fields.ticketStatus]),
-    };
+  // Batch ≤50 ids per query (the RECORD_ID() OR formula gets unwieldy, and a single
+  // page caps at 100 — chunking keeps every raised clip's state resolvable past 100).
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    const formula = `OR(${chunk.map((id) => `RECORD_ID() = '${id}'`).join(',')})`;
+    const res = await listAll<Raw>(T.baseId, T.tableId, {
+      filterByFormula: formula,
+      fields: [T.fields.prioStatus, T.fields.ticketStatus],
+    });
+    if (!res.ok) continue;
+    for (const rec of res.data) {
+      out[rec.id] = {
+        prioStatus: selectName(rec.fields[T.fields.prioStatus]),
+        ticketStatus: selectName(rec.fields[T.fields.ticketStatus]),
+      };
+    }
   }
   return out;
 }
