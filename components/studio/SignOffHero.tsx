@@ -12,17 +12,7 @@ export function SignOffHero({ items }: { items: ReviewItem[] }) {
   const hide = (id: string) => setHidden((prev) => new Set(prev).add(id));
   const visible = items.filter((i) => !hidden.has(i.id));
 
-  if (visible.length === 0) {
-    return (
-      <div className="st-signoff-clear">
-        <div className="badge"><Icon name="check" size={20} /></div>
-        <div>
-          <h3>Nothing is waiting on you</h3>
-          <p>The team can keep moving. Anything that needs your sign-off shows up here.</p>
-        </div>
-      </div>
-    );
-  }
+  if (visible.length === 0) return null;
 
   return (
     <div className="st-commit">
