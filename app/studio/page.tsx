@@ -9,11 +9,9 @@ import {
 } from '@/lib/studio/data';
 import { SignOffHero } from '@/components/studio/SignOffHero';
 import { ShootSignOff } from '@/components/studio/ShootSignOff';
-import { Pulse } from '@/components/studio/Pulse';
-import { LaunchCard } from '@/components/studio/LaunchCard';
+import { LaunchesSection } from '@/components/studio/LaunchesSection';
 import { ClipsList, type ClipRow } from '@/components/studio/ClipsList';
 import { AddVishenMedia } from '@/components/studio/AddVishenMedia';
-import { ProposeFootnote } from '@/components/studio/ProposeFootnote';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
 import { getClipsByIds } from '@/lib/media/repository';
 
@@ -48,7 +46,6 @@ async function StudioBody() {
     { key: 'media', label: 'Media → clips', count: clipIds.length, cap: `ideas · ${vishenMedia.length} sources`, href: '/vishen', icon: '🎬' },
     { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️' },
     { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting, cap: 'in review', href: '/studio/sign-off', icon: '⏳', gold: true },
-    { key: 'ship', label: 'Shipped', count: pulse.shippedAll != null ? pulse.shippedAll.toLocaleString() : '—', cap: 'all-time', href: '/studio/shipped', icon: '✓' },
   ];
 
   return (
@@ -73,12 +70,6 @@ async function StudioBody() {
         <ShootSignOff items={pendingShoots} />
       </section>
 
-      {/* The pulse */}
-      <section className="sz-pulse">
-        <div className="sec-head"><h3>The pulse</h3>{pulse.asOf && <span className="hint">{pulse.asOf}</span>}</div>
-        <Pulse pulse={pulse} />
-      </section>
-
       {/* Flowing to your launches */}
       <section className="sz-launches">
         <div className="sec-head">
@@ -88,7 +79,7 @@ async function StudioBody() {
         </div>
         {launches.length === 0
           ? <div className="empty">No active launches.</div>
-          : launches.slice(0, 3).map((l) => <LaunchCard key={l.slug} launch={l} />)}
+          : <LaunchesSection launches={launches} />}
       </section>
 
       {/* Recently shipped — thin proof strip */}
@@ -98,10 +89,6 @@ async function StudioBody() {
           <div className="lhs"><b>{data.recentShipped.length} recently shipped</b> · all delivered</div>
           <Link href="/studio/shipped" className="st-seeall">See all →</Link>
         </div>
-      </section>
-
-      <section className="sz-foot">
-        <ProposeFootnote />
       </section>
     </div>
   );

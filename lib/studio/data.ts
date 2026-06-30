@@ -64,6 +64,31 @@ export function toReviewItem(t: QueueTicket): ReviewItem {
   return { id: t.id, title: t.title, event: t.eventType, score: t.priorityScore, rank: t.queueRank };
 }
 
+// ── Content review queue (work in Review / In Revision, grouped by status) ────
+
+export interface ContentReviewItem {
+  id: string;
+  title: string;
+  event: string | null;
+  assignee: string | null;
+  ticketStatus: string;
+  dueDate: string | null;
+}
+
+/** Tickets the team has put up for review — Ticket Status = "Review" or "In Revision". */
+export function getContentReviewQueue(active: QueueTicket[]): ContentReviewItem[] {
+  return active
+    .filter((t) => t.ticketStatus === 'Review' || t.ticketStatus === 'In Revision')
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      event: t.eventType,
+      assignee: t.assignee,
+      ticketStatus: t.ticketStatus ?? '—',
+      dueDate: t.dueDate,
+    }));
+}
+
 // ── Shoots awaiting Vishen's sign-off ────────────────────────────────────────
 
 /** Shoots waiting on Vishen's approval (Filming Status = "Needs Vishen's Review"). */
