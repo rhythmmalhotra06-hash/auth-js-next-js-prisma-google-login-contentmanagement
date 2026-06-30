@@ -920,6 +920,10 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 /* review-queue rows as links */
 .st-rowlink{color:inherit;cursor:pointer;text-decoration:none;}
 .st-list a.st-rowlink:hover{background:var(--bg-subtle);}
+/* founder all-shoots grid */
+.shoot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;}
+.shoot-grid .card{transition:border-color var(--ease) .12s,box-shadow var(--ease) .12s,transform var(--ease) .12s;}
+.shoot-grid a.card:hover{border-color:var(--brand-border);box-shadow:var(--sh-2);transform:translateY(-2px);}
 
 /* engine pipeline funnel — the hero on top */
 .st-funnel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--surface);

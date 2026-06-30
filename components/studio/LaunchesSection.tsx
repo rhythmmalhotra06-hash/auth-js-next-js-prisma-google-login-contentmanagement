@@ -1,27 +1,28 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { LaunchCard } from './LaunchCard';
 import type { Launch } from '@/lib/studio/data';
 
-// Filterable launches list. Type to narrow to the launches you care about;
-// empty filter shows the first few so the section stays compact.
+// Filterable launches. Options are the live launch events (each is an event type
+// with active work), so the dropdown only ever lists active launches.
 export function LaunchesSection({ launches, previewCount = 4 }: { launches: Launch[]; previewCount?: number }) {
-  const [q, setQ] = useState('');
-  const needle = q.trim().toLowerCase();
-  const shown = useMemo(
-    () => (needle ? launches.filter((l) => l.event.toLowerCase().includes(needle)) : launches.slice(0, previewCount)),
-    [launches, needle, previewCount],
-  );
+  const [sel, setSel] = useState('');
+  const shown = sel ? launches.filter((l) => l.event === sel) : launches.slice(0, previewCount);
 
   return (
     <>
       <div className="st-launchfilter">
-        <input className="qsearch" placeholder="Filter launches…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter launches" />
-        {needle && <span className="subtle" style={{ fontSize: 12 }}>{shown.length} of {launches.length}</span>}
+        <select value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Filter launches by event">
+          <option value="">All active launches</option>
+          {launches.map((l) => <option key={l.slug} value={l.event}>{l.event}</option>)}
+        </select>
+        {!sel && launches.length > previewCount && (
+          <span className="subtle" style={{ fontSize: 12 }}>showing {previewCount} of {launches.length}</span>
+        )}
       </div>
       {shown.length === 0
-        ? <div className="empty">No launches match “{q}”.</div>
+        ? <div className="empty">No active launches.</div>
         : shown.map((l) => <LaunchCard key={l.slug} launch={l} />)}
     </>
   );

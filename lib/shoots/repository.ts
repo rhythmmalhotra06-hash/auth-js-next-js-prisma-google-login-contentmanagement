@@ -4,7 +4,7 @@
 
 import { SHOOTS as S } from '@/lib/airtable/field-map';
 import {
-  listRecords,
+  listAll,
   getRecord,
   createRecord,
   updateRecord,
@@ -69,15 +69,20 @@ const LIST_FIELDS = [
   SL.postProductionTicket,
 ];
 
-/** Queue list — newest first. Excludes Cancelled by default. */
+/**
+ * Queue list — newest first. Excludes Cancelled by default. Paginates across all
+ * pages: the cancelled filter bounds this well under the 10k guardrail (~190 rows),
+ * and a single page is capped at 100 by Airtable — without paging, recent shoots
+ * beyond the first 100 (in default view order) silently dropped before the sort.
+ */
 export async function listShoots(limit = 200): Promise<AirtableResult<ShootRow[]>> {
-  const res = await listRecords<Raw>(S.baseId, S.tableId, {
+  const res = await listAll<Raw>(S.baseId, S.tableId, {
     fields: LIST_FIELDS,
     filterByFormula: `NOT({${S.statusFieldName}} = '${S.status_.cancelled}')`,
     maxRecords: limit,
   });
   if (!res.ok) return res;
-  const rows = res.data.records
+  const rows = res.data
     .map(mapShoot)
     .sort((a, b) => (a.createdTime < b.createdTime ? 1 : -1));
   return { ok: true, data: rows };

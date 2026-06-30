@@ -33,6 +33,7 @@ export interface QueueTicket {
   officialCalendarId: string | null;
   typeOfRequest: string | null;
   dueDate: string | null;
+  folderUrl: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
 }
@@ -67,7 +68,7 @@ const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't
 // history), so never scan it — read only the newest few (getRecentShipped).
 const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;
 
-const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate,
+const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate, F.assetFolderLink,
   L.assignedCreative, L.assignedContractor, L.requestedBy, L.eventTypes, L.assetTypes, L.officialCalendar];
 
 // Maps a raw Prio Requests record to a QueueTicket (+ assigneeId for filtering).
@@ -96,6 +97,7 @@ function mapTicketRow(
     officialCalendarId: firstLinkedId(f[L.officialCalendar]),
     typeOfRequest: str(f[F.typeOfRequest]),
     dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
+    folderUrl: str(f[F.assetFolderLink]),
   };
 }
 

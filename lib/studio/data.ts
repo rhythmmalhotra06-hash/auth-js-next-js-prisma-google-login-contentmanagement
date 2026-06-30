@@ -70,9 +70,12 @@ export interface ContentReviewItem {
   id: string;
   title: string;
   event: string | null;
+  assetType: string | null;
   assignee: string | null;
   ticketStatus: string;
+  rank: number | null;
   dueDate: string | null;
+  folderUrl: string | null;
 }
 
 /** Tickets the team has put up for review — Ticket Status = "Review" or "In Revision". */
@@ -83,10 +86,15 @@ export function getContentReviewQueue(active: QueueTicket[]): ContentReviewItem[
       id: t.id,
       title: t.title,
       event: t.eventType,
+      assetType: t.assetType,
       assignee: t.assignee,
       ticketStatus: t.ticketStatus ?? '—',
+      rank: t.queueRank,
       dueDate: t.dueDate,
-    }));
+      folderUrl: t.folderUrl,
+    }))
+    // highest starred priority first
+    .sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0));
 }
 
 // ── Shoots awaiting Vishen's sign-off ────────────────────────────────────────

@@ -8,7 +8,7 @@ import { approveShoot, declineShoot } from '@/app/studio/actions';
 import type { ShootSignOffItem } from '@/lib/studio/data';
 
 /** Shoots waiting on Vishen's sign-off — mirrors the ticket SignOffHero commit block. */
-export function ShootSignOff({ items }: { items: ShootSignOffItem[] }) {
+export function ShootSignOff({ items, showSeeAll = true }: { items: ShootSignOffItem[]; showSeeAll?: boolean }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const hide = (id: string) => setHidden((prev) => new Set(prev).add(id));
   const visible = items.filter((i) => !hidden.has(i.id));
@@ -20,7 +20,7 @@ export function ShootSignOff({ items }: { items: ShootSignOffItem[] }) {
       <div className="sec-head">
         <h3>Shoots awaiting your sign-off</h3>
         <span className="hint">approve filming, or send it back</span>
-        <Link href="/shoots" className="st-seeall">See all shoots →</Link>
+        {showSeeAll && <Link href="/studio/shoots" className="st-seeall">See all shoots →</Link>}
       </div>
       <div className="st-commit">
         <div className="st-commit-list">
@@ -63,7 +63,7 @@ function Row({ item, onDone }: { item: ShootSignOffItem; onDone: () => void }) {
     <>
       <div className="st-commit-row">
         <div className="title">
-          <b>{item.title}</b>
+          <Link href={`/studio/shoots/${item.id}`} style={{ color: 'inherit' }}><b>{item.title}</b></Link>
           <div className="meta">{meta || 'No filming details yet'}</div>
         </div>
         <div className="st-rowacts">
