@@ -55,6 +55,8 @@ jobs:
             test "${code}" = "200"
           }
           call /api/media/discover
+          # Vishen's Major Videos base → Media Sources (rows with a video link, created after cutoff).
+          call /api/media/sync-major-videos
           # Slack channel scan (Phase 2). Harmless no-op until SLACK_* env is set on the service.
           call /api/media/slack-scan || echo "slack-scan not configured yet — skipping"
           # Airtable checkbox → ticket: convert clips ticked "Create Ticket".

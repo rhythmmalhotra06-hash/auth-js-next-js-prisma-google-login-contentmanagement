@@ -8,6 +8,7 @@
 export const BASES = {
   creativeServices: 'appFEFygXo2pRc8AR',
   adsCreativeLib: 'appWYOr2p4RKHf2LR',
+  vishenContent: 'appvBtCYdaSrD1y11', // Vishen's personal content base (Major Videos lives here)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -261,6 +262,7 @@ export const MEDIA_SOURCES = {
     submittedDate: 'fld0iEsDj4xv2ABpt', // "Submitted Date" (dateTime) — set on create
     clipsAddedDate: 'fldn3QKcQCIiK6nrr', // "Clips Added Date" (dateTime) — set when clips written
     ticketDueDate: 'fldDfUyOazIWkgq98', // "Ticket Due Date" (date) — default due date for checkbox-created tickets; falls back to today+7
+    sourceRecordId: 'fldaSr62jen1C1wgI', // "Source Record ID" (singleLineText) — provenance/dedupe for cross-base sync (Major Videos)
   },
   links: {
     submittedBy: 'fldFXpTr3za0Qc8Pd', // → 👬 Employees
@@ -273,6 +275,22 @@ export const MEDIA_SOURCES = {
   // singleSelect option values (write the plain name string).
   status_: { new: 'New', transcribing: 'Transcribing', clipsSuggested: 'Clips Suggested', error: 'Error', archived: 'Archived' },
   via: { portal: 'Portal', airtable: 'Airtable', slack: 'Slack', autoDiscover: 'Auto-discover' },
+} as const;
+
+// 🎬 Major Videos — Vishen's manually-maintained film log in his own content base.
+// One-way sync into 📺 Media Sources (rows with a Final/Draft URL) so his media reaches the
+// production pipeline; the Studio "add media" entry also writes rows back here. See
+// lib/media/major-videos.ts. Field names referenced in filterByFormula: "Final URL", "Draft URL".
+export const MAJOR_VIDEOS = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblSrtPXAeiGeLUwW',
+  fields: {
+    name: 'fldLy51h0yvJy7OP9', // "Name" (singleLineText, primary)
+    filmed: 'fldqRI3wSLtqPr93F', // "Filmed" (date)
+    select: 'fldoMVNmdmVEPz1Uc', // "Select" (multipleSelects) — content type (Podcast by Vishen, Youtube Long, Masterclass…)
+    draftUrl: 'fldsqShd2qV1K1sae', // "Draft URL" (url)
+    finalUrl: 'fldxHwImLHdsDWfuL', // "Final URL" (url)
+  },
 } as const;
 
 // 🧠 Clip Rules — editable config for the clip-generation engine (created 2026-06-27).

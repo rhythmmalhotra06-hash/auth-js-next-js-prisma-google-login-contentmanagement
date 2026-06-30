@@ -68,6 +68,8 @@ export interface MediaSource {
   ticketAssetTypeId: string | null;
   ticketOfficialCalendarId: string | null;
   ticketDueDate: string | null;
+  // Provenance: originating record id when synced from / written back to another base (Major Videos).
+  sourceRecordId: string | null;
 }
 
 function mapSource(rec: AirtableRecord<Raw>): MediaSource {
@@ -96,12 +98,14 @@ function mapSource(rec: AirtableRecord<Raw>): MediaSource {
     ticketAssetTypeId: firstLinkedId(f[ML.ticketAssetType]),
     ticketOfficialCalendarId: firstLinkedId(f[ML.ticketOfficialCalendar]),
     ticketDueDate: str(f[MF.ticketDueDate]),
+    sourceRecordId: str(f[MF.sourceRecordId]),
   };
 }
 
 const LIST_FIELDS = [
   MF.title, MF.sourceUrl, MF.downloadUrl, MF.platform, MF.status, MF.guestShow, MF.audience,
   MF.submittedVia, MF.usedWebSearch, MF.error, MF.submittedDate, MF.clipsAddedDate, ML.clipSuggestions,
+  MF.sourceRecordId,
 ];
 
 /** Inbox list — newest first. Excludes Archived. */
@@ -136,6 +140,7 @@ export interface CreateMediaSourceInput {
   submittedByRecId?: string | null; // Employee recId
   transcript?: string | null; // captured source transcript
   status?: string; // defaults New
+  sourceRecordId?: string | null; // originating record id (Major Videos) — provenance/dedupe
 }
 
 export async function createMediaSource(input: CreateMediaSourceInput): Promise<AirtableResult<MediaSource>> {
@@ -152,6 +157,7 @@ export async function createMediaSource(input: CreateMediaSourceInput): Promise<
   if (input.audience) fields[MF.audience] = input.audience;
   if (input.transcript) fields[MF.transcript] = input.transcript.slice(0, 95000);
   if (input.submittedByRecId) fields[ML.submittedBy] = [input.submittedByRecId];
+  if (input.sourceRecordId) fields[MF.sourceRecordId] = input.sourceRecordId;
 
   const res = await createRecord<Raw>(M.baseId, M.tableId, fields);
   if (!res.ok) return res;
@@ -177,6 +183,18 @@ export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>>
   for (const rec of res.data) {
     const u = str(rec.fields[MF.sourceUrl]);
     if (u) set.add(u);
+  }
+  return { ok: true, data: set };
+}
+
+/** Existing Source Record IDs (for cross-base dedupe — Major Videos sync + write-back). */
+export async function existingSourceRecordIds(): Promise<AirtableResult<Set<string>>> {
+  const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceRecordId] });
+  if (!res.ok) return res;
+  const set = new Set<string>();
+  for (const rec of res.data) {
+    const id = str(rec.fields[MF.sourceRecordId]);
+    if (id) set.add(id);
   }
   return { ok: true, data: set };
 }

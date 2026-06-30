@@ -198,5 +198,9 @@ export function launchTickets(slug: string, active: QueueTicket[], recentShipped
 // ── Clips (Vishen's own content → suggested clips) ───────────────────────────
 
 export function getVishenMedia(media: MediaSource[]): MediaSource[] {
-  return media.filter((m) => `${m.guestShow ?? ''} ${m.title ?? ''}`.toLowerCase().includes('vishen'));
+  // Primary marker: rows synced from / written back to Vishen's Major Videos base carry a
+  // Source Record ID. Keep the legacy "vishen" name match as a fallback for older rows.
+  return media.filter(
+    (m) => m.sourceRecordId != null || `${m.guestShow ?? ''} ${m.title ?? ''}`.toLowerCase().includes('vishen'),
+  );
 }

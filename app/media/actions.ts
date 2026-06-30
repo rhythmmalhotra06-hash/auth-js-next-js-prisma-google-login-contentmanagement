@@ -13,6 +13,7 @@ import {
   type ClipSuggestion,
   type MediaSource,
 } from '@/lib/media/repository';
+import { createMajorVideo, derivePlatform } from '@/lib/media/major-videos';
 import { sliceTranscriptForClip } from '@/lib/clipping/transcript';
 
 // ── Submit a media link (portal intake) ─────────────────────────────────────
@@ -24,6 +25,8 @@ export interface SubmitMediaInput {
   guestShow?: string;
   audience?: string; // Cold | Warm
   transcript?: string; // optional — captured upfront so a blocked YouTube fetch never costs a round-trip
+  type?: string; // content category (Major Videos "Select"); stored on Guest/Show when set
+  writeBack?: boolean; // Studio "add media": also create a row in Vishen's Major Videos base
 }
 
 export interface SubmitMediaResult {
@@ -32,29 +35,42 @@ export interface SubmitMediaResult {
   error?: string;
 }
 
-const YT_RE = /(?:youtube\.com\/(?:watch\?v=|live\/|embed\/|shorts\/)|youtu\.be\/)[A-Za-z0-9_-]{11}/;
-
 export async function submitMediaLink(input: SubmitMediaInput): Promise<SubmitMediaResult> {
   const url = input.url?.trim();
-  if (!url) return { ok: false, error: 'Paste a YouTube link.' };
-  if (!YT_RE.test(url)) return { ok: false, error: 'That doesn’t look like a YouTube URL (v1 supports YouTube only).' };
+  if (!url) return { ok: false, error: 'Paste a media link first.' };
 
   const employee = await getEmployeeForSession();
+  const platform = derivePlatform(url);
+  const title = input.title?.trim() || null;
+  // The type doubles as Guest/Show context when an explicit guestShow isn't given.
+  const guestShow = input.guestShow?.trim() || input.type?.trim() || null;
+
+  // Studio "add media": write a row back to Vishen's Major Videos base first, so his table
+  // stays authoritative and the next sync run treats it as already-mirrored (no duplicate).
+  let sourceRecordId: string | null = null;
+  if (input.writeBack) {
+    const back = await createMajorVideo({ title: title ?? url, url, type: input.type?.trim() || null });
+    if (!back.ok) return { ok: false, error: `Couldn’t write to Major Videos: ${back.error.message}` };
+    sourceRecordId = back.data.id;
+  }
 
   const res = await createMediaSource({
     url,
-    downloadUrl: input.downloadUrl?.trim() || null,
-    title: input.title?.trim() || null,
-    platform: 'YouTube',
-    guestShow: input.guestShow?.trim() || null,
+    // A non-YouTube link (Dropbox, Vimeo…) is also the editor's download link.
+    downloadUrl: input.downloadUrl?.trim() || (platform === 'Other' ? url : null),
+    title,
+    platform,
+    guestShow,
     audience: input.audience?.trim() || null,
     submittedVia: 'Portal',
     submittedByRecId: employee?.airtableId ?? null,
     transcript: input.transcript?.trim() || null,
+    sourceRecordId,
   });
 
   if (!res.ok) return { ok: false, error: res.error.message };
   revalidatePath('/media');
+  revalidatePath('/studio');
   return { ok: true, id: res.data.id };
 }
 

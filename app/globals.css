@@ -809,6 +809,14 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 .st-cliprow .body{flex:1;min-width:0;}
 .st-cliprow .body b{font-size:13.5px;font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .st-cliprow .body .sub{font-size:12px;color:var(--text-muted);margin-top:1px;}
+/* nested clip ideas under a media row */
+.st-clipnest{list-style:none;margin:-4px 0 12px;padding:0 0 0 56px;display:flex;flex-direction:column;gap:2px;}
+.st-clipnest li a{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--r-sm);
+  text-decoration:none;color:var(--text-muted);font-size:12.5px;transition:background var(--ease) .12s;}
+.st-clipnest li a:hover{background:var(--brand-soft);color:var(--brand-content);}
+.st-clipnest .dot{color:var(--brand-content);flex-shrink:0;}
+.st-clipnest .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.st-clipnest .v{flex-shrink:0;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
 
 /* shipped strip */
 .st-shipstrip{display:flex;align-items:center;justify-content:space-between;gap:12px;
