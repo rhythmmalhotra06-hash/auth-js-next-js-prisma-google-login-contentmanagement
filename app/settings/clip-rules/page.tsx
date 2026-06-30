@@ -18,7 +18,7 @@ export default async function ClipRulesPage() {
   if (!rulesRes.ok) {
     return (
       <AppShell title="Clip rules" subtitle="Edit the AI clip-generation prompt">
-        <div className="rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">
+        <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">
           Couldn’t load clip rules from Airtable: {rulesRes.error.message}
         </div>
       </AppShell>

@@ -10,7 +10,7 @@ import type { Strategy } from '@/lib/clipping/schema';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+    <section className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
       <h3 className="text-sm font-semibold text-text">{title}</h3>
       <div className="mt-3 space-y-3 text-sm text-text-muted">{children}</div>
     </section>
@@ -38,7 +38,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
           {s.episodeTitles?.length > 0 && (
             <div className="space-y-2">
               {s.episodeTitles.map((t, i) => (
-                <div key={i} className="rounded-[8px] bg-bg-subtle p-3">
+                <div key={i} className="rounded-sm bg-bg-subtle p-3">
                   <span className="rounded bg-brand/10 px-1.5 py-0.5 text-xs capitalize text-brand">{t.format}</span>
                   <p className="mt-1 font-medium text-text">{t.title}</p>
                   <p className="text-xs text-text-subtle">{t.description}</p>
@@ -90,7 +90,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
       {/* 60-second YouTube hook + chapters */}
       {s.youtubeHook && (
         <Section title="60-second YouTube hook & chapters">
-          {s.youtubeHook.hookScript && <p className="whitespace-pre-wrap rounded-[8px] bg-bg-subtle p-3">{s.youtubeHook.hookScript}</p>}
+          {s.youtubeHook.hookScript && <p className="whitespace-pre-wrap rounded-sm bg-bg-subtle p-3">{s.youtubeHook.hookScript}</p>}
           {s.youtubeHook.chapterMarkers?.length > 0 && (
             <ul className="space-y-0.5 pt-1">
               {s.youtubeHook.chapterMarkers.map((m, i) => (
@@ -105,7 +105,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
       {s.pullQuotes?.length > 0 && (
         <Section title="Pull quotes">
           {s.pullQuotes.map((q, i) => (
-            <div key={i} className="border-l-2 border-[#F5B000] pl-3">
+            <div key={i} className="border-l-2 border-gold pl-3">
               <p className="italic">“{q.quote}”</p>
               <p className="text-xs text-text-subtle">{q.visualTreatment}</p>
             </div>
@@ -131,7 +131,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
         <Section title="Distribution plan">
           <div className="space-y-2">
             {s.distributionPlan.map((p, i) => (
-              <div key={i} className="rounded-[8px] bg-bg-subtle p-3">
+              <div key={i} className="rounded-sm bg-bg-subtle p-3">
                 <p className="font-medium capitalize text-text">{p.platform}</p>
                 <p className="text-xs text-text-muted">Sequence: {p.sequence} · Timing: {p.timing}</p>
                 <p className="text-xs text-text-subtle">Cross-promo: {p.crossPromoHook}</p>

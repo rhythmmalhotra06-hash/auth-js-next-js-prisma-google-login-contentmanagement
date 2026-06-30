@@ -4,17 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchYouTube } from '@/app/content-engine/actions';
 
-const PURPLE = '#572280';
 const inputCls =
-  'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20';
+  'w-full rounded-sm border border-border-strong px-3 py-2 text-sm text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 type Tab = 'paste' | 'file' | 'youtube';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-neutral-900">{label}</label>
-      {hint && <p className="text-xs text-neutral-500">{hint}</p>}
+      <label className="block text-sm font-medium text-text">{label}</label>
+      {hint && <p className="text-xs text-text-muted">{hint}</p>}
       {children}
     </div>
   );
@@ -101,12 +100,12 @@ export function ClipEngineForm() {
   }
 
   const tabBtn = (t: Tab, label: string) =>
-    `rounded-md px-3 py-1.5 text-sm ${tab === t ? 'bg-[#572280] text-white' : 'text-neutral-600 hover:bg-neutral-100'}`;
+    `rounded-md px-3 py-1.5 text-sm ${tab === t ? 'bg-brand text-white' : 'text-text-muted hover:bg-bg-subtle'}`;
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="space-y-3">
-        <div className="inline-flex gap-1 rounded-lg bg-neutral-100 p-1">
+        <div className="inline-flex gap-1 rounded-lg bg-bg-subtle p-1">
           <button type="button" className={tabBtn('paste', 'Paste')} onClick={() => setTab('paste')}>Paste</button>
           <button type="button" className={tabBtn('file', 'Upload')} onClick={() => setTab('file')}>Upload file</button>
           <button type="button" className={tabBtn('youtube', 'YouTube')} onClick={() => setTab('youtube')}>YouTube URL</button>
@@ -120,8 +119,8 @@ export function ClipEngineForm() {
 
         {tab === 'file' && (
           <Field label="Transcript file" hint="Upload a .txt, .vtt, or .srt file. Subtitle timestamps are stripped automatically.">
-            <input type="file" accept=".txt,.vtt,.srt,text/plain" onChange={onFile} className="block w-full text-sm text-neutral-700 file:mr-3 file:rounded-md file:border-0 file:bg-[#572280] file:px-3 file:py-1.5 file:text-sm file:text-white" />
-            {fileName && <p className="text-xs text-neutral-500">Loaded: {fileName} ({transcript.length.toLocaleString()} chars)</p>}
+            <input type="file" accept=".txt,.vtt,.srt,text/plain" onChange={onFile} className="block w-full text-sm text-text file:mr-3 file:rounded-md file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-sm file:text-white" />
+            {fileName && <p className="text-xs text-text-muted">Loaded: {fileName} ({transcript.length.toLocaleString()} chars)</p>}
           </Field>
         )}
 
@@ -129,11 +128,11 @@ export function ClipEngineForm() {
           <Field label="YouTube URL" hint="Auto-fetch is best-effort and can be blocked on the server — pasting the transcript below is the reliable path.">
             <div className="flex gap-2">
               <input className={inputCls} value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://youtube.com/watch?v=…" />
-              <button type="button" onClick={onFetchYouTube} disabled={fetching} className="shrink-0 rounded-lg border border-[#572280] px-4 py-2 text-sm font-medium text-[#572280] disabled:opacity-60">
+              <button type="button" onClick={onFetchYouTube} disabled={fetching} className="shrink-0 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand disabled:opacity-60">
                 {fetching ? 'Fetching…' : 'Fetch'}
               </button>
             </div>
-            {transcript && <p className="mt-2 text-xs text-green-700">{transcript.length.toLocaleString()} chars ready. Review or generate.</p>}
+            {transcript && <p className="mt-2 text-xs text-success-content">{transcript.length.toLocaleString()} chars ready. Review or generate.</p>}
             <textarea
               className={`${inputCls} mt-2`}
               rows={6}
@@ -145,22 +144,22 @@ export function ClipEngineForm() {
         )}
       </div>
 
-      <div className="grid gap-5 border-t border-neutral-200 pt-6 sm:grid-cols-2">
+      <div className="grid gap-5 border-t border-border-default pt-6 sm:grid-cols-2">
         <Field label="Episode / working title"><input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Kiara King × Vishen" /></Field>
         <Field label="Guest"><input className={inputCls} value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="e.g. Kiara King" /></Field>
         <Field label="Guest audience / reach" hint="Optional — helps prioritize collab-friendly clips"><input className={inputCls} value={guestAudience} onChange={(e) => setGuestAudience(e.target.value)} placeholder="e.g. 200k+ on IG" /></Field>
         <Field label="Brand pillars" hint="Leave blank for Vishen's defaults"><input className={inputCls} value={brandPillars} onChange={(e) => setBrandPillars(e.target.value)} placeholder="manifestation, growth, consciousness…" /></Field>
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-neutral-700">
-        <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} className="h-4 w-4 accent-[#572280]" />
+      <label className="flex items-center gap-2 text-sm text-text">
+        <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} className="h-4 w-4 accent-brand" />
         Use web search to ground SEO keywords, trends & posting times (slower, more current)
       </label>
 
-      {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger-content">{error}</div>}
 
-      <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-6">
-        <button type="submit" disabled={submitting} className="rounded-lg px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60" style={{ backgroundColor: PURPLE }}>
+      <div className="flex items-center justify-end gap-3 border-t border-border-default pt-6">
+        <button type="submit" disabled={submitting} className="rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60">
           {submitting ? 'Generating… (this can take a minute)' : 'Generate strategy'}
         </button>
       </div>

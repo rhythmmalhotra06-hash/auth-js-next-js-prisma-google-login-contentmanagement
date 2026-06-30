@@ -5,9 +5,9 @@ import type { MediaSource } from '@/lib/media/repository';
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, string> = {
     New: 'bg-bg-subtle text-text-muted',
-    Transcribing: 'bg-amber-50 text-amber-700',
-    'Clips Suggested': 'bg-green-50 text-success-content',
-    Error: 'bg-red-50 text-danger',
+    Transcribing: 'bg-warning-soft text-warning-content',
+    'Clips Suggested': 'bg-success-soft text-success-content',
+    Error: 'bg-danger-soft text-danger',
   };
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${map[status ?? ''] ?? 'bg-bg-subtle text-text-muted'}`}>
@@ -23,7 +23,7 @@ const Chip = ({ children }: { children: React.ReactNode }) => (
 export function MediaHero({ source }: { source: MediaSource }) {
   const hasClips = source.clipCount > 0;
   return (
-    <section className="rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <div className="flex flex-wrap items-center gap-2">
         {source.platform && <Chip>{source.platform}</Chip>}
         <StatusBadge status={source.status} />
@@ -48,7 +48,7 @@ export function MediaHero({ source }: { source: MediaSource }) {
           href={source.sourceUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 inline-flex items-center gap-1 rounded-[8px] border border-border-default px-3 py-1.5 text-sm text-brand hover:bg-bg-subtle"
+          className="mt-4 inline-flex items-center gap-1 rounded-sm border border-border-default px-3 py-1.5 text-sm text-brand hover:bg-bg-subtle"
         >
           Watch original{source.platform ? ` on ${source.platform}` : ''} ↗
         </a>

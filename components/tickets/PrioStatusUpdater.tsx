@@ -28,7 +28,7 @@ export function PrioStatusUpdater({ ticketId, current }: { ticketId: string; cur
         value={value}
         disabled={pending}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60"
+        className="rounded-sm border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60"
       >
         <option value="">Select…</option>
         {PRIO_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}

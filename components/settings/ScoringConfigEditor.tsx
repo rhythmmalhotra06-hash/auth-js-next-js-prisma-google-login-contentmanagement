@@ -8,7 +8,7 @@ import {
 } from '@/app/settings/scoring/actions';
 
 const inputCls =
-  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
+  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
 const numCls = `${inputCls} max-w-[110px] tabular-nums`;
 
 export interface GlobalRow { id: string; key: string; value: number | null; label: string | null; group: string | null; note: string | null }
@@ -72,7 +72,7 @@ function NumField({
         <button
           onClick={run}
           disabled={pending}
-          className="rounded-[8px] bg-brand px-2.5 py-1.5 text-xs font-medium text-white hover:bg-brand-bright disabled:opacity-50"
+          className="rounded-sm bg-brand px-2.5 py-1.5 text-xs font-medium text-white hover:bg-brand-bright disabled:opacity-50"
         >
           {pending ? '…' : optional ? 'Set' : 'Save'}
         </button>
@@ -86,7 +86,7 @@ function GlobalSection({ title, hint, rows, canEdit, children }: {
   title: string; hint?: string; rows: GlobalRow[]; canEdit: boolean; children?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <h2 className="text-sm font-semibold text-text">{title}</h2>
       {hint && <p className="mt-1 text-xs text-text-muted">{hint}</p>}
       <div className="mt-4 space-y-3">
@@ -113,14 +113,14 @@ function TypeTable({ title, hint, rows, secondaryLabel, secondaryPlaceholder, ca
   const [q, setQ] = useState('');
   const filtered = rows.filter((r) => r.name.toLowerCase().includes(q.toLowerCase()));
   return (
-    <section className="rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <h2 className="text-sm font-semibold text-text">{title}</h2>
       <p className="mt-1 text-xs text-text-muted">{hint}</p>
       <input className={`${inputCls} mt-3 max-w-xs`} placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wide text-text-subtle">
+            <tr className="text-left text-2xs uppercase tracking-wide text-text-subtle">
               <th className="py-1.5 pr-3 font-semibold">Name</th>
               <th className="py-1.5 pr-3 font-semibold">Load weight</th>
               <th className="py-1.5 font-semibold">{secondaryLabel}</th>
@@ -149,7 +149,7 @@ function CapacitySection({ people, defaultCapacity, canEdit }: { people: PersonR
     (group === 'All' || p.group === group) && p.name.toLowerCase().includes(q.toLowerCase()),
   );
   return (
-    <section className="rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <h2 className="text-sm font-semibold text-text">Per-person capacity</h2>
       <p className="mt-1 text-xs text-text-muted">Overrides the default for one person. Blank uses the default ({defaultCapacity}). Capacity is the weighted load that fills them to 100%.</p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -165,7 +165,7 @@ function CapacitySection({ people, defaultCapacity, canEdit }: { people: PersonR
           <div key={`${p.group}:${p.id}`} className="flex flex-wrap items-center justify-between gap-3 border-b border-border-default pb-2 last:border-0">
             <div className="min-w-0">
               <span className="text-sm font-medium text-text">{p.name}</span>
-              <span className="ml-2 rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] text-text-muted ring-1 ring-border-default">{p.group}</span>
+              <span className="ml-2 rounded-full bg-bg-subtle px-2 py-0.5 text-2xs text-text-muted ring-1 ring-border-default">{p.group}</span>
             </div>
             <NumField initial={p.capacity} placeholder={String(defaultCapacity)} optional canEdit={canEdit} save={(raw) => setCapacity(p.group, p.id, raw)} />
           </div>
@@ -191,7 +191,7 @@ function RecomputeButton({ canEdit }: { canEdit: boolean }) {
           if (res.ok) router.refresh();
         })}
         disabled={pending}
-        className="rounded-[8px] bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
+        className="rounded-sm bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
       >
         {pending ? 'Recomputing…' : 'Recompute scores now'}
       </button>
@@ -211,7 +211,7 @@ export function ScoringConfigEditor({ globals, eventTypes, assetTypes, people, d
   return (
     <div className="space-y-5">
       {!canEdit && (
-        <div className="rounded-[8px] bg-amber-50 px-3 py-2 text-sm text-text">
+        <div className="rounded-sm bg-warning-soft px-3 py-2 text-sm text-text">
           Read-only — editing capacity &amp; scoring requires the <strong>Admin</strong> role. Ask an admin to grant it in the Admin panel.
         </div>
       )}

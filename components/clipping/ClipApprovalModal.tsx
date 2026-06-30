@@ -6,13 +6,13 @@ import type { IntakeReferenceData } from '@/lib/intake/data';
 import { convertClipsToTickets } from '@/app/content-engine/actions';
 
 const inputCls =
-  'w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-[#572280] focus:ring-2 focus:ring-[#572280]/20';
+  'w-full rounded-sm border border-border-strong px-3 py-2 text-sm text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-neutral-900">{label}</label>
-      {hint && <p className="text-xs text-neutral-500">{hint}</p>}
+      <label className="block text-sm font-medium text-text">{label}</label>
+      {hint && <p className="text-xs text-text-muted">{hint}</p>}
       {children}
     </div>
   );
@@ -70,9 +70,9 @@ export function ClipApprovalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-neutral-900">Create {clips.length} ticket{clips.length === 1 ? '' : 's'}</h3>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div className="w-full max-w-lg rounded-2xl bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold text-text">Create {clips.length} ticket{clips.length === 1 ? '' : 's'}</h3>
+        <p className="mt-1 text-sm text-text-muted">
           Taxonomy is shared across all selected clips. Title and brief are auto-filled per clip; tickets enter the Vishen review queue.
         </p>
 
@@ -112,11 +112,11 @@ export function ClipApprovalModal({
             </Field>
           </div>
 
-          {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger-content">{error}</div>}
 
-          <div className="flex justify-end gap-2 border-t border-neutral-200 pt-4">
-            <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-100">Cancel</button>
-            <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60" style={{ backgroundColor: '#572280' }}>
+          <div className="flex justify-end gap-2 border-t border-border-default pt-4">
+            <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-text-muted hover:bg-bg-subtle">Cancel</button>
+            <button type="submit" disabled={submitting} className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
               {submitting ? 'Creating…' : `Create ${clips.length} ticket${clips.length === 1 ? '' : 's'}`}
             </button>
           </div>

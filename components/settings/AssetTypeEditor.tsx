@@ -5,7 +5,7 @@ import { saveAssetTypeDna } from '@/app/settings/asset-types/actions';
 import type { AssetTypeDnaRow } from '@/lib/asset-types/repository';
 
 const taCls =
-  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
+  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
 
 function Refs({ label, values }: { label: string; values: string[] }) {
   return (
@@ -35,10 +35,10 @@ function Row({ row, canEdit }: { row: AssetTypeDnaRow; canEdit: boolean }) {
   }
 
   return (
-    <div className="card pad" style={{ marginBottom: 14 }}>
-      <div className="row-between" style={{ marginBottom: 8 }}>
-        <h3 style={{ fontSize: 16, margin: 0 }}>{row.name}</h3>
-        {!canEdit && <span className="subtle" style={{ fontSize: 12 }}>read-only · you don’t lead this asset type</span>}
+    <div className="card pad mb-3.5">
+      <div className="row-between mb-2">
+        <h3 className="text-base">{row.name}</h3>
+        {!canEdit && <span className="subtle text-xs">read-only · you don’t lead this asset type</span>}
       </div>
       <div className="grid2">
         <Refs label="Event types" values={row.eventTypes} />
@@ -56,13 +56,13 @@ function Row({ row, canEdit }: { row: AssetTypeDnaRow; canEdit: boolean }) {
         onChange={(e) => setFeedback(e.target.value)} placeholder="What ‘good’ looks like — the bar reviewers hold this to…" />
 
       {canEdit && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+        <div className="flex items-center gap-2.5 mt-2.5">
           <button className="btn sm" onClick={save} disabled={pending || !dirty}>
             {pending ? 'Saving…' : 'Save'}
           </button>
-          {msg && <span className="subtle" style={{ fontSize: 12, color: 'var(--green-content, green)' }}>{msg}</span>}
-          {err && <span style={{ fontSize: 12, color: 'var(--red-content)' }}>{err}</span>}
-          {row.updatedBy && !msg && !err && <span className="subtle" style={{ fontSize: 12 }}>last edited by {row.updatedBy}</span>}
+          {msg && <span className="text-xs text-success-content">{msg}</span>}
+          {err && <span className="text-xs text-danger-content">{err}</span>}
+          {row.updatedBy && !msg && !err && <span className="subtle text-xs">last edited by {row.updatedBy}</span>}
         </div>
       )}
     </div>

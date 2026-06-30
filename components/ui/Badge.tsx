@@ -16,7 +16,7 @@ export function Badge({ tone = 'neutral', dot = true, children, className }: {
 }) {
   const t = TONE[tone];
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-0.5 text-xs font-medium', t.wrap, className)}>
+    <span className={cn('inline-flex items-center gap-1.5 rounded-sm px-2.5 py-0.5 text-xs font-medium', t.wrap, className)}>
       {dot && <span className={cn('h-1.5 w-1.5 rounded-full', t.dot)} />}
       {children}
     </span>

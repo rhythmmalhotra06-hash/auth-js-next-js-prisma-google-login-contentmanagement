@@ -31,12 +31,12 @@ export function NewMediaCard() {
     });
 
   return (
-    <div className="rounded-[12px] border border-border-default bg-surface p-4 shadow-[var(--mv-shadow-light)]">
+    <div className="rounded-md border border-border-default bg-surface p-4 shadow-[var(--mv-shadow-light)]">
       <div className="flex items-center gap-2.5">
         <span className="grid h-8 w-8 flex-none place-items-center rounded-[9px] bg-brand-soft text-brand-content">＋</span>
         <div>
           <h3 className="text-sm font-semibold text-text">Add media to generate clips</h3>
-          <p className="text-[12.5px] text-text-muted">Paste a YouTube / source link — we transcribe it and propose clips.</p>
+          <p className="text-xs text-text-muted">Paste a YouTube / source link — we transcribe it and propose clips.</p>
         </div>
       </div>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -44,7 +44,7 @@ export function NewMediaCard() {
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional)" className="sm:flex-1" />
         <Button disabled={pending} onClick={submit}>{pending ? 'Submitting…' : 'Generate clips'}</Button>
       </div>
-      <label className="mt-3 block text-[12.5px] font-medium text-text">
+      <label className="mt-3 block text-xs font-medium text-text">
         Transcript <span className="font-normal text-text-muted">— recommended. Paste it for instant, reliable clips; leave blank and we’ll try to auto-fetch.</span>
       </label>
       <textarea

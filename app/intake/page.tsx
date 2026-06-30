@@ -5,7 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 export const dynamic = 'force-dynamic';
 
 const cardCls =
-  'card pad group flex flex-col rounded-[16px] border border-border-default bg-surface no-underline transition-shadow hover:shadow-[var(--mv-shadow-light)]';
+  'card pad group flex flex-col rounded-lg border border-border-default bg-surface no-underline transition-shadow hover:shadow-[var(--mv-shadow-light)]';
 
 export default function NewRequestPage() {
   return (

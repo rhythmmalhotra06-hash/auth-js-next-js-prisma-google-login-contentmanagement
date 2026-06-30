@@ -88,7 +88,7 @@ export function MediaDetailClient({
             value={clipType}
             onChange={(e) => setClipType(e.target.value)}
             disabled={running}
-            className="rounded-[8px] border border-border-default px-2 py-1 text-xs text-text outline-none focus-visible:border-brand"
+            className="rounded-sm border border-border-default px-2 py-1 text-xs text-text outline-none focus-visible:border-brand"
           >
             {CLIP_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -124,20 +124,20 @@ export function MediaDetailClient({
           onChange={(e) => setPasted(e.target.value)}
           rows={6}
           placeholder="Paste the full transcript here…"
-          className="mt-1.5 w-full rounded-[8px] border border-border-default px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]"
+          className="mt-1.5 w-full rounded-sm border border-border-default px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]"
         />
       </div>
 
       {error && status === 'Error' && (
-        <div className="mt-3 rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{error}</div>
+        <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>
       )}
-      {runError && <div className="mt-3 rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{runError}</div>}
+      {runError && <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{runError}</div>}
 
       <div className="mt-4 flex items-center gap-3">
         <button
           onClick={suggest}
           disabled={running}
-          className="rounded-[8px] bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60"
+          className="rounded-sm bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60"
         >
           {running ? 'Generating… (1–3 min)' : hasClips ? 'Re-run clips' : 'Suggest clips'}
         </button>
@@ -149,7 +149,7 @@ export function MediaDetailClient({
     <div className="space-y-6">
       {/* No clips yet → generation is the primary action. */}
       {!hasClips && (
-        <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
           <h2 className="text-sm font-semibold text-text">Generate clip suggestions</h2>
           <p className="mt-1 text-xs text-text-subtle">Turn this episode into short-form clips. Paste the transcript for the most reliable results.</p>
           <div className="mt-4">{controls}</div>
@@ -158,14 +158,14 @@ export function MediaDetailClient({
 
       {/* Clips — approve / dismiss. Approved clips become tickets on the Manager Queue. */}
       {hasClips && (
-        <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-text">{clips.length} suggested clips</h2>
               <span className="text-xs text-text-subtle">Click a clip to see details · approve it to send it to the Manager queue.</span>
             </div>
             {/* Card / Grid view toggle */}
-            <div className="inline-flex rounded-[8px] border border-border-default p-0.5 text-xs">
+            <div className="inline-flex rounded-sm border border-border-default p-0.5 text-xs">
               {(['card', 'grid'] as const).map((v) => (
                 <button
                   key={v}
@@ -201,9 +201,9 @@ export function MediaDetailClient({
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         {typeof c.viralityScore === 'number' && (
-                          <span className="rounded-full bg-[#F5B000]/15 px-2 py-0.5 text-xs font-medium text-[#8a6500]">★ {c.viralityScore}</span>
+                          <span className="rounded-full bg-gold/15 px-2 py-0.5 text-xs font-medium text-gold-content">★ {c.viralityScore}</span>
                         )}
-                        {approved && <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs text-success-content">Approved</span>}
+                        {approved && <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs text-success-content">Approved</span>}
                         {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
                         <span className="text-xs text-text-subtle">
                           {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
@@ -237,7 +237,7 @@ export function MediaDetailClient({
 
       {/* Re-run — secondary once clips exist; collapsed by default. */}
       {hasClips && (
-        <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
           <button
             type="button"
             onClick={() => setShowRegenerate((v) => !v)}
@@ -255,7 +255,7 @@ export function MediaDetailClient({
       {/* Full content strategy — the rest of the generated output (titles, hook,
           thumbnail, pull quotes, show notes, distribution). Collapsed by default. */}
       {strategy && (
-        <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
           <button
             type="button"
             onClick={() => setShowStrategy((v) => !v)}

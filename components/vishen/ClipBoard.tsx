@@ -78,9 +78,9 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
                 {g.clips.map((c) => <ClipSummaryCard key={c.id} clip={c} onOpen={() => setSelected(c)} />)}
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-[12px] border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
+              <div className="overflow-x-auto rounded-md border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-[10.5px] uppercase tracking-wide text-text-subtle">
+                  <thead className="text-left text-2xs uppercase tracking-wide text-text-subtle">
                     <tr className="border-b border-border-default">
                       <ClipTh label="Hook" k="hook" sort={sort} onSort={toggleSort} />
                       <ClipTh label="Format" k="format" sort={sort} onSort={toggleSort} />
@@ -104,7 +104,7 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
           </section>
         ))}
         {groups.length === 0 && (
-          <p className="rounded-[12px] border border-dashed border-border-default bg-surface px-5 py-8 text-center text-sm text-text-subtle">
+          <p className="rounded-md border border-dashed border-border-default bg-surface px-5 py-8 text-center text-sm text-text-subtle">
             No clips awaiting approval. New AI suggestions appear here as media is processed.
           </p>
         )}
@@ -143,25 +143,25 @@ function ClipSummaryCard({ clip, onOpen }: { clip: ClipSuggestion; onOpen: () =>
   return (
     <button
       onClick={onOpen}
-      className="flex w-full flex-col gap-3 rounded-[12px] border border-l-[3px] border-border-default border-l-gold bg-surface p-4 text-left shadow-[var(--mv-shadow-light)] transition-shadow hover:shadow-[var(--mv-shadow-medium)] focus-visible:outline-none focus-visible:shadow-[var(--mv-shadow-focus)]"
+      className="flex w-full flex-col gap-3 rounded-md border border-l-[3px] border-border-default border-l-gold bg-surface p-4 text-left shadow-[var(--mv-shadow-light)] transition-shadow hover:shadow-[var(--mv-shadow-medium)] focus-visible:outline-none focus-visible:shadow-[var(--mv-shadow-focus)]"
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-[15px] font-semibold leading-snug text-text">{clip.hookLine || clip.name || 'Untitled clip'}</h3>
+        <h3 className="text-base font-semibold leading-snug text-text">{clip.hookLine || clip.name || 'Untitled clip'}</h3>
         {clip.viralityScore != null && (
           <div className="flex-none rounded-[10px] bg-brand-soft px-2.5 py-1.5 text-center">
-            <div className="text-[19px] font-bold leading-none text-brand-content tabular-nums">{clip.viralityScore}</div>
-            <div className="text-[9.5px] font-semibold uppercase tracking-wide text-brand">Virality</div>
+            <div className="text-lg font-bold leading-none text-brand-content tabular-nums">{clip.viralityScore}</div>
+            <div className="text-2xs font-semibold uppercase tracking-wide text-brand">Virality</div>
           </div>
         )}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {clip.format && <Badge tone="neutral">{clip.format.replace(/_/g, ' ')}</Badge>}
         {(clip.timestampStart || clip.timestampEnd) && (
-          <span className="text-[11.5px] tabular-nums text-text-subtle">{clip.timestampStart}{clip.timestampEnd ? `–${clip.timestampEnd}` : ''}</span>
+          <span className="text-2xs tabular-nums text-text-subtle">{clip.timestampStart}{clip.timestampEnd ? `–${clip.timestampEnd}` : ''}</span>
         )}
       </div>
-      {clip.caption && <p className="line-clamp-2 text-[13px] leading-relaxed text-text-muted">{clip.caption}</p>}
-      <span className="text-[12.5px] font-semibold text-brand">Open record →</span>
+      {clip.caption && <p className="line-clamp-2 text-sm leading-relaxed text-text-muted">{clip.caption}</p>}
+      <span className="text-xs font-semibold text-brand">Open record →</span>
     </button>
   );
 }
@@ -192,7 +192,7 @@ function ClipDetail({ clip }: { clip: ClipSuggestion }) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-text-subtle">{label}</div>
+      <div className="mb-1 text-2xs font-semibold uppercase tracking-wide text-text-subtle">{label}</div>
       <p className="leading-relaxed text-text">{children}</p>
     </div>
   );

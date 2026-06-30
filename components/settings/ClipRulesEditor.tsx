@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { addRule, setRuleActive, updateRowContent } from '@/app/settings/actions';
 
 const inputCls =
-  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
+  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
 
 const RULE_SECTIONS = ['General', 'Clips', 'Thumbnail', 'Titles', 'Distribution'] as const;
 
@@ -38,7 +38,7 @@ export interface ClipRulesEditorProps {
 function Msg({ msg }: { msg: { ok: boolean; text: string } | null }) {
   if (!msg) return null;
   return (
-    <div className={`mt-2 rounded-[8px] px-3 py-2 text-sm ${msg.ok ? 'bg-brand-soft text-brand-content' : 'bg-red-50 text-danger'}`}>
+    <div className={`mt-2 rounded-sm px-3 py-2 text-sm ${msg.ok ? 'bg-brand-soft text-brand-content' : 'bg-danger-soft text-danger'}`}>
       {msg.text}
     </div>
   );
@@ -76,14 +76,14 @@ function SaveableText({
   }
 
   return (
-    <section className="rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-semibold text-text">{label}</h2>
         {canEdit && (
           <button
             onClick={save}
             disabled={pending || !dirty}
-            className="rounded-[8px] bg-brand px-3.5 py-1.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
+            className="rounded-sm bg-brand px-3.5 py-1.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
           >
             {pending ? 'Saving…' : 'Save'}
           </button>
@@ -91,7 +91,7 @@ function SaveableText({
       </div>
       {hint && <p className="mt-1 text-xs text-text-muted">{hint}</p>}
       <textarea
-        className={`${inputCls} mt-3 font-mono text-[13px] leading-relaxed`}
+        className={`${inputCls} mt-3 font-mono text-sm leading-relaxed`}
         rows={rows}
         value={value}
         disabled={!canEdit}
@@ -120,14 +120,14 @@ function RuleRow({ rule, canEdit }: { rule: EditorRule; canEdit: boolean }) {
 
   return (
     <div className={`rounded-[10px] border p-3 ${rule.active ? 'border-border-default bg-surface' : 'border-dashed border-border-default bg-bg-subtle'}`}>
-      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-2xs">
         {rule.section && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-text-muted ring-1 ring-border-default">{rule.section}</span>}
         {!rule.active && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-text-subtle">Inactive</span>}
         {rule.updatedBy && <span className="text-text-subtle">· {rule.updatedBy}</span>}
         {fmtUpdated(rule.updatedAt) && <span className="text-text-subtle">· updated {fmtUpdated(rule.updatedAt)}</span>}
       </div>
       <textarea
-        className={`${inputCls} text-[13px]`}
+        className={`${inputCls} text-sm`}
         rows={2}
         value={value}
         disabled={!canEdit}
@@ -139,14 +139,14 @@ function RuleRow({ rule, canEdit }: { rule: EditorRule; canEdit: boolean }) {
           <button
             onClick={() => run(() => updateRowContent(rule.id, value), 'Saved.')}
             disabled={pending || !dirty}
-            className="rounded-[8px] bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-bright disabled:opacity-50"
+            className="rounded-sm bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-bright disabled:opacity-50"
           >
             Save
           </button>
           <button
             onClick={() => run(() => setRuleActive(rule.id, !rule.active), rule.active ? 'Deactivated.' : 'Activated.')}
             disabled={pending}
-            className="rounded-[8px] px-3 py-1.5 text-xs font-medium text-text-muted ring-1 ring-border-default hover:bg-bg-subtle disabled:opacity-50"
+            className="rounded-sm px-3 py-1.5 text-xs font-medium text-text-muted ring-1 ring-border-default hover:bg-bg-subtle disabled:opacity-50"
           >
             {rule.active ? 'Deactivate' : 'Activate'}
           </button>
@@ -186,7 +186,7 @@ function AddRuleForm({ ruleScopes }: { ruleScopes: readonly string[] }) {
       <h3 className="text-sm font-semibold text-text">Add a rule / learning</h3>
       <p className="mt-0.5 text-xs text-text-muted">Appended to the base prompt for the chosen clip type. “All” applies to every type.</p>
       <textarea
-        className={`${inputCls} mt-3 text-[13px]`}
+        className={`${inputCls} mt-3 text-sm`}
         rows={2}
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -221,7 +221,7 @@ function AddRuleForm({ ruleScopes }: { ruleScopes: readonly string[] }) {
         <button
           onClick={add}
           disabled={pending || !content.trim()}
-          className="rounded-[8px] bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
+          className="rounded-sm bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
         >
           {pending ? 'Adding…' : '+ Add rule'}
         </button>
@@ -240,7 +240,7 @@ export function ClipRulesEditor({ basePrompt, pillars, rules, ruleScopes, canEdi
   return (
     <div className="space-y-5">
       {!canEdit && (
-        <div className="rounded-[8px] bg-amber-50 px-3 py-2 text-sm text-text">
+        <div className="rounded-sm bg-warning-soft px-3 py-2 text-sm text-text">
           Read-only — editing clip rules requires the <strong>Admin</strong> role. Ask an admin to grant it in the Admin panel.
         </div>
       )}
@@ -255,7 +255,7 @@ export function ClipRulesEditor({ basePrompt, pillars, rules, ruleScopes, canEdi
           canEdit={canEdit}
         />
       ) : (
-        <div className="rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">
+        <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">
           No active “Base Prompt” row found in Airtable — the engine is using the built-in fallback prompt.
         </div>
       )}
@@ -271,7 +271,7 @@ export function ClipRulesEditor({ basePrompt, pillars, rules, ruleScopes, canEdi
         />
       )}
 
-      <section className="rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+      <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
         <h2 className="text-sm font-semibold text-text">Rules & learnings</h2>
         <p className="mt-1 text-xs text-text-muted">Appended to the base prompt at generation time, scoped by clip type.</p>
 

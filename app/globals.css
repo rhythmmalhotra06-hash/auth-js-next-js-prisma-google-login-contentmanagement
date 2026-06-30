@@ -157,6 +157,7 @@
   --color-brand-border:  var(--mv-brand-border);
 
   --color-gold:         var(--mv-gold);
+  --color-gold-bright:  var(--mv-gold-bright);
   --color-gold-content: var(--mv-gold-content);
   --color-gold-soft:    var(--mv-gold-soft);
 
@@ -194,8 +195,15 @@
   --radius-md: var(--mv-radius-md);
   --radius-lg: var(--mv-radius-lg);
 
+  /* Type scale — only the gaps Tailwind's defaults don't cover. We deliberately do
+     NOT override --text-xs (12) / --text-sm (14) / --text-base (16) because they're in
+     heavy use; overriding would shrink text app-wide. text-2xs covers the 10.5–11.5px
+     micro-labels (eyebrows, meta) the mockups use. */
+  --text-2xs: 11px;
+
   --font-sans: var(--mv-font-body);
   --font-mono: var(--mv-font-mono);
+  --font-display: "Bricolage Grotesque", var(--font-display-face), var(--mv-font-body);
 }
 
 /* ————————————————— Base reset ————————————————— */
@@ -273,7 +281,7 @@ label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margi
 .side{width:236px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
   padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;}
 .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;}
-.brand-mark{width:32px;height:32px;border-radius:9px;background:var(--brand);color:#fff;display:flex;
+.brand-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));color:#fff;display:flex;
   align-items:center;justify-content:center;font-weight:700;font-size:15px;position:relative;flex-shrink:0;}
 .brand-mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;
   background:var(--gold);border:2px solid var(--surface);}
@@ -354,6 +362,9 @@ label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margi
 .kpi .sub{font-size:11.5px;color:var(--text-subtle);margin-top:1px;}
 .kpi.alert .val{color:var(--gold-content);}
 .kpi.danger .val{color:var(--red);}
+/* attention KPI — the single highest-priority card (gold gradient fill + border) */
+.kpi.attention{border-color:var(--gold);background:linear-gradient(180deg,var(--gold-soft),var(--surface) 62%);}
+.kpi.attention .val{color:var(--gold-content);}
 .kpi.clickable{cursor:pointer;transition:border-color var(--ease) .12s,box-shadow var(--ease) .12s;}
 .kpi.clickable:hover{border-color:var(--brand-border);box-shadow:var(--sh-1);}
 .sec-head{display:flex;align-items:center;gap:10px;margin:26px 0 12px;}
@@ -364,7 +375,15 @@ label{font-size:12px;font-weight:500;color:var(--text-muted);display:block;margi
 .toolbar input{flex:1;min-width:200px;}
 .toolbar select{width:auto;min-width:130px;}
 .tw{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface);}
-.tscroll{overflow-x:auto;}
+.tscroll{overflow-x:auto;
+  /* edge scroll-shadows: hint that the table scrolls horizontally on narrow screens */
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) 0 0,
+    linear-gradient(to left,  var(--surface) 30%, transparent) 100% 0,
+    radial-gradient(farthest-side at 0 50%, rgba(40,20,60,.13), transparent) 0 0,
+    radial-gradient(farthest-side at 100% 50%, rgba(40,20,60,.13), transparent) 100% 0;
+  background-repeat:no-repeat;background-size:44px 100%,44px 100%,14px 100%,14px 100%;
+  background-attachment:local,local,scroll,scroll;}
 table.list{font-size:13px;min-width:760px;}
 table.list thead th{background:var(--bg-subtle);color:var(--text-muted);text-align:left;font-weight:600;
   font-size:11.5px;letter-spacing:.02em;padding:10px 10px;text-transform:uppercase;position:relative;}
@@ -851,3 +870,20 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 }
 .st-seeall{margin-left:auto;font-size:13px;color:var(--brand-content);font-weight:500;text-decoration:none;flex-shrink:0;}
 .st-seeall:hover{text-decoration:underline;}
+
+/* ================================================================
+   Phase-2 premium devices — ported from the mockups (status-report /
+   vishen-cockpit). Gold = attention only. Use sparingly for signal.
+   ================================================================ */
+/* callout — left-accented tinted box for guidance / notes */
+.callout{display:flex;gap:10px;align-items:flex-start;border-left:3px solid var(--gold);
+  background:var(--gold-soft);border-radius:var(--r-sm);padding:13px 15px;font-size:13px;line-height:1.55;color:var(--text);}
+.callout > svg{flex-shrink:0;margin-top:1px;color:var(--gold-content);}
+.callout b{font-weight:600;}
+.callout.purple{border-left-color:var(--brand);background:var(--brand-soft);color:var(--brand-content);}
+.callout.purple > svg{color:var(--brand);}
+/* phase2 — dashed "coming later" section */
+.phase2{border:1px dashed var(--brand-border);background:var(--brand-soft);border-radius:var(--r-md);
+  padding:16px 18px;color:var(--brand-content);font-size:13px;line-height:1.55;}
+.phase2 .ph-head{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px;}
+.phase2 .ph-head .future-tag{margin-left:2px;}

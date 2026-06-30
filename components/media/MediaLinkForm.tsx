@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { submitMediaLink } from '@/app/media/actions';
 
 const inputCls =
-  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
+  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -41,7 +41,7 @@ export function MediaLinkForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-[12px] bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
       <Field label="YouTube URL" hint="v1 supports YouTube links only.">
         <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" autoFocus />
       </Field>
@@ -64,10 +64,10 @@ export function MediaLinkForm() {
         </Field>
       </div>
 
-      {error && <div className="rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
 
       <div className="flex justify-end gap-2 border-t border-border-default pt-4">
-        <button type="submit" disabled={submitting} className="rounded-[8px] px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-bright disabled:opacity-60">
+        <button type="submit" disabled={submitting} className="rounded-sm px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-bright disabled:opacity-60">
           {submitting ? 'Adding…' : 'Add to inbox'}
         </button>
       </div>

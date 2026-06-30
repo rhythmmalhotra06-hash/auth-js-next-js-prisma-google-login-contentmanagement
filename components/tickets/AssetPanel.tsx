@@ -39,7 +39,7 @@ export function AssetPanel({ ticketId, assets }: { ticketId: string; assets: Ass
   ];
 
   return (
-    <div className="mt-6 rounded-[12px] bg-surface p-6 shadow-[var(--mv-shadow-light)] border border-border-default">
+    <div className="mt-6 rounded-md bg-surface p-6 shadow-[var(--mv-shadow-light)] border border-border-default">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Assets</h2>
       <p className="mt-1 text-xs text-text-subtle">Raw and final versions stack under the ticket. A distribution link marks a final as published.</p>
 
@@ -54,7 +54,7 @@ export function AssetPanel({ ticketId, assets }: { ticketId: string; assets: Ass
               ) : (
                 <ul className="mt-1 space-y-1.5">
                   {items.map((a) => (
-                    <li key={a.id} className="flex items-center justify-between rounded-[8px] border border-border-default px-3 py-2 text-sm">
+                    <li key={a.id} className="flex items-center justify-between rounded-sm border border-border-default px-3 py-2 text-sm">
                       <div className="min-w-0">
                         <a href={a.fileUrl ?? '#'} target="_blank" rel="noreferrer" className="truncate text-brand hover:underline">{a.fileUrl}</a>
                         {a.distributionUrl && (
@@ -73,12 +73,12 @@ export function AssetPanel({ ticketId, assets }: { ticketId: string; assets: Ass
       </div>
 
       <div className="mt-4 grid gap-2 border-t border-border-muted pt-4 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-center">
-        <select value={kind} onChange={(e) => setKind(e.target.value as 'raw' | 'final')} className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm">
+        <select value={kind} onChange={(e) => setKind(e.target.value as 'raw' | 'final')} className="rounded-sm border border-border-default px-3 py-1.5 text-sm">
           {ASSET_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
-        <input value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="File URL (Dropbox/storage)" className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]" />
-        <input value={distributionUrl} onChange={(e) => setDistributionUrl(e.target.value)} placeholder="Distribution URL (optional)" className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]" />
-        <button onClick={add} disabled={pending || !fileUrl.trim()} className="rounded-[8px] bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50">Add</button>
+        <input value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="File URL (Dropbox/storage)" className="rounded-sm border border-border-default px-3 py-1.5 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]" />
+        <input value={distributionUrl} onChange={(e) => setDistributionUrl(e.target.value)} placeholder="Distribution URL (optional)" className="rounded-sm border border-border-default px-3 py-1.5 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]" />
+        <button onClick={add} disabled={pending || !fileUrl.trim()} className="rounded-sm bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50">Add</button>
       </div>
       {msg && <p className="mt-2 text-xs text-danger">{msg}</p>}
     </div>

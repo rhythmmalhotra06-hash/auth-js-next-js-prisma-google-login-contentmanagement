@@ -13,13 +13,13 @@ const LINKS = [
 
 export function AppNav({ active }: { active?: string }) {
   return (
-    <nav className="mb-6 inline-flex gap-1 rounded-[12px] border border-border-default bg-surface p-1 text-sm shadow-[var(--mv-shadow-light)]">
+    <nav className="mb-6 inline-flex gap-1 rounded-md border border-border-default bg-surface p-1 text-sm shadow-[var(--mv-shadow-light)]">
       {LINKS.map((l) => (
         <Link
           key={l.href}
           href={l.href}
           className={
-            'rounded-[8px] px-3 py-1.5 transition-colors ' +
+            'rounded-sm px-3 py-1.5 transition-colors ' +
             (active === l.label
               ? 'bg-brand text-white'
               : 'text-text-muted hover:bg-bg-subtle hover:text-text')

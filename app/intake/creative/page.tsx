@@ -16,7 +16,7 @@ export default function CreativeIntakePage() {
   return (
     <AppShell title="Creative Request Submission" subtitle="The Asset Type list narrows to options linked to your chosen Event Type.">
       <Link href="/intake" className="btn ghost sm" style={{ textDecoration: 'none', marginBottom: 14 }}>← Request type</Link>
-      <div className="mx-auto max-w-2xl rounded-[16px] border border-border-default bg-surface p-8 shadow-[var(--mv-shadow-light)]">
+      <div className="mx-auto max-w-2xl rounded-lg border border-border-default bg-surface p-8 shadow-[var(--mv-shadow-light)]">
         <Suspense fallback={<FormSkeleton />}>
           <IntakeBody />
         </Suspense>

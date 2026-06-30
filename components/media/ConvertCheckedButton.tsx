@@ -40,12 +40,12 @@ export function ConvertCheckedButton() {
       <button
         onClick={run}
         disabled={pending}
-        className="shrink-0 rounded-[8px] px-4 py-2.5 text-sm font-medium text-brand ring-1 ring-brand/30 hover:bg-brand/5 disabled:opacity-50"
+        className="shrink-0 rounded-sm px-4 py-2.5 text-sm font-medium text-brand ring-1 ring-brand/30 hover:bg-brand/5 disabled:opacity-50"
       >
         {pending ? 'Converting…' : 'Convert checked now'}
       </button>
       {msg && (
-        <span className={`text-xs ${msg.kind === 'ok' ? 'text-success-content' : 'text-amber-600'}`}>
+        <span className={`text-xs ${msg.kind === 'ok' ? 'text-success-content' : 'text-warning-content'}`}>
           {msg.text}
         </span>
       )}

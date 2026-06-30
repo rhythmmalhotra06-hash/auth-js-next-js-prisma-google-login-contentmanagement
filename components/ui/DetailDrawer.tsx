@@ -42,13 +42,13 @@ export function DetailDrawer({ open, onClose, title, eyebrow, footer, children }
       >
         <header className="flex items-start justify-between gap-3 border-b border-border-default px-5 py-4">
           <div className="min-w-0">
-            {eyebrow && <div className="text-[11px] font-semibold uppercase tracking-wide text-text-subtle">{eyebrow}</div>}
-            <h2 className="text-[16px] font-bold leading-snug text-text">{title}</h2>
+            {eyebrow && <div className="text-2xs font-semibold uppercase tracking-wide text-text-subtle">{eyebrow}</div>}
+            <h2 className="text-base font-bold leading-snug text-text">{title}</h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="grid h-8 w-8 flex-none place-items-center rounded-[8px] text-text-muted hover:bg-bg-subtle focus-visible:outline-none focus-visible:shadow-[var(--mv-shadow-focus)]"
+            className="grid h-8 w-8 flex-none place-items-center rounded-sm text-text-muted hover:bg-bg-subtle focus-visible:outline-none focus-visible:shadow-[var(--mv-shadow-focus)]"
           >✕</button>
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 
 const control =
-  'w-full rounded-[8px] border border-border-default bg-surface px-3 text-sm text-text placeholder:text-text-subtle ' +
+  'w-full rounded-sm border border-border-default bg-surface px-3 text-sm text-text placeholder:text-text-subtle ' +
   'outline-none transition-shadow focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] ' +
   'disabled:opacity-60 disabled:pointer-events-none';
 

@@ -8,9 +8,9 @@ export function InsightCard({ tone = 'good', title, detail, icon, i = 0 }: {
   return (
     <div className={tone === 'warn' ? 'insight warn' : 'insight'} style={{ ['--i' as string]: i }}>
       <div className="ico"><Icon name={icon ?? (tone === 'warn' ? 'bolt' : 'chart')} size={17} /></div>
-      <div style={{ minWidth: 0 }}>
-        <b style={{ fontSize: 13.5 }}>{title}</b>
-        <div className="muted" style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.45 }}>{detail}</div>
+      <div className="min-w-0">
+        <b className="text-sm">{title}</b>
+        <div className="muted text-xs mt-0.5 leading-snug">{detail}</div>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { setEmployeeRoles } from '@/app/settings/team/actions';
 
 const inputCls =
-  'rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
+  'rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
 
 export interface TeamEmployee {
   id: string;
@@ -66,10 +66,10 @@ function EmployeeRow({
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium text-text">{employee.name}</span>
-          {!employee.active && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-[11px] text-text-subtle">Inactive</span>}
+          {!employee.active && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-2xs text-text-subtle">Inactive</span>}
         </div>
         <div className="truncate text-xs text-text-muted">{employee.email ?? 'no email'}</div>
-        <div className="mt-0.5 flex flex-wrap gap-1 text-[11px] text-text-subtle">
+        <div className="mt-0.5 flex flex-wrap gap-1 text-2xs text-text-subtle">
           {employee.division && <span className="rounded bg-bg-subtle px-1.5 py-0.5">{employee.division}</span>}
           {employee.team && <span className="rounded bg-bg-subtle px-1.5 py-0.5">{employee.team}</span>}
         </div>
@@ -138,13 +138,13 @@ export function TeamRolesEditor({
   return (
     <div className="space-y-4">
       {!canEdit && (
-        <div className="rounded-[8px] bg-amber-50 px-3 py-2 text-sm text-text">
+        <div className="rounded-sm bg-warning-soft px-3 py-2 text-sm text-text">
           Read-only — managing roles requires the <strong>Admin</strong> role.
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3 rounded-[12px] bg-surface p-4 shadow-sm ring-1 ring-border-default">
+      <div className="flex flex-wrap items-end gap-3 rounded-md bg-surface p-4 shadow-sm ring-1 ring-border-default">
         <label className="flex flex-col gap-1 text-xs font-medium text-text-muted">
           Division
           <select className={inputCls} value={division} onChange={(e) => onDivisionChange(e.target.value)}>
@@ -180,7 +180,7 @@ export function TeamRolesEditor({
       </div>
 
       {/* People */}
-      <div className="rounded-[12px] bg-surface p-5 shadow-sm ring-1 ring-border-default">
+      <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
         <div className="mb-1 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-text">People & roles</h2>
           <span className="text-xs text-text-subtle">

@@ -6,7 +6,7 @@ import type { IntakeReferenceData } from '@/lib/intake/data';
 import { convertClipsToTickets } from '@/app/media/actions';
 
 const inputCls =
-  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
+  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -73,7 +73,7 @@ export function ClipApprovalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-[12px] bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-md bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold text-text">Create {clipIds.length} ticket{clipIds.length === 1 ? '' : 's'}</h3>
         <p className="mt-1 text-sm text-text-muted">
           Taxonomy is shared across all selected clips. Title and brief are auto-filled per clip; tickets enter the Vishen review queue.
@@ -115,11 +115,11 @@ export function ClipApprovalModal({
             </Field>
           </div>
 
-          {error && <div className="rounded-[8px] bg-red-50 px-3 py-2 text-sm text-danger">{error}</div>}
+          {error && <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
 
           <div className="flex justify-end gap-2 border-t border-border-default pt-4">
-            <button type="button" onClick={onClose} className="rounded-[8px] px-4 py-2 text-sm text-text-muted hover:bg-bg-subtle">Cancel</button>
-            <button type="submit" disabled={submitting} className="rounded-[8px] px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-bright disabled:opacity-60">
+            <button type="button" onClick={onClose} className="rounded-sm px-4 py-2 text-sm text-text-muted hover:bg-bg-subtle">Cancel</button>
+            <button type="submit" disabled={submitting} className="rounded-sm px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-bright disabled:opacity-60">
               {submitting ? 'Creating…' : `Create ${clipIds.length} ticket${clipIds.length === 1 ? '' : 's'}`}
             </button>
           </div>

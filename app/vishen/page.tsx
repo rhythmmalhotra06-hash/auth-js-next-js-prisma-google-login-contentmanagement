@@ -29,7 +29,7 @@ async function ClipsBody() {
       {/* Clip-focused KPIs */}
       <KpiGrid>
         <Kpi label="Media in inbox" value={sources.length} i={0} />
-        <Kpi tone="alert" label="Clips awaiting you" value={proposed.length} i={1} />
+        <Kpi tone={proposed.length > 0 ? 'attention' : undefined} label="Clips awaiting you" value={proposed.length} i={1} />
         <Kpi label="Approved, ready" value={approved.length} sub="to convert" i={2} />
       </KpiGrid>
 
@@ -39,7 +39,7 @@ async function ClipsBody() {
       {/* Approval gate — AI clips grouped by source */}
       <div className="mt-9">
         <h2 className="text-lg font-bold tracking-tight text-text">Awaiting your approval</h2>
-        <p className="mt-0.5 text-[13.5px] text-text-muted">AI-generated clips, grouped by source. Approve to send to production, or dismiss.</p>
+        <p className="mt-0.5 text-sm text-text-muted">AI-generated clips, grouped by source. Approve to send to production, or dismiss.</p>
       </div>
       <div className="mt-4"><ClipBoard clips={proposed} sourceNames={sourceNames} /></div>
       {/* Approved clips ("ready to convert") now surface in the Manager (and Editor) view. */}

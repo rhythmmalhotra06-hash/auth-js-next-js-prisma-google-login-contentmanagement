@@ -17,20 +17,50 @@ with no rule, so newer surfaces feel "off" next to the polished older ones:
 - **Tailwind token utilities** (`bg-brand`, `text-text-muted`) — ~50%, but leaks arbitrary values.
 - **Inline `style={{}}`** — ~10%, ~134 instances of untracked spacing/typography.
 
-Concrete debt the audit surfaced: **18 hardcoded brand hexes** (e.g.
-[ClipEngineForm.tsx:7](../components/clipping/ClipEngineForm.tsx#L7) `PURPLE = '#572280'`,
-[StrategyView.tsx:72](../components/clipping/StrategyView.tsx#L72) `backgroundColor:'#572280'`,
-[MediaDetailClient.tsx:121](../components/media/MediaDetailClient.tsx#L121) `bg-[#F5B000]/15 text-[#8a6500]`),
-**arbitrary pixel sizes** (`text-[13px]`, `text-[32px]` in
-[Sidebar.tsx](../components/ui/Sidebar.tsx), [MetricCard.tsx:18](../components/ui/MetricCard.tsx#L18)),
-**heavy inline styling** in [tickets/[id]/page.tsx:41-92](../app/tickets/[id]/page.tsx#L41-L92),
-[intake/page.tsx](../app/intake/page.tsx), [page.tsx:40-44](../app/page.tsx#L40-L44),
-and inconsistent focus/responsive coverage (~40% of new components use `sm:/md:/lg:`).
+Concrete debt — counts refreshed against the whole tree (2026-06-30):
+
+- **18 hardcoded brand/gold hexes** across 7 files:
+  [ClipEngineForm.tsx](../components/clipping/ClipEngineForm.tsx) (6),
+  [StrategyView.tsx](../components/clipping/StrategyView.tsx) (5),
+  [ClipApprovalModal.tsx](../components/clipping/ClipApprovalModal.tsx) (2),
+  [access-denied/page.tsx](../app/access-denied/page.tsx) (2),
+  [StrategyDetail.tsx](../components/media/StrategyDetail.tsx) (1),
+  [MediaDetailClient.tsx](../components/media/MediaDetailClient.tsx) (1),
+  [DevLogin.tsx](../components/auth/DevLogin.tsx) (1).
+- **130 arbitrary `[..px]` Tailwind values** (`text-[13px]`, `text-[32px]`, etc.) — far
+  larger than the initial sample; concentrated in `components/ui/*` and the settings/media surfaces.
+- **Inline `style={{}}` — top offenders:** [stakeholder/[id]/page.tsx](../app/stakeholder/[id]/page.tsx) (19),
+  [ShootsBoard.tsx](../components/shoots/ShootsBoard.tsx) (12), [shoots/[id]/page.tsx](../app/shoots/[id]/page.tsx) (12),
+  [media/page.tsx](../app/media/page.tsx) (12), [QueueTable.tsx](../components/tickets/QueueTable.tsx) (11),
+  [tickets/[id]/page.tsx](../app/tickets/[id]/page.tsx) (11), [AssetTypeEditor.tsx](../components/settings/AssetTypeEditor.tsx) (10),
+  [ShellChrome.tsx](../components/ui/ShellChrome.tsx) (9), [loading.tsx](../app/loading.tsx) (8),
+  [intake/page.tsx](../app/intake/page.tsx) (8), [performance/page.tsx](../app/performance/page.tsx) (7),
+  [editor/page.tsx](../app/editor/page.tsx) (7) — plus several `components/ui/*` primitives
+  ([InsightCard](../components/ui/InsightCard.tsx), [FunnelCapacity](../components/ui/FunnelCapacity.tsx),
+  [Skeletons](../components/ui/Skeletons.tsx)) carrying inline styles at the source.
+- Inconsistent focus/responsive coverage (~40% of new components use `sm:/md:/lg:`).
+
+**Already-built primitives to reuse (do not recreate):**
+[components/ui/Field.tsx](../components/ui/Field.tsx) already exports token-based
+`Input` / `Select` / `Textarea` / `Field` **with the brand focus ring** — Phase 1d is
+*adoption across surfaces that still use raw `<input>/<select>`*, not creation.
+[InsightCard.tsx](../components/ui/InsightCard.tsx) and
+[FunnelCapacity.tsx](../components/ui/FunnelCapacity.tsx) already componentize two Phase-2
+devices. A `cn()` helper exists at `@/lib/cn`.
+
+**Full surface inventory in scope** (31 routes; bigger than the initial four groups):
+- **Studio/Founder:** `/studio`, `/studio/{launches,launches/[event],ranking,shipped,sign-off}`, `/vishen`, `/`(landing)
+- **Workflow:** `/tickets`, `/tickets/[id]`, `/intake`, `/intake/creative`, `/editor`, `/manager`
+- **Media/Engine:** `/media`, `/media/[id]`, `/media/new`, `/content-engine`, `/content-engine/{new,[id]}`, `/performance`
+- **Shoots:** `/shoots`, `/shoots/[id]`, `/shoots/new`
+- **Stakeholder:** `/stakeholder`, `/stakeholder/[id]`
+- **Settings:** `/settings/{asset-types,clip-rules,scoring,team}`
+- **System:** `/access-denied`
 
 **Decisions taken with the user:** elevate via **cohesion first, then net-new polish**;
 the standard going forward is **Tailwind token utilities + small `components/ui/` React
 components** (aligns with the eventual BlinkWork `packages/ui` migration); **all surface
-groups** are in scope (Studio/Landing, Tickets/Intake, Settings/Media, Stakeholder/Queue).
+groups** are in scope.
 
 Intended outcome: every surface reads as one cohesive, premium product, and the few
 remaining mockup devices that raise the bar are pulled in.
@@ -71,38 +101,48 @@ components to lean on: [Button.tsx](../components/ui/Button.tsx), [Badge.tsx](..
 [Icon.tsx](../components/ui/Icon.tsx), [SearchableSelect.tsx](../components/ui/SearchableSelect.tsx),
 [TierBadge.tsx](../components/ui/TierBadge.tsx), [Sparkline.tsx](../components/ui/Sparkline.tsx).
 
-Work the four surface groups in priority order; the pattern is identical in each:
+Work the surface groups in priority order (Studio/Founder → Workflow → Media/Engine →
+Shoots → Stakeholder → Settings); the pattern is identical in each:
 
-**1a. Eliminate hardcoded brand/gold hexes (18 instances).** Replace `#572280`/`#F5B000`
+**1a. Eliminate hardcoded brand/gold hexes (18, across 7 files).** Replace `#572280`/`#F5B000`
 literals and `bg-[#572280]` arbitrary utilities with token utilities (`bg-brand`,
-`text-brand`, `border-brand`, `accent-brand`, `bg-gold`). Representative offenders:
-[components/clipping/ClipEngineForm.tsx](../components/clipping/ClipEngineForm.tsx) (const + template + `accent-[#572280]`),
-[components/clipping/StrategyView.tsx](../components/clipping/StrategyView.tsx),
-[components/media/MediaDetailClient.tsx](../components/media/MediaDetailClient.tsx).
+`text-brand`, `border-brand`, `accent-brand`, `bg-gold`). Files:
+[ClipEngineForm.tsx](../components/clipping/ClipEngineForm.tsx) (const + template + `accent-[#572280]`),
+[StrategyView.tsx](../components/clipping/StrategyView.tsx),
+[ClipApprovalModal.tsx](../components/clipping/ClipApprovalModal.tsx),
+[access-denied/page.tsx](../app/access-denied/page.tsx),
+[StrategyDetail.tsx](../components/media/StrategyDetail.tsx),
+[MediaDetailClient.tsx](../components/media/MediaDetailClient.tsx),
+[DevLogin.tsx](../components/auth/DevLogin.tsx).
 
-**1b. Replace arbitrary pixel sizes** (`text-[13px]`, `text-[11px]`, `text-[32px]`, etc.)
-with the Phase-0 type-scale utilities. Offenders: [components/ui/Sidebar.tsx](../components/ui/Sidebar.tsx),
-[components/ui/DetailDrawer.tsx](../components/ui/DetailDrawer.tsx),
-[components/ui/MetricCard.tsx](../components/ui/MetricCard.tsx),
-[components/settings/ClipRulesEditor.tsx](../components/settings/ClipRulesEditor.tsx).
+**1b. Replace the 130 arbitrary pixel sizes** (`text-[13px]`, `text-[11px]`, `text-[32px]`, etc.)
+with the Phase-0 type-scale utilities. Concentrated in `components/ui/*`
+([Sidebar](../components/ui/Sidebar.tsx), [DetailDrawer](../components/ui/DetailDrawer.tsx),
+[MetricCard](../components/ui/MetricCard.tsx)) and settings/media surfaces. Fix the shared
+`components/ui/*` primitives first — the savings cascade to every consumer.
 
-**1c. Drain inline `style={{}}` (~134).** Convert to Tailwind utilities or the existing
-global classes. Highest-density targets: [app/tickets/[id]/page.tsx](../app/tickets/[id]/page.tsx#L41-L92)
-(extract the repeated `<Field>` block into a small `components/ui/FieldRow.tsx`),
-[app/intake/page.tsx](../app/intake/page.tsx), [app/page.tsx](../app/page.tsx#L40-L44),
-[app/loading.tsx](../app/loading.tsx), [components/settings/AssetTypeEditor.tsx](../components/settings/AssetTypeEditor.tsx),
-[components/studio/ReviewQueueTable.tsx](../components/studio/ReviewQueueTable.tsx#L80).
+**1c. Drain inline `style={{}}`.** Convert to Tailwind utilities or the existing global
+classes. Highest-density targets in order: [stakeholder/[id]/page.tsx](../app/stakeholder/[id]/page.tsx) (19),
+[ShootsBoard.tsx](../components/shoots/ShootsBoard.tsx) (12), [shoots/[id]/page.tsx](../app/shoots/[id]/page.tsx) (12),
+[media/page.tsx](../app/media/page.tsx) (12), [QueueTable.tsx](../components/tickets/QueueTable.tsx) (11),
+[tickets/[id]/page.tsx](../app/tickets/[id]/page.tsx) (11), [AssetTypeEditor.tsx](../components/settings/AssetTypeEditor.tsx) (10),
+[ShellChrome.tsx](../components/ui/ShellChrome.tsx) (9), [intake/page.tsx](../app/intake/page.tsx) (8),
+[performance/page.tsx](../app/performance/page.tsx) (7), [editor/page.tsx](../app/editor/page.tsx) (7).
+For ticket detail / intake field rows, **reuse the existing [components/ui/Field.tsx](../components/ui/Field.tsx)
+`Field` component** rather than re-implementing field markup.
 
-**1d. Unify focus + form-input styling.** Form inputs in `components/settings/*` and
-`components/clipping/*` currently rely on border-color change only. Standardize on the
-global `:focus-visible`/input rules in [globals.css:264-269](../app/globals.css#L264-L269)
-(or a single `components/ui/Input.tsx`/`Textarea.tsx`/`Select.tsx` wrapper) so every
-field shows the brand focus ring. Note: a new `components/ui/Input`/`Select` is the
-cleanest fit with the "Tailwind components" direction — recommend creating these thin wrappers.
+**1d. Adopt the existing form primitives + unify focus.** `Input`/`Select`/`Textarea` in
+[components/ui/Field.tsx](../components/ui/Field.tsx) already apply the brand focus ring via
+`focus-visible:shadow-[var(--mv-shadow-focus)]`. Forms in `components/settings/*`,
+`components/clipping/*`, `components/shoots/*` still use raw `<input>/<select>` that rely on
+border-color change only — **swap them to the existing primitives**. (Optional: also lean on
+the global `:focus-visible` rules in [globals.css:264-269](../app/globals.css#L264-L269) for
+non-component fields.) No new wrappers needed.
 
 **1e. Close responsive gaps.** Add `sm:/md:/lg:` to the grid-heavy newer components that
-currently rely solely on globals media queries; add a horizontal-scroll affordance (fade
-edge or shadow) to `table.list` on mobile in [QueueTable.tsx](../components/tickets/QueueTable.tsx).
+currently rely solely on globals media queries (shoots board, media grid, performance,
+stakeholder); add a horizontal-scroll affordance (fade edge or shadow) to `table.list` on
+mobile in [QueueTable.tsx](../components/tickets/QueueTable.tsx).
 
 ---
 
@@ -121,9 +161,11 @@ Port the remaining ~20% of mockup devices into [app/globals.css](../app/globals.
    guidance and stakeholder notes.
 4. **Dashed Phase-2 callout** — `border: 1px dashed brand-border` + `brand-soft` for
    "coming in Phase 2" sections (`vishen-cockpit.html`). Replaces ad-hoc future banners.
-5. **demo-six insight cards** — the "Performance at a glance" `.insight` cards with
-   colored icon + inline sparkline, and the AI **best-performer** proposal that feeds back
-   into intake. (`demo-six.html` is untracked — confirm it's the intended newer direction.)
+5. **demo-six best-performer intelligence** — [InsightCard.tsx](../components/ui/InsightCard.tsx)
+   already exists (port it off its inline styles while here). The net-new piece is the AI
+   **best-performer** proposal (from `demo-six.html`) that surfaces the top-performing asset
+   type and feeds it back into intake. (`demo-six.html` is untracked — confirm it's the
+   intended newer direction before wiring the proposal.)
 6. **Richer hero band** (optional) — `status-report.html`'s radial-gold + purple gradient
    header with gold bottom-border, for the stakeholder/status report surface.
 

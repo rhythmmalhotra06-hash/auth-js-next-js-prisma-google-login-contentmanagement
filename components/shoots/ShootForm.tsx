@@ -19,7 +19,7 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
 }
 
 const inputCls =
-  'w-full rounded-[8px] border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
+  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
@@ -128,7 +128,7 @@ export function ShootForm({ data }: { data: IntakeReferenceData }) {
           )}
           <input className={inputCls} value={authorQuery} onChange={(e) => setAuthorQuery(e.target.value)} placeholder="Type to search authors…" />
           {authorMatches.length > 0 && (
-            <div className="mt-1 max-h-44 overflow-y-auto rounded-[8px] border border-border-default">
+            <div className="mt-1 max-h-44 overflow-y-auto rounded-sm border border-border-default">
               {authorMatches.map((a) => {
                 const sel = authorIds.includes(a.id);
                 return (
@@ -175,14 +175,14 @@ export function ShootForm({ data }: { data: IntakeReferenceData }) {
       </Section>
 
       {result && (
-        <div className={`rounded-[8px] px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-danger'}`}>
+        <div className={`rounded-sm px-4 py-3 text-sm ${result.ok ? 'bg-success-soft text-success-content' : 'bg-danger-soft text-danger'}`}>
           {result.message}
         </div>
       )}
 
       <div className="flex items-center justify-end gap-3 border-t border-border-default pt-6">
         <button type="submit" disabled={submitting}
-          className="rounded-[8px] bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60">
+          className="rounded-sm bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60">
           {submitting ? 'Submitting…' : 'Submit shoot request'}
         </button>
       </div>

@@ -35,7 +35,7 @@ export function AssigneeUpdater({
         value={value}
         disabled={pending}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[8px] border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60"
+        className="rounded-sm border border-border-default px-3 py-1.5 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60"
       >
         <option value="">Unassigned</option>
         {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}

@@ -40,7 +40,7 @@ export default async function MediaDetailPage({
     if (srcRes.error.type === 'NOT_FOUND') notFound();
     return (
       <AppShell title="Media">
-        <div className="rounded-[8px] bg-red-50 px-4 py-3 text-sm text-danger">Couldn’t load: {srcRes.error.message}</div>
+        <div className="rounded-sm bg-danger-soft px-4 py-3 text-sm text-danger">Couldn’t load: {srcRes.error.message}</div>
       </AppShell>
     );
   }

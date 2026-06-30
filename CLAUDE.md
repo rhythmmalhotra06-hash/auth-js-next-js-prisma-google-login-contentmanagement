@@ -42,6 +42,27 @@ Copy `.env.example` → `.env` and fill in `DATABASE_URL`, `AUTH_GITHUB_ID`, `AU
 
 ---
 
+## Styling rules (design system)
+
+The design system lives in `app/globals.css` (brand tokens `--mv-*`, Tailwind v4
+`@theme inline` utilities, and the ported component classes from `context/mockups/`).
+When styling any surface, in this order of preference:
+
+1. **Reuse a `components/ui/*` primitive** — `Button`, `Badge`, `Kpi`, `MetricCard`,
+   `Field`/`Input`/`Select`/`Textarea`, `Icon`, `SearchableSelect`, `TierBadge`, `Sparkline`,
+   `InsightCard`, `FunnelCapacity`. Don't re-implement field/input/card markup.
+2. **Else use Tailwind token utilities** — `bg-brand`, `text-text-muted`, `border-border-default`,
+   `bg-surface`, `rounded-sm` (8px) / `rounded-md` (12px) / `rounded-lg` (16px) / `rounded-xs` (4px),
+   `text-2xs` (11px) plus the default `text-xs/sm/lg`, `font-display`. These map to the brand tokens.
+3. **Or use the ported global classes** (`.card .pad`, `.btn`, `.kpi`, `table.list`) where they fit.
+
+**Never:** raw hex colors (`#572280` → `bg-brand`/`text-brand`); arbitrary Tailwind sizes
+(`rounded-[8px]` → `rounded-sm`, `text-[11px]` → `text-2xs`); inline `style={{}}` for
+spacing/typography/color (use utilities or a component). Inline `style` is acceptable only
+for genuinely dynamic values (computed widths, `--i` animation indices).
+
+---
+
 ## Deployment — Kessel CLI
 
 This project deploys via the **Kessel CLI** (Mindvalley's Vercel-like platform, sits in front of Cloud Run). Do **not** use gcloud/Vercel — there's no GCP Console access. Next.js is auto-detected, so **do not add a Dockerfile** unless auto-detection genuinely can't handle a custom build.
