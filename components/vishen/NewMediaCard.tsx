@@ -25,6 +25,7 @@ export function NewMediaCard() {
         url: url.trim(),
         title: title.trim(),
         transcript: transcript.trim() || undefined,
+        writeBack: false, // ad-hoc clip-gen box stays portal-only — don't add to Vishen's Major Videos
       });
       if (res.ok && res.id) router.push(`/media/${res.id}?autostart=1`);
       else setErr(res.error ?? 'Failed to submit');

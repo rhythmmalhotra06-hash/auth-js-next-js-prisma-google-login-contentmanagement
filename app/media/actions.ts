@@ -26,7 +26,7 @@ export interface SubmitMediaInput {
   audience?: string; // Cold | Warm
   transcript?: string; // optional — captured upfront so a blocked YouTube fetch never costs a round-trip
   type?: string; // content category (Major Videos "Select"); stored on Guest/Show when set
-  writeBack?: boolean; // Studio "add media": also create a row in Vishen's Major Videos base
+  writeBack?: boolean; // create + link a row in Vishen's Major Videos base. Default ON; pass false to skip.
 }
 
 export interface SubmitMediaResult {
@@ -45,13 +45,15 @@ export async function submitMediaLink(input: SubmitMediaInput): Promise<SubmitMe
   // The type doubles as Guest/Show context when an explicit guestShow isn't given.
   const guestShow = input.guestShow?.trim() || input.type?.trim() || null;
 
-  // Studio "add media": write a row back to Vishen's Major Videos base first, so his table
-  // stays authoritative and the next sync run treats it as already-mirrored (no duplicate).
+  // Every portal add creates + links a row in Vishen's Major Videos base, so it never orphans
+  // (the reverse Airtable automation is update-only and won't create from the portal side).
+  // Best-effort: a Vishen-base write hiccup must not fail the user's add — we just leave it
+  // unlinked, and the row can be linked later. Pass writeBack:false to opt out.
   let sourceRecordId: string | null = null;
-  if (input.writeBack) {
+  if (input.writeBack !== false) {
     const back = await createMajorVideo({ title: title ?? url, url, type: input.type?.trim() || null });
-    if (!back.ok) return { ok: false, error: `Couldn’t write to Major Videos: ${back.error.message}` };
-    sourceRecordId = back.data.id;
+    if (back.ok) sourceRecordId = back.data.id;
+    else console.error('submitMediaLink: Major Videos write-back failed:', back.error.message);
   }
 
   const res = await createMediaSource({
