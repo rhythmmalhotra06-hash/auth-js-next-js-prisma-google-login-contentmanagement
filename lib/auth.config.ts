@@ -34,12 +34,14 @@ if (DEV_LOGIN) {
       credentials: {
         email: { label: 'Email', type: 'text', placeholder: 'you@mindvalley.com' },
         roles: { label: 'Roles (comma-separated; blank = Stakeholder)', type: 'text', placeholder: 'Editor' },
+        division: { label: 'Division (e.g. Marketing — for the Social surface)', type: 'text', placeholder: 'Marketing' },
       },
       authorize(creds) {
         const email = String(creds?.email ?? '').toLowerCase().trim()
         if (!email.endsWith('@mindvalley.com')) return null
         const roles = String(creds?.roles ?? '').trim()
-        return { id: email, email, name: email.split('@')[0], devRoles: roles }
+        const division = String(creds?.division ?? '').trim()
+        return { id: email, email, name: email.split('@')[0], devRoles: roles, devDivision: division }
       },
     }),
   )
@@ -71,6 +73,7 @@ export default {
     jwt({ token, user }) {
       if (DEV_LOGIN && user && 'devRoles' in user) {
         ;(token as unknown as Record<string, unknown>).devRoles = (user as { devRoles?: string }).devRoles ?? ''
+        ;(token as unknown as Record<string, unknown>).devDivision = (user as { devDivision?: string }).devDivision ?? ''
       }
       return token
     },
@@ -78,6 +81,7 @@ export default {
       const t = token as unknown as Record<string, unknown>
       if (DEV_LOGIN && 'devRoles' in t) {
         ;(session as unknown as Record<string, unknown>).devRoles = t.devRoles
+        ;(session as unknown as Record<string, unknown>).devDivision = t.devDivision
       }
       return session
     },

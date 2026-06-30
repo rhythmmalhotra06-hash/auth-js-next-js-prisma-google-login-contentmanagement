@@ -88,8 +88,12 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
     case '/stakeholder':
       return canAccessRoute(r, href);
     case '/media':
-      // Clip library: production roles OR anyone in the Marketing division.
-      return isMarketingDivision(division) || canAccessRoute(r, '/editor') || canAccessRoute(r, '/manager');
+      // Clip library — production/management roles (the Creatives surface). Marketing
+      // uses /social instead, so it is NOT shown here.
+      return canAccessRoute(r, '/editor') || canAccessRoute(r, '/manager');
+    case '/social':
+      // Social Media clip engine — the Marketing division's surface.
+      return isMarketingDivision(division);
     case '/shoots':
       return true; // anyone can submit/track a shoot request
     case '/settings/clip-rules':
@@ -132,7 +136,10 @@ export function navForRoles(roles: readonly string[] | null | undefined, isAdmin
   // "My requests" — the read-only view of the requests YOU raised. Useful to every
   // role (anyone can submit intake), and for pure stakeholders it's their main surface.
   items.push({ href: '/stakeholder', label: 'My requests', icon: 'inbox', group: 'Workflow' });
-  if (mgr || ed || exec || isAdmin || marketing) items.push({ href: '/media', label: 'Clips', icon: 'film', group: 'Library & media' });
+  if (mgr || ed || exec || isAdmin) items.push({ href: '/media', label: 'Clips', icon: 'film', group: 'Library & media' });
+  // Social Media = the Marketing division's clip engine (parallel to Clips, backed by the
+  // Content & Comms base). Marketing sees this instead of Clips; admins see both.
+  if (marketing || isAdmin) items.push({ href: '/social', label: 'Social Media', icon: 'share', group: 'Library & media' });
   // Shoots = pre-production filming queue. Anyone can submit a shoot request, so it's
   // visible to every signed-in role (mirrors "New request" being open to all).
   items.push({ href: '/shoots', label: 'Shoots', icon: 'video', group: 'Library & media' });

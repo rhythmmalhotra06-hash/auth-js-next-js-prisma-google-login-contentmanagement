@@ -26,6 +26,15 @@ export function DevLogin() {
           ))}
           <option value="Manager, Approver">Manager + Approver</option>
         </select>
+        <select
+          name="division"
+          defaultValue=""
+          className="w-full rounded-md border border-border-strong px-3 py-2 text-sm text-text outline-none focus:border-brand"
+        >
+          <option value="">No division (default)</option>
+          <option value="Marketing">Marketing (Social Media surface)</option>
+          <option value="Creatives">Creatives</option>
+        </select>
         <button
           type="submit"
           className="w-full rounded-md bg-brand px-4 py-2 text-sm font-medium text-white"

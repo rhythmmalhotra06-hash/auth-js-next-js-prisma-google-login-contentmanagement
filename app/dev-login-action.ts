@@ -9,5 +9,6 @@ export async function devLogin(formData: FormData) {
   if (!DEV_LOGIN) return;
   const email = String(formData.get('email') ?? '').trim();
   const roles = String(formData.get('roles') ?? '').trim();
-  await signIn('dev', { email, roles, redirectTo: '/' });
+  const division = String(formData.get('division') ?? '').trim();
+  await signIn('dev', { email, roles, division, redirectTo: '/' });
 }
