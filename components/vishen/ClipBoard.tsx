@@ -56,12 +56,14 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
 
   return (
     <div>
-      <div className="subtabs" style={{ justifyContent: 'flex-end', marginTop: 0, marginBottom: 14 }}>
-        {(['grid', 'table'] as View[]).map((v) => (
-          <button key={v} onClick={() => setView(v)} className={cn('subtab', view === v && 'on')} style={{ textTransform: 'capitalize' }}>
-            {v}
-          </button>
-        ))}
+      <div className="mb-4 flex justify-end">
+        <div className="segmented">
+          {(['grid', 'table'] as View[]).map((v) => (
+            <button key={v} type="button" onClick={() => setView(v)} className={cn(view === v && 'on')} style={{ textTransform: 'capitalize' }}>
+              {v}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-7">
