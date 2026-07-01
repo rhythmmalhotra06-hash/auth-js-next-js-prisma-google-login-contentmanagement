@@ -920,10 +920,12 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
     "media"
     "signoff"
     "launches"
+    "shoots"
     "shipped";}
 .sz-funnel{grid-area:funnel;min-width:0;} .sz-media{grid-area:media;min-width:0;}
 .sz-signoff{grid-area:signoff;min-width:0;}
 .sz-launches{grid-area:launches;min-width:0;} .sz-shipped{grid-area:shipped;min-width:0;}
+.sz-shoots{grid-area:shoots;min-width:0;}
 /* zones own their spacing via grid gap — neutralise the section-head top margin */
 .studio-bento .sec-head{margin:0 0 12px;}
 /* launches filter row */
