@@ -99,7 +99,7 @@ export function ShootEditor({
   }
 
   return (
-    <div className="grid2" style={{ gridTemplateColumns: '1.4fr 1fr', alignItems: 'start', gap: 18 }}>
+    <div className="shoot-edit-grid">
       {/* ── Left: brief + details + priority ─────────────────────────────── */}
       <div className="card pad space-y-5">
         <Field label="Brief" hint="What's the shoot, who's in it, and the goal?">
