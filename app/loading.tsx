@@ -9,7 +9,7 @@ export default function Loading() {
             <div key={i} className="skel" style={{ height: 86 }} />
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 14, marginTop: 18 }}>
+        <div className="datarow" style={{ marginTop: 18 }}>
           <div className="skel" style={{ height: 160 }} />
           <div className="skel" style={{ height: 160 }} />
         </div>

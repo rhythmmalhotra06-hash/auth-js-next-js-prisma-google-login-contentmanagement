@@ -640,6 +640,11 @@ table.list td.rankcell{color:var(--text-subtle);font-variant-numeric:tabular-num
 .row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:680px){.grid2{grid-template-columns:1fr;}}
+/* Shoot editor: asymmetric two-pane (form + tickets) on desktop, single column on
+   phones. A dedicated class so it collapses via CSS — an inline gridTemplateColumns
+   would override the media query and trap the form in a cramped 2-col layout. */
+.shoot-edit-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start;}
+@media(max-width:680px){.shoot-edit-grid{grid-template-columns:1fr;}}
 .divider{height:1px;background:var(--border);margin:4px 0;}
 .banner{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border-radius:var(--r-md);font-size:13px;line-height:1.5;}
 .banner.future{background:var(--brand-soft);color:var(--brand-content);}
