@@ -25,7 +25,8 @@ async function StudioBody() {
   const pendingShoots = getPendingShoots(data.shoots).map(toShootSignOffItem);
 
   // Vishen's media + their top clip ideas — pinned to the top (most important to Vishen).
-  const vishenMedia = getVishenMedia(data.media).slice(0, 3);
+  const allVishenMedia = getVishenMedia(data.media);
+  const vishenMedia = allVishenMedia.slice(0, 3);
   const clipsByMedia: Record<string, ClipRow[]> = {};
   const clipIds = vishenMedia.flatMap((m) => m.clipSuggestionIds);
   if (clipIds.length) {
@@ -58,9 +59,18 @@ async function StudioBody() {
 
       {/* Your media → clip ideas — the work closest to Vishen */}
       <section className="sz-media">
-        <div className="sec-head"><h3>Your media → clip ideas</h3><span className="hint">your films, podcasts and talks — and the clips we can ship from them</span></div>
+        <div className="sec-head">
+          <h3>Your media → clip ideas</h3>
+          <span className="hint">your films, podcasts and talks — and the clips we can ship from them</span>
+          <Link href="/vishen" className="st-seeall">See all clips →</Link>
+        </div>
         <AddVishenMedia />
         {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} clipsByMedia={clipsByMedia} /></div>}
+        {allVishenMedia.length > vishenMedia.length && (
+          <Link href="/vishen" className="st-seeall" style={{ display: 'inline-block', marginTop: 10 }}>
+            +{allVishenMedia.length - vishenMedia.length} more media · see all clips →
+          </Link>
+        )}
       </section>
 
       {/* Needs your sign-off — tall focal column */}
