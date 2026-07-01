@@ -92,18 +92,6 @@ async function StudioBody() {
           : <LaunchesSection launches={launches} />}
       </section>
 
-      {/* Shoots — thin strip; the sign-off block above only shows pending ones */}
-      <section className="sz-shoots">
-        <div className="sec-head"><h3>Shoots</h3><span className="hint">filming across your launches</span></div>
-        <div className="st-shipstrip">
-          <div className="lhs">
-            <b>{data.shoots.length} shoot{data.shoots.length === 1 ? '' : 's'}</b>
-            {pendingShoots.length > 0 ? ` · ${pendingShoots.length} awaiting your sign-off` : ' · none awaiting you'}
-          </div>
-          <Link href="/studio/shoots" className="st-seeall">See all shoots →</Link>
-        </div>
-      </section>
-
       {/* Recently shipped — thin proof strip */}
       <section className="sz-shipped">
         <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
