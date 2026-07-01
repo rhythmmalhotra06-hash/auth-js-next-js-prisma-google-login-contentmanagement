@@ -395,6 +395,8 @@ export const SOCIAL = {
   },
   links: {
     shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)
+    officialCal: 'fld0cCEUWfE3G4iNX', // → 📅 Official Cal (same base, COMMS_OFFICIAL_CAL). Writing it
+    // auto-fills the "Name of project (from 📅 Official Cal)" lookup on the row.
     // NOTE: the "Creative Request" link (flddCgrgYAcBMFcs9) points at a synced mirror of the
     // Creative Services Prio table — records there can't be created cross-base, so the portal
     // stores the real ticket recId in creativeTicketId instead and reads status from that base.
@@ -413,6 +415,20 @@ export const SOCIAL = {
 // Content & Comms 🎯 Prio table (tblojUG9wmfTru9Wc) is a read-only synced mirror of that
 // Creative Services table, so it can't be written to. The Social raise picker uses the
 // shared intake reference data (Creative Services event/asset types).
+
+// 📅 Official Cal — the Content & Comms base's own campaign calendar (distinct from the
+// Creative Services OFFICIAL_CALENDARS above). The 📣 Social table links to this table, so
+// Glen can tag which calendar entry a batch of generated clips belongs to.
+export const COMMS_OFFICIAL_CAL = {
+  baseId: BASES.contentComms,
+  tableId: 'tbl3PkmIprAMhU4AI',
+  fields: {
+    name: 'fldtgdoPTbrEPJ3Mx', // "Name of project" (primary, multilineText)
+    status: 'fldFBbjSsM2G0bxo8', // "Status" (singleSelect)
+    startDate: 'fldWepC3ZFCPjKqIb', // "Start date" (date)
+    endDate: 'fldLgI8HMVqw6Kjdd', // "End Date" (date)
+  },
+} as const;
 
 // 🎬 Clips — Vishen's own clip list in his content base, linked to Major Videos via Source.
 // Two-way synced with 🎬 Clip Suggestions (see plans/vishen-two-way-sync.md). App-generated clips

@@ -8,7 +8,7 @@
 // read-only synced mirror). We store the created ticket's recId in creativeTicketId
 // and read its live status from the Creative Services base.
 
-import { SOCIAL as S, TICKETS as T } from '@/lib/airtable/field-map';
+import { SOCIAL as S, TICKETS as T, COMMS_OFFICIAL_CAL as CAL } from '@/lib/airtable/field-map';
 import {
   listAll,
   getRecord,
@@ -33,6 +33,40 @@ function selectName(v: unknown): string | null {
   if (typeof v === 'string') return v || null;
   if (typeof v === 'object' && 'name' in (v as object)) return String((v as { name: unknown }).name);
   return String(v);
+}
+
+// ── Official Calendar entries (Content & Comms base) ─────────────────────────
+
+export interface CommsCalendarEntry {
+  id: string;
+  name: string;
+  status: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+/**
+ * Calendar entries Glen can tag a clip batch to (📅 Official Cal in the Content & Comms
+ * base). Newest start date first; undated last. Powers the /social/new calendar picker.
+ */
+export async function listCommsCalendarEntries(): Promise<AirtableResult<CommsCalendarEntry[]>> {
+  const res = await listAll<Raw>(CAL.baseId, CAL.tableId, {
+    fields: [CAL.fields.name, CAL.fields.status, CAL.fields.startDate, CAL.fields.endDate],
+  });
+  if (!res.ok) return res;
+  const rows = res.data
+    .map((rec) => {
+      const f = rec.fields;
+      return {
+        id: rec.id,
+        name: str(f[CAL.fields.name]) ?? '(untitled)',
+        status: selectName(f[CAL.fields.status]),
+        startDate: str(f[CAL.fields.startDate]),
+        endDate: str(f[CAL.fields.endDate]),
+      };
+    })
+    .sort((a, b) => (b.startDate ?? '').localeCompare(a.startDate ?? ''));
+  return { ok: true, data: rows };
 }
 
 // ── Social suggestions ───────────────────────────────────────────────────────
@@ -104,21 +138,24 @@ export async function createSocialSuggestions(
   sourceUrl: string,
   sourceTitle: string,
   clips: ReelsClip[],
+  opts: { calendarId?: string | null } = {},
 ): Promise<AirtableResult<{ count: number; ids: string[] }>> {
   const records = clips.map((c) => {
     const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
-    return {
-      fields: {
-        [SF.title]: c.hookLine,
-        [SF.notes]: c.rationale ?? '',
-        [SF.captions]: c.caption,
-        [SF.status]: S.status_.proposal,
-        [SF.clipSourceUrl]: sourceUrl,
-        [SF.sourceTitle]: sourceTitle || null,
-        [SF.virality]: c.viralityScore,
-        [SF.timecode]: timecode,
-      } as Record<string, unknown>,
+    const fields: Record<string, unknown> = {
+      [SF.title]: c.hookLine,
+      [SF.notes]: c.rationale ?? '',
+      [SF.captions]: c.caption,
+      [SF.status]: S.status_.proposal,
+      [SF.clipSourceUrl]: sourceUrl,
+      [SF.sourceTitle]: sourceTitle || null,
+      [SF.virality]: c.viralityScore,
+      [SF.timecode]: timecode,
     };
+    // Link the batch to Glen's chosen calendar entry; the "Name of project (from
+    // 📅 Official Cal)" lookup on the row then auto-fills with the calendar name.
+    if (opts.calendarId) fields[S.links.officialCal] = [opts.calendarId];
+    return { fields };
   });
   const res = await createRecords<Raw>(S.baseId, S.tableId, records);
   if (!res.ok) return res;

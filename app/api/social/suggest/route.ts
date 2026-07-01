@@ -31,7 +31,11 @@ export async function POST(req: Request) {
   const url = typeof body.url === 'string' ? body.url.trim() : '';
   if (!url) return Response.json({ ok: false, error: 'A media URL is required.' }, { status: 400 });
 
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  // Glen tags the batch to a calendar entry. Its name doubles as the clip-prompt
+  // context (what "Title" used to supply) and links the rows to 📅 Official Cal.
+  const calendarId = typeof body.calendarId === 'string' && body.calendarId ? body.calendarId : null;
+  const calendarName = typeof body.calendarName === 'string' ? body.calendarName.trim() : '';
+  const title = calendarName || (typeof body.title === 'string' ? body.title.trim() : '');
   const audience = typeof body.audience === 'string' ? body.audience.trim() : '';
   const webSearch = body.webSearch === true;
   const rawClipType = typeof body.clipType === 'string' ? body.clipType : undefined;
@@ -58,7 +62,7 @@ export async function POST(req: Request) {
     // (falls back to the user-entered title, then the raw link).
     const sourceTitle = await generateClipSourceLabel(transcript, title);
 
-    const res = await createSocialSuggestions(url, sourceTitle, strategy.reelsClips);
+    const res = await createSocialSuggestions(url, sourceTitle, strategy.reelsClips, { calendarId });
     if (!res.ok) throw new Error(`Failed to write suggestions: ${res.error.message}`);
 
     return Response.json({ ok: true, count: res.data.count });
