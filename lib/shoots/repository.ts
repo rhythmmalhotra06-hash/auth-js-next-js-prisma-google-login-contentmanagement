@@ -15,8 +15,8 @@ import type { ShootRow } from '@/lib/shoots/constants';
 
 export type { ShootRow } from '@/lib/shoots/constants';
 export {
-  SHOOT_FORMATS, SHOOT_LOCATIONS, SHOOT_STATUS, SHOOT_STATUS_ORDER, SHOOT_STATUS_TONE,
-  shortStatus, isToFilmInStudioTime, STUDIO_TIME_SINCE,
+  SHOOT_FORMATS, SHOOT_LOCATIONS, SHOOT_PLATFORMS, SHOOT_STATUS, SHOOT_STATUS_ORDER,
+  SHOOT_STATUS_TONE, SHOOT_RANK_MAX, shortStatus,
 } from '@/lib/shoots/constants';
 
 const SF = S.fields;
@@ -31,6 +31,13 @@ function selectName(v: unknown): string | null {
   return String(v);
 }
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+const num = (v: unknown): number | null => (typeof v === 'number' && !Number.isNaN(v) ? v : null);
+
+// multipleSelects → array of plain option names.
+function selectNames(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map(selectName).filter((x): x is string => !!x);
+}
 
 function linkedIds(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
@@ -55,8 +62,14 @@ function mapShoot(rec: AirtableRecord<Raw>): ShootRow {
     brief: str(f[SF.notes]),
     productionSupport: str(f[SF.productionSupport]),
     vishenApproved: f[SF.vishenApproval] === true,
+    priorityRanking: num(f[SF.priorityRanking]),
+    rawFiles: str(f[SF.rawFiles]),
+    platforms: selectNames(f[SF.platforms]),
+    newPrioTicket: f[SF.newPrioTicket] === true,
     requestedById: linkedIds(f[SL.requestedBy])[0] ?? null,
     authorIds: linkedIds(f[SL.authors]),
+    eventTypeIds: linkedIds(f[SL.eventTypes]),
+    assetLibraryIds: linkedIds(f[SL.assetLibrary]),
     ticketIds: linkedIds(f[SL.postProductionTicket]),
     ticketCount: linkedIds(f[SL.postProductionTicket]).length,
     createdTime: rec.createdTime,
@@ -65,7 +78,8 @@ function mapShoot(rec: AirtableRecord<Raw>): ShootRow {
 
 const LIST_FIELDS = [
   SF.title, SF.status, SF.format, SF.filmingDate, SF.filmingLocation, SF.notes,
-  SF.productionSupport, SF.vishenApproval, SL.requestedBy, SL.authors,
+  SF.productionSupport, SF.vishenApproval, SF.priorityRanking, SF.rawFiles, SF.platforms,
+  SF.newPrioTicket, SL.requestedBy, SL.authors, SL.eventTypes, SL.assetLibrary,
   SL.postProductionTicket,
 ];
 

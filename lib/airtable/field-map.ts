@@ -82,12 +82,17 @@ export const SHOOTS = {
     productionSupport: 'fldpGBd4gOiCooTOv', // "Production Support" (multilineText)
     vishenApproval: 'fldhqZbEmxjEK703f', // "Vishen's Approval" (checkbox)
     created: 'fld5oUk5TNQvchDx0', // "Created" (createdTime, READ-ONLY)
+    priorityRanking: 'fldNNkk3toYNOgzor', // "Priority Ranking (Manual)" (rating, star, max 10)
+    rawFiles: 'fld3EaYUxVfpKyZCM', // "Raw Files" (url)
+    platforms: 'fldzADgA2zZfdrXZy', // "Platfom" (multipleSelects) — note the live typo in the field name
+    newPrioTicket: 'fldNvoj7UUYkHeLov', // "New Prio Ticket" (checkbox → Airtable automation raises the Prio ticket)
   },
   links: {
     requestedBy: 'fldnLRFDHVXuUvUba', // "Requester" → 👬 Employees
     authors: 'fldTkTRGlh5dj7cUp', // → Authors 🧠
     eventTypes: 'fldRlBQIifsGQ4LWr', // → 🧩 Event Type
     assetTypes: 'fldqNdJkJxT0kXuxy', // → 🛎️ Creative Asset Type
+    assetLibrary: 'fldLHCrWOWexguMaw', // "📚 Asset Library (WIP)" → Asset Library
     postProductionTicket: 'fldK6lVl9cO59ICUt', // "Post-Production Ticket (AT)" → 🎯 Prio Requests
   },
   // singleSelect option values (write the plain name string — note the "New Requests - " prefix).

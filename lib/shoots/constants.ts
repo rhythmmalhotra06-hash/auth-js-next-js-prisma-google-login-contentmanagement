@@ -12,6 +12,12 @@ export const SHOOT_LOCATIONS = [
   'External Recording',
 ] as const;
 
+// Platforms a shoot's asset may be published to ("Platfom" multipleSelects — live typo).
+export const SHOOT_PLATFORMS = ['Youtube', 'Facebook', 'Instagram', 'Twitter', 'LinkedIn', 'TikTok'] as const;
+
+// Max value of the "Priority Ranking (Manual)" star rating in Airtable.
+export const SHOOT_RANK_MAX = 10;
+
 // Status values (the "New Requests - " prefix is part of the live enum).
 export const SHOOT_STATUS = {
   needsReview: "New Requests - Needs Vishen's Review",
@@ -55,15 +61,15 @@ export interface ShootRow {
   brief: string | null;
   productionSupport: string | null;
   vishenApproved: boolean;
+  priorityRanking: number | null;
+  rawFiles: string | null;
+  platforms: string[];
+  newPrioTicket: boolean;
   requestedById: string | null;
   authorIds: string[];
+  eventTypeIds: string[];
+  assetLibraryIds: string[];
   ticketIds: string[];
   ticketCount: number;
   createdTime: string;
-}
-
-/** "To Film in Studio Time": created after 31 May 2026 AND a filming date is set. */
-export const STUDIO_TIME_SINCE = '2026-05-31';
-export function isToFilmInStudioTime(s: ShootRow): boolean {
-  return s.createdTime > STUDIO_TIME_SINCE && !!s.filmingDate;
 }

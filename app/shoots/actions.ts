@@ -1,7 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createShoot } from '@/lib/shoots/repository';
+import { createShoot, getShoot, updateShoot } from '@/lib/shoots/repository';
+import {
+  SHOOT_FORMATS, SHOOT_LOCATIONS, SHOOT_PLATFORMS, SHOOT_STATUS_ORDER, SHOOT_RANK_MAX,
+} from '@/lib/shoots/constants';
+import { SHOOTS as S } from '@/lib/airtable/field-map';
 
 export interface CreateShootInput {
   title: string;
@@ -52,4 +56,110 @@ export async function createShootAction(input: CreateShootInput): Promise<Create
   if (!res.ok) return { ok: false, error: res.error.message };
   revalidatePath('/shoots');
   return { ok: true, id: res.data.id };
+}
+
+// ── Detail-page edits ────────────────────────────────────────────────────────
+// The shoot detail (/shoots/[id]) is a full editor. These actions patch the live
+// 📺 Shoots record; each revalidates the queue + the detail route.
+
+export interface ActionResult {
+  ok: boolean;
+  error?: string;
+}
+
+function revalidateShoot(id: string) {
+  revalidatePath('/shoots');
+  revalidatePath(`/shoots/${id}`);
+}
+
+export interface UpdateShootPatch {
+  brief?: string | null;
+  format?: string | null;
+  filmingStatus?: string | null;
+  filmingDate?: string | null; // ISO date; '' clears
+  filmingLocation?: string | null;
+  productionSupport?: string | null;
+  rawFiles?: string | null;
+  platforms?: string[];
+  eventTypeIds?: string[];
+}
+
+/** Save the editable text/select fields in one patch (validates enums + date). */
+export async function updateShootAction(id: string, patch: UpdateShootPatch): Promise<ActionResult> {
+  const fields: Record<string, unknown> = {};
+
+  if (patch.brief !== undefined) fields[S.fields.notes] = patch.brief?.trim() || null;
+  if (patch.productionSupport !== undefined) fields[S.fields.productionSupport] = patch.productionSupport?.trim() || null;
+  if (patch.rawFiles !== undefined) fields[S.fields.rawFiles] = patch.rawFiles?.trim() || null;
+
+  if (patch.format !== undefined) {
+    if (patch.format && !(SHOOT_FORMATS as readonly string[]).includes(patch.format)) return { ok: false, error: 'Invalid format' };
+    fields[S.fields.format] = patch.format || null;
+  }
+  if (patch.filmingLocation !== undefined) {
+    if (patch.filmingLocation && !(SHOOT_LOCATIONS as readonly string[]).includes(patch.filmingLocation)) return { ok: false, error: 'Invalid location' };
+    fields[S.fields.filmingLocation] = patch.filmingLocation || null;
+  }
+  if (patch.filmingStatus !== undefined) {
+    if (patch.filmingStatus && !SHOOT_STATUS_ORDER.includes(patch.filmingStatus)) return { ok: false, error: 'Invalid filming status' };
+    fields[S.fields.status] = patch.filmingStatus || null;
+  }
+  if (patch.platforms !== undefined) {
+    if (patch.platforms.some((p) => !(SHOOT_PLATFORMS as readonly string[]).includes(p))) return { ok: false, error: 'Invalid platform' };
+    fields[S.fields.platforms] = patch.platforms;
+  }
+  if (patch.filmingDate !== undefined) {
+    if (patch.filmingDate && Number.isNaN(new Date(patch.filmingDate).getTime())) return { ok: false, error: 'Invalid filming date' };
+    fields[S.fields.filmingDate] = patch.filmingDate ? patch.filmingDate.slice(0, 10) : null;
+  }
+  if (patch.eventTypeIds !== undefined) fields[S.links.eventTypes] = patch.eventTypeIds;
+
+  if (Object.keys(fields).length === 0) return { ok: true };
+
+  const res = await updateShoot(id, fields);
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateShoot(id);
+  return { ok: true };
+}
+
+/** Set the manual priority stars (0–10 → "Priority Ranking (Manual)"). 0 clears. */
+export async function setShootRank(id: string, rank: number): Promise<ActionResult> {
+  if (!Number.isInteger(rank) || rank < 0 || rank > SHOOT_RANK_MAX) {
+    return { ok: false, error: `Rank must be 0–${SHOOT_RANK_MAX}` };
+  }
+  const res = await updateShoot(id, { [S.fields.priorityRanking]: rank || null });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateShoot(id);
+  return { ok: true };
+}
+
+/** Link an existing Prio Request ticket to the shoot (appends, no duplicates). */
+export async function linkShootTicket(id: string, ticketId: string): Promise<ActionResult> {
+  if (!ticketId?.trim()) return { ok: false, error: 'Pick a ticket to link' };
+  const detail = await getShoot(id);
+  if (!detail.ok) return { ok: false, error: detail.error.message };
+  const next = detail.data.ticketIds.includes(ticketId)
+    ? detail.data.ticketIds
+    : [...detail.data.ticketIds, ticketId];
+  const res = await updateShoot(id, { [S.links.postProductionTicket]: next });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateShoot(id);
+  return { ok: true };
+}
+
+/**
+ * Raise a new Prio ticket by ticking the "New Prio Ticket" checkbox — the live
+ * Airtable automation creates the ticket. Gated (server-side mirror of the UI):
+ * only allowed once the shoot has both an Asset Library entry and an Event Type.
+ */
+export async function raiseNewPrioTicket(id: string): Promise<ActionResult> {
+  const detail = await getShoot(id);
+  if (!detail.ok) return { ok: false, error: detail.error.message };
+  if (!detail.data.assetLibraryIds.length || !detail.data.eventTypeIds.length) {
+    return { ok: false, error: 'Link an Asset Library entry and an Event Type first' };
+  }
+  const res = await updateShoot(id, { [S.fields.newPrioTicket]: true });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateShoot(id);
+  return { ok: true };
 }

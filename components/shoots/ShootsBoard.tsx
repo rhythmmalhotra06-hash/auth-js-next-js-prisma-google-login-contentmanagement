@@ -12,8 +12,7 @@ import { SortableTh } from '@/components/ui/table/SortableTh';
 import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import {
-  type ShootRow, SHOOT_STATUS, SHOOT_STATUS_ORDER, SHOOT_STATUS_TONE,
-  shortStatus, isToFilmInStudioTime, STUDIO_TIME_SINCE,
+  type ShootRow, SHOOT_STATUS, SHOOT_STATUS_ORDER, SHOOT_STATUS_TONE, shortStatus,
 } from '@/lib/shoots/constants';
 
 // Grid view for the shoot queue — mirrors the ticket QueueTable (sortable/resizable/
@@ -21,7 +20,7 @@ import {
 
 interface ShootView extends ShootRow { requester: string | null }
 
-type ViewKind = 'studio' | 'all' | 'custom';
+type ViewKind = 'all' | 'custom';
 type Dim = 'status' | 'format' | 'filmingLocation' | 'requester';
 
 const FILTERS: { key: Dim; label: string }[] = [
@@ -61,8 +60,8 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
     [rows, employeeNames],
   );
 
-  const [view, setViewKind] = useState<ViewKind>('studio');
-  const [createdAfter, setCreatedAfter] = useState(STUDIO_TIME_SINCE);
+  const [view, setViewKind] = useState<ViewKind>('all');
+  const [createdAfter, setCreatedAfter] = useState('');
   const [sel, setSel] = useState<Record<Dim, string>>({ status: '', format: '', filmingLocation: '', requester: '' });
   const [q, setQ] = useState('');
   const tv = useTableView({ columns: COLUMNS, storageKey: 'shoots' });
@@ -79,7 +78,6 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return views.filter((s) => {
-      if (view === 'studio' && !isToFilmInStudioTime(s)) return false;
       if (view === 'custom' && createdAfter && !(s.createdTime > createdAfter)) return false;
       if (!(Object.keys(sel) as Dim[]).every((k) => !sel[k] || s[k] === sel[k])) return false;
       if (needle && !(s.title ?? '').toLowerCase().includes(needle)) return false;
@@ -162,16 +160,9 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
       </div>
 
       <div className="sortchips" style={{ marginBottom: 12 }}>
-        {pill('studio', <><Icon name="video" size={13} /> To Film in Studio Time</>)}
         {pill('all', 'All shoots')}
         {pill('custom', <><Icon name="sliders" size={13} /> Custom view</>)}
       </div>
-
-      {view === 'studio' && (
-        <p className="subtle" style={{ fontSize: 12, margin: '-4px 0 12px' }}>
-          Showing shoots created after <b>31 May 2026</b> with a filming date set — the live studio-time list.
-        </p>
-      )}
 
       <div className="filters">
         <input className="qsearch" type="search" placeholder="Search shoots…" value={q} onChange={(e) => setQ(e.target.value)}
