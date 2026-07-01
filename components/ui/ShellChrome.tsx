@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -26,10 +26,19 @@ export function ShellChrome({
   }, [nav, pathname]);
   const { resolvedTheme, setTheme } = useTheme();
 
+  // Close the mobile drawer on Escape (backdrop tap is handled by .side-scrim).
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menu]);
+
   return (
     <>
     <div id="atmo" />
     <div className="app">
+      {menu && <div className="side-scrim" onClick={() => setMenu(false)} aria-hidden />}
       <aside className={cn('side', menu && 'show')}>
         <Link href="/studio" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="brand-mark"><Icon name="play" size={16} /></div>
@@ -80,8 +89,8 @@ export function ShellChrome({
             <Icon name={resolvedTheme === 'dark' ? 'sun' : 'moon'} size={18} />
           </button>
           {canCreate && (
-            <Link href="/intake" className="btn primary sm" style={{ textDecoration: 'none' }}>
-              <Icon name="plus" size={14} /> New request
+            <Link href="/intake" className="btn primary sm" style={{ textDecoration: 'none' }} aria-label="New request">
+              <Icon name="plus" size={14} /> <span className="btn-label">New request</span>
             </Link>
           )}
           <div className="rsw">
