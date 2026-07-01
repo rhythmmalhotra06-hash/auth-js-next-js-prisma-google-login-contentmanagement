@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { DetailDrawer } from '@/components/ui/DetailDrawer';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import type { SocialSuggestion, TicketState } from '@/lib/social/repository';
 import { approveSocialSuggestion, rejectSocialSuggestion, raiseSocialRequestAction } from '@/app/social/actions';
@@ -20,6 +21,8 @@ type SortKey = 'clip' | 'status' | 'virality';
 type Sort = { key: SortKey; dir: 'asc' | 'desc' };
 
 const TICKET_URL = (id: string) => `https://airtable.com/appFEFygXo2pRc8AR/tblhrRl8GzsDMv0DD/${id}`;
+// 📆 Official Calendar record in the Creative Services base.
+const CALENDAR_URL = (id: string) => `https://airtable.com/appFEFygXo2pRc8AR/tblwX47huc5xpkWyk/${id}`;
 
 function statusTone(status: string | null): 'neutral' | 'brand' | 'success' | 'info' | 'warning' {
   if (!status) return 'neutral';
@@ -98,10 +101,26 @@ function Th({ label, k, sort, onSort, align }: { label: string; k: SortKey; sort
 }
 
 function ClipRow({ s, ticketState, onOpen }: { s: SocialSuggestion; ticketState?: TicketState; onOpen: () => void }) {
+  const calendarId = ticketState?.officialCalendarId;
+  const title = s.title ?? 'Untitled clip';
   return (
     <tr onClick={onOpen} className="cursor-pointer border-b border-border-muted align-top last:border-0 hover:bg-bg-subtle">
       <td className="px-4 py-3 font-medium text-text">
-        <div className="line-clamp-2">{s.title ?? 'Untitled clip'}</div>
+        {calendarId ? (
+          <a
+            href={CALENDAR_URL(calendarId)}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Open the linked launch calendar"
+            className="inline-flex items-start gap-1 text-brand hover:underline"
+          >
+            <span className="line-clamp-2">{title}</span>
+            <Icon name="ext" size={12} className="mt-0.5 flex-none" />
+          </a>
+        ) : (
+          <div className="line-clamp-2">{title}</div>
+        )}
         {s.captions && <div className="mt-0.5 line-clamp-1 text-2xs font-normal text-text-subtle">{s.captions}</div>}
       </td>
       <td className="px-4 py-3 whitespace-nowrap">
@@ -232,11 +251,17 @@ function RaiseModal({ suggestion, reference, onClose }: { suggestion: SocialSugg
                 {filteredAssetTypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </ModalField>
-            <ModalField label="Official Calendar" hint="Optional">
-              <select className={inputCls} value={officialCalendarId} onChange={(e) => setOfficialCalendarId(e.target.value)}>
-                <option value="">Select…</option>
-                {reference.officialCalendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+            <ModalField label="Official Calendar" hint="Optional — links this clip to a launch calendar">
+              <SearchableSelect
+                value={officialCalendarId}
+                onChange={setOfficialCalendarId}
+                options={reference.officialCalendars.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Select…"
+                allLabel="No calendar"
+                searchPlaceholder="Search calendars…"
+                ariaLabel="Official Calendar"
+                width="100%"
+              />
             </ModalField>
             <ModalField label="Due date">
               <input type="date" className={inputCls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />

@@ -25,6 +25,9 @@ type Raw = Record<string, unknown>;
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
+// First linked record id from an Airtable link field (returns ["recXXX", …]).
+const firstLinkId = (v: unknown): string | null =>
+  Array.isArray(v) && typeof v[0] === 'string' && v[0] ? v[0] : null;
 function selectName(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === 'string') return v || null;
@@ -144,6 +147,7 @@ export async function markSocialTicketRaised(id: string, ticketId: string): Prom
 export interface TicketState {
   prioStatus: string | null;
   ticketStatus: string | null;
+  officialCalendarId: string | null; // recId of the linked 📆 Official Calendar, if any
 }
 
 /**
@@ -161,13 +165,14 @@ export async function getSocialTicketStates(ticketIds: string[]): Promise<Record
     const formula = `OR(${chunk.map((id) => `RECORD_ID() = '${id}'`).join(',')})`;
     const res = await listAll<Raw>(T.baseId, T.tableId, {
       filterByFormula: formula,
-      fields: [T.fields.prioStatus, T.fields.ticketStatus],
+      fields: [T.fields.prioStatus, T.fields.ticketStatus, T.links.officialCalendar],
     });
     if (!res.ok) continue;
     for (const rec of res.data) {
       out[rec.id] = {
         prioStatus: selectName(rec.fields[T.fields.prioStatus]),
         ticketStatus: selectName(rec.fields[T.fields.ticketStatus]),
+        officialCalendarId: firstLinkId(rec.fields[T.links.officialCalendar]),
       };
     }
   }
