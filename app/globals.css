@@ -929,7 +929,7 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 .shoot-grid a.card:hover{border-color:var(--brand-border);box-shadow:var(--sh-2);transform:translateY(-2px);}
 
 /* engine pipeline funnel — the hero on top */
-.st-funnel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);
+.st-funnel{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--surface);
   border:1px solid var(--border);border-radius:var(--r-md);
   overflow:hidden;box-shadow:var(--sh-2);}
 .st-lane{padding:18px 17px 20px;border-right:1px solid var(--border);position:relative;
@@ -950,7 +950,7 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 .st-lane .st-cap{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-subtle);}
 .st-lane .st-sub{font-size:11.5px;color:var(--text-muted);margin-top:8px;display:flex;gap:7px;align-items:center;}
 .st-lane .st-sub .d{width:5px;height:5px;border-radius:50%;background:var(--text-subtle);flex-shrink:0;}
-@media(max-width:680px){.st-funnel{grid-template-columns:1fr 1fr;}.st-lane:nth-child(2) .st-arrow{display:none;}}
+@media(max-width:680px){.st-funnel{grid-auto-flow:row;grid-template-columns:1fr 1fr;}.st-lane:nth-child(2) .st-arrow{display:none;}}
 /* 4-stage lifecycle: colour-coded top accent + tinted stage icon (learnable state language) */
 .st-lane::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--st-accent);opacity:.9;}
 .st-lane.tone-prod{--st-accent:var(--st-violet);}

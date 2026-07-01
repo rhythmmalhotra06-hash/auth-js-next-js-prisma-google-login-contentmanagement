@@ -29,15 +29,13 @@ async function StudioBody() {
   const allVishenMedia = getVishenMedia(data.media);
   const vishenMedia = allVishenMedia.slice(0, 3);
 
-  // Engine funnel — the full lifecycle, counts derived from existing selectors (no new data source).
-  // "Ready to publish" = signed off + queued; "Published" = the all-time shipped tally.
+  // Engine funnel — the pipeline stages, counts derived from existing selectors (no new data source).
+  // "Ready to publish" = signed off + queued.
   const readyToPublish = data.active.filter((t) => t.ticketStatus === 'Approved' || t.ticketStatus === 'Shipping').length;
-  const publishedCount = pulse.shippedAll ?? data.recentShipped.length;
   const funnelStages: FunnelStage[] = [
     { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️', tone: 'prod' },
     { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting + pendingShoots.length, cap: 'clips + shoots', sub: `${pendingShoots.length} shoot${pendingShoots.length === 1 ? '' : 's'} for you`, href: '/studio/sign-off', icon: '⏳', tone: 'review' },
     { key: 'ready', label: 'Ready to publish', count: readyToPublish, cap: 'approved · queued', href: '/studio/launches', icon: '📤', tone: 'ready' },
-    { key: 'pub', label: 'Published', count: publishedCount, cap: '', href: '/studio/shipped', icon: '✓', tone: 'pub' },
   ];
 
   return (
