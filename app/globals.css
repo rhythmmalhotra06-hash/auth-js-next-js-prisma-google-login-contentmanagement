@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./foundation.css"; /* shared mechanical layer: typeface, base size, reset (mirrored w/ Vendor Portal) */
 
 /* ================================================================
    Content Portal — Design System Foundation
@@ -72,8 +73,8 @@
 
   --mv-focus-ring:       #6d34a0;
 
-  /* ————————————————— Typography (Inter via next/font) ————————————————— */
-  --mv-font-body:    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  /* ————————————————— Typography —————————————————
+     --mv-font-body / --mv-font-display live in foundation.css (Plus Jakarta Sans, shared). */
   --mv-font-mono:    ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
   --mv-weight-regular: 400;
   --mv-weight-medium:  500;
@@ -203,23 +204,11 @@
 
   --font-sans: var(--mv-font-body);
   --font-mono: var(--mv-font-mono);
-  --font-display: "Bricolage Grotesque", var(--font-display-face), var(--mv-font-body);
+  --font-display: var(--mv-font-display);
 }
 
-/* ————————————————— Base reset ————————————————— */
-*, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-
-body {
-  font-family: var(--mv-font-body);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--mv-text);
-  background: var(--mv-bg-muted);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+/* Base reset + body typography (font-family, 14px, line-height, smoothing) now
+   live in foundation.css — the shared mechanical layer mirrored with the Vendor Portal. */
 
 /* ================================================================
    Prototype parity layer — short aliases bridging --mv-* to the
@@ -227,7 +216,7 @@ body {
    + event-tier tints. Dark mode flows through the --mv-* aliases.
    ================================================================ */
 :root {
-  --font-display: "Bricolage Grotesque", var(--font-display-face), var(--mv-font-body);
+  --font-display: var(--mv-font-display);
   --brand: var(--mv-brand); --brand-bright: var(--mv-brand-bright); --brand-content: var(--mv-brand-content);
   --brand-strong: var(--mv-brand-strong); --brand-soft: var(--mv-brand-soft); --brand-border: var(--mv-brand-border);
   --gold: var(--mv-gold); --gold-bright: var(--mv-gold-bright); --gold-content: var(--mv-gold-content); --gold-soft: var(--mv-gold-soft);
