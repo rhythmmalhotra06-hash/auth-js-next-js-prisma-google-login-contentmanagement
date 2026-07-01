@@ -107,6 +107,16 @@ export function getPendingShoots(shoots: ShootRow[]): ShootRow[] {
   return shoots.filter((s) => s.status === SHOOT_STATUS.needsReview);
 }
 
+/**
+ * Fallback for the sign-off zone when nothing needs Vishen's review: the next shoots
+ * lined up to film (status "To Film"), soonest filming date first.
+ */
+export function getShootsToFilm(shoots: ShootRow[]): ShootRow[] {
+  return shoots
+    .filter((s) => s.status === SHOOT_STATUS.toFilm)
+    .sort((a, b) => (a.filmingDate ?? '9999').localeCompare(b.filmingDate ?? '9999'));
+}
+
 /** Serializable row for the client shoot sign-off component. */
 export interface ShootSignOffItem {
   id: string;

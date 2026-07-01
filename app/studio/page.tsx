@@ -5,15 +5,16 @@ import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import {
   loadStudio, pulseCounts, getLaunches, getVishenMedia,
-  getPendingShoots, toShootSignOffItem,
+  getPendingShoots, getShootsToFilm, toShootSignOffItem,
 } from '@/lib/studio/data';
 import { ShootSignOff } from '@/components/studio/ShootSignOff';
+import { ShootsToFilm } from '@/components/studio/ShootsToFilm';
 import { ClipsAwaiting } from '@/components/studio/ClipsAwaiting';
 import { LaunchesSection } from '@/components/studio/LaunchesSection';
-import { ClipsList, type ClipRow } from '@/components/studio/ClipsList';
+import { ClipsList } from '@/components/studio/ClipsList';
 import { AddVishenMedia } from '@/components/studio/AddVishenMedia';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
-import { getClipsByIds, listClipsByStatus } from '@/lib/media/repository';
+import { listClipsByStatus } from '@/lib/media/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,28 +23,18 @@ async function StudioBody() {
   const pulse = pulseCounts(data.active, data.metrics);
   const launches = getLaunches(data.active, data.recentShipped);
   const pendingShoots = getPendingShoots(data.shoots).map(toShootSignOffItem);
+  // Fallback for the shoots box when nothing needs review: next shoots lined up to film.
+  const shootsToFilm = getShootsToFilm(data.shoots).map(toShootSignOffItem);
 
   // Clips awaiting Vishen's approval — proposed AI clips, top virality first.
   const proposedRes = await listClipsByStatus('Proposed');
   const proposedClips = proposedRes.ok ? proposedRes.data : [];
 
-  // Vishen's media + their top clip ideas — pinned to the top (most important to Vishen).
+  // Vishen's media — pinned to the top (most important to Vishen). The per-clip
+  // ideas live in the "Clips awaiting you" card below, so the list stays at the source level.
   const allVishenMedia = getVishenMedia(data.media);
   const vishenMedia = allVishenMedia.slice(0, 3);
-  const clipsByMedia: Record<string, ClipRow[]> = {};
   const clipIds = vishenMedia.flatMap((m) => m.clipSuggestionIds);
-  if (clipIds.length) {
-    const clipsRes = await getClipsByIds(clipIds);
-    if (clipsRes.ok) {
-      for (const c of clipsRes.data) {
-        if (!c.mediaSourceId) continue;
-        (clipsByMedia[c.mediaSourceId] ??= []).push({ id: c.id, name: c.name, viralityScore: c.viralityScore });
-      }
-      for (const k of Object.keys(clipsByMedia)) {
-        clipsByMedia[k] = clipsByMedia[k].sort((a, b) => (b.viralityScore ?? 0) - (a.viralityScore ?? 0)).slice(0, 3);
-      }
-    }
-  }
 
   // Engine funnel — counts derived from existing selectors (no new data source).
   const funnelStages: FunnelStage[] = [
@@ -68,7 +59,7 @@ async function StudioBody() {
           <Link href="/vishen" className="st-seeall">See all clips →</Link>
         </div>
         <AddVishenMedia />
-        {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} clipsByMedia={clipsByMedia} /></div>}
+        {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} /></div>}
         {allVishenMedia.length > vishenMedia.length && (
           <Link href="/vishen" className="st-seeall" style={{ display: 'inline-block', marginTop: 10 }}>
             +{allVishenMedia.length - vishenMedia.length} more media · see all clips →
@@ -86,7 +77,9 @@ async function StudioBody() {
           <Link href="/studio/shoots" className="st-seeall">See all shoots →</Link>
         </div>
         <div className="space-y-4">
-          <ShootSignOff items={pendingShoots} />
+          {pendingShoots.length > 0
+            ? <ShootSignOff items={pendingShoots} />
+            : <ShootsToFilm items={shootsToFilm} />}
           <ClipsAwaiting clips={proposedClips.slice(0, 4)} total={proposedClips.length} />
         </div>
       </section>
