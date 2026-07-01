@@ -5,7 +5,7 @@
 
 import { TICKETS, EMPLOYEES } from '@/lib/airtable/field-map';
 import { getRecord, updateRecord } from '@/lib/airtable/rest';
-import { contentReadyChannel, dmByEmail, postToChannel } from '@/lib/notify/slack';
+import { contentReadyChannel, dmByPerson, postToChannel } from '@/lib/notify/slack';
 
 const F = TICKETS.fields;
 const L = TICKETS.links;
@@ -52,7 +52,7 @@ export async function maybeNotifyAssetReady(ticketId: string, assetUrl: string):
     const reqId = firstLinkedId(f[L.requestedBy]);
     const requester = reqId ? await employeeContact(reqId) : { name: null, email: null };
 
-    await dmByEmail(requester.email, `✅ Your asset is ready: *${title}*\nAsset: ${link}\nTicket: ${url}`);
+    await dmByPerson(requester, `✅ Your asset is ready: *${title}*\nAsset: ${link}\nTicket: ${url}`);
     await postToChannel(
       contentReadyChannel(),
       `✅ Asset ready: *${title}*${requester.name ? ` (for ${requester.name})` : ''}\n${link}\n<${url}|Open ticket>`,
@@ -73,7 +73,7 @@ export async function notifyAssignment(ticketId: string, editorRecId: string): P
       employeeContact(editorRecId),
     ]);
     const title = tRes.ok ? str((tRes.data.fields as Record<string, unknown>)[F.name]) ?? 'a ticket' : 'a ticket';
-    await dmByEmail(editor.email, `🎬 You've been assigned: *${title}*\nTicket: ${ticketUrl(ticketId)}`);
+    await dmByPerson(editor, `🎬 You've been assigned: *${title}*\nTicket: ${ticketUrl(ticketId)}`);
   } catch (e) {
     console.error('[notify] notifyAssignment failed', e);
   }
