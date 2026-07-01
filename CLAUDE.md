@@ -44,6 +44,14 @@ Copy `.env.example` → `.env` and fill in `DATABASE_URL`, `AUTH_GITHUB_ID`, `AU
 
 ## Styling rules (design system)
 
+**Before building or changing any UI, read [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)** — the
+canonical rulebook (brand, typography, tokens, primitives, mandated rules). The summary below
+is the short form; `DESIGN_SYSTEM.md` is authoritative and `app/globals.css` holds exact values.
+
+**Keep it living:** whenever the user gives design feedback (a rule, preference, correction, or
+"from now on…"), fold it into `DESIGN_SYSTEM.md` in the same turn and mirror it to memory — design
+decisions must not live only in chat.
+
 The design system lives in `app/globals.css` (brand tokens `--mv-*`, Tailwind v4
 `@theme inline` utilities, and the ported component classes from `context/mockups/`).
 When styling any surface, in this order of preference:
