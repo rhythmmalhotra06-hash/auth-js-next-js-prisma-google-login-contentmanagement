@@ -251,7 +251,51 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         </div>
       </div>
 
-      <div className="tw"><div className="tscroll"><table ref={tableRef} className="list" style={{ tableLayout: 'fixed', width: tableWidth, minWidth: tableWidth }}>
+      {/* Mobile (≤560px): stacked cards showing the mandated five fields. Same rows,
+          same click-through; the desktop table below is hidden at this width. */}
+      <div className="queue-cards">
+        {rows.map((t) => {
+          const r = riskOf(t, load, scoringConfig);
+          return (
+            <div key={t.id} className={cn('qcard', `tier-${tierForEvent(t.eventType)}`, !t.assignee && 'attn')}
+              onClick={() => router.push(`${basePath}/${t.id}`)}>
+              <div className="qc-title">{t.title}</div>
+              <div className="qc-meta">
+                <TierBadge event={t.eventType} /> <span className="subtle">{t.assetType ?? '—'}</span>
+                {r.level && (
+                  <span className={`risk ${r.level}`} title={r.why.join(' · ')}>
+                    <Icon name="clock" size={11} /> {r.level === 'high' ? 'at risk' : 'watch'}
+                  </span>
+                )}
+                {dueChip(t.dueDate)}
+              </div>
+              <div className="qc-fields">
+                <span className="qc-k">Priority</span>
+                <span className="qc-v" onClick={editableRank ? (e) => e.stopPropagation() : undefined}>
+                  {editableRank
+                    ? <StarRating ticketId={t.id} value={t.queueRank} />
+                    : <span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span>}
+                </span>
+                <span className="qc-k">Assigned</span>
+                <span className="qc-v">
+                  {t.assignee
+                    ? t.assignee
+                    : assignees && assignees.length > 0
+                      ? <span onClick={(e) => e.stopPropagation()}><InlineAssign ticketId={t.id} assignees={assignees} /></span>
+                      : <span className="subtle">Unassigned</span>}
+                </span>
+                <span className="qc-k">Ticket</span>
+                <span className="qc-v"><TicketStatusBadge status={t.ticketStatus} /></span>
+                <span className="qc-k">Priority status</span>
+                <span className="qc-v"><PrioStatusBadge status={t.prioStatus} /></span>
+              </div>
+            </div>
+          );
+        })}
+        {rows.length === 0 && <div className="empty">No requests match these filters.</div>}
+      </div>
+
+      <div className="tw has-cards"><div className="tscroll"><table ref={tableRef} className="list" style={{ tableLayout: 'fixed', width: tableWidth, minWidth: tableWidth }}>
         <colgroup>
           {view.visibleColumns.map((c) => (
             <col key={c.key} ref={(el) => { colRefs.current[c.key] = el; }} style={{ width: view.widthOf(c.key) }} />

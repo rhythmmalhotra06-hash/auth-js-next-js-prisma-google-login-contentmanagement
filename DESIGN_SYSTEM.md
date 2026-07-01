@@ -154,7 +154,22 @@ doesn't fit:
 
 - Page body must never scroll horizontally. Wide content (tables, diagrams) scrolls inside its
   own `overflow-x:auto` container (`.tscroll`).
-- Sidebar collapses to a drawer at ≤820px (handled by the shell). Don't build a second nav.
+- `html, body { overflow-x: clip }` is set globally so off-canvas fixed panels (the Ask panel,
+  the mobile nav drawer) can't add page-level horizontal scroll. Use `clip`, **not** `hidden` —
+  `hidden` creates a scroll container that breaks the sticky topbar. Any new off-canvas element
+  (drawer, toast rail, side sheet) may rely on this rather than reinventing containment.
+- Sidebar collapses to a drawer at ≤820px (handled by the shell). Don't build a second nav. The
+  drawer has a dim backdrop (`.side-scrim`) that closes it on tap; Escape also closes it.
+- **Mobile breakpoint ladder** (custom `@media (max-width:…)` in `globals.css`, mobile-first fixes
+  layer on top): `900` detail→1col · `820` sidebar→drawer + ≥44px tap targets (`.icobtn`, nav) ·
+  `760` datarow→1col · `680` form-grid/grid2/funnel→stacked · `560` topbar declutter
+  (subtitle + role pill hidden, "New request" icon-only via `.btn-label`), factgrid→1col, and the
+  queue table reflows to stacked cards. Reuse these; don't introduce new breakpoints.
+- **Wide list tables on phones:** the shared `QueueTable` reflows to stacked `.qcard` cards below
+  560px (Title + the mandated five fields), toggled against `.tw.has-cards`. Denser spreadsheet
+  grids (ShootsBoard, review queue, scoring) keep horizontal `.tscroll` — a card reflow there
+  would be a rebuild.
+- Interactive controls need a ≥44×44px touch target on mobile; body text stays ≥14px.
 - Use relative units and flex/grid; `max-width:100%` on media.
 
 ---
