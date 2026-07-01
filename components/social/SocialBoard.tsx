@@ -321,12 +321,13 @@ export function SocialBoard({
           const taken = items.filter((i) => i.ticketRaised).length;
           return (
             <section key={url || 'none'} className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-medium text-text">
-                  <Icon name="film" size={16} />
-                  {url ? <a href={url} target="_blank" rel="noreferrer" className="text-brand underline">{hostOf(url)}</a> : <span>{hostOf(url)}</span>}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-text">
+                  <Icon name="film" size={16} className="flex-none text-text-muted" />
+                  <span className="truncate">{items[0]?.sourceTitle || hostOf(url)}</span>
+                  {url && <a href={url} target="_blank" rel="noreferrer" aria-label="Open source video" className="flex-none text-text-subtle hover:text-brand"><Icon name="ext" size={13} /></a>}
                 </div>
-                <span className="text-2xs text-text-subtle">{items.length} suggested · {taken} raised</span>
+                <span className="flex-none text-2xs text-text-subtle">{items.length} suggested · {taken} raised</span>
               </div>
 
               {view === 'cards' ? (
@@ -357,7 +358,7 @@ export function SocialBoard({
       <DetailDrawer
         open={!!selected}
         onClose={() => setSelected(null)}
-        eyebrow={selected ? hostOf(selected.clipSourceUrl) : ''}
+        eyebrow={selected ? (selected.sourceTitle || hostOf(selected.clipSourceUrl)) : ''}
         title={selected?.title ?? 'Clip'}
         footer={selected && <DrawerActions s={selected} onRaise={() => openRaise(selected)} onDone={() => setSelected(null)} />}
       >

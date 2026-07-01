@@ -41,6 +41,7 @@ export interface SocialSuggestion {
   captions: string | null;
   status: string | null;
   clipSourceUrl: string | null;
+  sourceTitle: string | null; // "author — topic" label; groups clips from the same talk
   viralityScore: number | null;
   timecode: string | null;
   creativeTicketId: string | null; // recId of the ticket in the Creative Services Prio queue
@@ -58,6 +59,7 @@ function mapSuggestion(rec: AirtableRecord<Raw>): SocialSuggestion {
     captions: str(f[SF.captions]),
     status: selectName(f[SF.status]),
     clipSourceUrl: str(f[SF.clipSourceUrl]),
+    sourceTitle: str(f[SF.sourceTitle]),
     viralityScore: num(f[SF.virality]),
     timecode: str(f[SF.timecode]),
     creativeTicketId: ticketId,
@@ -67,7 +69,7 @@ function mapSuggestion(rec: AirtableRecord<Raw>): SocialSuggestion {
 }
 
 const LIST_FIELDS = [
-  SF.title, SF.notes, SF.captions, SF.status, SF.clipSourceUrl, SF.virality, SF.timecode, SF.creativeTicketId,
+  SF.title, SF.notes, SF.captions, SF.status, SF.clipSourceUrl, SF.sourceTitle, SF.virality, SF.timecode, SF.creativeTicketId,
 ];
 
 /**
@@ -97,6 +99,7 @@ export async function getSocialSuggestion(id: string): Promise<AirtableResult<So
  */
 export async function createSocialSuggestions(
   sourceUrl: string,
+  sourceTitle: string,
   clips: ReelsClip[],
 ): Promise<AirtableResult<{ count: number; ids: string[] }>> {
   const records = clips.map((c) => {
@@ -108,6 +111,7 @@ export async function createSocialSuggestions(
         [SF.captions]: c.caption,
         [SF.status]: S.status_.proposal,
         [SF.clipSourceUrl]: sourceUrl,
+        [SF.sourceTitle]: sourceTitle || null,
         [SF.virality]: c.viralityScore,
         [SF.timecode]: timecode,
       } as Record<string, unknown>,

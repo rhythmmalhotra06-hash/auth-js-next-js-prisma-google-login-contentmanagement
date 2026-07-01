@@ -1,6 +1,7 @@
 import { requireSocialAccess } from '@/lib/social/guard';
 import { createSocialSuggestions } from '@/lib/social/repository';
 import { generateStrategy } from '@/lib/clipping/generate';
+import { generateClipSourceLabel } from '@/lib/clipping/source-label';
 import { fetchYouTubeTranscript, normalizeTranscript, TranscriptFetchError } from '@/lib/clipping/transcript';
 import { DEFAULT_CLIP_TYPE, isClipType } from '@/lib/clipping/clip-types';
 
@@ -53,7 +54,11 @@ export async function POST(req: Request) {
 
     const { strategy } = await generateStrategy(transcript, ctx, { webSearch, clipType });
 
-    const res = await createSocialSuggestions(url, strategy.reelsClips);
+    // A readable "author — topic" label so all clips from this talk group together
+    // (falls back to the user-entered title, then the raw link).
+    const sourceTitle = await generateClipSourceLabel(transcript, title);
+
+    const res = await createSocialSuggestions(url, sourceTitle, strategy.reelsClips);
     if (!res.ok) throw new Error(`Failed to write suggestions: ${res.error.message}`);
 
     return Response.json({ ok: true, count: res.data.count });

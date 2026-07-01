@@ -391,6 +391,7 @@ export const SOCIAL = {
     creativeTicketId: 'fldZxIaWrFImce9H9', // "Creative Ticket ID" (singleLineText) — recId of the ticket the portal created in the Creative Services Prio queue (cross-base, so a plain id). Presence ⇒ raised. (app-created 2026-06-30)
     virality: 'fldAXQ9pnLCijAHLQ', // "Clip Virality" (number 1–10) — AI virality score (app-created 2026-07-01)
     timecode: 'flduMYNwWM6dgXRbt', // "Clip Timecode" (singleLineText) — source in/out, e.g. 12:30–13:45 (app-created 2026-07-01)
+    sourceTitle: 'fldSCFY9NRsnP95V1', // "Clip Source Title" (singleLineText) — AI label (author — topic) that groups clips from the same talk (app-created 2026-07-01)
   },
   links: {
     shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)
