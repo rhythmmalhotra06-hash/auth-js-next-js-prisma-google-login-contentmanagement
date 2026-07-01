@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { SHOOT_FORMATS, SHOOT_LOCATIONS } from '@/lib/shoots/constants';
 import { createShootAction } from '@/app/shoots/actions';
+import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect';
 
 function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -56,6 +57,13 @@ export function ShootForm({ data }: { data: IntakeReferenceData }) {
     [eventTypeId, data.assetTypes],
   );
 
+  // Searchable-select option lists.
+  const employeeOpts: SelectOption[] = useMemo(() => data.employees.map((e) => ({ value: e.id, label: e.name })), [data.employees]);
+  const formatOpts: SelectOption[] = useMemo(() => SHOOT_FORMATS.map((f) => ({ value: f, label: f })), []);
+  const locationOpts: SelectOption[] = useMemo(() => SHOOT_LOCATIONS.map((l) => ({ value: l, label: l })), []);
+  const eventTypeOpts: SelectOption[] = useMemo(() => data.eventTypes.map((e) => ({ value: e.id, label: e.name })), [data.eventTypes]);
+  const assetTypeOpts: SelectOption[] = useMemo(() => filteredAssetTypes.map((a) => ({ value: a.id, label: a.name })), [filteredAssetTypes]);
+
   const authorMatches = useMemo(() => {
     const q = authorQuery.trim().toLowerCase();
     if (!q) return [];
@@ -85,34 +93,31 @@ export function ShootForm({ data }: { data: IntakeReferenceData }) {
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="space-y-5">
         <Field label="Your name" required hint="Who is requesting this shoot?">
-          <select className={inputCls} value={requesterId} onChange={(e) => setRequesterId(e.target.value)}>
-            <option value="">Select an employee…</option>
-            {data.employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
+          <SearchableSelect value={requesterId} onChange={setRequesterId} options={employeeOpts}
+            placeholder="Select an employee…" searchPlaceholder="Search employees…" width="100%" ariaLabel="Your name" />
         </Field>
         <Field label="Title" required hint="What are we filming?">
           <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Quest launch — studio sit-down" />
         </Field>
         <Field label="What is your format?" required>
-          <select className={inputCls} value={format} onChange={(e) => setFormat(e.target.value)}>
-            {SHOOT_FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
+          <SearchableSelect value={format} onChange={setFormat} options={formatOpts}
+            placeholder="Select…" searchPlaceholder="Search formats…" width="100%" ariaLabel="Format" />
         </Field>
       </div>
 
       <Section title="What is it for?" subtitle="Optional taxonomy — links the shoot to a campaign and the assets it will feed.">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="🧩 Product / Event Type" hint="Which campaign or product is this for?">
-            <select className={inputCls} value={eventTypeId} onChange={(e) => { setEventTypeId(e.target.value); setAssetTypeId(''); }}>
-              <option value="">Select an event type…</option>
-              {data.eventTypes.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            <SearchableSelect value={eventTypeId} onChange={(v) => { setEventTypeId(v); setAssetTypeId(''); }} options={eventTypeOpts}
+              placeholder="Select an event type…" allLabel="None" searchPlaceholder="Search event types…" width="100%" ariaLabel="Event Type" />
           </Field>
           <Field label="🛎️ Asset Type" hint={eventTypeId ? 'Which asset will this feed?' : 'Pick an Event Type first'}>
-            <select className={inputCls} value={assetTypeId} onChange={(e) => setAssetTypeId(e.target.value)} disabled={!eventTypeId}>
-              <option value="">{eventTypeId ? `Select… (${filteredAssetTypes.length})` : 'Select an Event Type first'}</option>
-              {filteredAssetTypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            {eventTypeId ? (
+              <SearchableSelect value={assetTypeId} onChange={setAssetTypeId} options={assetTypeOpts}
+                placeholder={`Select… (${filteredAssetTypes.length})`} allLabel="None" searchPlaceholder="Search asset types…" width="100%" ariaLabel="Asset Type" />
+            ) : (
+              <div className={`${inputCls} cursor-not-allowed text-text-subtle`}>Select an Event Type first</div>
+            )}
           </Field>
         </div>
         <Field label="Authors involved" hint="Search and add the authors you'd like to be shot (optional)">
@@ -159,10 +164,8 @@ export function ShootForm({ data }: { data: IntakeReferenceData }) {
       <Section title="Scheduling" subtitle="Where and when — if you know it.">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="📍 Filming location" hint="Optional — in case you have this information">
-            <select className={inputCls} value={filmingLocation} onChange={(e) => setFilmingLocation(e.target.value)}>
-              <option value="">Select…</option>
-              {SHOOT_LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
+            <SearchableSelect value={filmingLocation} onChange={setFilmingLocation} options={locationOpts}
+              placeholder="Select…" allLabel="No location" searchPlaceholder="Search locations…" width="100%" ariaLabel="Filming location" />
           </Field>
           <Field label="📆 Filming date" hint="Optional — if a date is set">
             <input type="date" className={inputCls} value={filmingDate} onChange={(e) => setFilmingDate(e.target.value)} />

@@ -9,12 +9,10 @@ import {
 } from '@/lib/studio/data';
 import { ShootSignOff } from '@/components/studio/ShootSignOff';
 import { ShootsToFilm } from '@/components/studio/ShootsToFilm';
-import { ClipsAwaiting } from '@/components/studio/ClipsAwaiting';
 import { LaunchesSection } from '@/components/studio/LaunchesSection';
 import { ClipsList } from '@/components/studio/ClipsList';
 import { AddVishenMedia } from '@/components/studio/AddVishenMedia';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
-import { listClipsByStatus } from '@/lib/media/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,10 +23,6 @@ async function StudioBody() {
   const pendingShoots = getPendingShoots(data.shoots).map(toShootSignOffItem);
   // Fallback for the shoots box when nothing needs review: next shoots lined up to film.
   const shootsToFilm = getShootsToFilm(data.shoots).map(toShootSignOffItem);
-
-  // Clips awaiting Vishen's approval — proposed AI clips, top virality first.
-  const proposedRes = await listClipsByStatus('Proposed');
-  const proposedClips = proposedRes.ok ? proposedRes.data : [];
 
   // Vishen's media — pinned to the top (most important to Vishen). The per-clip
   // ideas live in the "Clips awaiting you" card below, so the list stays at the source level.
@@ -80,7 +74,6 @@ async function StudioBody() {
           {pendingShoots.length > 0
             ? <ShootSignOff items={pendingShoots} />
             : <ShootsToFilm items={shootsToFilm} />}
-          <ClipsAwaiting clips={proposedClips.slice(0, 4)} total={proposedClips.length} />
         </div>
       </section>
 

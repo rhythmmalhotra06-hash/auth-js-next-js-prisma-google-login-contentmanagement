@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { createTicket } from '@/app/intake/actions';
+import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect';
 
 function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -56,6 +57,14 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
     [eventTypeId, data.assetTypes],
   );
 
+  // Searchable-select option lists.
+  const employeeOpts: SelectOption[] = useMemo(() => data.employees.map((e) => ({ value: e.id, label: e.name })), [data.employees]);
+  const teamOpts: SelectOption[] = useMemo(() => data.teamServiceLevels.map((t) => ({ value: t, label: t })), [data.teamServiceLevels]);
+  const requestTypeOpts: SelectOption[] = useMemo(() => data.typesOfRequest.map((t) => ({ value: t, label: t })), [data.typesOfRequest]);
+  const eventTypeOpts: SelectOption[] = useMemo(() => data.eventTypes.map((e) => ({ value: e.id, label: e.name })), [data.eventTypes]);
+  const assetTypeOpts: SelectOption[] = useMemo(() => filteredAssetTypes.map((a) => ({ value: a.id, label: a.name })), [filteredAssetTypes]);
+  const calendarOpts: SelectOption[] = useMemo(() => data.officialCalendars.map((c) => ({ value: c.id, label: c.name })), [data.officialCalendars]);
+
   const authorMatches = useMemo(() => {
     const q = authorQuery.trim().toLowerCase();
     if (!q) return [];
@@ -102,49 +111,41 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
       {/* Requester + project */}
       <div className="space-y-5">
         <Field label="Requested By" required hint="Drives team / department / division / team-lead lookups downstream">
-          <select className={inputCls} value={requesterId} onChange={(e) => setRequesterId(e.target.value)}>
-            <option value="">Select an employee…</option>
-            {data.employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
+          <SearchableSelect value={requesterId} onChange={setRequesterId} options={employeeOpts}
+            placeholder="Select an employee…" searchPlaceholder="Search employees…" width="100%" ariaLabel="Requested By" />
         </Field>
         <Field label="Project/Program" required hint="Which project or program is this for? (max 40 characters)">
           <input className={inputCls} maxLength={40} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Mastery Summit 2026" />
           <p className="text-right text-xs text-text-subtle">{title.length}/40</p>
         </Field>
         <Field label="Team/Service Level" required hint="Which team is this request for?">
-          <select className={inputCls} value={teamServiceLevel} onChange={(e) => setTeamServiceLevel(e.target.value)}>
-            <option value="">Select…</option>
-            {data.teamServiceLevels.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <SearchableSelect value={teamServiceLevel} onChange={setTeamServiceLevel} options={teamOpts}
+            placeholder="Select…" searchPlaceholder="Search…" width="100%" ariaLabel="Team/Service Level" />
         </Field>
       </div>
 
       <Section title="Categorization" subtitle="Asset Type is filtered to options linked to the chosen Event Type.">
         <Field label="Type of Request" required hint="Choose if it is a video or a design request">
-          <select className={inputCls} value={typeOfRequest} onChange={(e) => setTypeOfRequest(e.target.value)}>
-            <option value="">Select…</option>
-            {data.typesOfRequest.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <SearchableSelect value={typeOfRequest} onChange={setTypeOfRequest} options={requestTypeOpts}
+            placeholder="Select…" searchPlaceholder="Search…" width="100%" ariaLabel="Type of Request" />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="🧩 Event Type" required hint="Which campaign is this for?">
-            <select className={inputCls} value={eventTypeId} onChange={(e) => onEventTypeChange(e.target.value)}>
-              <option value="">Select an event type…</option>
-              {data.eventTypes.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            <SearchableSelect value={eventTypeId} onChange={onEventTypeChange} options={eventTypeOpts}
+              placeholder="Select an event type…" searchPlaceholder="Search event types…" width="100%" ariaLabel="Event Type" />
           </Field>
           <Field label="🛎️ Asset Type" required hint={eventTypeId ? 'Choose the asset to be delivered' : 'Pick an Event Type first'}>
-            <select className={inputCls} value={assetTypeId} onChange={(e) => setAssetTypeId(e.target.value)} disabled={!eventTypeId}>
-              <option value="">{eventTypeId ? `Select… (${filteredAssetTypes.length})` : 'Select an Event Type first'}</option>
-              {filteredAssetTypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            {eventTypeId ? (
+              <SearchableSelect value={assetTypeId} onChange={setAssetTypeId} options={assetTypeOpts}
+                placeholder={`Select… (${filteredAssetTypes.length})`} searchPlaceholder="Search asset types…" width="100%" ariaLabel="Asset Type" />
+            ) : (
+              <div className={`${inputCls} cursor-not-allowed text-text-subtle`}>Select an Event Type first</div>
+            )}
           </Field>
         </div>
         <Field label="📅 Official Calendar" hint="Optional — link to a campaign so we know its start/end dates">
-          <select className={inputCls} value={officialCalendarId} onChange={(e) => setOfficialCalendarId(e.target.value)}>
-            <option value="">Select a campaign…</option>
-            {data.officialCalendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <SearchableSelect value={officialCalendarId} onChange={setOfficialCalendarId} options={calendarOpts}
+            placeholder="Select a campaign…" allLabel="No campaign" searchPlaceholder="Search campaigns…" width="100%" ariaLabel="Official Calendar" />
         </Field>
         <Field label="Speakers/Authors" hint="Search and add confirmed authors/speakers (optional)">
           {selectedAuthors.length > 0 && (

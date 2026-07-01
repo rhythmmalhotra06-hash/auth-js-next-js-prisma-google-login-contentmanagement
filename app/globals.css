@@ -825,14 +825,8 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 .st-shipstrip .lhs{font-size:13px;color:var(--text-muted);}
 .st-shipstrip .lhs b{color:var(--text);font-weight:600;}
 
-/* sign-off zone: gold "needs you" eyebrow + "clips awaiting you" white card (studio-redesign mockup) */
+/* sign-off zone: gold "needs you" eyebrow */
 .eyebrow.gold{color:var(--gold-content);}
-.st-awaithead{margin-bottom:10px;}
-.st-awaitline{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
-.st-awaitline:last-child{border-bottom:none;}
-.st-awaitline .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
-.st-awaitvir{flex:none;width:24px;height:24px;border-radius:var(--r-sm);display:grid;place-items:center;
-  font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--brand-soft);color:var(--brand-content);}
 
 /* propose-only footnote */
 .st-footnote{display:flex;gap:10px;align-items:flex-start;background:var(--brand-soft);color:var(--brand-content);
