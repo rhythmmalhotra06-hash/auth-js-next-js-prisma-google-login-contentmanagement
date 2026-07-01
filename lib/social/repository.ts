@@ -24,6 +24,7 @@ const SF = S.fields;
 type Raw = Record<string, unknown>;
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
 function selectName(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === 'string') return v || null;
@@ -40,6 +41,8 @@ export interface SocialSuggestion {
   captions: string | null;
   status: string | null;
   clipSourceUrl: string | null;
+  viralityScore: number | null;
+  timecode: string | null;
   creativeTicketId: string | null; // recId of the ticket in the Creative Services Prio queue
   ticketRaised: boolean;
   createdTime: string;
@@ -55,13 +58,17 @@ function mapSuggestion(rec: AirtableRecord<Raw>): SocialSuggestion {
     captions: str(f[SF.captions]),
     status: selectName(f[SF.status]),
     clipSourceUrl: str(f[SF.clipSourceUrl]),
+    viralityScore: num(f[SF.virality]),
+    timecode: str(f[SF.timecode]),
     creativeTicketId: ticketId,
     ticketRaised: !!ticketId,
     createdTime: rec.createdTime,
   };
 }
 
-const LIST_FIELDS = [SF.title, SF.notes, SF.captions, SF.status, SF.clipSourceUrl, SF.creativeTicketId];
+const LIST_FIELDS = [
+  SF.title, SF.notes, SF.captions, SF.status, SF.clipSourceUrl, SF.virality, SF.timecode, SF.creativeTicketId,
+];
 
 /**
  * Engine-generated proposals — rows with a non-empty Clip Source URL (our origin
@@ -93,19 +100,16 @@ export async function createSocialSuggestions(
   clips: ReelsClip[],
 ): Promise<AirtableResult<{ count: number; ids: string[] }>> {
   const records = clips.map((c) => {
-    const brief = [
-      c.rationale,
-      `Suggested clip: ${c.timestampStart}–${c.timestampEnd} · virality ${c.viralityScore}/10`,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+    const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
     return {
       fields: {
         [SF.title]: c.hookLine,
-        [SF.notes]: brief,
+        [SF.notes]: c.rationale ?? '',
         [SF.captions]: c.caption,
         [SF.status]: S.status_.proposal,
         [SF.clipSourceUrl]: sourceUrl,
+        [SF.virality]: c.viralityScore,
+        [SF.timecode]: timecode,
       } as Record<string, unknown>,
     };
   });
