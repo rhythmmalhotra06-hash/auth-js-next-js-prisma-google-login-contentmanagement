@@ -7,8 +7,8 @@ import { shortDate } from '@/lib/studio/format';
 import { approveShoot, declineShoot } from '@/app/studio/actions';
 import type { ShootSignOffItem } from '@/lib/studio/data';
 
-/** Shoots waiting on Vishen's sign-off — mirrors the ticket SignOffHero commit block. */
-export function ShootSignOff({ items, showSeeAll = true }: { items: ShootSignOffItem[]; showSeeAll?: boolean }) {
+/** Shoots waiting on Vishen's sign-off — purple commit block with the title inside (studio-redesign mockup). */
+export function ShootSignOff({ items }: { items: ShootSignOffItem[] }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const hide = (id: string) => setHidden((prev) => new Set(prev).add(id));
   const visible = items.filter((i) => !hidden.has(i.id));
@@ -16,18 +16,18 @@ export function ShootSignOff({ items, showSeeAll = true }: { items: ShootSignOff
   if (visible.length === 0) return null;
 
   return (
-    <>
-      <div className="sec-head">
-        <h3>Shoots awaiting your sign-off</h3>
-        <span className="hint">approve filming, or send it back</span>
-        {showSeeAll && <Link href="/studio/shoots" className="st-seeall">See all shoots →</Link>}
-      </div>
-      <div className="st-commit">
-        <div className="st-commit-list">
-          {visible.slice(0, 5).map((it) => <Row key={it.id} item={it} onDone={() => hide(it.id)} />)}
+    <div className="st-commit">
+      <div className="st-commit-head">
+        <div className="lhs">
+          <span aria-hidden>🎬</span>
+          <h3>Shoots awaiting you</h3>
+          <span className="cnt">{visible.length}</span>
         </div>
       </div>
-    </>
+      <div className="st-commit-list">
+        {visible.slice(0, 5).map((it) => <Row key={it.id} item={it} onDone={() => hide(it.id)} />)}
+      </div>
+    </div>
   );
 }
 

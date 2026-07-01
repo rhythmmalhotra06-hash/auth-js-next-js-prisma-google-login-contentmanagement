@@ -4,25 +4,28 @@ import { AppShell } from '@/components/ui/AppShell';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import {
-  loadStudio, getReviewQueue, toReviewItem, pulseCounts, getLaunches, getVishenMedia,
+  loadStudio, pulseCounts, getLaunches, getVishenMedia,
   getPendingShoots, toShootSignOffItem,
 } from '@/lib/studio/data';
-import { SignOffHero } from '@/components/studio/SignOffHero';
 import { ShootSignOff } from '@/components/studio/ShootSignOff';
+import { ClipsAwaiting } from '@/components/studio/ClipsAwaiting';
 import { LaunchesSection } from '@/components/studio/LaunchesSection';
 import { ClipsList, type ClipRow } from '@/components/studio/ClipsList';
 import { AddVishenMedia } from '@/components/studio/AddVishenMedia';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
-import { getClipsByIds } from '@/lib/media/repository';
+import { getClipsByIds, listClipsByStatus } from '@/lib/media/repository';
 
 export const dynamic = 'force-dynamic';
 
 async function StudioBody() {
   const data = await loadStudio();
-  const review = getReviewQueue(data.active).map(toReviewItem);
   const pulse = pulseCounts(data.active, data.metrics);
   const launches = getLaunches(data.active, data.recentShipped);
   const pendingShoots = getPendingShoots(data.shoots).map(toShootSignOffItem);
+
+  // Clips awaiting Vishen's approval — proposed AI clips, top virality first.
+  const proposedRes = await listClipsByStatus('Proposed');
+  const proposedClips = proposedRes.ok ? proposedRes.data : [];
 
   // Vishen's media + their top clip ideas — pinned to the top (most important to Vishen).
   const allVishenMedia = getVishenMedia(data.media);
@@ -73,11 +76,19 @@ async function StudioBody() {
         )}
       </section>
 
-      {/* Needs your sign-off — tall focal column */}
+      {/* Awaiting your sign-off — focal zone: shoots (purple) + clips (white card) */}
       <section className="sz-signoff">
-        <div className="sec-head"><h3>Needs your sign-off</h3></div>
-        <SignOffHero items={review} />
-        <ShootSignOff items={pendingShoots} />
+        <div className="sec-head">
+          <div>
+            <span className="eyebrow gold">● Needs you</span>
+            <h3>Awaiting your sign-off</h3>
+          </div>
+          <Link href="/studio/shoots" className="st-seeall">See all shoots →</Link>
+        </div>
+        <div className="space-y-4">
+          <ShootSignOff items={pendingShoots} />
+          <ClipsAwaiting clips={proposedClips.slice(0, 4)} total={proposedClips.length} />
+        </div>
       </section>
 
       {/* Flowing to your launches */}

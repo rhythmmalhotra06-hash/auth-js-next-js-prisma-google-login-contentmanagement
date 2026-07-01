@@ -17,7 +17,7 @@ export default async function StudioShootsPage() {
   return (
     <AppShell title="Shoots" subtitle="Approve filming requests, and see every shoot">
       <BackLink />
-      <ShootSignOff items={pending} showSeeAll={false} />
+      <ShootSignOff items={pending} />
       <div className="sec-head" style={{ marginTop: 20 }}>
         <h3>All shoots</h3>
         <span className="hint">every shoot, cards or grid</span>
