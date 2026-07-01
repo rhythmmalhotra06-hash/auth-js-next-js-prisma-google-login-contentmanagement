@@ -1,0 +1,197 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>For Vishen — one view, end to end</title>
+<style>
+  :root{
+    --brand:#572280; --brand-bright:#6d34a0; --brand-content:#3f1860; --brand-soft:#f1eaf7; --brand-border:#e3d4f0;
+    --violet:#7c3aed; --violet-soft:#ede4fb;
+    --gold:#f5b000; --gold-content:#6b4e00; --gold-soft:#fff6e0;
+    --green:#159f65; --green-content:#0e6742; --green-soft:#e8f9f1;
+    --blue:#2563cf; --blue-content:#1c3bd4; --blue-soft:#ebf2ff;
+    --bg:#faf9fc; --surface:#fff; --surface-2:#fbfaFe;
+    --text:#1a1523; --text-muted:#5f5870; --text-subtle:#948ba6;
+    --border:rgba(40,20,60,.10); --border-strong:rgba(40,20,60,.18);
+    --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px; --r-full:9999px;
+    --sh-1:0 1px 2px 0 rgba(40,20,60,.05), 0 4px 14px 0 rgba(40,20,60,.05);
+    --sh-2:0 8px 30px 0 rgba(40,20,60,.10);
+    --ease:cubic-bezier(.2,0,0,1);
+    --font-display:"Bricolage Grotesque","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-body);font-size:15px;line-height:1.6;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{margin:0;font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;text-wrap:balance;}
+  p{margin:0;}
+  a{color:var(--brand-content);}
+  #atmo{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(60vw 52vh at 84% -10%, color-mix(in srgb,var(--brand) 12%,transparent), transparent 60%),
+      radial-gradient(46vw 42vh at -8% 4%, color-mix(in srgb,var(--brand) 7%,transparent), transparent 55%),
+      radial-gradient(44vw 46vh at 55% 116%, color-mix(in srgb,var(--gold) 6%,transparent), transparent 60%);}
+
+  .deck{max-width:920px;margin:0 auto;padding:44px 26px 90px;display:flex;flex-direction:column;gap:22px;}
+
+  /* eyebrow / kicker */
+  .kick{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);display:inline-flex;align-items:center;gap:8px;}
+  .num{width:22px;height:22px;border-radius:7px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800;flex:none;}
+
+  /* hero */
+  .hero{background:linear-gradient(150deg,var(--brand) 0%,var(--violet) 122%);color:#fff;border-radius:var(--r-xl);padding:40px 38px;box-shadow:var(--sh-2);position:relative;overflow:hidden;}
+  .hero .tag{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.75);}
+  .hero h1{font-size:38px;line-height:1.05;margin:12px 0 10px;}
+  .hero p{font-size:16px;color:rgba(255,255,255,.9);max-width:60ch;}
+  .hero .meta{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;}
+  .hero .chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);border-radius:var(--r-full);padding:5px 13px;font-weight:600;}
+
+  /* card */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:26px 28px;box-shadow:var(--sh-1);}
+  .card h2{font-size:22px;margin:10px 0 6px;letter-spacing:-.02em;}
+  .card .lead{color:var(--text-muted);font-size:15px;max-width:64ch;}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:680px){.two{grid-template-columns:1fr;}}
+
+  /* problem list */
+  .gaps{display:flex;flex-direction:column;gap:12px;margin-top:16px;}
+  .gap{display:flex;gap:13px;align-items:flex-start;}
+  .gap .x{width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold-content);display:grid;place-items:center;font-size:13px;flex:none;font-weight:700;}
+  .gap b{font-weight:600;} .gap span{color:var(--text-muted);}
+
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px;}
+  @media(max-width:680px){.flow{grid-template-columns:1fr 1fr;}}
+  .flowstep{border:1px solid var(--border);border-radius:var(--r-md);padding:15px 15px 16px;position:relative;background:var(--surface-2);}
+  .flowstep::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r-md) var(--r-md) 0 0;background:var(--accent);}
+  .flowstep .s-lbl{font-size:12px;font-weight:700;color:var(--text-muted);}
+  .flowstep .s-desc{font-size:12px;color:var(--text-subtle);margin-top:6px;line-height:1.45;}
+  .f1{--accent:var(--violet);} .f2{--accent:var(--gold);} .f3{--accent:var(--blue);} .f4{--accent:var(--green);}
+
+  /* feature rows */
+  .feat{display:flex;gap:14px;align-items:flex-start;padding:15px 0;border-top:1px solid var(--border);}
+  .feat:first-of-type{border-top:0;}
+  .feat .ic{width:40px;height:40px;border-radius:11px;background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:18px;flex:none;}
+  .feat b{display:block;font-size:15px;} .feat span{color:var(--text-muted);font-size:14px;}
+
+  /* callout */
+  .note{display:flex;gap:13px;align-items:flex-start;background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);color:var(--gold-content);border-radius:var(--r-md);padding:16px 18px;font-size:14px;line-height:1.55;}
+  .note.brand{background:var(--brand-soft);border-color:var(--brand-border);color:var(--brand-content);}
+  .note .ic{font-size:17px;flex:none;}
+
+  /* decisions */
+  .dec{display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--border);}
+  .dec:first-of-type{border-top:0;}
+  .dec .q{width:28px;height:28px;border-radius:8px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;flex:none;}
+  .dec b{display:block;font-size:15px;} .dec span{color:var(--text-muted);font-size:14px;}
+  .dec .who{display:inline-block;margin-top:5px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);border-radius:var(--r-full);padding:2px 9px;}
+
+  /* timeline */
+  .tl{display:flex;flex-direction:column;gap:0;margin-top:16px;}
+  .tlrow{display:flex;gap:14px;padding-bottom:18px;position:relative;}
+  .tlrow:last-child{padding-bottom:0;}
+  .tlrow:not(:last-child)::before{content:"";position:absolute;left:9px;top:22px;bottom:-2px;width:2px;background:var(--border-strong);}
+  .tlrow .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--brand);background:var(--surface);flex:none;margin-top:1px;display:grid;place-items:center;}
+  .tlrow.now .dot{background:var(--brand);}
+  .tlrow .when{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--brand);}
+  .tlrow b{display:block;font-size:15px;margin-top:2px;} .tlrow span{color:var(--text-muted);font-size:14px;}
+
+  .cta{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:#fff;background:var(--brand);border-radius:var(--r-full);padding:11px 20px;text-decoration:none;transition:background .14s var(--ease);}
+  .cta:hover{background:var(--brand-bright);}
+  .links{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+  .foot{text-align:center;color:var(--text-subtle);font-size:12.5px;margin-top:4px;}
+  .rise{animation:rise .5s var(--ease) both;}
+  @keyframes rise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;}}
+</style>
+
+<div id="atmo"></div>
+
+<div class="deck">
+
+  <!-- HERO -->
+  <section class="hero rise">
+    <div class="tag">Content Portal · Proposal for Friday</div>
+    <h1>For Vishen: one view, end to end</h1>
+    <p>Every request Vishen makes — from the moment he asks for it, through production, to where it got posted and how it performed — in a single place he and the team can both see.</p>
+    <div class="meta">
+      <span class="chip">🎬 Request → Produced → Published → Performance</span>
+      <span class="chip">👀 One thread per request</span>
+      <span class="chip">📊 Live numbers</span>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="card rise" style="animation-delay:.05s">
+    <span class="kick"><span class="num">1</span> The gap today</span>
+    <h2>Vishen can't see his own content flow</h2>
+    <p class="lead">His requests live across Jira and several Airtable bases. Once something is produced, there's no single answer to two questions he keeps asking:</p>
+    <div class="gaps">
+      <div class="gap"><span class="x">?</span><div><b>“Who edited this, and where is it now?”</b> <span>— status is scattered; nothing ties a request to where it got posted.</span></div></div>
+      <div class="gap"><span class="x">?</span><div><b>“How did it perform?”</b> <span>— published links and performance numbers aren't captured against the request at all.</span></div></div>
+      <div class="gap"><span class="x">?</span><div><b>“What did we publish last year?”</b> <span>— no filterable, shareable record of what shipped for him.</span></div></div>
+    </div>
+  </section>
+
+  <!-- SOLUTION -->
+  <section class="card rise" style="animation-delay:.1s">
+    <span class="kick"><span class="num">2</span> The solution</span>
+    <h2>One thread, four stages</h2>
+    <p class="lead">A view built for Vishen <b>and</b> the team: the team sees what's ready to publish; Vishen sees it go live with performance. Every item flows through the same four stages, colour-coded end to end.</p>
+    <div class="flow">
+      <div class="flowstep f1"><div class="s-lbl">In production</div><div class="s-desc">Being made now, by whom.</div></div>
+      <div class="flowstep f2"><div class="s-lbl">Awaiting sign-off</div><div class="s-desc">Needs Vishen's review.</div></div>
+      <div class="flowstep f3"><div class="s-lbl">Ready to publish</div><div class="s-desc">Approved — team posts it.</div></div>
+      <div class="flowstep f4"><div class="s-lbl">Published</div><div class="s-desc">Live link + performance.</div></div>
+    </div>
+    <div class="links" style="margin-top:22px">
+      <a class="cta" href="https://claude.ai/code/artifact/dcfe8301-83bb-480b-819c-d5a16abc0eeb" target="_blank" rel="noopener">▶ Open the live prototype</a>
+      <a class="cta" href="https://claude.ai/code/artifact/766ad0c8-a104-44d4-bc05-6ca1b292a432" target="_blank" rel="noopener" style="background:var(--surface);color:var(--brand-content);border:1px solid var(--brand-border);">✎ Manual-entry version</a>
+    </div>
+  </section>
+
+  <!-- HOW PERFORMANCE WORKS -->
+  <section class="card rise" style="animation-delay:.15s">
+    <span class="kick"><span class="num">3</span> How performance gets in</span>
+    <h2>Free, open-source, and live now</h2>
+    <div class="feat">
+      <span class="ic">✎</span><div><b>Start manually — today</b><span>The moment a post goes live, the team drops the link and logs the numbers. Vishen sees performance immediately, no tooling required.</span></div>
+    </div>
+    <div class="feat">
+      <span class="ic">⚙️</span><div><b>Then automate — with an open-source tool (Postiz)</b><span>Self-hosted, free, no per-seat cost. It pulls the numbers automatically from the connected accounts. Manual and automatic use the same screen — so nothing gets rebuilt when we switch on automation.</span></div>
+    </div>
+    <div class="note" style="margin-top:18px">
+      <span class="ic">⚠️</span>
+      <div><b>Heads up on the metric:</b> Instagram retired “impressions” in April 2025 — the number everyone now reports is <b>Views + Engagement rate</b>. We should agree to report those.</div>
+    </div>
+  </section>
+
+  <!-- WHAT'S NEW FOR THE TEAM -->
+  <section class="card rise" style="animation-delay:.2s">
+    <span class="kick"><span class="num">4</span> What changes for the team</span>
+    <h2>Three small habits</h2>
+    <div class="feat"><span class="ic">🏷️</span><div><b>Tag “Request from Vishen”</b><span>So his thread stays his — not buried under every other clip.</span></div></div>
+    <div class="feat"><span class="ic">🔗</span><div><b>Drop the live link on release</b><span>Whoever publishes pastes the IG/YouTube/LinkedIn link — that flips it to Published.</span></div></div>
+    <div class="feat"><span class="ic">📊</span><div><b>Log the numbers</b><span>Views + engagement, until automation is live. One field, thirty seconds.</span></div></div>
+  </section>
+
+  <!-- DECISIONS -->
+  <section class="card rise" style="animation-delay:.25s">
+    <span class="kick"><span class="num">5</span> What we need from you</span>
+    <h2>Three decisions</h2>
+    <div class="dec"><span class="q">A</span><div><b>Who tags “Request from Vishen”, and when?</b><span>Auto-tag his shoots/podcasts/clips, with manual override — or a fixed set of event/asset types?</span><span class="who">Marisha · Gareth</span></div></div>
+    <div class="dec"><span class="q">B</span><div><b>Confirm we report Views + Engagement rate</b><span>Since impressions no longer exist in the API.</span><span class="who">Marisha · Glen</span></div></div>
+    <div class="dec"><span class="q">C</span><div><b>Approve account access for automation</b><span>Connect Vishen Lakhiani IG + Mindvalley IG so the numbers can flow in automatically.</span><span class="who">Glen</span></div></div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="card rise" style="animation-delay:.3s">
+    <span class="kick"><span class="num">6</span> The plan</span>
+    <h2>Build now, automate in parallel</h2>
+    <div class="tl">
+      <div class="tlrow now"><span class="dot"></span><div><span class="when">Now</span><b>Ship the view + manual performance</b><span>The full thread goes live; team logs numbers by hand. Useful day one.</span></div></div>
+      <div class="tlrow"><span class="dot"></span><div><span class="when">In parallel</span><b>Stand up the open-source tool + connect the accounts</b><span>The only step with lead time (account approval) — it doesn't block the view.</span></div></div>
+      <div class="tlrow"><span class="dot"></span><div><span class="when">Then</span><b>Performance goes automatic</b><span>Numbers fill in and refresh on their own — same screen, no rebuild.</span></div></div>
+    </div>
+  </section>
+
+  <p class="foot rise" style="animation-delay:.34s">Prototype &amp; proposal · Content Portal · prepared for the Friday review</p>
+</div>

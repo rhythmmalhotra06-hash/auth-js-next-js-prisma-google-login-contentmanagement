@@ -1,0 +1,606 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>For Vishen — requests, posted &amp; performance (manual)</title>
+<style>
+  /* ── Brand tokens (from app/globals.css via studio-redesign.html; self-contained) ── */
+  :root{
+    --brand:#572280; --brand-bright:#6d34a0; --brand-content:#3f1860; --brand-soft:#f1eaf7; --brand-border:#e3d4f0;
+    --violet:#7c3aed; --violet-soft:#ede4fb;
+    --gold:#f5b000; --gold-content:#6b4e00; --gold-soft:#fff6e0;
+    --green:#159f65; --green-content:#0e6742; --green-soft:#e8f9f1;
+    --blue:#2563cf; --blue-content:#1c3bd4; --blue-soft:#ebf2ff;
+    --g700:#1a1523;
+    --bg:#fff; --bg-muted:#faf9fc; --bg-subtle:#f4f2f8; --surface:#fff;
+    --text:#1a1523; --text-muted:#6b6478; --text-subtle:#a59db4;
+    --border:rgba(40,20,60,.10); --border-strong:rgba(40,20,60,.20);
+    --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-full:9999px;
+    --sh-1:0 1px 2px 0 rgba(40,20,60,.05), 0 4px 14px 0 rgba(40,20,60,.05);
+    --sh-2:0 6px 22px 0 rgba(40,20,60,.10);
+    --sh-3:0 18px 46px 0 rgba(40,20,60,.20);
+    --ease:cubic-bezier(.2,0,0,1);
+    --font-display:"Bricolage Grotesque","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  }
+  [data-theme="dark"]{
+    --brand:#b98fe0; --brand-bright:#cda9ec; --brand-content:#e9dcf6; --brand-soft:#2a1c3a; --brand-border:#3d2c52;
+    --violet:#a878ee; --violet-soft:#241a33;
+    --gold:#ffc62e; --gold-content:#f5cf7a; --gold-soft:#2e2410;
+    --green:#37c790; --green-content:#5fd6a1; --green-soft:#11291f;
+    --blue:#6ea2f2; --blue-content:#8fb4f5; --blue-soft:#14233f;
+    --bg:#15101d; --bg-muted:#0f0b16; --bg-subtle:#1f1730; --surface:#1b1426;
+    --text:#f3eefa; --text-muted:#b3a9c4; --text-subtle:#877c99;
+    --border:rgba(200,180,230,.13); --border-strong:rgba(200,180,230,.24);
+    --sh-1:0 1px 2px 0 rgba(0,0,0,.5), 0 4px 14px 0 rgba(0,0,0,.4);
+    --sh-2:0 6px 22px 0 rgba(0,0,0,.55); --sh-3:0 22px 46px 0 rgba(0,0,0,.65);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--text);
+    background:var(--bg-muted);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  h1,h2,h3,h4{margin:0;font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;text-wrap:balance;}
+  button{font-family:inherit;cursor:pointer;color:inherit;}
+  a{color:inherit;}
+  :focus-visible{outline:2px solid var(--brand-bright);outline-offset:2px;border-radius:4px;}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+  #atmo{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(58vw 48vh at 84% -10%, color-mix(in srgb,var(--brand) 12%,transparent), transparent 60%),
+      radial-gradient(44vw 40vh at -8% 2%, color-mix(in srgb,var(--brand) 7%,transparent), transparent 55%),
+      radial-gradient(40vw 44vh at 52% 114%, color-mix(in srgb,var(--gold) 5%,transparent), transparent 60%);}
+
+  /* ── Topbar ── */
+  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:12px 28px;
+    background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:saturate(150%) blur(12px);
+    border-bottom:1px solid var(--border);}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));
+    color:#fff;display:grid;place-items:center;font-size:15px;position:relative;flex:none;}
+  .mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid var(--bg);}
+  .brand b{font-family:var(--font-display);font-size:15px;letter-spacing:-.01em;display:block;line-height:1.1;}
+  .brand small{font-size:11px;color:var(--text-subtle);}
+  .tb-spacer{flex:1;}
+  .icobtn{width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);
+    color:var(--text-muted);display:grid;place-items:center;font-size:15px;}
+  .icobtn:hover{background:var(--bg-subtle);color:var(--text);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,var(--brand),var(--brand-bright));color:#fff;
+    display:grid;place-items:center;font-weight:700;font-size:12px;flex:none;letter-spacing:.02em;}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:26px 28px 80px;display:flex;flex-direction:column;gap:26px;}
+
+  /* ── Hero head ── */
+  .hero{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .hero .lede{flex:1;min-width:280px;}
+  .hero h1{font-size:28px;line-height:1.08;}
+  .hero p{margin:7px 0 0;color:var(--text-muted);font-size:14px;max-width:58ch;}
+  .hero .tally{display:flex;gap:9px;align-items:center;font-size:12.5px;color:var(--text-subtle);margin-top:11px;flex-wrap:wrap;}
+  .hero .tally b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums;}
+  .hero .tally .sep{width:4px;height:4px;border-radius:50%;background:var(--text-subtle);}
+  .prototype-note{font-size:12px;color:var(--text-subtle);}
+  .prototype-note b{color:var(--text-muted);font-weight:600;}
+  .interim{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--gold-content);
+    background:var(--gold-soft);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);border-radius:var(--r-full);padding:4px 11px;}
+
+  /* ── Section chrome ── */
+  .sec{display:flex;flex-direction:column;gap:13px;min-width:0;}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);display:inline-flex;align-items:center;gap:8px;}
+  .eyebrow.green{color:var(--green-content);}
+  .sechead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  .sechead h2{font-size:16.5px;}
+  .sechead .hint{font-size:12.5px;color:var(--text-subtle);}
+  .sechead .hint.right{margin-left:auto;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);}
+
+  /* ── Pipeline ribbon ── */
+  .ribbon{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1);}
+  .stage{padding:17px 18px 18px;border:0;border-right:1px solid var(--border);position:relative;text-align:left;
+    background:transparent;transition:background .14s var(--ease);display:block;}
+  .stage:last-child{border-right:0;}
+  .stage::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:.9;}
+  .stage:hover{background:color-mix(in srgb,var(--accent) 7%,var(--surface));}
+  .stage[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 11%,var(--surface));}
+  .stage .top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .stage .dot{width:9px;height:9px;border-radius:3px;background:var(--accent);flex:none;}
+  .stage .name{font-size:11.5px;font-weight:700;color:var(--text-muted);letter-spacing:.01em;}
+  .stage .count{font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:var(--text);}
+  .stage .sub{font-size:11px;color:var(--text-subtle);margin-top:6px;line-height:1.35;}
+  .stage .flow{position:absolute;right:-10px;top:22px;z-index:2;width:20px;height:20px;border-radius:50%;background:var(--surface);
+    border:1px solid var(--border);display:grid;place-items:center;color:var(--text-subtle);font-size:10px;}
+  .stage:last-child .flow{display:none;}
+  .stage.s-prod{--accent:var(--violet);} .stage.s-review{--accent:var(--gold);}
+  .stage.s-ready{--accent:var(--blue);} .stage.s-pub{--accent:var(--green);}
+  .stage[aria-pressed="true"] .count{color:var(--accent);}
+  @media(max-width:720px){.ribbon{grid-template-columns:1fr 1fr;} .stage:nth-child(2) .flow{display:none;}}
+
+  /* ── Performance band ── */
+  .band{background:linear-gradient(135deg,var(--brand) 0%,var(--violet) 118%);border-radius:var(--r-lg);
+    padding:20px 22px;color:#fff;box-shadow:var(--sh-2);display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
+  .band .stat{display:flex;flex-direction:column;gap:3px;}
+  .band .stat .k{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.72);}
+  .band .stat .v{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;}
+  .band .stat .v small{font-size:16px;font-weight:600;opacity:.75;margin-left:2px;}
+  .band .divider{width:1px;align-self:stretch;background:rgba(255,255,255,.2);}
+  .band .top-perf{margin-left:auto;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.16);border-radius:var(--r-md);
+    padding:12px 15px;max-width:320px;text-decoration:none;color:#fff;transition:background .14s var(--ease);}
+  .band .top-perf:hover{background:rgba(255,255,255,.22);}
+  .band .top-perf .lab{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.72);display:flex;align-items:center;gap:6px;}
+  .band .top-perf .q{font-size:13px;font-weight:600;line-height:1.3;margin:5px 0 4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .band .top-perf .n{font-size:12px;color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums;}
+  .band .src{flex-basis:100%;font-size:10.5px;color:rgba(255,255,255,.62);display:flex;align-items:center;gap:6px;margin-top:-8px;}
+
+  /* ── Toolbar ── */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .chips{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-full);padding:3px;gap:2px;flex-wrap:wrap;box-shadow:var(--sh-1);}
+  .chips button{border:none;background:transparent;color:var(--text-muted);font-size:12.5px;font-weight:600;
+    padding:6px 13px;border-radius:var(--r-full);display:inline-flex;align-items:center;gap:7px;transition:all .15s var(--ease);white-space:nowrap;}
+  .chips button[aria-pressed="true"]{background:var(--brand);color:#fff;box-shadow:var(--sh-1);}
+  .chips .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .tsel{margin-left:auto;display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  select,.search input{font-family:inherit;font-size:12.5px;padding:8px 11px;border:1px solid var(--border-strong);
+    border-radius:var(--r-sm);background:var(--surface);color:var(--text);}
+  .search{position:relative;}
+  .search input{padding-left:31px;min-width:200px;}
+  .search .mag{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-subtle);font-size:13px;pointer-events:none;}
+
+  /* ── Team action strips ── */
+  .commit{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 4px 8px;box-shadow:var(--sh-1);}
+  .commit.blue{border-color:var(--blue-soft);border-left:3px solid var(--blue);}
+  .commit.green{border-color:var(--green-soft);border-left:3px solid var(--green);}
+  .commit-row{border-radius:var(--r-sm);padding:12px 15px;display:flex;align-items:center;gap:13px;flex-wrap:wrap;}
+  .commit-row + .commit-row{border-top:1px solid var(--border);}
+  .commit-row .body{flex:1;min-width:190px;}
+  .commit-row .body b{font-size:13.5px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .commit-row .body span{font-size:11.5px;color:var(--text-muted);}
+  .commit-row .ic{width:36px;height:36px;border-radius:var(--r-sm);display:grid;place-items:center;font-size:15px;flex:none;}
+  .commit.blue .ic{background:var(--blue-soft);color:var(--blue-content);}
+  .commit.green .ic{background:var(--green-soft);color:var(--green-content);}
+  .inputs{display:flex;gap:8px;flex:none;align-items:center;flex-wrap:wrap;}
+  .inputs input{font-size:12px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--r-sm);background:var(--bg-subtle);color:var(--text);}
+  .inputs input.url{width:220px;} .inputs input.n{width:110px;} .inputs input.e{width:96px;}
+
+  /* ── Buttons ── */
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1;padding:9px 14px;
+    border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);transition:all .12s var(--ease);white-space:nowrap;}
+  .btn:hover{background:var(--bg-subtle);transform:translateY(-1px);}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;} .btn.primary:hover{background:var(--brand-bright);}
+  .btn.blue{background:var(--blue);border-color:var(--blue);color:#fff;} .btn.blue:hover{filter:brightness(1.08);}
+  .btn.green{background:var(--green);border-color:var(--green);color:#fff;} .btn.green:hover{filter:brightness(1.06);}
+  .btn.sm{padding:7px 12px;font-size:12px;}
+
+  /* ── Tracker table ── */
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);box-shadow:var(--sh-1);}
+  table.list{width:100%;border-collapse:collapse;font-size:13px;min-width:960px;}
+  table.list th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);
+    padding:12px 15px;border-bottom:1px solid var(--border);background:var(--bg-subtle);position:sticky;top:0;white-space:nowrap;}
+  table.list th.num,table.list td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  table.list td{padding:12px 15px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  table.list tr:last-child td{border-bottom:0;}
+  table.list tbody tr{cursor:pointer;transition:background .1s var(--ease);}
+  table.list tbody tr:hover{background:color-mix(in srgb,var(--brand) 4%,var(--surface));}
+  .ttl{font-weight:600;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ttl small{display:block;font-weight:500;font-size:11px;color:var(--text-subtle);letter-spacing:0;text-transform:none;margin-top:1px;}
+  .stars{color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:1.5px;font-size:11px;white-space:nowrap;}
+  .stars i{color:var(--border-strong);font-style:normal;}
+  .who{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
+  .who .a{width:24px;height:24px;border-radius:50%;background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;border-radius:var(--r-full);padding:3px 10px;white-space:nowrap;}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .p-prod{background:var(--violet-soft);color:var(--violet);}
+  .p-review{background:var(--gold-soft);color:var(--gold-content);}
+  .p-ready{background:var(--blue-soft);color:var(--blue-content);}
+  .p-pub{background:var(--green-soft);color:var(--green-content);}
+  .prio-txt{font-size:12px;color:var(--text-muted);}
+  .chan{display:inline-flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap;}
+  .chan .g{width:8px;height:8px;border-radius:2px;flex:none;}
+  .lnk{color:var(--brand-content);font-weight:600;text-decoration:none;}
+  .lnk:hover{text-decoration:underline;}
+  .muted{color:var(--text-subtle);}
+  .addlink{color:var(--green-content);font-weight:600;text-decoration:none;border-bottom:1px dashed color-mix(in srgb,var(--green) 55%,transparent);}
+  .num .big{font-weight:600;}
+  .eng-good{color:var(--green-content);font-weight:700;}
+  .empty{padding:38px;text-align:center;color:var(--text-subtle);font-size:13px;}
+
+  /* ── Footnote ── */
+  .foot{display:flex;gap:12px;align-items:flex-start;background:var(--brand-soft);color:var(--brand-content);border-radius:var(--r-md);padding:15px 17px;font-size:12.5px;line-height:1.6;}
+  .foot .ic{flex:none;font-size:15px;}
+
+  /* ── Drawer ── */
+  .scrim{position:fixed;inset:0;background:rgba(20,10,30,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s var(--ease);z-index:40;}
+  .scrim.open{opacity:1;pointer-events:auto;}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(500px,94vw);background:var(--bg);box-shadow:var(--sh-3);border-left:1px solid var(--border);
+    transform:translateX(100%);transition:transform .26s var(--ease);z-index:41;display:flex;flex-direction:column;}
+  .drawer.open{transform:none;}
+  .dr-head{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+  .dr-head h3{font-size:16.5px;line-height:1.32;}
+  .dr-head .x{margin-left:auto;flex:none;}
+  .dr-body{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+  .sub-h{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-subtle);}
+  .meta-grid{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px;align-items:center;margin-top:10px;}
+  .meta-grid dt{color:var(--text-subtle);font-weight:600;}
+  .meta-grid dd{margin:0;text-align:right;}
+
+  /* lifecycle timeline */
+  .timeline{display:flex;flex-direction:column;margin-top:10px;}
+  .step{display:flex;gap:12px;padding-bottom:15px;position:relative;}
+  .step:last-child{padding-bottom:0;}
+  .step:not(:last-child)::before{content:"";position:absolute;left:8px;top:19px;bottom:-2px;width:2px;background:var(--border-strong);}
+  .step.done:not(:last-child)::before{background:var(--green);}
+  .step .node{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none;display:grid;place-items:center;font-size:9px;color:transparent;margin-top:1px;}
+  .step.done .node{background:var(--green);border-color:var(--green);color:#fff;}
+  .step.current .node{border-color:var(--brand);background:var(--brand);color:#fff;box-shadow:0 0 0 4px var(--brand-soft);}
+  .step .lab{font-size:13px;font-weight:600;}
+  .step .when{font-size:11px;color:var(--text-subtle);margin-top:1px;}
+  .step.pending .lab{color:var(--text-subtle);font-weight:500;}
+
+  /* performance panel */
+  .perf-panel{background:linear-gradient(180deg,var(--green-soft),var(--surface) 82%);border:1px solid color-mix(in srgb,var(--green) 32%,transparent);border-radius:var(--r-md);padding:16px 17px;}
+  .perf-panel .src{font-size:10.5px;color:var(--green-content);font-weight:700;display:inline-flex;align-items:center;gap:6px;letter-spacing:.03em;}
+  .perf-nums{display:flex;gap:26px;margin:12px 0 2px;align-items:flex-end;}
+  .perf-nums .k{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:6px;}
+  .perf-nums .n{font-family:var(--font-display);font-size:27px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;}
+  .perf-note{font-size:11.5px;color:var(--text-muted);margin-top:11px;display:flex;align-items:center;gap:7px;}
+  .perf-form{display:flex;gap:10px;align-items:flex-end;margin-top:12px;flex-wrap:wrap;}
+  .perf-form label{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-subtle);display:block;margin-bottom:5px;}
+  .perf-form input{font-size:14px;padding:9px 11px;border:1px solid var(--border-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);width:130px;font-variant-numeric:tabular-nums;}
+  .perf-form input.e{width:96px;}
+  .perf-pending{font-size:12.5px;color:var(--text-muted);display:flex;align-items:center;gap:8px;margin-top:9px;}
+  .link-mini{font-size:11.5px;color:var(--text-subtle);text-decoration:underline;background:none;border:0;padding:0;margin-top:10px;}
+
+  .rise{animation:rise .45s var(--ease) both;}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+</style>
+
+<div id="atmo"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">▶</span>
+    <span><b>Content Portal</b><small>For Vishen Lakhiani</small></span>
+  </div>
+  <div class="tb-spacer"></div>
+  <button class="icobtn" id="themebtn" title="Toggle light / dark" onclick="toggleTheme()">◐</button>
+  <span class="avatar">VL</span>
+</header>
+
+<main class="wrap">
+
+  <!-- Hero -->
+  <div class="hero rise">
+    <div class="lede">
+      <h1>Your requests, end to end</h1>
+      <p>Everything you asked for — where it is now, where it got posted, and how it performed. The team logs the numbers on each post.</p>
+      <div class="tally" id="tally"></div>
+    </div>
+    <span class="interim">✎ Numbers entered by the team · auto-sync via Hootsuite coming</span>
+  </div>
+  <p class="prototype-note rise" style="animation-delay:.02s;margin:-14px 0 0">Prototype for Friday's review · click a <b>stage</b> or a <b>row</b> to drill in · <b>◐</b> for dark mode.</p>
+
+  <!-- Pipeline ribbon -->
+  <section class="sec rise" style="animation-delay:.06s">
+    <div class="sechead"><div><span class="eyebrow">⛓ Where it all is</span><h2>Your pipeline, stage by stage</h2></div><span class="hint right">click a stage to filter the list below</span></div>
+    <div class="ribbon" id="ribbon"></div>
+  </section>
+
+  <!-- Performance band -->
+  <section class="sec rise" style="animation-delay:.1s">
+    <div class="sechead"><div><span class="eyebrow green">◆ Live &amp; performing</span><h2>How your published work is doing</h2></div></div>
+    <div class="band" id="band"></div>
+  </section>
+
+  <!-- Team: add live link -->
+  <section class="sec rise" id="await-zone" style="animation-delay:.14s">
+    <div class="sechead"><div><span class="eyebrow" style="color:var(--blue-content)">① Team action</span><h2>Ready to publish</h2></div><span class="hint right">drop the live link the moment it goes out — that flips it to Published</span></div>
+    <div class="commit blue" id="await-list"></div>
+  </section>
+
+  <!-- Team: add the numbers -->
+  <section class="sec rise" id="perfq-zone" style="animation-delay:.16s">
+    <div class="sechead"><div><span class="eyebrow green">② Team action</span><h2>Add the numbers</h2></div><span class="hint right">published, waiting on impressions &amp; engagement</span></div>
+    <div class="commit green" id="perfq-list"></div>
+  </section>
+
+  <!-- Tracker -->
+  <section class="sec rise" style="animation-delay:.2s">
+    <div class="sechead">
+      <div><span class="eyebrow">☰ Every request</span><h2>The full thread</h2></div>
+      <div class="hint right" id="row-count"></div>
+    </div>
+    <div class="toolbar">
+      <div class="chips" id="chan-chips" role="group" aria-label="Channel">
+        <button data-chan="all" aria-pressed="true">All channels</button>
+        <button data-chan="Vishen Lakhiani IG" aria-pressed="false"><span class="dot" style="background:#d6249f"></span>Vishen Lakhiani IG</button>
+        <button data-chan="Mindvalley IG" aria-pressed="false"><span class="dot" style="background:#f5b000"></span>Mindvalley IG</button>
+        <button data-chan="YouTube" aria-pressed="false"><span class="dot" style="background:#e5372b"></span>YouTube</button>
+        <button data-chan="LinkedIn" aria-pressed="false"><span class="dot" style="background:#2563cf"></span>LinkedIn</button>
+      </div>
+      <div class="tsel">
+        <div class="search"><span class="mag">⌕</span><input id="q" placeholder="Search titles…" oninput="render()" /></div>
+        <select id="type" onchange="render()">
+          <option value="all">All asset types</option>
+          <option>Podcast clip</option><option>Stage-talk clip</option>
+          <option>Full podcast / long-form</option><option>Vishen-shot clip</option><option>Campaign invite</option>
+        </select>
+        <select id="time" onchange="render()">
+          <option value="30">Last 30 days</option><option value="year">This year</option><option value="all" selected>All time</option>
+        </select>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table class="list">
+        <thead><tr>
+          <th>Title</th><th>Priority</th><th>Assigned</th><th>Ticket status</th><th>Priority status</th>
+          <th>Channel</th><th>Live link</th><th>Published</th><th class="num">Impressions</th><th class="num">Engagement</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Footnote -->
+  <footer class="sec rise" style="animation-delay:.24s">
+    <div class="foot">
+      <span class="ic">🔒</span>
+      <div><b>This is your thread, not the team's backlog.</b> Only work tagged <b>Request from Vishen</b> appears here. For now the team logs impressions &amp; engagement by hand on each post — once <b>Hootsuite</b> is connected these fill in and refresh automatically.</div>
+    </div>
+  </footer>
+</main>
+
+<!-- Drawer -->
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Request detail"></aside>
+
+<script>
+  const CHAN_COLOR = {'Vishen Lakhiani IG':'#d6249f','Mindvalley IG':'#f5b000','YouTube':'#e5372b','LinkedIn':'#2563cf'};
+  const STATUS = {
+    prod:{pill:'p-prod',label:'In Production'}, review:{pill:'p-review',label:'In Review'},
+    ready:{pill:'p-ready',label:'Ready to release'}, published:{pill:'p-pub',label:'Published'},
+  };
+  // metricsBy: 'manual' once numbers are logged; loggedOn: date string
+  const DATA = [
+    {id:1, title:'"I call them my team — God, Angels, Ancestors, and Universe."', type:'Podcast clip', prio:5, assignee:'Daniel R.', status:'published', prioTxt:'Delivered', channel:'Vishen Lakhiani IG', link:'instagram.com/p/Cx91…', date:'2026-06-18', impressions:75200, engagement:6.4, metricsBy:'manual', loggedOn:'2026-06-20'},
+    {id:2, title:'"The thing that really raises your HRV? Spooning."', type:'Podcast clip', prio:5, assignee:'Jason R.', status:'published', prioTxt:'Delivered', channel:'Mindvalley IG', link:'instagram.com/p/Cx88…', date:'2026-06-21', impressions:118400, engagement:5.1, metricsBy:'manual', loggedOn:'2026-06-23'},
+    {id:3, title:'The Blind Spot Keeping Smart Entrepreneurs Stuck', type:'Campaign invite', prio:4, assignee:'Gareth M.', status:'published', prioTxt:'Delivered', channel:'YouTube', link:'youtu.be/aZ21kd', date:'2026-06-12', impressions:null, engagement:null},
+    {id:4, title:'"If you’re still working 40 hours, you have no idea what you’re doing."', type:'Podcast clip', prio:4, assignee:'Daniel R.', status:'published', prioTxt:'Delivered', channel:'Vishen Lakhiani IG', link:'instagram.com/p/Cx70…', date:'2026-05-29', impressions:61200, engagement:7.2, metricsBy:'manual', loggedOn:'2026-05-31'},
+    {id:5, title:'Speaking & Influence Summit — Linda Clemens B-roll', type:'Stage-talk clip', prio:3, assignee:'Dominic F.', status:'published', prioTxt:'Delivered', channel:'Mindvalley IG', link:'instagram.com/p/Cw44…', date:'2025-11-14', impressions:null, engagement:null},
+
+    {id:6, title:'Eve × Vishen — "For years I thought I couldn’t do both."', type:'Podcast clip', prio:5, assignee:'Jason R.', status:'ready', prioTxt:'Approved by you', channel:null, link:null, date:null},
+    {id:7, title:'Tim Gray full podcast — long-form cut', type:'Full podcast / long-form', prio:4, assignee:'Gareth M.', status:'ready', prioTxt:'Approved by you', channel:null, link:null, date:null},
+
+    {id:8, title:'"I thought I was cursed until my early 20s."', type:'Podcast clip', prio:4, assignee:'Daniel R.', status:'review', prioTxt:'To be reviewed by Vishen', channel:null, link:null, date:null},
+    {id:9, title:'Vishen keynote — 6-minute stage cut', type:'Stage-talk clip', prio:3, assignee:'Dominic F.', status:'review', prioTxt:'To be reviewed by Vishen', channel:null, link:null, date:null},
+
+    {id:10, title:'"You can meditate all you want — it won’t fix this."', type:'Podcast clip', prio:5, assignee:'Jason R.', status:'prod', prioTxt:'In production', channel:null, link:null, date:null},
+    {id:11, title:'What I learned from Naveen — Vishen-shot vlog', type:'Vishen-shot clip', prio:2, assignee:'—', status:'prod', prioTxt:'In production', channel:null, link:null, date:null},
+    {id:12, title:'Mastery Summit invite — Vishen concept video', type:'Campaign invite', prio:4, assignee:'Gareth M.', status:'prod', prioTxt:'In production', channel:null, link:null, date:null},
+  ];
+
+  let channel='all', metricFilter=null;
+  const nf = new Intl.NumberFormat('en-US');
+  const now = new Date('2026-07-01');
+  const $ = id => document.getElementById(id);
+  const has = r => r.impressions!=null;
+
+  function compact(n){ if(n==null) return '—'; if(n>=1000){ const k=n/1000; return (k>=100?Math.round(k):k.toFixed(1).replace(/\.0$/,''))+'K'; } return ''+n; }
+  function inTime(d){ const t=$('time').value; if(t==='all') return true; if(!d) return false; const dt=new Date(d);
+    if(t==='year') return dt.getFullYear()===2026; if(t==='30') return (now-dt)/86400000<=30; return true; }
+  function stars(n){ let s=''; for(let i=0;i<5;i++) s += i<n?'★':'<i>★</i>'; return '<span class="stars">'+s+'</span>'; }
+  function initials(name){ return name==='—'?'?':name.split(' ').map(w=>w[0]).join('').slice(0,2); }
+  function fmtDate(d){ if(!d) return '<span class="muted">—</span>'; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+  function chanChip(c){ return c?`<span class="chan"><span class="g" style="background:${CHAN_COLOR[c]}"></span>${c}</span>`:'<span class="muted">—</span>'; }
+  function parseImp(s){ s=(s||'').trim().toLowerCase().replace(/,/g,''); if(!s) return null; let m=1; if(s.endsWith('k')){m=1000;s=s.slice(0,-1);} if(s.endsWith('m')){m=1e6;s=s.slice(0,-1);} const v=parseFloat(s); return isNaN(v)?null:Math.round(v*m); }
+  function parseEng(s){ s=(s||'').trim().replace(/%/g,''); const v=parseFloat(s); return isNaN(v)?null:v; }
+
+  function filtered(){
+    const q=$('q').value.trim().toLowerCase(), type=$('type').value, tw=$('time').value;
+    return DATA.filter(r=>{
+      if(channel!=='all' && r.channel!==channel) return false;
+      if(type!=='all' && r.type!==type) return false;
+      if(q && !r.title.toLowerCase().includes(q)) return false;
+      if(metricFilter && r.status!==metricFilter) return false;
+      if((tw==='30'||tw==='year') && r.status==='published' && !inTime(r.date)) return false;
+      return true;
+    });
+  }
+
+  function renderRibbon(){
+    const count=s=>DATA.filter(r=>r.status===s).length;
+    const stages=[
+      {k:'prod',cls:'s-prod',name:'In production',sub:'being made now'},
+      {k:'review',cls:'s-review',name:'Awaiting your sign-off',sub:'needs your review'},
+      {k:'ready',cls:'s-ready',name:'Ready to publish',sub:'approved · queued to post'},
+      {k:'published',cls:'s-pub',name:'Published',sub:'live across channels'},
+    ];
+    $('ribbon').innerHTML=stages.map((s,i)=>`
+      <button class="stage ${s.cls}" data-metric="${s.k}" aria-pressed="${metricFilter===s.k}">
+        ${i<stages.length-1?'<span class="flow">→</span>':''}
+        <div class="top"><span class="dot"></span><span class="name">${s.name}</span></div>
+        <div class="count">${count(s.k)}</div><div class="sub">${s.sub}</div>
+      </button>`).join('');
+    document.querySelectorAll('#ribbon .stage').forEach(b=>b.onclick=()=>{ const m=b.getAttribute('data-metric'); metricFilter=metricFilter===m?null:m; render(); });
+  }
+
+  function renderBand(){
+    const pub=DATA.filter(r=>r.status==='published'&&has(r)&&inTime(r.date));
+    const reach=pub.reduce((s,r)=>s+r.impressions,0);
+    const eng=pub.length?(pub.reduce((s,r)=>s+r.engagement,0)/pub.length).toFixed(1):'—';
+    const missing=DATA.filter(r=>r.status==='published'&&!has(r)&&inTime(r.date)).length;
+    const top=[...pub].sort((a,b)=>b.impressions-a.impressions)[0];
+    const win=$('time').value==='all'?'All time':($('time').value==='year'?'This year':'Last 30 days');
+    $('band').innerHTML=`
+      <div class="stat"><span class="k">Total reach</span><span class="v">${compact(reach)}</span></div>
+      <div class="divider"></div>
+      <div class="stat"><span class="k">Avg engagement</span><span class="v">${eng}<small>%</small></span></div>
+      <div class="divider"></div>
+      <div class="stat"><span class="k">Published</span><span class="v">${pub.length}</span></div>
+      ${top?`<a class="top-perf" href="#" onclick="openDrawer(${top.id});return false;">
+        <div class="lab">★ Top performer</div><div class="q">${top.title}</div>
+        <div class="n">${nf.format(top.impressions)} impressions · ${top.engagement}% engagement</div></a>`:''}
+      <div class="src">✎ Entered manually by the team${missing?` · ${missing} published post${missing>1?'s':''} still need numbers`:''} · ${win} · auto-sync via Hootsuite coming</div>`;
+  }
+
+  // ① Ready to publish
+  function renderAwaiting(){
+    const list=DATA.filter(r=>r.status==='ready');
+    $('await-zone').style.display=list.length?'':'none';
+    $('await-list').innerHTML=list.map(r=>`
+      <div class="commit-row">
+        <span class="ic">${/podcast/i.test(r.type)?'🎙':'🎬'}</span>
+        <div class="body"><b>${r.title}</b><span>${r.type} · ${r.assignee} · approved by you</span></div>
+        <div class="inputs">
+          <input class="url" placeholder="Paste live link (IG / YT / LinkedIn)…" data-link-for="${r.id}" />
+          <button class="btn sm blue" data-pub="${r.id}">Mark published</button>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('[data-pub]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const id=+b.getAttribute('data-pub');
+      markPublished(id, document.querySelector(`[data-link-for="${id}"]`).value.trim()); });
+  }
+
+  // ② Add the numbers
+  function renderPerfQueue(){
+    const list=DATA.filter(r=>r.status==='published'&&!has(r));
+    $('perfq-zone').style.display=list.length?'':'none';
+    $('perfq-list').innerHTML=list.map(r=>`
+      <div class="commit-row">
+        <span class="ic">◆</span>
+        <div class="body"><b>${r.title}</b><span>${chanChip(r.channel).replace(/<[^>]+>/g,m=>m)} · published ${r.date?new Date(r.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</span></div>
+        <div class="inputs">
+          <input class="n" inputmode="numeric" placeholder="Impressions" data-imp-for="${r.id}" />
+          <input class="e" inputmode="decimal" placeholder="Eng. %" data-eng-for="${r.id}" />
+          <button class="btn sm green" data-save="${r.id}">Save numbers</button>
+        </div>
+      </div>`).join('');
+    document.querySelectorAll('[data-save]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const id=+b.getAttribute('data-save');
+      const imp=parseImp(document.querySelector(`[data-imp-for="${id}"]`).value);
+      const eng=parseEng(document.querySelector(`[data-eng-for="${id}"]`).value);
+      if(imp==null){ flash('Enter an impressions number (e.g. 75200 or 75.2k).'); return; }
+      savePerf(id, imp, eng); });
+  }
+
+  function detectChannel(url){ const u=url.toLowerCase();
+    if(u.includes('instagram')) return u.includes('vish')?'Vishen Lakhiani IG':'Mindvalley IG';
+    if(u.includes('youtu')) return 'YouTube'; if(u.includes('linkedin')) return 'LinkedIn'; return 'Mindvalley IG'; }
+  function markPublished(id, url){
+    const r=DATA.find(x=>x.id===id);
+    r.status='published'; r.prioTxt='Delivered';
+    r.link=url?url.replace(/^https?:\/\//,''):'instagram.com/p/new…';
+    r.channel=url?detectChannel(url):'Mindvalley IG';
+    r.date='2026-07-01'; r.impressions=null; r.engagement=null;
+    render();
+    flash(`Published to ${r.channel}. Now add the numbers when you have them.`);
+  }
+  function savePerf(id, imp, eng){
+    const r=DATA.find(x=>x.id===id);
+    r.impressions=imp; r.engagement=(eng!=null?eng:0); r.metricsBy='manual'; r.loggedOn='2026-07-01';
+    if($('drawer').classList.contains('open')) openDrawer(id); else render();
+    flash(`Saved — ${nf.format(imp)} impressions logged.`);
+  }
+
+  let flashT;
+  function flash(msg){
+    let el=$('flash');
+    if(!el){ el=document.createElement('div'); el.id='flash';
+      el.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--g700);color:#fff;padding:12px 20px;border-radius:var(--r-full);font-size:12.5px;font-weight:600;box-shadow:var(--sh-3);z-index:60;opacity:0;transition:opacity .2s var(--ease);';
+      document.body.appendChild(el); }
+    el.textContent=msg; requestAnimationFrame(()=>el.style.opacity='1');
+    clearTimeout(flashT); flashT=setTimeout(()=>el.style.opacity='0',3400);
+  }
+
+  function render(){
+    renderRibbon(); renderBand(); renderAwaiting(); renderPerfQueue();
+    const live=DATA.filter(r=>r.status==='published').length;
+    const logged=DATA.filter(r=>r.status==='published'&&has(r)).length;
+    $('tally').innerHTML=`<b>${DATA.length}</b> requests from you <span class="sep"></span> <b>${live}</b> live <span class="sep"></span> <b>${logged}</b> with numbers logged <span class="sep"></span> tagged <b>Request from Vishen</b>`;
+    const rows=filtered();
+    $('row-count').textContent=rows.length+' of '+DATA.length+' shown';
+    const tb=$('rows');
+    if(!rows.length){ tb.innerHTML=`<tr><td colspan="10" class="empty">No requests match these filters.</td></tr>`; return; }
+    tb.innerHTML=rows.map(r=>{
+      const st=STATUS[r.status];
+      const link=r.link?`<a class="lnk" href="#" onclick="event.stopPropagation();return false;">${r.link} ↗</a>`:'<span class="muted">not live yet</span>';
+      let imp, eng;
+      if(has(r)){ imp=`<span class="big">${compact(r.impressions)}</span>`; eng=`<span class="${r.engagement>=6?'eng-good':''}">${r.engagement}%</span>`; }
+      else if(r.status==='published'){ imp=`<a class="addlink" href="#" onclick="event.stopPropagation();openDrawer(${r.id});return false;">+ add</a>`; eng='<span class="muted">—</span>'; }
+      else { imp='<span class="muted">—</span>'; eng='<span class="muted">—</span>'; }
+      return `<tr onclick="openDrawer(${r.id})">
+        <td class="ttl">${r.title}<small>${r.type}</small></td>
+        <td>${stars(r.prio)}</td>
+        <td><span class="who"><span class="a">${initials(r.assignee)}</span>${r.assignee}</span></td>
+        <td><span class="pill ${st.pill}">${st.label}</span></td>
+        <td><span class="prio-txt">${r.prioTxt}</span></td>
+        <td>${chanChip(r.channel)}</td>
+        <td>${link}</td>
+        <td>${fmtDate(r.date)}</td>
+        <td class="num">${imp}</td>
+        <td class="num">${eng}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Drawer
+  const LIFECYCLE=['Requested','Prioritized','In production','In review','Published'];
+  function stageIndex(s){ return {prod:2,review:3,ready:3,published:4}[s]; }
+  function openDrawer(id){
+    const r=DATA.find(x=>x.id===id); if(!r) return;
+    const st=STATUS[r.status], cur=stageIndex(r.status);
+    const steps=LIFECYCLE.map((s,i)=>{ const cls=i<cur?'done':(i===cur?'current':'pending'); const when=i<cur?'Done':(i===cur?'In progress now':'');
+      return `<div class="step ${cls}"><span class="node">✓</span><div><div class="lab">${s}</div>${when?`<div class="when">${when}</div>`:''}</div></div>`; }).join('');
+    let perf;
+    if(r.status==='published' && has(r)){
+      perf=`<div class="perf-panel">
+        <span class="src">✎ Logged by the team</span>
+        <div class="perf-nums">
+          <div><div class="k">Impressions</div><div class="n">${nf.format(r.impressions)}</div></div>
+          <div><div class="k">Engagement rate</div><div class="n ${r.engagement>=6?'eng-good':''}">${r.engagement}%</div></div>
+        </div>
+        <div class="perf-note">Entered manually${r.loggedOn?` · ${fmtDate(r.loggedOn)}`:''} · will auto-update once Hootsuite is connected</div>
+        <button class="link-mini" onclick="editPerf(${r.id})">Update numbers</button>
+      </div>`;
+    } else if(r.status==='published'){
+      perf=`<div class="perf-panel" id="perf-edit">
+        <span class="src">✎ Add the numbers</span>
+        <div class="perf-form">
+          <div><label>Impressions</label><input id="dr-imp" inputmode="numeric" placeholder="e.g. 75200" /></div>
+          <div><label>Engagement %</label><input id="dr-eng" class="e" inputmode="decimal" placeholder="e.g. 6.4" /></div>
+          <button class="btn green" onclick="saveFromDrawer(${r.id})">Save</button>
+        </div>
+        <div class="perf-note">Pull these from Instagram Insights for now — Hootsuite will fill them in automatically later.</div>
+      </div>`;
+    } else {
+      perf=`<div class="perf-panel"><span class="src">◆ Performance</span><div class="perf-pending">Appears once this is published and a live link is added.</div></div>`;
+    }
+    $('drawer').innerHTML=`
+      <div class="dr-head">
+        <div><span class="pill ${st.pill}" style="margin-bottom:9px">${st.label}</span><h3>${r.title}</h3></div>
+        <button class="icobtn x" onclick="closeDrawer()" aria-label="Close">✕</button>
+      </div>
+      <div class="dr-body">
+        <div><div class="sub-h">Where it stands</div><div class="timeline">${steps}</div></div>
+        ${perf}
+        <div><div class="sub-h">Details</div>
+          <dl class="meta-grid">
+            <dt>Asset type</dt><dd>${r.type}</dd>
+            <dt>Priority</dt><dd>${stars(r.prio)}</dd>
+            <dt>Assigned</dt><dd>${r.assignee}</dd>
+            <dt>Priority status</dt><dd>${r.prioTxt}</dd>
+            <dt>Channel</dt><dd>${chanChip(r.channel)}</dd>
+            <dt>Live link</dt><dd>${r.link?`<a class="lnk" href="#" onclick="return false;">${r.link} ↗</a>`:'<span class="muted">—</span>'}</dd>
+            <dt>Published</dt><dd>${fmtDate(r.date)}</dd>
+          </dl></div>
+      </div>`;
+    $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden','false'); $('scrim').classList.add('open');
+  }
+  function editPerf(id){ const r=DATA.find(x=>x.id===id); r.impressions=null; r.engagement=null; openDrawer(id); }
+  function saveFromDrawer(id){
+    const imp=parseImp($('dr-imp').value), eng=parseEng($('dr-eng').value);
+    if(imp==null){ flash('Enter an impressions number (e.g. 75200 or 75.2k).'); return; }
+    savePerf(id, imp, eng);
+  }
+  function closeDrawer(){ $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden','true'); $('scrim').classList.remove('open'); }
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+
+  document.querySelectorAll('#chan-chips button').forEach(b=>b.onclick=()=>{ channel=b.getAttribute('data-chan');
+    document.querySelectorAll('#chan-chips button').forEach(x=>x.setAttribute('aria-pressed', String(x===b))); render(); });
+  function toggleTheme(){ const el=document.documentElement; el.setAttribute('data-theme', el.getAttribute('data-theme')==='dark'?'light':'dark'); }
+
+  render();
+</script>

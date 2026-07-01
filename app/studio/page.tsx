@@ -28,13 +28,16 @@ async function StudioBody() {
   // ideas live in the "Clips awaiting you" card below, so the list stays at the source level.
   const allVishenMedia = getVishenMedia(data.media);
   const vishenMedia = allVishenMedia.slice(0, 3);
-  const clipIds = vishenMedia.flatMap((m) => m.clipSuggestionIds);
 
-  // Engine funnel — counts derived from existing selectors (no new data source).
+  // Engine funnel — the full lifecycle, counts derived from existing selectors (no new data source).
+  // "Ready to publish" = signed off + queued; "Published" = the all-time shipped tally.
+  const readyToPublish = data.active.filter((t) => t.ticketStatus === 'Approved' || t.ticketStatus === 'Shipping').length;
+  const publishedCount = pulse.shippedAll ?? data.recentShipped.length;
   const funnelStages: FunnelStage[] = [
-    { key: 'media', label: 'Media → clips', count: clipIds.length, cap: `ideas · ${vishenMedia.length} sources`, href: '/vishen', icon: '🎬' },
-    { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️' },
-    { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting, cap: 'in review', href: '/studio/sign-off', icon: '⏳', gold: true },
+    { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️', tone: 'prod' },
+    { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting + pendingShoots.length, cap: 'clips + shoots', sub: `${pendingShoots.length} shoot${pendingShoots.length === 1 ? '' : 's'} for you`, href: '/studio/sign-off', icon: '⏳', tone: 'review' },
+    { key: 'ready', label: 'Ready to publish', count: readyToPublish, cap: 'approved · queued', href: '/studio/launches', icon: '📤', tone: 'ready' },
+    { key: 'pub', label: 'Published', count: publishedCount, cap: 'all-time', href: '/studio/shipped', icon: '✓', tone: 'pub' },
   ];
 
   return (

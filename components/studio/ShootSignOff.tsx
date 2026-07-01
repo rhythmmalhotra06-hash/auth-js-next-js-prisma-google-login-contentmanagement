@@ -37,9 +37,7 @@ function Row({ item, onDone }: { item: ShootSignOffItem; onDone: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const meta = [item.format, item.filmingDate ? shortDate(item.filmingDate) : null, item.filmingLocation]
-    .filter(Boolean)
-    .join(' · ');
+  const hasDetails = item.format || item.filmingDate || item.filmingLocation;
 
   function approve() {
     setErr(null);
@@ -64,7 +62,15 @@ function Row({ item, onDone }: { item: ShootSignOffItem; onDone: () => void }) {
       <div className="st-commit-row">
         <div className="title">
           <Link href={`/studio/shoots/${item.id}`} style={{ color: 'inherit' }}><b>{item.title}</b></Link>
-          <div className="meta">{meta || 'No filming details yet'}</div>
+          {hasDetails ? (
+            <div className="st-chips">
+              {item.format && <span className="st-chip">{item.format}</span>}
+              {item.filmingDate && <span className="st-chip">📅 {shortDate(item.filmingDate)}</span>}
+              {item.filmingLocation && <span className="st-chip">📍 {item.filmingLocation}</span>}
+            </div>
+          ) : (
+            <div className="meta">No filming details yet</div>
+          )}
         </div>
         <div className="st-rowacts">
           {mode === 'idle' ? (
