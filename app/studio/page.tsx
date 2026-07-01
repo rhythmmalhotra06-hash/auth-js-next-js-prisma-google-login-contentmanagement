@@ -37,7 +37,7 @@ async function StudioBody() {
     { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️', tone: 'prod' },
     { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting + pendingShoots.length, cap: 'clips + shoots', sub: `${pendingShoots.length} shoot${pendingShoots.length === 1 ? '' : 's'} for you`, href: '/studio/sign-off', icon: '⏳', tone: 'review' },
     { key: 'ready', label: 'Ready to publish', count: readyToPublish, cap: 'approved · queued', href: '/studio/launches', icon: '📤', tone: 'ready' },
-    { key: 'pub', label: 'Published', count: publishedCount, cap: 'all-time', href: '/studio/shipped', icon: '✓', tone: 'pub' },
+    { key: 'pub', label: 'Published', count: publishedCount, cap: '', href: '/studio/shipped', icon: '✓', tone: 'pub' },
   ];
 
   return (

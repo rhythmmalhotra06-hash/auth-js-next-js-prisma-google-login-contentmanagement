@@ -27,7 +27,7 @@ export function PipelineFunnel({ stages }: { stages: FunnelStage[] }) {
           {i < stages.length - 1 && <span className="st-arrow" aria-hidden>→</span>}
           <div className="st-stage"><span className="ic">{s.icon}</span><span className="nm">{s.label}</span></div>
           <div className="st-count">{s.count}</div>
-          <div className="st-cap">{s.cap}</div>
+          {s.cap && <div className="st-cap">{s.cap}</div>}
           {s.sub && <div className="st-sub"><span className="d" />{s.sub}</div>}
         </Link>
       ))}
