@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { AppShell } from '@/components/ui/AppShell';
-import { getQueueTickets, getEligibleAssignees } from '@/lib/tickets/data';
+import { getQueueTickets, getEligibleAssignees, getTicketDetail } from '@/lib/tickets/data';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { EmployeePicker } from '@/components/tickets/EmployeePicker';
@@ -16,11 +16,21 @@ export const dynamic = 'force-dynamic';
 
 const days = (due: string | null) => (due ? Math.ceil((new Date(due).getTime() - Date.now()) / 86400000) : null);
 
+function dueLabel(due: string | null) {
+  const d = days(due);
+  if (d == null) return null;
+  if (d < 0) return <span className="due far">overdue</span>;
+  const cls = d <= 2 ? 'soon' : d <= 6 ? 'mid' : 'far';
+  return <span className={`due ${cls}`}>due in {d}d</span>;
+}
+
 async function EditorBody({ assignee }: { assignee?: string }) {
   const [tickets, cfg] = await Promise.all([getQueueTickets({ assigneeId: assignee }), getScoringConfig()]);
   const dueSoon = tickets.filter((t) => { const d = days(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
   const inReview = tickets.filter((t) => t.ticketStatus === 'Review').length;
   const nextUp = tickets[0];
+  // Pull the top item's detail for the hero fact tiles (CTA / Dimensions live on detail, not the queue list).
+  const nextDetail = nextUp ? await getTicketDetail(nextUp.id) : null;
 
   return (
     <>
@@ -32,7 +42,10 @@ async function EditorBody({ assignee }: { assignee?: string }) {
 
       {nextUp && (
         <div className="card pad" style={{ borderColor: 'var(--brand-border)', background: 'linear-gradient(180deg, var(--brand-soft), transparent 60%)', marginBottom: 18 }}>
-          <div className="eyebrow">Next up</div>
+          <div className="row-between">
+            <div className="eyebrow">Next up</div>
+            {dueLabel(nextUp.dueDate)}
+          </div>
           <div className="row-between" style={{ marginTop: 6 }}>
             <div>
               <h3 style={{ fontSize: 18 }}>{nextUp.title}</h3>
@@ -40,8 +53,13 @@ async function EditorBody({ assignee }: { assignee?: string }) {
             </div>
             <TicketStatusBadge status={nextUp.ticketStatus} />
           </div>
+          <div className="factgrid">
+            <div className="fact"><span className="k">Call to action</span><span className="v">{nextDetail?.cta ?? '—'}</span></div>
+            <div className="fact"><span className="k">Dimensions</span><span className="v">{nextDetail?.dimensions ?? '—'}</span></div>
+            <div className="fact"><span className="k">Campaign</span><span className="v">{nextDetail?.officialCalendar ?? nextUp.officialCalendar ?? '—'}</span></div>
+          </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-            <Link href={`/tickets/${nextUp.id}`} className="btn primary" style={{ textDecoration: 'none' }}><Icon name="doc" size={15} /> Open brief</Link>
+            <Link href={`/tickets/${nextUp.id}`} className="btn primary" style={{ textDecoration: 'none' }}><Icon name="doc" size={15} /> View brief &amp; DNA</Link>
             <Link href={`/tickets/${nextUp.id}`} className="btn" style={{ textDecoration: 'none' }}><Icon name="upload" size={15} /> Upload asset</Link>
           </div>
         </div>

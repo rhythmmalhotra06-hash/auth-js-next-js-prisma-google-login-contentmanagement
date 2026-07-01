@@ -7,9 +7,9 @@
 import { listRecords } from './client';
 import { listRecords as listRest } from './rest';
 import {
-  EMPLOYEES, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS, SHOOTS,
+  EMPLOYEES, EVENT_TYPES, ASSET_TYPES, DIMENSIONS, OFFICIAL_CALENDARS, AUTHORS, SHOOTS,
 } from './field-map';
-import { mapEmployee, mapEventType, mapAssetType, mapOfficialCalendar, mapAuthor } from './sync';
+import { mapEmployee, mapEventType, mapAssetType, mapDimension, mapOfficialCalendar, mapAuthor } from './sync';
 import type { Option, AssetTypeOption } from '@/lib/intake/data';
 
 export interface LiveReference {
@@ -34,18 +34,31 @@ let inflight: Promise<LiveReference> | null = null;
 async function fetchLive(): Promise<LiveReference> {
   // Sequential — all tables share the creative_services base; concurrent calls
   // would blow the per-base rate limit (client.listRecords already paces itself).
-  const employees = (await listRecords(EMPLOYEES.baseId, EMPLOYEES.tableId))
-    .map(mapEmployee).filter((e) => e.active)
-    .map((e) => ({ id: e.airtableId, name: e.name }));
+  const employeesRaw = (await listRecords(EMPLOYEES.baseId, EMPLOYEES.tableId))
+    .map(mapEmployee).filter((e) => e.active);
+  const employees = employeesRaw.map((e) => ({ id: e.airtableId, name: e.name }));
+  // recId → name maps so the intake auto-fill block can show team lead / editor / dimension names.
+  const empName = new Map(employeesRaw.map((e) => [e.airtableId, e.name]));
 
   const eventTypes = (await listRecords(EVENT_TYPES.baseId, EVENT_TYPES.tableId))
     .map(mapEventType).filter((e) => e.active)
     .map((e) => ({ id: e.airtableId, name: e.name }));
 
+  const dimName = new Map(
+    (await listRecords(DIMENSIONS.baseId, DIMENSIONS.tableId)).map(mapDimension).map((d) => [d.airtableId, d.label]),
+  );
+  const names = (ids: string[], m: Map<string, string>) => {
+    const out = ids.map((id) => m.get(id)).filter((n): n is string => !!n);
+    return out.length ? [...new Set(out)].join(', ') : null;
+  };
+
   const assetTypes = (await listRecords(ASSET_TYPES.baseId, ASSET_TYPES.tableId))
     .map(mapAssetType).filter((a) => a.active)
     .map((a) => ({ id: a.airtableId, name: a.name, category: a.category, eventTypeIds: a.links.eventTypes,
-      isVideo: a.creativeCategory === 'Creative Video Type' }));
+      isVideo: a.creativeCategory === 'Creative Video Type',
+      teamLead: names(a.links.teamLeads, empName),
+      preferredEditor: names(a.links.preferredEditors, empName),
+      dimensions: names(a.links.dimensions, dimName) }));
 
   const officialCalendars = (await listRecords(OFFICIAL_CALENDARS.baseId, OFFICIAL_CALENDARS.tableId))
     .map(mapOfficialCalendar)

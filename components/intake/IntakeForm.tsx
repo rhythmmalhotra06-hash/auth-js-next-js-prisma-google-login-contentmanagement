@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { createTicket } from '@/app/intake/actions';
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect';
+import { Icon } from '@/components/ui/Icon';
 
 function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -63,6 +64,12 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
   const requestTypeOpts: SelectOption[] = useMemo(() => data.typesOfRequest.map((t) => ({ value: t, label: t })), [data.typesOfRequest]);
   const eventTypeOpts: SelectOption[] = useMemo(() => data.eventTypes.map((e) => ({ value: e.id, label: e.name })), [data.eventTypes]);
   const assetTypeOpts: SelectOption[] = useMemo(() => filteredAssetTypes.map((a) => ({ value: a.id, label: a.name })), [filteredAssetTypes]);
+  // Once an asset type is picked, its team lead / preferred editor / dimensions / category
+  // show as locked read-only lookups (CLAUDE.md §4 — never user inputs).
+  const selectedAssetType = useMemo(
+    () => data.assetTypes.find((a) => a.id === assetTypeId) ?? null,
+    [assetTypeId, data.assetTypes],
+  );
   const calendarOpts: SelectOption[] = useMemo(() => data.officialCalendars.map((c) => ({ value: c.id, label: c.name })), [data.officialCalendars]);
 
   const authorMatches = useMemo(() => {
@@ -143,6 +150,15 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
             )}
           </Field>
         </div>
+        {selectedAssetType && (
+          <div className="autofill">
+            <div className="lock" style={{ marginBottom: 8 }}><Icon name="lock" size={12} /> auto-filled from asset type</div>
+            <div className="row"><span className="k">Team lead</span><span>{selectedAssetType.teamLead ?? '—'}</span></div>
+            <div className="row"><span className="k">Preferred editor</span><span>{selectedAssetType.preferredEditor ?? '—'}</span></div>
+            <div className="row"><span className="k">Dimensions</span><span>{selectedAssetType.dimensions ?? '—'}</span></div>
+            <div className="row"><span className="k">Category</span><span>{selectedAssetType.category ?? '—'}</span></div>
+          </div>
+        )}
         <Field label="📅 Official Calendar" hint="Optional — link to a campaign so we know its start/end dates">
           <SearchableSelect value={officialCalendarId} onChange={setOfficialCalendarId} options={calendarOpts}
             placeholder="Select a campaign…" allLabel="No campaign" searchPlaceholder="Search campaigns…" width="100%" ariaLabel="Official Calendar" />

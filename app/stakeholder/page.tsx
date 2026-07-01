@@ -9,6 +9,7 @@ import { hasRole } from '@/lib/roles';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { ScopeSwitch } from '@/components/tickets/ScopeSwitch';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
+import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getEmployeeForSession } from '@/lib/employee';
 
@@ -87,6 +88,12 @@ async function MyRequestsBody({ scope, calendarId }: { scope: RequestScope; cale
         <>
           <div className="sec-head"><h3>{heading.title}</h3><span className="hint">{heading.hint}</span></div>
           <QueueTable tickets={tickets} basePath="/stakeholder" storageKey="stakeholder-queue" scoringConfig={cfg} />
+          <div className="legend" style={{ marginTop: 14 }}>
+            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+              <Icon name="eye" size={14} /> Read-only · comment access only.
+            </span>
+            <span className="subtle">Performance (CTR / ROAS) will key to each published asset from Clarisights / Amplitude once connected.</span>
+          </div>
         </>
       )}
     </>

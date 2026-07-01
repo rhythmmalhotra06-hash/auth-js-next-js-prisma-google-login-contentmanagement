@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { AppShell } from '@/components/ui/AppShell';
-import { getQueueTickets } from '@/lib/tickets/data';
+import { getQueueTickets, getEligibleAssignees } from '@/lib/tickets/data';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 import { QueueTable } from '@/components/tickets/QueueTable';
 import { ApprovedClipsSection } from '@/components/clips/ApprovedClipsSection';
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 const days = (due: string | null) => (due ? Math.ceil((new Date(due).getTime() - Date.now()) / 86400000) : null);
 
 async function ManagerBody() {
-  const [tickets, cfg] = await Promise.all([getQueueTickets(), getScoringConfig()]);
+  const [tickets, cfg, assignees] = await Promise.all([getQueueTickets(), getScoringConfig(), getEligibleAssignees()]);
   const unassigned = tickets.filter((t) => !t.assignee).length;
   const dueSoon = tickets.filter((t) => { const d = days(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
   const inReview = tickets.filter((t) => t.ticketStatus === 'Review').length;
@@ -32,7 +32,7 @@ async function ManagerBody() {
       <Suspense fallback={<CardSkeleton />}>
         <ApprovedClipsSection />
       </Suspense>
-      <QueueTable tickets={tickets} storageKey="manager-queue" scoringConfig={cfg} />
+      <QueueTable tickets={tickets} storageKey="manager-queue" scoringConfig={cfg} editableRank showRank assignees={assignees.map((a) => ({ id: a.id, name: a.name }))} />
     </>
   );
 }

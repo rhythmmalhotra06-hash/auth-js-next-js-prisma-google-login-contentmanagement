@@ -39,6 +39,12 @@ async function StudioBody() {
   ];
 
   return (
+    <>
+    <header className="st-cockpit-head">
+      <span className="eyebrow">For Vishen · end to end</span>
+      <h2>Your studio, end to end</h2>
+      <p>Where it is, where it got posted, and how it performed — one thread per request.</p>
+    </header>
     <div className="studio-bento">
       {/* Engine — the hero on top */}
       <section className="sz-funnel">
@@ -99,6 +105,7 @@ async function StudioBody() {
         </div>
       </section>
     </div>
+    </>
   );
 }
 

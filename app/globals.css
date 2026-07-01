@@ -385,6 +385,11 @@ table.list tbody tr{cursor:pointer;transition:background var(--ease) .1s;}
 table.list tbody tr:hover{background:var(--bg-subtle);}
 table.list tbody tr.attn{background:var(--gold-soft);}
 table.list tbody tr.attn:hover{background:color-mix(in srgb,var(--gold-soft) 80%,var(--text));}
+/* per-row event-tier accent: a 3px inset left rule colored by tier (meaningful, matches chips) */
+table.list tbody tr.tier-high{box-shadow:inset 3px 0 0 var(--tier-high-ink);}
+table.list tbody tr.tier-mid{box-shadow:inset 3px 0 0 var(--tier-mid-ink);}
+table.list tbody tr.tier-soc{box-shadow:inset 3px 0 0 var(--tier-soc-ink);}
+table.list tbody tr.tier-low{box-shadow:inset 3px 0 0 var(--tier-low-ink);}
 /* review-queue grid: rows aren't row-click navigable (title + inline actions handle it) */
 table.list.rq tbody tr{cursor:default;}
 /* group-by header rows (Airtable-style) */
@@ -460,6 +465,7 @@ table.list th .th-resize:hover::after,table.list th .th-resize:active::after{opa
 .grip{color:var(--text-subtle);cursor:grab;display:flex;}
 .grip svg{width:15px;height:15px;}
 .score{font-weight:600;font-variant-numeric:tabular-nums;}
+table.list td.rankcell{color:var(--text-subtle);font-variant-numeric:tabular-nums;text-align:center;font-weight:600;}
 .due{font-size:11px;padding:1px 7px;border-radius:var(--r-sm);font-weight:500;}
 .due.soon{background:var(--red-soft);color:var(--red-content);}
 .due.mid{background:var(--amber-soft);color:var(--amber-content);}
@@ -497,6 +503,12 @@ table.list th .th-resize:hover::after,table.list th .th-resize:active::after{opa
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:680px){.form-grid{grid-template-columns:1fr;}}
 .fg-full{grid-column:1/-1;}
+/* read-only fact tiles (editor next-up hero): quick job facts, label over value */
+.factgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.fact{background:var(--bg-subtle);border-radius:var(--r-sm);padding:10px 12px;min-width:0;}
+.fact .k{display:block;font-size:11px;color:var(--text-subtle);margin-bottom:2px;}
+.fact .v{font-size:13px;overflow-wrap:anywhere;}
+@media(max-width:560px){.factgrid{grid-template-columns:1fr;}}
 .autofill{background:var(--bg-subtle);border:1px dashed var(--border-strong);border-radius:var(--r-sm);padding:13px 15px;}
 .autofill .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:13px;}
 .autofill .row .k{color:var(--text-muted);}
@@ -882,6 +894,10 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 }
 .st-seeall{margin-left:auto;font-size:13px;color:var(--brand-content);font-weight:500;text-decoration:none;flex-shrink:0;}
 .st-seeall:hover{text-decoration:underline;}
+/* cockpit mission header: gold left rule + brand overline (reference "accent-line header") */
+.st-cockpit-head{border-left:3px solid var(--gold);padding-left:16px;margin-bottom:22px;}
+.st-cockpit-head h2{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:5px;font-family:var(--font-display);}
+.st-cockpit-head p{font-size:13.5px;color:var(--text-muted);margin-top:4px;max-width:620px;}
 
 /* ================================================================
    Phase-2 premium devices — ported from the mockups (status-report /

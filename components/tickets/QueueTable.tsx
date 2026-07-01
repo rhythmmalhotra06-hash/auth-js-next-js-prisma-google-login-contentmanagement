@@ -11,7 +11,9 @@ import { SortableTh } from '@/components/ui/table/SortableTh';
 import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { StarRating } from '@/components/studio/StarRating';
+import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 import { loadMap, riskOf } from '@/lib/tickets/intel';
+import { tierForEvent } from '@/lib/tickets/tiers';
 import type { QueueTicket } from '@/lib/tickets/data';
 import type { ScoringConfig } from '@/lib/scoring-config/config';
 
@@ -55,6 +57,25 @@ const COLUMNS: ColumnDef<QueueTicket>[] = [
   { key: 'typeOfRequest', label: 'Request type', sortable: true, width: 150, sortAccessor: (t) => lower(t.typeOfRequest) },
 ];
 
+// Unassigned rows in the manager view show a gold "Assign" pill (gold = attention);
+// clicking it reveals the existing assignee picker inline, without leaving the queue.
+function InlineAssign({ ticketId, assignees }: { ticketId: string; assignees: { id: string; name: string }[] }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <button type="button" className="btn sm gold" style={{ borderRadius: 'var(--r-full)' }}
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}>
+        Assign
+      </button>
+    );
+  }
+  return (
+    <span onClick={(e) => e.stopPropagation()}>
+      <AssigneeUpdater ticketId={ticketId} current={null} employees={assignees} />
+    </span>
+  );
+}
+
 function dueChip(due: string | null) {
   if (!due) return null;
   const d = Math.ceil((new Date(due).getTime() - Date.now()) / 86400000);
@@ -64,7 +85,7 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false, initialFilters }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean; initialFilters?: Partial<Record<Dim, string>> }) {
+export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false, showRank = false, assignees, initialFilters }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean; showRank?: boolean; assignees?: { id: string; name: string }[]; initialFilters?: Partial<Record<Dim, string>> }) {
   const router = useRouter();
   const tableRef = useRef<HTMLTableElement>(null);
   const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
@@ -75,7 +96,13 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
   });
   const [q, setQ] = useState('');
 
-  const view = useTableView({ columns: COLUMNS, storageKey });
+  // A leading "#" position column (manager view). It's a non-data ornament that sits
+  // *before* the mandated five — it never reorders or replaces them.
+  const columns = useMemo<ColumnDef<QueueTicket>[]>(
+    () => (showRank ? [{ key: 'rank', label: '#', locked: true, sortable: false, width: 52 }, ...COLUMNS] : COLUMNS),
+    [showRank],
+  );
+  const view = useTableView({ columns, storageKey });
 
   // Faceted options: each filter only offers values that exist under the
   // currently selected status + other filters — so picking a status narrows
@@ -162,7 +189,14 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
           ? <td key={key}><StarRating ticketId={t.id} value={t.queueRank} /> {dueChip(t.dueDate)}</td>
           : <td key={key}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
       case 'assigned':
-        return <td key={key}>{t.assignee ?? <span className="subtle">Unassigned</span>}</td>;
+        if (t.assignee) return <td key={key}>{t.assignee}</td>;
+        return (
+          <td key={key}>
+            {assignees && assignees.length > 0
+              ? <InlineAssign ticketId={t.id} assignees={assignees} />
+              : <span className="subtle">Unassigned</span>}
+          </td>
+        );
       case 'ticketStatus':
         return <td key={key}><TicketStatusBadge status={t.ticketStatus} /></td>;
       case 'prioStatus':
@@ -231,11 +265,15 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
           ))}
         </tr></thead>
         <tbody>
-          {rows.map((t) => {
+          {rows.map((t, i) => {
             const r = riskOf(t, load, scoringConfig);
             return (
-              <tr key={t.id} className={cn(!t.assignee && 'attn')} onClick={() => router.push(`${basePath}/${t.id}`)}>
-                {view.visibleColumns.map((c) => cell(c.key, t, r))}
+              <tr key={t.id} className={cn(`tier-${tierForEvent(t.eventType)}`, !t.assignee && 'attn')} onClick={() => router.push(`${basePath}/${t.id}`)}>
+                {view.visibleColumns.map((c) => (
+                  c.key === 'rank'
+                    ? <td key="rank" className="rankcell">{i + 1}</td>
+                    : cell(c.key, t, r)
+                ))}
               </tr>
             );
           })}

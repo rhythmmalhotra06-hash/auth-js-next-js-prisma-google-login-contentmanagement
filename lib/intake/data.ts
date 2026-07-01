@@ -15,6 +15,10 @@ export interface AssetTypeOption extends Option {
   category: string | null;
   eventTypeIds: string[]; // Asset Type is filtered to those linked to the chosen Event Type
   isVideo: boolean; // Category === "Creative Video Type" — used to restrict the shoot form to video assets
+  // Locked lookups shown on the intake form once an asset type is picked (resolved to names).
+  teamLead: string | null;
+  preferredEditor: string | null;
+  dimensions: string | null;
 }
 
 export interface IntakeReferenceData {

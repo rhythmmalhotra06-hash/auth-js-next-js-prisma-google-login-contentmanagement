@@ -32,7 +32,7 @@ export function ShellChrome({
     <div className="app">
       <aside className={cn('side', menu && 'show')}>
         <Link href="/studio" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div className="brand-mark">M</div>
+          <div className="brand-mark"><Icon name="play" size={16} /></div>
           <div className="brand-txt"><b>Content Portal</b><span>Creative services</span></div>
         </Link>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
