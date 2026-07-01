@@ -363,8 +363,13 @@ html,body{overflow-x:clip;}
 /* attention KPI — the single highest-priority card (gold gradient fill + border) */
 .kpi.attention{border-color:var(--gold);background:linear-gradient(180deg,var(--gold-soft),var(--surface) 62%);}
 .kpi.attention .val{color:var(--gold-content);}
-.kpi.clickable{cursor:pointer;transition:border-color var(--ease) .12s,box-shadow var(--ease) .12s;}
+.kpi.clickable{cursor:pointer;transition:border-color var(--ease) .12s,box-shadow var(--ease) .12s,background var(--ease) .12s;}
 .kpi.clickable:hover{border-color:var(--brand-border);box-shadow:var(--sh-1);}
+/* KPI rendered as a <button> (clickable): strip button chrome, match the card layout. */
+button.kpi{width:100%;text-align:left;font:inherit;color:inherit;-webkit-appearance:none;appearance:none;}
+/* Selected KPI — mirrors the .chipbtn.on funnel-chip look so both filter affordances read alike. */
+.kpi.clickable.on{border-color:var(--brand-border);background:var(--brand-soft);}
+.kpi.clickable.on .lab,.kpi.clickable.on .val{color:var(--brand-content);}
 .sec-head{display:flex;align-items:center;gap:10px;margin:26px 0 12px;}
 .sec-head h3{font-size:15px;}
 .sec-head .hint{font-size:12px;color:var(--text-subtle);}

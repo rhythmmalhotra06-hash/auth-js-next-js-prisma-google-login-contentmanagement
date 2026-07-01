@@ -1,93 +1,40 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
-import { getRequestsForScope, type RequestScope } from '@/lib/tickets/data';
+import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
-import { getLiveIntakeReference } from '@/lib/airtable/reference-live';
-import { getAdminAccess } from '@/lib/admin/access';
-import { hasRole } from '@/lib/roles';
-import { QueueTable } from '@/components/tickets/QueueTable';
-import { ScopeSwitch } from '@/components/tickets/ScopeSwitch';
-import { Kpi, KpiGrid } from '@/components/ui/Kpi';
+import { StakeholderRequests } from '@/components/tickets/StakeholderRequests';
 import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
-import { getEmployeeForSession } from '@/lib/employee';
 
 export const dynamic = 'force-dynamic';
 
-const DONE = (s: string | null) => ['Done', 'Shipping'].includes(s ?? '');
-const IN_PROD = (s: string | null) => ['In Progress', 'In Revision', 'Review', 'Approved'].includes(s ?? '');
+// Default = every active request + the most recent delivered ones (fast). `?archive=1`
+// swaps in the full delivered/Done history so people can find older shipped work.
+const RECENT_SHIPPED = 50;
 
-const SCOPES: RequestScope[] = ['mine', 'team', 'campaign', 'all'];
-function parseScope(v: string | undefined): RequestScope {
-  return SCOPES.includes(v as RequestScope) ? (v as RequestScope) : 'mine';
+async function loadRequests(archive: boolean): Promise<QueueTicket[]> {
+  if (archive) return getQueueTickets({ includeCompleted: true });
+  const [active, shipped] = await Promise.all([getQueueTickets(), getRecentShipped(RECENT_SHIPPED)]);
+  // Active (non-Done) and recent-shipped (Done) sets are disjoint; dedupe by id defensively.
+  const byId = new Map<string, QueueTicket>();
+  for (const t of [...active, ...shipped]) byId.set(t.id, t);
+  return [...byId.values()];
 }
 
-const SCOPE_HEADING: Record<RequestScope, { title: string; hint: string }> = {
-  mine: { title: 'Your requests', hint: 'status of everything you’ve raised' },
-  team: { title: 'Your team’s requests', hint: 'everything your team has raised' },
-  campaign: { title: 'Campaign requests', hint: 'everything raised for the selected campaign' },
-  all: { title: 'All requests', hint: 'every active request across the org' },
-};
-
-async function MyRequestsBody({ scope, calendarId }: { scope: RequestScope; calendarId?: string }) {
-  const employee = await getEmployeeForSession();
-  if (!employee) {
-    return (
-      <div className="empty">
-        We couldn’t match your account to an employee record, so there are no requests to show.
-        <br />Raise one from <Link href="/intake" style={{ fontWeight: 600 }}>New request</Link>.
-      </div>
-    );
-  }
-
-  // "All" is gated to managers/approvers/admins; non-eligible users fall back to "mine".
-  const access = await getAdminAccess();
-  const canViewAll = access.isAdmin || hasRole(access.roles, 'Manager') || hasRole(access.roles, 'Approver');
-  const effectiveScope: RequestScope = scope === 'all' && !canViewAll ? 'mine' : scope;
-
-  const [tickets, cfg, ref] = await Promise.all([
-    getRequestsForScope({ id: employee.id, name: employee.name, team: employee.team }, effectiveScope, { calendarId }),
-    getScoringConfig(),
-    getLiveIntakeReference().catch(() => null),
-  ]);
-  const calendars = (ref?.officialCalendars ?? []).map((c) => ({ value: c.id, label: c.name }));
-
-  const open = tickets.filter((t) => !DONE(t.ticketStatus)).length;
-  const inProd = tickets.filter((t) => IN_PROD(t.ticketStatus)).length;
-  const done = tickets.filter((t) => DONE(t.ticketStatus)).length;
-  const heading = SCOPE_HEADING[effectiveScope];
+async function MyRequestsBody({ archive }: { archive: boolean }) {
+  const [tickets, cfg] = await Promise.all([loadRequests(archive), getScoringConfig()]);
 
   return (
     <>
-      <ScopeSwitch
-        scope={effectiveScope}
-        canViewAll={canViewAll}
-        hasTeam={!!employee.team}
-        calendars={calendars}
-        calendarId={calendarId}
-      />
-
-      <KpiGrid>
-        <Kpi label="Open requests" value={open} sub="in flight" i={0} />
-        <Kpi label="In production" value={inProd} sub="being made now" i={1} />
-        <Kpi label="Delivered" value={done} sub={effectiveScope === 'mine' ? 'all-time' : 'in this view'} i={2} />
-      </KpiGrid>
-
       {tickets.length === 0 ? (
         <div className="empty">
-          {effectiveScope === 'mine' ? (
-            <>You haven’t raised any requests yet.<br /><Link href="/intake" style={{ fontWeight: 600 }}>Submit a new request →</Link></>
-          ) : effectiveScope === 'campaign' && !calendarId ? (
-            'Pick a campaign above to see its requests.'
-          ) : (
-            'No requests in this view.'
-          )}
+          No requests yet.<br /><Link href="/intake" style={{ fontWeight: 600 }}>Submit a new request →</Link>
         </div>
       ) : (
         <>
-          <div className="sec-head"><h3>{heading.title}</h3><span className="hint">{heading.hint}</span></div>
-          <QueueTable tickets={tickets} basePath="/stakeholder" storageKey="stakeholder-queue" scoringConfig={cfg} />
+          <div className="sec-head"><h3>All requests</h3><span className="hint">every request across the team</span></div>
+          <StakeholderRequests tickets={tickets} scoringConfig={cfg} archive={archive} />
           <div className="legend" style={{ marginTop: 14 }}>
             <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
               <Icon name="eye" size={14} /> Read-only · comment access only.
@@ -100,14 +47,14 @@ async function MyRequestsBody({ scope, calendarId }: { scope: RequestScope; cale
   );
 }
 
-// "My requests" — the stakeholder/agency surface. Defaults to the requests you raised;
-// a scope switch widens to your team, a campaign, or (for managers/admins) everything.
-export default async function MyRequestsPage({ searchParams }: { searchParams: Promise<{ scope?: string; cal?: string }> }) {
-  const { scope, cal } = await searchParams;
+// "My requests" — the shared stakeholder/agency surface. Everyone sees every request;
+// the KPI cards filter by lifecycle stage and the table filters by assignee, status, etc.
+export default async function MyRequestsPage({ searchParams }: { searchParams: Promise<{ archive?: string }> }) {
+  const { archive } = await searchParams;
   return (
-    <AppShell title="My requests" subtitle="Every request you’ve raised — switch scope to see your team or a campaign.">
+    <AppShell title="My requests" subtitle="Every request across the team — filter by stage, assignee, or status.">
       <Suspense fallback={<QueueSkeleton kpis={3} />}>
-        <MyRequestsBody scope={parseScope(scope)} calendarId={cal} />
+        <MyRequestsBody archive={archive === '1'} />
       </Suspense>
     </AppShell>
   );

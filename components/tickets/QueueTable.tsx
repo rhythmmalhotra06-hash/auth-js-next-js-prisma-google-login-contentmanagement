@@ -22,8 +22,9 @@ import type { ScoringConfig } from '@/lib/scoring-config/config';
 // Ticket Status · Priority Status — those are locked (always visible, always first).
 // Sorting reorders rows only; optional columns append to the right when revealed.
 
-type Dim = 'prioStatus' | 'ticketStatus' | 'eventType' | 'assetType' | 'typeOfRequest' | 'officialCalendar';
+type Dim = 'prioStatus' | 'ticketStatus' | 'eventType' | 'assetType' | 'typeOfRequest' | 'officialCalendar' | 'assignee';
 const FILTERS: { key: Dim; label: string }[] = [
+  { key: 'assignee', label: 'All assignees' },
   { key: 'eventType', label: 'All event types' },
   { key: 'assetType', label: 'All asset types' },
   { key: 'officialCalendar', label: 'All campaigns' },
@@ -32,7 +33,20 @@ const FILTERS: { key: Dim; label: string }[] = [
 ];
 
 const EMPTY_SEL: Record<Dim, string> = {
-  prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '', officialCalendar: '',
+  prioStatus: '', ticketStatus: '', eventType: '', assetType: '', typeOfRequest: '', officialCalendar: '', assignee: '',
+};
+
+// Lifecycle stage groups — coarser than a single ticket_status, so KPI cards on the
+// stakeholder view can filter by "where in the pipeline" (delivered = Done/Shipping,
+// prod = actively being made, open = everything not yet delivered). Exported so the
+// callers that render the clickable KPIs count and filter by the same definition.
+export type StageKey = 'open' | 'prod' | 'delivered';
+const DELIVERED_STATUSES = ['Done', 'Shipping'];
+const IN_PROD_STATUSES = ['In Progress', 'In Revision', 'Review', 'Approved'];
+export const STAGE_MATCH: Record<StageKey, (s: string | null) => boolean> = {
+  delivered: (s) => DELIVERED_STATUSES.includes(s ?? ''),
+  prod: (s) => IN_PROD_STATUSES.includes(s ?? ''),
+  open: (s) => !DELIVERED_STATUSES.includes(s ?? ''),
 };
 
 const uniq = (rows: QueueTicket[], key: Dim) =>
@@ -85,7 +99,7 @@ function dueChip(due: string | null) {
   return <span className={`due ${cls}`}>due {d}d</span>;
 }
 
-export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false, showRank = false, assignees, initialFilters }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean; showRank?: boolean; assignees?: { id: string; name: string }[]; initialFilters?: Partial<Record<Dim, string>> }) {
+export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false, showRank = false, assignees, initialFilters, stageFilter }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean; showRank?: boolean; assignees?: { id: string; name: string }[]; initialFilters?: Partial<Record<Dim, string>>; stageFilter?: StageKey }) {
   const router = useRouter();
   const tableRef = useRef<HTMLTableElement>(null);
   const colRefs = useRef<Record<string, HTMLTableColElement | null>>({});
@@ -120,19 +134,22 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return tickets.filter((t) =>
+      (!stageFilter || STAGE_MATCH[stageFilter](t.ticketStatus)) &&
       (Object.keys(sel) as Dim[]).every((k) => !sel[k] || t[k] === sel[k]) &&
       (!needle || t.title.toLowerCase().includes(needle)),
     );
-  }, [tickets, sel, q]);
+  }, [tickets, sel, q, stageFilter]);
   const rows = useMemo(() => view.sortRows(filtered), [view, filtered]);
 
   const load = useMemo(() => loadMap(tickets, scoringConfig), [tickets, scoringConfig]);
   const funnel = useMemo(() => {
-    const scoped = tickets.filter((t) => FILTERS.every((f) => !sel[f.key] || t[f.key] === sel[f.key]));
+    const scoped = tickets.filter((t) =>
+      (!stageFilter || STAGE_MATCH[stageFilter](t.ticketStatus)) &&
+      FILTERS.every((f) => !sel[f.key] || t[f.key] === sel[f.key]));
     const counts = new Map<string, number>();
     for (const t of scoped) { const s = t.ticketStatus; if (s) counts.set(s, (counts.get(s) ?? 0) + 1); }
     return [...counts.entries()].sort((a, b) => orderIdx(a[0]) - orderIdx(b[0])).map(([status, count]) => ({ status, count }));
-  }, [tickets, sel]);
+  }, [tickets, sel, stageFilter]);
 
   const activeFilters = (Object.keys(sel) as Dim[]).filter((k) => sel[k]).length;
 
