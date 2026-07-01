@@ -73,6 +73,8 @@ export interface ContentReviewItem {
   assetType: string | null;
   assignee: string | null;
   ticketStatus: string;
+  /** "Video" | "Design" — the request type Vishen filters the sign-off queue by. */
+  typeOfRequest: string | null;
   rank: number | null;
   dueDate: string | null;
   folderUrl: string | null;
@@ -89,6 +91,7 @@ export function getContentReviewQueue(active: QueueTicket[]): ContentReviewItem[
       assetType: t.assetType,
       assignee: t.assignee,
       ticketStatus: t.ticketStatus ?? '—',
+      typeOfRequest: t.typeOfRequest,
       rank: t.queueRank,
       dueDate: t.dueDate,
       folderUrl: t.folderUrl,

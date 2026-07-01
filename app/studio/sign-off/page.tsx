@@ -12,7 +12,7 @@ export default async function ReviewQueuePage() {
   const items = getContentReviewQueue(data.active);
 
   return (
-    <AppShell title="Review queue" subtitle="Work in review and in revision, grouped by status">
+    <AppShell title="Review queue" subtitle="Video work in review — group, sort and filter like a spreadsheet">
       <BackLink />
       <ContentReviewQueue items={items} />
     </AppShell>
