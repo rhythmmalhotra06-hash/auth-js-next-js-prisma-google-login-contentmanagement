@@ -77,9 +77,18 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
 
   const view = useTableView({ columns: COLUMNS, storageKey });
 
+  // Faceted options: each filter only offers values that exist under the
+  // currently selected status + other filters — so picking a status narrows
+  // every other dropdown. A filter's own selection is ignored when computing
+  // its own list, so the chosen value never disappears from it.
   const options = useMemo(
-    () => Object.fromEntries(FILTERS.map((f) => [f.key, uniq(tickets, f.key)])) as Record<Dim, string[]>,
-    [tickets],
+    () => Object.fromEntries(FILTERS.map((f) => {
+      const scoped = tickets.filter((t) =>
+        (Object.keys(sel) as Dim[]).every((k) => k === f.key || !sel[k] || t[k] === sel[k]),
+      );
+      return [f.key, uniq(scoped, f.key)];
+    })) as Record<Dim, string[]>,
+    [tickets, sel],
   );
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
