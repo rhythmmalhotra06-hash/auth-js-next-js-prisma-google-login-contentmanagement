@@ -306,6 +306,33 @@ export const MAJOR_VIDEOS = {
   },
 } as const;
 
+// 🎬 Videos — Vishen's complete cross-channel content log in his own base (341 rows,
+// team-maintained by hand). The source of truth for the founder "Vishen's Media" section
+// (/studio/media). READ-ONLY except Approval + Rating, which the portal writes back on an
+// explicit Vishen tap. No inbound automation touches this table, so those writes are loop-safe.
+// See plans/jul2-2026-vishen-media-section.md.
+export const VISHEN_VIDEOS = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblcqpctTr76RQsQT',
+  fields: {
+    name: 'fldKDeSFvDMcbQ1cD', // "Name" (singleLineText, primary)
+    rating: 'fldgWdIcUe2Lu5ykj', // "Rating" (rating 1–5) — Vishen writes this
+    status: 'fldGv5rhXeoIHUxBN', // "Status" (singleSelect) — 6-stage pipeline (READ)
+    medium: 'fld7DTNjp6neU9bUH', // "Medium" (singleSelect) — channel/format
+    product: 'fld3SylS2Nf9fEZtx', // "Product" (singleSelect) — what it promotes
+    source: 'fldxt25kQecgDdQvR', // "Source" (singleSelect) — who made it (agency/producer)
+    format: 'fldZbtkXqwBbIceX2', // "Format" (singleSelect) — shot style
+    approval: 'fldGvNhEyTN1rfd9O', // "Approval" (singleSelect) — Vishen's sign-off; portal writes this
+    publishedLink: 'fldrym088lQmqfhGg', // "Published Link" (url)
+    liveDate: 'fldbdCEjsTMrQYRN7', // "Live Date" (date)
+    views24h: 'flduZSKFfHMDwMp9U', // "24h Data" (multilineText) — team logs 24h perf; portal writes this
+    modified: 'fldirV7fXg8q7VuVg', // "Modified" (lastModifiedTime)
+  },
+  // singleSelect option values (write the plain name string). Status carries emojis
+  // in some options — never write Status from the app (it's read-only here).
+  approval_: { toReview: 'To Review', toRefine: 'To Refine', approved: 'Approved', rejected: 'Rejected', parked: 'Parked for later' },
+} as const;
+
 // 🧠 Clip Rules — editable config for the clip-generation engine (created 2026-06-27).
 // Base system prompt + default brand pillars + appendable rules/learnings, scoped by
 // Clip Type. Edited from /settings/clip-rules; read by lib/clipping/config.ts (cached,

@@ -5,6 +5,7 @@
 import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { getTicketMetrics, asOf, type TicketMetrics } from '@/lib/metrics/snapshot';
 import { listMediaSources, type MediaSource } from '@/lib/media/repository';
+import { listVishenVideos, type VishenVideo } from '@/lib/media/vishen-videos';
 import { listShoots, SHOOT_STATUS, type ShootRow } from '@/lib/shoots/repository';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 import type { ScoringConfig } from '@/lib/scoring-config/config';
@@ -249,4 +250,12 @@ export function getVishenMedia(media: MediaSource[]): MediaSource[] {
   return media.filter(
     (m) => m.sourceRecordId != null || `${m.guestShow ?? ''} ${m.title ?? ''}`.toLowerCase().includes('vishen'),
   );
+}
+
+// ── Vishen's Media (his own Videos base — the full cross-channel log) ─────────
+
+/** Loader for /studio/media — Vishen's complete Videos log (its own single read). */
+export async function loadVishenVideos(): Promise<VishenVideo[]> {
+  const res = await listVishenVideos(200);
+  return res.ok ? res.data : [];
 }
