@@ -23,6 +23,16 @@ interface ShootView extends ShootRow { requester: string | null }
 type ViewKind = 'all' | 'custom';
 type Dim = 'status' | 'format' | 'filmingLocation' | 'requester';
 
+// KPI → the statuses each headline card represents. Clicking a card filters the grid
+// to exactly these statuses (and, where it's a single status, mirrors it into the
+// Status dropdown so the active filter reads back).
+type Stage = 'awaiting' | 'inQueue' | 'filmed';
+const STAGE_STATUSES: Record<Stage, string[]> = {
+  awaiting: [SHOOT_STATUS.needsReview],
+  inQueue: [SHOOT_STATUS.toFilm, SHOOT_STATUS.approved],
+  filmed: [SHOOT_STATUS.filmed],
+};
+
 const FILTERS: { key: Dim; label: string }[] = [
   { key: 'status', label: 'All statuses' },
   { key: 'format', label: 'All formats' },
@@ -63,8 +73,20 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
   const [view, setViewKind] = useState<ViewKind>('all');
   const [createdAfter, setCreatedAfter] = useState('');
   const [sel, setSel] = useState<Record<Dim, string>>({ status: '', format: '', filmingLocation: '', requester: '' });
+  const [stage, setStage] = useState<Stage | null>(null);
   const [q, setQ] = useState('');
   const tv = useTableView({ columns: COLUMNS, storageKey: 'shoots' });
+
+  // Click a KPI to scope the grid to its statuses. Single-status stages also drive the
+  // Status dropdown so it reads back the selection; multi-status stages clear it.
+  const toggleStage = (s: Stage) => {
+    setStage((cur) => {
+      const next = cur === s ? null : s;
+      const statuses = next ? STAGE_STATUSES[next] : [];
+      setSel((prev) => ({ ...prev, status: statuses.length === 1 ? statuses[0] : '' }));
+      return next;
+    });
+  };
 
   const awaiting = views.filter((s) => s.status === SHOOT_STATUS.needsReview).length;
   const inQueue = views.filter((s) => s.status === SHOOT_STATUS.toFilm || s.status === SHOOT_STATUS.approved).length;
@@ -79,11 +101,12 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
     const needle = q.trim().toLowerCase();
     return views.filter((s) => {
       if (view === 'custom' && createdAfter && !(s.createdTime > createdAfter)) return false;
+      if (stage && !STAGE_STATUSES[stage].includes(s.status ?? '')) return false;
       if (!(Object.keys(sel) as Dim[]).every((k) => !sel[k] || s[k] === sel[k])) return false;
       if (needle && !(s.title ?? '').toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [views, view, createdAfter, sel, q]);
+  }, [views, view, createdAfter, stage, sel, q]);
   const sorted = useMemo(() => tv.sortRows(filtered), [tv, filtered]);
 
   const activeFilters = (Object.keys(sel) as Dim[]).filter((k) => sel[k]).length;
@@ -147,9 +170,12 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
   return (
     <>
       <KpiGrid>
-        <Kpi tone="alert" label="Awaiting Vishen" value={awaiting} sub="needs review" i={0} />
-        <Kpi label="In studio queue" value={inQueue} sub="approved / to film" i={1} />
-        <Kpi label="Filmed" value={filmed} i={2} />
+        <Kpi tone="alert" label="Awaiting Vishen" value={awaiting} sub="needs review" i={0}
+          onClick={() => toggleStage('awaiting')} active={stage === 'awaiting'} />
+        <Kpi label="In studio queue" value={inQueue} sub="approved / to film" i={1}
+          onClick={() => toggleStage('inQueue')} active={stage === 'inQueue'} />
+        <Kpi label="Filmed" value={filmed} i={2}
+          onClick={() => toggleStage('filmed')} active={stage === 'filmed'} />
       </KpiGrid>
 
       <div className="row-between" style={{ margin: '4px 0 10px' }}>
@@ -171,7 +197,11 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
           <SearchableSelect key={f.key} value={sel[f.key]} allLabel={f.label} placeholder={f.label} ariaLabel={f.label}
             searchPlaceholder="Search…"
             options={options[f.key].map((o) => ({ value: o, label: f.key === 'status' ? shortStatus(o) : o }))}
-            onChange={(v) => setSel((s) => ({ ...s, [f.key]: v }))} />
+            onChange={(v) => {
+              // A manual Status change overrides any KPI stage so the highlight stays honest.
+              if (f.key === 'status') setStage(v === SHOOT_STATUS.needsReview ? 'awaiting' : v === SHOOT_STATUS.filmed ? 'filmed' : null);
+              setSel((s) => ({ ...s, [f.key]: v }));
+            }} />
         ))}
         {view === 'custom' && (
           <label className="subtle" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
@@ -179,8 +209,8 @@ export function ShootsBoard({ rows, employeeNames }: { rows: ShootRow[]; employe
             <input type="date" value={createdAfter} onChange={(e) => setCreatedAfter(e.target.value)} style={{ width: 'auto' }} />
           </label>
         )}
-        {(activeFilters > 0 || q) && (
-          <button className="btn sm ghost" onClick={() => { setSel({ status: '', format: '', filmingLocation: '', requester: '' }); setQ(''); }}>
+        {(activeFilters > 0 || q || stage) && (
+          <button className="btn sm ghost" onClick={() => { setSel({ status: '', format: '', filmingLocation: '', requester: '' }); setStage(null); setQ(''); }}>
             Clear{activeFilters > 0 ? ` (${activeFilters})` : ''}
           </button>
         )}
