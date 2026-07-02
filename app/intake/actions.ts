@@ -1,6 +1,6 @@
 'use server';
 
-import { createTicket as createTicketRecord } from '@/lib/repositories/ticket.repository';
+import { createTicketRow } from '@/lib/tickets/write';
 import { resolveAutoAssignee } from '@/lib/tickets/auto-assign';
 import { notifyAssignment } from '@/lib/notify/triggers';
 
@@ -69,7 +69,7 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     autoAssignee = null;
   }
 
-  const res = await createTicketRecord({
+  const res = await createTicketRow({
     title: input.title.trim(),
     creativeBrief: input.creativeBrief.trim(),
     cta: input.cta?.trim() || null,
@@ -89,8 +89,8 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     ticketStatus: autoAssignee ? 'To Do' : undefined,
   });
 
-  if (!res.ok) return { ok: false, error: res.error.message };
+  if (!res.ok) return { ok: false, error: res.error };
   // E9.4 — DM the auto-assigned editor (best-effort; never blocks ticket creation).
-  if (autoAssignee) await notifyAssignment(res.data.id, autoAssignee);
-  return { ok: true, ticketId: res.data.id, assignedCreativeId: autoAssignee ?? undefined };
+  if (autoAssignee) await notifyAssignment(res.id, autoAssignee);
+  return { ok: true, ticketId: res.id, assignedCreativeId: autoAssignee ?? undefined };
 }

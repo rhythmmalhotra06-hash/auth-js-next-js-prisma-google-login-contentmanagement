@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { PRIO_STATUSES, TICKET_STATUSES } from '@/lib/tickets/constants';
 import { getTicketDetail } from '@/lib/tickets/data';
-import { updateTicketFields, TICKET_FIELD as F } from '@/lib/repositories/ticket.repository';
+import { updateTicket } from '@/lib/tickets/write';
 import { getShoot, updateShoot, SHOOT_STATUS } from '@/lib/shoots/repository';
 import { SHOOTS as S } from '@/lib/airtable/field-map';
 
@@ -27,8 +27,8 @@ const REVISION_STATUS = 'In Revision';
 /** Approve a reviewed ticket — Prio Status → "In Queue" (signed into the production queue). */
 export async function approveReview(ticketId: string): Promise<ActionResult> {
   if (!(PRIO_STATUSES as readonly string[]).includes(PRIO_IN_QUEUE)) return { ok: false, error: 'Config error' };
-  const res = await updateTicketFields(ticketId, { [F.prioStatus]: PRIO_IN_QUEUE });
-  if (!res.ok) return { ok: false, error: res.error.message };
+  const res = await updateTicket(ticketId, { prioStatus: PRIO_IN_QUEUE });
+  if (!res.ok) return { ok: false, error: res.error };
   revalidateStudio();
   return { ok: true };
 }
@@ -49,12 +49,8 @@ export async function sendBackForRevision(ticketId: string, note: string): Promi
   const entry = `[Vishen · ${stamp}] ${trimmed}`;
   const merged = detail?.notes ? `${detail.notes}\n\n${entry}` : entry;
 
-  const res = await updateTicketFields(ticketId, {
-    [F.ticketStatus]: REVISION_STATUS,
-    [F.prioStatus]: PRIO_IN_QUEUE,
-    [F.notes]: merged,
-  });
-  if (!res.ok) return { ok: false, error: res.error.message };
+  const res = await updateTicket(ticketId, { ticketStatus: REVISION_STATUS, prioStatus: PRIO_IN_QUEUE, notes: merged }, { note: entry });
+  if (!res.ok) return { ok: false, error: res.error };
   revalidateStudio();
   return { ok: true };
 }
@@ -66,8 +62,8 @@ const APPROVED_STATUS = 'Approved';
 /** Content review: approve the work — Ticket Status → "Approved". */
 export async function approveContentReview(ticketId: string): Promise<ActionResult> {
   if (!(TICKET_STATUSES as readonly string[]).includes(APPROVED_STATUS)) return { ok: false, error: 'Config error' };
-  const res = await updateTicketFields(ticketId, { [F.ticketStatus]: APPROVED_STATUS });
-  if (!res.ok) return { ok: false, error: res.error.message };
+  const res = await updateTicket(ticketId, { ticketStatus: APPROVED_STATUS });
+  if (!res.ok) return { ok: false, error: res.error };
   revalidateStudio();
   return { ok: true };
 }
@@ -83,16 +79,15 @@ export async function sendBackContentReview(ticketId: string, note: string): Pro
   const entry = `[Vishen · ${stamp}] ${trimmed}`;
   const merged = detail?.notes ? `${detail.notes}\n\n${entry}` : entry;
 
-  const res = await updateTicketFields(ticketId, { [F.ticketStatus]: REVISION_STATUS, [F.notes]: merged });
-  if (!res.ok) return { ok: false, error: res.error.message };
+  const res = await updateTicket(ticketId, { ticketStatus: REVISION_STATUS, notes: merged }, { note: entry });
+  if (!res.ok) return { ok: false, error: res.error };
   revalidateStudio();
   return { ok: true };
 }
 
 // ── Shoot sign-off (founder approves/declines pending shoot requests) ─────────
-// Same propose-only commit boundary as ticket review: a shoot only advances on an
-// explicit Vishen tap. Approve ticks the live "Vishen's Approval" checkbox + moves
-// Filming Status forward; Decline cancels it (with an optional note).
+// Shoots remain Airtable-direct for now (tickets-first migration); a shoot only
+// advances on an explicit Vishen tap.
 
 /** Approve a pending shoot — Filming Status → "Approved by Vishen" + tick the approval checkbox. */
 export async function approveShoot(shootId: string): Promise<ActionResult> {
@@ -130,8 +125,8 @@ export async function declineShoot(shootId: string, note?: string): Promise<Acti
 /** Set the 2-way-synced manual priority rank (1–5 stars → "Priority ranking (Manual)"). */
 export async function setPriorityRank(ticketId: string, rank: number): Promise<ActionResult> {
   if (!Number.isInteger(rank) || rank < 1 || rank > 5) return { ok: false, error: 'Rank must be 1–5' };
-  const res = await updateTicketFields(ticketId, { [F.queueRank]: rank });
-  if (!res.ok) return { ok: false, error: res.error.message };
+  const res = await updateTicket(ticketId, { queueRank: rank });
+  if (!res.ok) return { ok: false, error: res.error };
   revalidateStudio();
   return { ok: true };
 }
