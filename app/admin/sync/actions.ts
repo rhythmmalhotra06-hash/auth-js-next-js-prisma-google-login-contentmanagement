@@ -12,57 +12,51 @@ export interface SyncActionResult { ok: boolean; message: string }
 // Admin-triggered sync controls. Server-only + admin-gated: these run in-container
 // (DATABASE_URL resolves) and are reached through the authenticated admin session, so
 // they need no bearer/IAP handling. Same operations the Kessel crons will call.
-
-async function requireAdmin(): Promise<boolean> {
-  const access = await getAdminAccess();
-  return access.isAdmin;
+//
+// Every action goes through `guard`, which never throws — a thrown/rejected server
+// action surfaces to the browser as an opaque "client-side exception", so we always
+// return a { ok, message } instead.
+async function guard(run: () => Promise<string>): Promise<SyncActionResult> {
+  try {
+    const access = await getAdminAccess();
+    if (!access.isAdmin) return { ok: false, message: 'Not authorized' };
+    const message = await run();
+    revalidatePath('/admin/sync');
+    return { ok: true, message };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 /** Refresh reference tables (employees/types/…) Airtable → Postgres. */
 export async function runReferenceSync(): Promise<SyncActionResult> {
-  if (!(await requireAdmin())) return { ok: false, message: 'Not authorized' };
-  try {
+  return guard(async () => {
     const r = await syncReference({});
-    revalidatePath('/admin/sync');
-    return { ok: true, message: `Reference synced (${JSON.stringify(r).slice(0, 200)})` };
-  } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : String(e) };
-  }
+    return `Reference synced (${JSON.stringify(r).slice(0, 200)})`;
+  });
 }
 
 /** Mirror Prio tickets → Postgres. `all` includes the Done/Won't Do history. */
 export async function runBackfill(includeAll: boolean): Promise<SyncActionResult> {
-  if (!(await requireAdmin())) return { ok: false, message: 'Not authorized' };
-  try {
+  return guard(async () => {
     const r = await backfillTickets({ includeAll });
-    revalidatePath('/admin/sync');
-    return { ok: true, message: `Backfill done — fetched ${r.fetched}, upserted ${r.upserted}, unresolved ${r.unresolved}, cursor ${r.cursor ?? 'none'}` };
-  } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : String(e) };
-  }
+    return `Backfill done — fetched ${r.fetched}, upserted ${r.upserted}, unresolved ${r.unresolved}, cursor ${r.cursor ?? 'none'}`;
+  });
 }
 
 /** Drain the outbox: push pending Postgres ticket changes → Airtable. */
 export async function runPush(): Promise<SyncActionResult> {
-  if (!(await requireAdmin())) return { ok: false, message: 'Not authorized' };
-  try {
+  return guard(async () => {
     const r = await drainOutbox();
-    revalidatePath('/admin/sync');
-    if (!r.enabled) return { ok: false, message: 'Push disabled (AIRTABLE_PUSH_ENABLED not set)' };
-    return { ok: true, message: `Push done — scanned ${r.scanned}, pushed ${r.pushed}, failed ${r.failed}` };
-  } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : String(e) };
-  }
+    if (!r.enabled) return 'Push disabled (AIRTABLE_PUSH_ENABLED not set)';
+    return `Push done — scanned ${r.scanned}, pushed ${r.pushed}, failed ${r.failed}`;
+  });
 }
 
 /** Pull Airtable ticket edits → Postgres (echo-suppressed, last-writer-wins). */
 export async function runPull(): Promise<SyncActionResult> {
-  if (!(await requireAdmin())) return { ok: false, message: 'Not authorized' };
-  try {
+  return guard(async () => {
     const r = await pullTickets({});
-    revalidatePath('/admin/sync');
-    return { ok: true, message: `Pull done — scanned ${r.scanned}, imported ${r.imported}, echo-skipped ${r.echoSkipped}, conflict-skipped ${r.conflictSkipped}` };
-  } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : String(e) };
-  }
+    return `Pull done — scanned ${r.scanned}, imported ${r.imported}, echo-skipped ${r.echoSkipped}, conflict-skipped ${r.conflictSkipped}`;
+  });
 }
