@@ -57,7 +57,7 @@ async function StudioBody() {
         <div className="sec-head">
           <h3>Your media → clip ideas</h3>
           <span className="hint">your films, podcasts and talks — and the clips we can ship from them</span>
-          <Link href="/vishen" className="st-seeall">See all clips →</Link>
+          <Link href="/studio/media" className="st-seeall">Your full media board →</Link>
         </div>
         <AddVishenMedia />
         {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} /></div>}
