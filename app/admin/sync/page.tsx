@@ -4,6 +4,7 @@ import { AppShell } from '@/components/ui/AppShell';
 import { getAdminAccess } from '@/lib/admin/access';
 import { homeRouteForRoles } from '@/lib/roles';
 import { getSyncHealth } from '@/lib/sync/health';
+import { SyncControls } from '@/components/admin/SyncControls';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,8 @@ export default async function SyncHealthPage() {
       subtitle="Is Airtable in step with Postgres? Outbox depth, last push, inbound-pull cursor, and recent failures."
     >
       <Link href="/settings/team" className="btn ghost sm" style={{ textDecoration: 'none', marginBottom: 14 }}>← Admin panel</Link>
+
+      <SyncControls />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
         <Stat label="Tickets in Postgres" value={h.ticketsInPg.toLocaleString()} />

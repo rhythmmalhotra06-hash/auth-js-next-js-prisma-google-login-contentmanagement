@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
-import { listAll } from '@/lib/airtable/rest';
-import { TICKETS } from '@/lib/airtable/field-map';
-import { upsertTicketsFromRecords } from '@/lib/airtable/ticket-upsert';
-import { TICKET_PULL_CURSOR } from '@/lib/airtable/pull';
-import { prisma } from '@/lib/prisma';
+import { backfillTickets } from '@/lib/airtable/backfill';
 
 // Phase 1 backfill: mirror the ACTIVE Prio Requests set into Postgres so PG can
 // become the read source for tickets. Runs in-service (DATABASE_URL auto-injected).
@@ -16,8 +12,6 @@ import { prisma } from '@/lib/prisma';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
-
-const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
 
 function authorized(req: Request): boolean {
   const secret = process.env.SYNC_SECRET;
@@ -35,32 +29,8 @@ export async function POST(req: Request) {
   }
   const includeAll = new URL(req.url).searchParams.get('all') === 'true';
   try {
-    const res = await listAll(TICKETS.baseId, TICKETS.tableId, {
-      ...(includeAll ? {} : { filterByFormula: ACTIVE_FILTER }),
-    });
-    if (!res.ok) {
-      return NextResponse.json({ ok: false, error: res.error.message }, { status: 502 });
-    }
-    const result = await upsertTicketsFromRecords(res.data);
-
-    // Seed the inbound-pull cursor to the newest modified time we just imported, so
-    // the first pull is incremental (not a full 10k rescan). Fixed-width UTC strings
-    // sort chronologically.
-    const F = TICKETS.fields;
-    let cursor: string | null = null;
-    for (const r of res.data) {
-      const v = r.fields[F.lastModified];
-      if (typeof v === 'string' && (!cursor || v > cursor)) cursor = v;
-    }
-    if (cursor) {
-      await prisma.syncState.upsert({
-        where: { key: TICKET_PULL_CURSOR },
-        create: { key: TICKET_PULL_CURSOR, value: cursor },
-        update: { value: cursor },
-      });
-    }
-
-    return NextResponse.json({ ok: true, fetched: res.data.length, cursor, ...result });
+    const report = await backfillTickets({ includeAll });
+    return NextResponse.json({ ok: true, ...report });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
