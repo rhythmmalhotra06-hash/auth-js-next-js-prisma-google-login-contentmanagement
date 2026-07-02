@@ -135,16 +135,18 @@ export async function upsertTicketsFromRecords(records: Rec[]): Promise<UpsertRe
   return { upserted: records.length, unresolved };
 }
 
-/**
- * BULK insert for the one-time backfill: a handful of multi-row INSERTs instead of one
- * round-trip per ticket. Essential because the app (us-central1) and Postgres
- * (asia-southeast1) are cross-region (~250ms/round-trip) — per-row upserts of the active
- * set blow the 300s request timeout. Insert-only (skipDuplicates): PG tickets is empty at
- * cutover, and ongoing edits are handled by the pull's `upsertTicketsFromRecords`.
- */
-export async function bulkInsertTicketsFromRecords(records: Rec[]): Promise<UpsertResult> {
-  const { prisma } = await import('../prisma');
+// Reference airtable_id → uuid maps, built ONCE and reused across backfill pages so a
+// streaming backfill doesn't re-fetch them per page.
+export interface TicketRefMaps {
+  empMap: Map<string, string>;
+  evtMap: Map<string, string>;
+  atMap: Map<string, string>;
+  ocMap: Map<string, string>;
+  auMap: Map<string, string>;
+}
 
+export async function buildTicketRefMaps(): Promise<TicketRefMaps> {
+  const { prisma } = await import('../prisma');
   const idMap = async (model: 'employee' | 'eventType' | 'assetType' | 'officialCalendar' | 'author') => {
     const rows = await (prisma[model] as { findMany: (a: unknown) => Promise<{ id: string; airtableId: string | null }[]> }).findMany({ select: { id: true, airtableId: true } });
     return new Map(rows.filter((x) => x.airtableId).map((x) => [x.airtableId as string, x.id]));
@@ -152,6 +154,19 @@ export async function bulkInsertTicketsFromRecords(records: Rec[]): Promise<Upse
   const [empMap, evtMap, atMap, ocMap, auMap] = await Promise.all([
     idMap('employee'), idMap('eventType'), idMap('assetType'), idMap('officialCalendar'), idMap('author'),
   ]);
+  return { empMap, evtMap, atMap, ocMap, auMap };
+}
+
+/**
+ * BULK insert ONE batch of records (a backfill page) with the given ref maps. A few
+ * multi-row INSERTs, not one round-trip per ticket — essential cross-region (app
+ * us-central1 ↔ DB asia-southeast1). The backfill calls this per Airtable page so memory
+ * stays bounded (streaming) — loading all ~10k at once OOM'd the container (503).
+ * Insert-only (skipDuplicates): PG is empty at cutover; ongoing edits come via the pull.
+ */
+export async function insertTicketRecords(records: Rec[], maps: TicketRefMaps): Promise<UpsertResult> {
+  const { prisma } = await import('../prisma');
+  const { empMap, evtMap, atMap, ocMap, auMap } = maps;
   const first = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).find((x): x is string => !!x) ?? null;
 
   let unresolved = 0;
@@ -177,7 +192,7 @@ export async function bulkInsertTicketsFromRecords(records: Rec[]): Promise<Upse
     await prisma.ticket.createMany({ data: rows.slice(i, i + CHUNK), skipDuplicates: true });
   }
 
-  // Author joins need the new ticket uuids — one lookup, then one bulk insert.
+  // Author joins need the new ticket uuids — one lookup, then one bulk insert (this batch only).
   const created = await prisma.ticket.findMany({
     where: { airtableId: { in: records.map((r) => r.id) } },
     select: { id: true, airtableId: true },
