@@ -86,52 +86,50 @@ export interface UpsertResult { upserted: number; unresolved: number }
 export async function upsertTicketsFromRecords(records: Rec[]): Promise<UpsertResult> {
   const { prisma } = await import('../prisma');
 
-  // --- Pass 1: scalars ---
-  for (const r of records) {
-    const s = ticketScalars(r);
-    await prisma.ticket.upsert({
-      where: { airtableId: r.id },
-      create: { airtableId: r.id, source: 'airtable', ...s },
-      update: { ...s, syncedAt: new Date() },
-    });
-  }
-
-  // airtable_id → uuid maps for link resolution.
-  const idMap = async (model: 'employee' | 'eventType' | 'assetType' | 'officialCalendar' | 'author' | 'ticket') => {
+  // Reference airtable_id → uuid maps (reference tables are already mirrored). Built
+  // BEFORE any write so each ticket needs a single upsert with its FKs resolved inline
+  // — no second pass. Only the author join needs the ticket to exist (upsert returns id).
+  const idMap = async (model: 'employee' | 'eventType' | 'assetType' | 'officialCalendar' | 'author') => {
     const rows = await (prisma[model] as { findMany: (a: unknown) => Promise<{ id: string; airtableId: string | null }[]> }).findMany({ select: { id: true, airtableId: true } });
     return new Map(rows.filter((x) => x.airtableId).map((x) => [x.airtableId as string, x.id]));
   };
-  const [empMap, evtMap, atMap, ocMap, auMap, tkMap] = await Promise.all([
-    idMap('employee'), idMap('eventType'), idMap('assetType'), idMap('officialCalendar'), idMap('author'), idMap('ticket'),
+  const [empMap, evtMap, atMap, ocMap, auMap] = await Promise.all([
+    idMap('employee'), idMap('eventType'), idMap('assetType'), idMap('officialCalendar'), idMap('author'),
   ]);
   const first = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).find((x): x is string => !!x) ?? null;
 
-  // --- Pass 2: FKs + author join ---
   let unresolved = 0;
-  for (const r of records) {
-    const tkId = tkMap.get(r.id);
-    if (!tkId) continue;
-    const links = ticketLinks(r);
 
+  // Process in parallel chunks so 10k rows don't run 10k sequential round-trips
+  // (which blows the request timeout). CHUNK stays within the pg pool.
+  const CHUNK = 10;
+  const upsertOne = async (r: Rec) => {
+    const s = ticketScalars(r);
+    const links = ticketLinks(r);
     const assigneeId = first(links.assignedCreative, empMap) ?? first(links.assignedContractor, empMap);
     if (links.assignedCreative.length && !assigneeId) unresolved++;
-
-    await prisma.ticket.update({
-      where: { id: tkId },
-      data: {
-        eventTypeId: first(links.eventTypes, evtMap),
-        assetTypeId: first(links.assetTypes, atMap),
-        assigneeId,
-        requesterId: first(links.requestedBy, empMap),
-        officialCalendarId: first(links.officialCalendar, ocMap),
-      },
+    const fks = {
+      eventTypeId: first(links.eventTypes, evtMap),
+      assetTypeId: first(links.assetTypes, atMap),
+      assigneeId,
+      requesterId: first(links.requestedBy, empMap),
+      officialCalendarId: first(links.officialCalendar, ocMap),
+    };
+    const t = await prisma.ticket.upsert({
+      where: { airtableId: r.id },
+      create: { airtableId: r.id, source: 'airtable', ...s, ...fks },
+      update: { ...s, ...fks, syncedAt: new Date() },
+      select: { id: true },
     });
-
     const authorIds = links.speakers.map((x) => auMap.get(x)).filter((x): x is string => !!x);
     if (authorIds.length) {
-      await prisma.ticketAuthor.deleteMany({ where: { ticketId: tkId } });
-      await prisma.ticketAuthor.createMany({ data: authorIds.map((authorId) => ({ ticketId: tkId, authorId })), skipDuplicates: true });
+      await prisma.ticketAuthor.deleteMany({ where: { ticketId: t.id } });
+      await prisma.ticketAuthor.createMany({ data: authorIds.map((authorId) => ({ ticketId: t.id, authorId })), skipDuplicates: true });
     }
+  };
+
+  for (let i = 0; i < records.length; i += CHUNK) {
+    await Promise.all(records.slice(i, i + CHUNK).map(upsertOne));
   }
 
   return { upserted: records.length, unresolved };
