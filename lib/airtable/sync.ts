@@ -165,24 +165,33 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     };
     const [empMap, evtMap, dimMap, atMap] = [await idMap('employee'), await idMap('eventType'), await idMap('dimension'), await idMap('assetType')];
 
-    // Pass 2 — rebuild each asset_type's join rows from the resolved links.
+    // Pass 2 — rebuild join rows in BULK: one deleteMany + one createMany per join type
+    // across ALL asset types. The old per-asset-type loop was ~99 × 4 × 2 ≈ 800 sequential
+    // round-trips — fatal cross-region (app us-central1 ↔ DB asia-southeast1, ~250ms each,
+    // which blew the 300s request timeout). This is 8 round-trips.
+    const resolve = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).filter((x): x is string => !!x);
+    const atIds: string[] = [];
+    const eventTypePairs: { assetTypeId: string; eventTypeId: string }[] = [];
+    const teamLeadPairs: { assetTypeId: string; employeeId: string }[] = [];
+    const preferredEditorPairs: { assetTypeId: string; employeeId: string }[] = [];
+    const dimensionPairs: { assetTypeId: string; dimensionId: string }[] = [];
     for (const a of assetTypes) {
       const atId = atMap.get(a.airtableId);
       if (!atId) continue;
-      const resolve = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).filter((x): x is string => !!x);
-
-      await prisma.assetTypeEventType.deleteMany({ where: { assetTypeId: atId } });
-      await prisma.assetTypeEventType.createMany({ data: resolve(a.links.eventTypes, evtMap).map((eventTypeId) => ({ assetTypeId: atId, eventTypeId })), skipDuplicates: true });
-
-      await prisma.assetTypeTeamLead.deleteMany({ where: { assetTypeId: atId } });
-      await prisma.assetTypeTeamLead.createMany({ data: resolve(a.links.teamLeads, empMap).map((employeeId) => ({ assetTypeId: atId, employeeId })), skipDuplicates: true });
-
-      await prisma.assetTypePreferredEditor.deleteMany({ where: { assetTypeId: atId } });
-      await prisma.assetTypePreferredEditor.createMany({ data: resolve(a.links.preferredEditors, empMap).map((employeeId) => ({ assetTypeId: atId, employeeId })), skipDuplicates: true });
-
-      await prisma.assetTypeDimension.deleteMany({ where: { assetTypeId: atId } });
-      await prisma.assetTypeDimension.createMany({ data: resolve(a.links.dimensions, dimMap).map((dimensionId) => ({ assetTypeId: atId, dimensionId })), skipDuplicates: true });
+      atIds.push(atId);
+      for (const eventTypeId of resolve(a.links.eventTypes, evtMap)) eventTypePairs.push({ assetTypeId: atId, eventTypeId });
+      for (const employeeId of resolve(a.links.teamLeads, empMap)) teamLeadPairs.push({ assetTypeId: atId, employeeId });
+      for (const employeeId of resolve(a.links.preferredEditors, empMap)) preferredEditorPairs.push({ assetTypeId: atId, employeeId });
+      for (const dimensionId of resolve(a.links.dimensions, dimMap)) dimensionPairs.push({ assetTypeId: atId, dimensionId });
     }
+    await prisma.assetTypeEventType.deleteMany({ where: { assetTypeId: { in: atIds } } });
+    await prisma.assetTypeEventType.createMany({ data: eventTypePairs, skipDuplicates: true });
+    await prisma.assetTypeTeamLead.deleteMany({ where: { assetTypeId: { in: atIds } } });
+    await prisma.assetTypeTeamLead.createMany({ data: teamLeadPairs, skipDuplicates: true });
+    await prisma.assetTypePreferredEditor.deleteMany({ where: { assetTypeId: { in: atIds } } });
+    await prisma.assetTypePreferredEditor.createMany({ data: preferredEditorPairs, skipDuplicates: true });
+    await prisma.assetTypeDimension.deleteMany({ where: { assetTypeId: { in: atIds } } });
+    await prisma.assetTypeDimension.createMany({ data: dimensionPairs, skipDuplicates: true });
   }
 
   return {

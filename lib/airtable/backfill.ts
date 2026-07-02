@@ -5,7 +5,7 @@
 import { prisma } from '@/lib/prisma';
 import { listAll } from './rest';
 import { TICKETS } from './field-map';
-import { upsertTicketsFromRecords } from './ticket-upsert';
+import { bulkInsertTicketsFromRecords } from './ticket-upsert';
 import { TICKET_PULL_CURSOR } from './pull';
 
 const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
@@ -18,7 +18,7 @@ export async function backfillTickets(opts: { includeAll?: boolean } = {}): Prom
   });
   if (!res.ok) throw new Error(res.error.message);
 
-  const result = await upsertTicketsFromRecords(res.data);
+  const result = await bulkInsertTicketsFromRecords(res.data);
 
   // Seed the pull cursor to the newest modified time imported (fixed-width UTC strings
   // sort chronologically), so the first inbound pull only fetches later edits.
