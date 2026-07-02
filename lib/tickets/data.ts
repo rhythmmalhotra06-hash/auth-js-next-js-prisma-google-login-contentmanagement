@@ -301,6 +301,16 @@ export interface TicketDetail {
   folderUrl: string | null;
   sourceLinks: string | null;
   downloadLink: string | null;
+  isAds: boolean;
+  // Editable delivery links (editor detail form). Bound 1:1 to Airtable fields.
+  assetFolderLink: string | null;
+  workingFiles: string | null;
+  final16x9: string | null;
+  folder16x9: string | null;
+  final9x16: string | null;
+  folder9x16: string | null;
+  final4x5: string | null;
+  folder4x5: string | null;
   notes: string | null;
   priorityScore: string | null;
   eventType: string | null;
@@ -337,6 +347,12 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   pushAsset('final', f[F.outputLink]);
   pushAsset('folder', f[F.assetFolderLink]);
 
+  const teamServiceLevel = str(f[F.teamServiceLevel]);
+  const team = arr(f[F.creativeServiceType]);
+  // Ads tickets get the per-ratio delivery fields. Only "Ad Creatives Video" (and any
+  // "Ads" team value) contains the substring "ad" among the current taxonomy.
+  const isAds = [teamServiceLevel, team].filter(Boolean).join(' ').toLowerCase().includes('ad');
+
   const speakerNames = Array.isArray(f[L.speakers])
     ? (f[L.speakers] as unknown[]).map((rid) => (typeof rid === 'string' ? authorsMap.get(rid) : null)).filter((n): n is string => !!n)
     : [];
@@ -350,8 +366,17 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     ticketStatus: str(f[F.ticketStatus]),
     prioStatus: str(f[F.prioStatus]),
     typeOfRequest: str(f[F.typeOfRequest]),
-    teamServiceLevel: str(f[F.teamServiceLevel]),
-    team: arr(f[F.creativeServiceType]),
+    teamServiceLevel,
+    team,
+    isAds,
+    assetFolderLink: str(f[F.assetFolderLink]),
+    workingFiles: str(f[F.workingFiles]),
+    final16x9: str(f[F.final16x9]),
+    folder16x9: str(f[F.folder16x9]),
+    final9x16: str(f[F.final9x16]),
+    folder9x16: str(f[F.folder9x16]),
+    final4x5: str(f[F.final4x5]),
+    folder4x5: str(f[F.folder4x5]),
     project: str(f[F.projectProgram]),
     dimensions: resolveLinkedNames(f[F.dimensionsLookup], dimensionsMap) ?? arr(f[F.dimensionsLookup]),
     teamLead: resolveLinkedNames(f[F.teamLeadLookup], employees) ?? arr(f[F.teamLeadLookup]),

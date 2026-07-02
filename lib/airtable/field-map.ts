@@ -45,10 +45,14 @@ export const TICKETS = {
     // file/link fields → assets (Stage 2a)
     rawFileUrl: 'fldySmTUdhXlv4evT', // "Raw File/URL Links" (url) → kind=raw
     outputLink: 'fldjP3qkJhbZAqh6C', // "Output link" (multilineText)
-    final16x9: 'fldM3UIYvwgSEiICF', // "16x9 Final Link"
-    final9x16: 'fldExLdKe6qiJvtph', // "9x16 Final Link"
-    final4x5: 'fld4BuuOm2rnWYoIR', // "4x5 Final Link"
-    assetFolderLink: 'fldRQRCJXQ6U4SKLq', // "Asset Folder Link"
+    final16x9: 'fldM3UIYvwgSEiICF', // "16x9 Final Link" (singleLineText)
+    final9x16: 'fldExLdKe6qiJvtph', // "9x16 Final Link" (singleLineText)
+    final4x5: 'fld4BuuOm2rnWYoIR', // "4x5 Final Link" (singleLineText)
+    folder16x9: 'fldvdw7SU93YLeruF', // "16x9 Folder" (url)
+    folder9x16: 'fldbTDEvPGjOjzUaW', // "9x16 Folder" (url)
+    folder4x5: 'fldI88FUBPH8yzijN', // "4x5 Folder" (url)
+    assetFolderLink: 'fldRQRCJXQ6U4SKLq', // "Asset Folder Link" (singleLineText)
+    workingFiles: 'fldaOh1PVfKxz5FNR', // "Working Files" (singleLineText)
     downloadLink: 'fldrwGSNIJ3pAsO20', // "Download link" (url) — editor download (e.g. Dropbox), distinct from source URL (E9.1)
   },
   links: {

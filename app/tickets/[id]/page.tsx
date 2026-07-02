@@ -66,8 +66,21 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           </div>
 
           <div className="card pad">
-            <div className="sec-head" style={{ margin: '0 0 12px' }}><h3>Assets</h3><span className="hint">raw &amp; final stack under one asset</span></div>
-            <AssetPanel ticketId={t.id} assets={t.assets} />
+            <div className="sec-head" style={{ margin: '0 0 12px' }}><h3>Delivery links</h3><span className="hint">where the finished work lives</span></div>
+            <AssetPanel
+              ticketId={t.id}
+              isAds={t.isAds}
+              values={{
+                assetFolderLink: t.assetFolderLink,
+                workingFiles: t.workingFiles,
+                final16x9: t.final16x9,
+                folder16x9: t.folder16x9,
+                final9x16: t.final9x16,
+                folder9x16: t.folder9x16,
+                final4x5: t.final4x5,
+                folder4x5: t.folder4x5,
+              }}
+            />
           </div>
         </div>
 
