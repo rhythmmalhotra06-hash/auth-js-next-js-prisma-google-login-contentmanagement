@@ -14,9 +14,15 @@ export function SyncControls() {
     setRunning(label);
     setResult(null);
     start(async () => {
-      const r = await fn();
-      setResult(r);
-      setRunning(null);
+      try {
+        const r = await fn();
+        setResult(r);
+      } catch (e) {
+        // A rejected/timed-out server action must show a message, never crash the page.
+        setResult({ ok: false, message: e instanceof Error ? e.message : 'Request failed or timed out' });
+      } finally {
+        setRunning(null);
+      }
     });
   };
 
