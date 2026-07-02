@@ -19,12 +19,13 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-// Read-only request detail for the person who raised it. Visible to them only —
-// a request raised by someone else 404s here (they have no edit surface at all).
+// Read-only request detail on the shared stakeholder surface. Any signed-in teammate can
+// open any request (the list is org-wide, "everyone sees every request") — there's no edit
+// surface here. Editing lives on /tickets/[id]. A missing record or no session still 404s.
 export default async function MyRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [t, me] = await Promise.all([getTicketDetail(id), getEmployeeForSession()]);
-  if (!t || !me || t.requesterId !== me.id) notFound();
+  if (!t || !me) notFound();
 
   return (
     <AppShell title={t.title} subtitle={[t.eventType, t.assetType].filter(Boolean).join(' · ') || undefined}>
@@ -84,7 +85,7 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
           </div>
           <div className="card pad">
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 8 }}>About this view</div>
-            <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>Read-only — this is your request. The creative team updates status as it moves through production.</p>
+            <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>Read-only — the creative team updates status as this request moves through production.</p>
           </div>
         </div>
       </div>
