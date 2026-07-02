@@ -21,8 +21,8 @@ const isUrl = (v: string) => /^https?:\/\//i.test(v.trim());
 
 // One editable delivery link, bound to an Airtable field. Saves on blur when the value
 // changed; optimistic with rollback + inline error on failure.
-function LinkField({ ticketId, fieldKey, label, initial, isAds }: {
-  ticketId: string; fieldKey: keyof AssetLinkValues; label: string; initial: string | null; isAds: boolean;
+function LinkField({ ticketId, fieldKey, label, initial }: {
+  ticketId: string; fieldKey: keyof AssetLinkValues; label: string; initial: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -35,7 +35,7 @@ function LinkField({ ticketId, fieldKey, label, initial, isAds }: {
     if (v === saved.trim()) return; // unchanged — skip the write
     setErr(null);
     start(async () => {
-      const r = await updateTicketLink(ticketId, fieldKey, v, isAds);
+      const r = await updateTicketLink(ticketId, fieldKey, v);
       if (r.ok) { setSaved(v); setValue(v); router.refresh(); }
       else { setErr(r.error ?? 'Could not save'); }
     });
@@ -76,8 +76,8 @@ export function AssetPanel({ ticketId, isAds, values }: {
   return (
     <div className="space-y-4">
       <div className="grid2">
-        <LinkField ticketId={ticketId} isAds={isAds} fieldKey="assetFolderLink" label="Asset Folder Link" initial={values.assetFolderLink} />
-        <LinkField ticketId={ticketId} isAds={isAds} fieldKey="workingFiles" label="Working Files" initial={values.workingFiles} />
+        <LinkField ticketId={ticketId} fieldKey="assetFolderLink" label="Asset Folder Link" initial={values.assetFolderLink} />
+        <LinkField ticketId={ticketId} fieldKey="workingFiles" label="Working Files" initial={values.workingFiles} />
       </div>
 
       {isAds && (
@@ -87,8 +87,8 @@ export function AssetPanel({ ticketId, isAds, values }: {
           </p>
           {RATIOS.map((r) => (
             <div key={r.final} className="grid2">
-              <LinkField ticketId={ticketId} isAds={isAds} fieldKey={r.final} label={`${r.label} Final Link`} initial={values[r.final]} />
-              <LinkField ticketId={ticketId} isAds={isAds} fieldKey={r.folder} label={`${r.label} Folder`} initial={values[r.folder]} />
+              <LinkField ticketId={ticketId} fieldKey={r.final} label={`${r.label} Final Link`} initial={values[r.final]} />
+              <LinkField ticketId={ticketId} fieldKey={r.folder} label={`${r.label} Folder`} initial={values[r.folder]} />
             </div>
           ))}
         </div>

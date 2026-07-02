@@ -34,21 +34,32 @@ async function employeeContact(recId: string): Promise<{ name: string | null; em
   return { name: str(f[EMPLOYEES.fields.name]), email: str(f[EMPLOYEES.fields.email]) };
 }
 
+/** The delivery link on a ticket, if any: the Asset Folder Link field. */
+function deliveryLink(f: Record<string, unknown>): string | null {
+  return str(f[F.assetFolderLink]);
+}
+
 /**
- * Fire the asset-ready notifications (requester DM + #content-ready post) the first time
- * a final asset link is attached. Guarded by the "Asset Ready Notified" checkbox so a
- * re-save can't re-notify. Best-effort.
+ * Fire the asset-ready notifications (requester DM + #content-ready post) once BOTH
+ * conditions hold: the ticket is marked *Done* AND the Asset Folder Link is filled.
+ * Called from both the status-change and the
+ * link-save paths, so whichever completes the pair last triggers it. Guarded by the
+ * "Asset Ready Notified" checkbox so it fires exactly once. Best-effort.
  */
-export async function maybeNotifyAssetReady(ticketId: string, assetUrl: string): Promise<void> {
+export async function maybeNotifyAssetReady(ticketId: string): Promise<void> {
   try {
     const res = await getRecord(TICKETS.baseId, TICKETS.tableId, ticketId);
     if (!res.ok) return;
     const f = res.data.fields as Record<string, unknown>;
     if (f[F.assetReadyNotified] === true) return; // already notified
 
+    // Both conditions required.
+    if (str(f[F.ticketStatus]) !== 'Done') return;
+    const link = deliveryLink(f);
+    if (!link) return;
+
     const title = str(f[F.name]) ?? 'Asset';
     const url = ticketUrl(ticketId);
-    const link = assetUrl?.trim() || url;
     const reqId = firstLinkedId(f[L.requestedBy]);
     const requester = reqId ? await employeeContact(reqId) : { name: null, email: null };
 

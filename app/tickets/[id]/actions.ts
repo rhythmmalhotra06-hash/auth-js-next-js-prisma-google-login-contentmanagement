@@ -24,6 +24,8 @@ export async function updateTicketStatus(ticketId: string, newStatus: string): P
   if (!(TICKET_STATUSES as readonly string[]).includes(newStatus)) return { ok: false, error: 'Invalid status' };
   const res = await updateTicketFields(ticketId, { [F.ticketStatus]: newStatus });
   if (!res.ok) return { ok: false, error: res.error.message };
+  // E9.4 — asset-ready needs BOTH Done and a delivery link; re-check on the Done transition.
+  if (newStatus === 'Done') await maybeNotifyAssetReady(ticketId);
   return done(ticketId);
 }
 
@@ -66,34 +68,30 @@ export async function decideApproval(
 
 // Editable delivery links on the ticket detail form. Each key maps 1:1 to an Airtable
 // field. `url: true` marks Airtable url-typed fields (they reject non-URL strings, so we
-// guard before writing). `delivery: true` marks a final-delivery link whose arrival is the
-// "asset ready" signal (deduped by the Asset Ready Notified checkbox).
+// guard before writing). The Asset Folder Link is the "asset ready" signal (see below).
 const ASSET_LINK_FIELDS = {
-  assetFolderLink: { fieldId: F.assetFolderLink, url: false, delivery: false },
-  workingFiles: { fieldId: F.workingFiles, url: false, delivery: false },
-  final16x9: { fieldId: F.final16x9, url: false, delivery: true },
-  folder16x9: { fieldId: F.folder16x9, url: true, delivery: false },
-  final9x16: { fieldId: F.final9x16, url: false, delivery: true },
-  folder9x16: { fieldId: F.folder9x16, url: true, delivery: false },
-  final4x5: { fieldId: F.final4x5, url: false, delivery: true },
-  folder4x5: { fieldId: F.folder4x5, url: true, delivery: false },
+  assetFolderLink: { fieldId: F.assetFolderLink, url: false },
+  workingFiles: { fieldId: F.workingFiles, url: false },
+  final16x9: { fieldId: F.final16x9, url: false },
+  folder16x9: { fieldId: F.folder16x9, url: true },
+  final9x16: { fieldId: F.final9x16, url: false },
+  folder9x16: { fieldId: F.folder9x16, url: true },
+  final4x5: { fieldId: F.final4x5, url: false },
+  folder4x5: { fieldId: F.folder4x5, url: true },
 } as const;
 
 export type AssetLinkKey = keyof typeof ASSET_LINK_FIELDS;
 
 // Write (or clear, with an empty value) a single delivery-link field.
-// `isAds` gates the "ready" signal for the folder link: ads tickets deliver via the ratio
-// Final Links, so only those notify; non-ads tickets have no ratio links, so the Asset
-// Folder Link is their delivery signal instead.
-export async function updateTicketLink(ticketId: string, key: string, value: string, isAds = false): Promise<UpdateStatusResult> {
+export async function updateTicketLink(ticketId: string, key: string, value: string): Promise<UpdateStatusResult> {
   const spec = ASSET_LINK_FIELDS[key as AssetLinkKey];
   if (!spec) return { ok: false, error: 'Unknown field' };
   const v = value.trim();
   if (v && spec.url && !/^https?:\/\//i.test(v)) return { ok: false, error: 'Enter a full URL (https://…)' };
   const res = await updateTicketFields(ticketId, { [spec.fieldId]: v });
   if (!res.ok) return { ok: false, error: res.error.message };
-  // E9.4 — filling a delivery link DMs the requester + posts to #content-ready (once, best-effort).
-  const isDelivery = spec.delivery || (key === 'assetFolderLink' && !isAds);
-  if (v && isDelivery) await maybeNotifyAssetReady(ticketId, v);
+  // E9.4 — filling the Asset Folder Link re-checks the asset-ready pair (Done + link); fires
+  // once, best-effort. The trigger itself confirms the ticket is Done before notifying.
+  if (v && key === 'assetFolderLink') await maybeNotifyAssetReady(ticketId);
   return done(ticketId);
 }
