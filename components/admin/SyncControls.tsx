@@ -27,8 +27,11 @@ export function SyncControls() {
         <button className="btn sm" disabled={pending} onClick={() => run('reference', runReferenceSync)}>
           {running === 'reference' ? 'Syncing…' : 'Sync reference'}
         </button>
-        <button className="btn sm" disabled={pending} onClick={() => run('backfill', () => runBackfill(true))}>
-          {running === 'backfill' ? 'Backfilling…' : 'Backfill tickets (all)'}
+        <button className="btn sm" disabled={pending} onClick={() => run('backfill', () => runBackfill(false))}>
+          {running === 'backfill' ? 'Backfilling…' : 'Backfill active tickets'}
+        </button>
+        <button className="btn ghost sm" disabled={pending} onClick={() => run('backfill-all', () => runBackfill(true))}>
+          {running === 'backfill-all' ? 'Backfilling all…' : 'Backfill ALL history (slow)'}
         </button>
         <button className="btn sm" disabled={pending} onClick={() => run('push', runPush)}>
           {running === 'push' ? 'Pushing…' : 'Push → Airtable'}
