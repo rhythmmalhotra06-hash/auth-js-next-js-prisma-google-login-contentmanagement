@@ -15,9 +15,14 @@ name: Ticket two-way sync
 # ~5-min sync latency. For tighter/steadier timing, point an external cron (cron-job.org
 # / Cloud Scheduler) at the same routes with the bearer.
 
+# ⚠️ SCHEDULE DISABLED — IAP STILL ACTIVE. A bearer curl from GitHub is rejected by
+# Google IAP ("Invalid IAP credentials") before it reaches the app, so scheduled runs
+# fail. Re-enable the `schedule:` block below once EITHER (a) IAP is actually removed
+# from the service, OR (b) an OIDC auth step is added (needs a WIF service account with
+# roles/iap.httpsResourceAccessor + the IAP OAuth client id as the token audience).
 on:
-  schedule:
-    - cron: '*/5 * * * *' # every 5 minutes (GitHub's floor)
+  # schedule:
+  #   - cron: '*/5 * * * *' # every 5 minutes (GitHub's floor) — ENABLE AFTER IAP RESOLVED
   workflow_dispatch: {}
 
 # Don't let a slow run overlap the next tick.

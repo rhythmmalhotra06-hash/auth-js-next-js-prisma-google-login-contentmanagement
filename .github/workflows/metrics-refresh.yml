@@ -9,9 +9,11 @@ name: Ticket metrics refresh
 # The app is public (IAP removed 2026-07-02), so a plain bearer curl reaches the
 # route — no OIDC needed.
 
+# ⚠️ SCHEDULE DISABLED — IAP still active (bearer curl → "Invalid IAP credentials").
+# Re-enable once IAP is removed or an OIDC auth step is added.
 on:
-  schedule:
-    - cron: '0 3 * * *'   # 03:00 UTC daily
+  # schedule:
+  #   - cron: '0 3 * * *'   # 03:00 UTC daily — ENABLE AFTER IAP RESOLVED
   workflow_dispatch:
 
 jobs:
