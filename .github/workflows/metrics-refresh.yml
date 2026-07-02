@@ -6,23 +6,12 @@ name: Ticket metrics refresh
 # on every load. Safe to run on a schedule — it only writes the metric_snapshots
 # table (no app-owned ticket state is touched).
 #
-# ⚠️ BLOCKED ON IAP — READ BEFORE ENABLING THE SCHEDULE ⚠️
-# The deployed Cloud Run service is behind Google Identity-Aware Proxy (IAP). A plain
-# bearer curl is rejected by IAP before it reaches the app, so this job CANNOT
-# succeed from GitHub until it authenticates to IAP with a Google-issued OIDC ID
-# token. To enable (same setup as reference-sync.yml):
-#   1. Obtain a service account with the "IAP-secured Web App User" role on this
-#      service, plus the IAP OAuth client ID (the token "audience").
-#   2. Store the SA key as secret GCP_SA_KEY and the audience as var IAP_AUDIENCE.
-#   3. Add a google-github-actions/auth step to mint an ID token and send it as the
-#      Authorization header (SYNC_SECRET then becomes a second factor in the app).
-#   4. Re-enable the `schedule:` trigger below.
-# Until then this workflow is manual-only (workflow_dispatch) and will fail if the
-# IAP auth step is not present — that's expected.
+# The app is public (IAP removed 2026-07-02), so a plain bearer curl reaches the
+# route — no OIDC needed.
 
 on:
-  # schedule:
-  #   - cron: '0 3 * * *'   # 03:00 UTC daily — ENABLE ONLY AFTER IAP AUTH IS WIRED (see header)
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC daily
   workflow_dispatch:
 
 jobs:

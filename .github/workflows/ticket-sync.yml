@@ -1,0 +1,50 @@
+name: Ticket two-way sync
+
+# Continuous two-way ticket sync between Postgres (system of record) and Airtable
+# (the team's editing surface), for TICKETS_BACKEND=postgres:
+#   • POST /api/sync/push  — drain the outbox: PG ticket changes → Airtable
+#   • POST /api/sync/pull  — import Airtable ticket edits → PG (echo-suppressed,
+#                            last-writer-wins, incremental via the App Last Modified cursor)
+#
+# Both routes are incremental (drain pending / pull since cursor) so each run is small
+# and finishes well within the request window. The app is public (IAP removed), so a
+# plain bearer curl reaches the routes — no OIDC needed. SYNC_SECRET is a repo secret;
+# APP_URL is a repo variable.
+#
+# NOTE: GitHub's scheduled-cron minimum is 5 min and runs can lag under load. That gives
+# ~5-min sync latency. For tighter/steadier timing, point an external cron (cron-job.org
+# / Cloud Scheduler) at the same routes with the bearer.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # every 5 minutes (GitHub's floor)
+  workflow_dispatch: {}
+
+# Don't let a slow run overlap the next tick.
+concurrency:
+  group: ticket-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push (PG→Airtable) then Pull (Airtable→PG)
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "::error::SYNC_SECRET is not set in repo secrets"; exit 1
+          fi
+          fail=0
+          # Push before pull so airtablePushedAt is stamped before pull runs echo-suppression.
+          for path in /api/sync/push /api/sync/pull; do
+            echo "→ POST $APP_URL$path"
+            code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+              -X POST "$APP_URL$path" \
+              -H "Authorization: Bearer $SYNC_SECRET")
+            echo "HTTP $code"; cat /tmp/resp.json; echo
+            if [ "$code" != "200" ]; then echo "::error::$path returned HTTP $code"; fail=1; fi
+          done
+          exit $fail
