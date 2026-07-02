@@ -134,3 +134,67 @@ export async function upsertTicketsFromRecords(records: Rec[]): Promise<UpsertRe
 
   return { upserted: records.length, unresolved };
 }
+
+/**
+ * BULK insert for the one-time backfill: a handful of multi-row INSERTs instead of one
+ * round-trip per ticket. Essential because the app (us-central1) and Postgres
+ * (asia-southeast1) are cross-region (~250ms/round-trip) — per-row upserts of the active
+ * set blow the 300s request timeout. Insert-only (skipDuplicates): PG tickets is empty at
+ * cutover, and ongoing edits are handled by the pull's `upsertTicketsFromRecords`.
+ */
+export async function bulkInsertTicketsFromRecords(records: Rec[]): Promise<UpsertResult> {
+  const { prisma } = await import('../prisma');
+
+  const idMap = async (model: 'employee' | 'eventType' | 'assetType' | 'officialCalendar' | 'author') => {
+    const rows = await (prisma[model] as { findMany: (a: unknown) => Promise<{ id: string; airtableId: string | null }[]> }).findMany({ select: { id: true, airtableId: true } });
+    return new Map(rows.filter((x) => x.airtableId).map((x) => [x.airtableId as string, x.id]));
+  };
+  const [empMap, evtMap, atMap, ocMap, auMap] = await Promise.all([
+    idMap('employee'), idMap('eventType'), idMap('assetType'), idMap('officialCalendar'), idMap('author'),
+  ]);
+  const first = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).find((x): x is string => !!x) ?? null;
+
+  let unresolved = 0;
+  const rows = records.map((r) => {
+    const links = ticketLinks(r);
+    const assigneeId = first(links.assignedCreative, empMap) ?? first(links.assignedContractor, empMap);
+    if (links.assignedCreative.length && !assigneeId) unresolved++;
+    return {
+      airtableId: r.id,
+      source: 'airtable',
+      ...ticketScalars(r),
+      eventTypeId: first(links.eventTypes, evtMap),
+      assetTypeId: first(links.assetTypes, atMap),
+      assigneeId,
+      requesterId: first(links.requestedBy, empMap),
+      officialCalendarId: first(links.officialCalendar, ocMap),
+    };
+  });
+
+  // Chunk to stay well under Postgres's 65k bind-param limit (≈22 cols × 500 = 11k).
+  const CHUNK = 500;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    await prisma.ticket.createMany({ data: rows.slice(i, i + CHUNK), skipDuplicates: true });
+  }
+
+  // Author joins need the new ticket uuids — one lookup, then one bulk insert.
+  const created = await prisma.ticket.findMany({
+    where: { airtableId: { in: records.map((r) => r.id) } },
+    select: { id: true, airtableId: true },
+  });
+  const tkMap = new Map(created.map((t) => [t.airtableId as string, t.id]));
+  const authorPairs: { ticketId: string; authorId: string }[] = [];
+  for (const r of records) {
+    const tkId = tkMap.get(r.id);
+    if (!tkId) continue;
+    for (const rid of ticketLinks(r).speakers) {
+      const aid = auMap.get(rid);
+      if (aid) authorPairs.push({ ticketId: tkId, authorId: aid });
+    }
+  }
+  for (let i = 0; i < authorPairs.length; i += CHUNK) {
+    await prisma.ticketAuthor.createMany({ data: authorPairs.slice(i, i + CHUNK), skipDuplicates: true });
+  }
+
+  return { upserted: rows.length, unresolved };
+}
