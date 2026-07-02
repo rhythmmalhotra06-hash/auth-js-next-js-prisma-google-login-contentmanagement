@@ -1,21 +1,18 @@
-// Queue/list data for the role views — Airtable-direct (Prio Requests table).
+// Queue/list data for the role views — POSTGRES-backed (system of record).
 // The first five columns are mandated identical across ALL views: Title, Priority,
 // Assigned, Ticket Status, Priority Status (CLAUDE.md §7).
 //
-// Reads come straight from Airtable; linked names (assignee/event/asset/...) are
-// resolved via cached reference maps. No Postgres.
+// Tickets are mirrored from Airtable into Postgres (backfill + two-way sync), so
+// reads are fast + relational here. Person/calendar IDS exposed to the UI stay as
+// Airtable recIds (via each relation's airtableId) so recId-based filters that the
+// rest of the app uses keep working across the Postgres cutover.
 
-import { TICKETS, OFFICIAL_CALENDARS } from '@/lib/airtable/field-map';
-import { listAll, getRecord } from '@/lib/airtable/rest';
-import { nameMap, firstLinkedName, firstLinkedId, resolveLinkedNames } from '@/lib/repositories/reference.repository';
+import { prisma } from '@/lib/prisma';
 import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
 import { dueProximityNorm, campaignProximityNorm, blendQueueScore } from '@/lib/tickets/scoring';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
-
-const F = TICKETS.fields;
-const L = TICKETS.links;
 
 export interface QueueTicket {
   id: string;
@@ -40,77 +37,85 @@ export interface QueueTicket {
 
 export interface EmployeeOption { id: string; name: string }
 
-/** An assignable person — the only people tickets get assigned to: Employee creatives
- *  (Creative Team set) and active Contractor/Freelancers. `group` drives option grouping. */
+/** An assignable person — Employee creatives + active Contractor/Freelancers. */
 export interface AssigneeOption { id: string; name: string; group: 'Creatives' | 'Freelancers & contractors' }
 
-const str = (v: unknown): string | null => {
+// Active = everything except terminal states (matches the queue's domain, not a perf hack).
+const ACTIVE_STATUSES_EXCLUDED = ['Done', "Won't Do"];
+
+// The relations every ticket read needs. Person/calendar rows carry airtableId so we
+// can expose recIds to the UI. Asset-type carries the team-lead + dimension lookups.
+const TICKET_INCLUDE = {
+  assignee: { select: { name: true, airtableId: true } },
+  requester: { select: { name: true, airtableId: true } },
+  eventType: { select: { name: true } },
+  assetType: {
+    select: {
+      name: true,
+      teamLeads: { select: { employee: { select: { name: true } } } },
+      dimensions: { select: { dimension: { select: { label: true } } } },
+    },
+  },
+  officialCalendar: { select: { name: true, airtableId: true, startDate: true, endDate: true } },
+} as const;
+
+type TicketWithRelations = {
+  id: string;
+  title: string;
+  priorityScore: unknown;
+  queueRank: number | null;
+  ticketStatus: string | null;
+  prioStatus: string | null;
+  typeOfRequest: string | null;
+  dueDate: Date | null;
+  assetFolderLink: string | null;
+  assignee: { name: string; airtableId: string | null } | null;
+  requester: { name: string; airtableId: string | null } | null;
+  eventType: { name: string } | null;
+  assetType: { name: string } | null;
+  officialCalendar: { name: string; airtableId: string | null; startDate: Date | null; endDate: Date | null } | null;
+};
+
+const numOf = (v: unknown): number | null => {
   if (v == null) return null;
-  if (typeof v === 'string') return v || null;
-  if (typeof v === 'object' && 'name' in (v as object)) return String((v as { name: unknown }).name);
-  return String(v);
+  const n = typeof v === 'number' ? v : Number(String(v));
+  return Number.isNaN(n) ? null : n;
 };
-const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
-// Lookup / multipleSelects fields arrive as arrays of strings or {name} objects.
-const arr = (v: unknown): string | null => {
-  if (Array.isArray(v)) {
-    const parts = v
-      .map((x) => (typeof x === 'string' ? x : x && typeof x === 'object' && 'name' in x ? String((x as { name: unknown }).name) : null))
-      .filter((s): s is string => !!s);
-    return parts.length ? [...new Set(parts)].join(', ') : null;
-  }
-  return str(v);
-};
+const isoDate = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
 
-// Active = everything except terminal states; keeps us well under the 10k table size.
-const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
-// Shipped = the terminal Done state. The full set is ~9k rows (mostly migrated
-// history), so never scan it — read only the newest few (getRecentShipped).
-const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;
-
-const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate, F.assetFolderLink,
-  L.assignedCreative, L.assignedContractor, L.requestedBy, L.eventTypes, L.assetTypes, L.officialCalendar];
-
-// Maps a raw Prio Requests record to a QueueTicket (+ assigneeId for filtering).
-// Assignee can be an Employee creative OR a Contractor/Freelancer — resolve whichever
-// link is set (creative takes precedence if, rarely, both are present).
-function mapTicketRow(
-  rec: { id: string; fields: unknown },
-  employees: Map<string, string>, eventTypes: Map<string, string>, assetTypes: Map<string, string>,
-  contractors: Map<string, string> = new Map(), calendars: Map<string, string> = new Map(),
-): QueueTicket & { assigneeId: string | null } {
-  const f = rec.fields as Record<string, unknown>;
+/** Base QueueTicket (pre-blend); priorityScore filled by the ranking pass. */
+function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number | null; campaignWindow: { start: Date | null; end: Date | null } | null } {
   return {
-    id: rec.id,
-    title: str(f[F.name]) ?? '(untitled)',
-    priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
-    queueRank: num(f[F.queueRank]),
-    assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
-    assigneeId: firstLinkedId(f[L.assignedCreative]) ?? firstLinkedId(f[L.assignedContractor]),
-    ticketStatus: str(f[F.ticketStatus]),
-    prioStatus: str(f[F.prioStatus]),
-    eventType: firstLinkedName(f[L.eventTypes], eventTypes),
-    assetType: firstLinkedName(f[L.assetTypes], assetTypes),
-    requester: firstLinkedName(f[L.requestedBy], employees),
-    requesterId: firstLinkedId(f[L.requestedBy]),
-    officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),
-    officialCalendarId: firstLinkedId(f[L.officialCalendar]),
-    typeOfRequest: str(f[F.typeOfRequest]),
-    dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
-    folderUrl: str(f[F.assetFolderLink]),
+    id: t.id,
+    title: t.title || '(untitled)',
+    priorityScore: null,
+    queueRank: t.queueRank,
+    assignee: t.assignee?.name ?? null,
+    ticketStatus: t.ticketStatus,
+    prioStatus: t.prioStatus,
+    eventType: t.eventType?.name ?? null,
+    assetType: t.assetType?.name ?? null,
+    requester: t.requester?.name ?? null,
+    requesterId: t.requester?.airtableId ?? null,
+    officialCalendar: t.officialCalendar?.name ?? null,
+    officialCalendarId: t.officialCalendar?.airtableId ?? null,
+    typeOfRequest: t.typeOfRequest,
+    dueDate: isoDate(t.dueDate),
+    folderUrl: t.assetFolderLink,
+    rawScore: numOf(t.priorityScore),
+    campaignWindow: t.officialCalendar ? { start: t.officialCalendar.startDate, end: t.officialCalendar.endDate } : null,
   };
 }
 
-/** Active employees for assignment pickers (recId → name) — excludes retired/inactive staff. */
+/** Active employees for assignment pickers (Airtable recId → name). */
 export async function getActiveEmployees(): Promise<EmployeeOption[]> {
   const rows = await listActiveEmployeeRecords();
   return rows.map((r) => ({ id: r.id, name: r.name })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
- * The only people a ticket gets assigned to: Employee **creatives** (those with a
- * Creative Team set) plus active **Contractor/Freelancers**. Used by the assignee
- * filter so it lists assignable people, not every employee in the org.
+ * The only people a ticket gets assigned to: Employee **creatives** plus active
+ * **Contractor/Freelancers** — used by the assignee filter.
  */
 export async function getEligibleAssignees(): Promise<AssigneeOption[]> {
   const [employees, contractors] = await Promise.all([
@@ -118,8 +123,6 @@ export async function getEligibleAssignees(): Promise<AssigneeOption[]> {
     listActiveContractorRecords(),
   ]);
   const creatives: AssigneeOption[] = employees
-    // A creative is anyone on a Creative Team (Airtable-native signal, set for creatives
-    // only) or carrying an Editor/Designer app role — the people tickets route to.
     .filter((e) => !!e.team || e.roles.includes('Editor') || e.roles.includes('Designer'))
     .map((e) => ({ id: e.id, name: e.name, group: 'Creatives' as const }));
   const freelancers: AssigneeOption[] = contractors
@@ -128,56 +131,31 @@ export async function getEligibleAssignees(): Promise<AssigneeOption[]> {
   return [...creatives.sort(byName), ...freelancers.sort(byName)];
 }
 
-export async function getQueueTickets(opts: { assigneeId?: string; includeCompleted?: boolean } = {}): Promise<QueueTicket[]> {
-  const [res, employees, eventTypes, assetTypes, contractors, calendars, calWinRes, cfg] = await Promise.all([
-    listAll(TICKETS.baseId, TICKETS.tableId, {
-      // Stakeholder/post-prod views pass includeCompleted to also surface Done/Won't Do.
-      ...(opts.includeCompleted ? {} : { filterByFormula: ACTIVE_FILTER }),
-      fields: QUEUE_FIELDS,
-    }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
-    listAll(OFFICIAL_CALENDARS.baseId, OFFICIAL_CALENDARS.tableId, { fields: [OFFICIAL_CALENDARS.fields.startDate, OFFICIAL_CALENDARS.fields.endDate] }),
-    getScoringConfig(),
-  ]);
-  if (!res.ok) return [];
+/**
+ * Rank + shape a set of ticket rows into QueueTickets. E9.5 blend: min-max normalize
+ * the Airtable SCORE base across the loaded set, layer app-side deadline + campaign
+ * urgency, and display the blended 0–100. Manual queue_rank still wins the order.
+ */
+async function rankTickets(rows: TicketWithRelations[]): Promise<QueueTicket[]> {
+  const cfg = await getScoringConfig();
+  const base = rows.map(toQueueTicket);
 
-  let rows = res.data.map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars));
-
-  if (opts.assigneeId) rows = rows.filter((r) => r.assigneeId === opts.assigneeId);
-
-  // E9.5 — blend the Airtable SCORE base (revenue + importance + complexity) with an
-  // app-side deadline + campaign urgency layer. SCORE is min-max normalized across the
-  // loaded set so it's comparable to the 0–1 urgency norms; the displayed Priority is
-  // the blended 0–100 value so the number matches the order. Manual rank still wins.
-  const calWin = new Map<string, { start: Date | null; end: Date | null }>();
-  if (calWinRes.ok) {
-    for (const rec of calWinRes.data) {
-      const s = rec.fields[OFFICIAL_CALENDARS.fields.startDate];
-      const e = rec.fields[OFFICIAL_CALENDARS.fields.endDate];
-      calWin.set(rec.id, {
-        start: typeof s === 'string' ? new Date(s) : null,
-        end: typeof e === 'string' ? new Date(e) : null,
-      });
-    }
-  }
   const now = new Date();
   const win = cfg.dueProximityWindowDays;
-  const nums = rows.map((r) => Number(r.priorityScore) || 0);
+  const nums = base.map((r) => r.rawScore ?? 0);
   const min = nums.length ? Math.min(...nums) : 0;
   const max = nums.length ? Math.max(...nums) : 0;
   const span = max - min;
-  const blendMax = 1 + cfg.weights.due + cfg.weights.campaign; // for 0–100 display scaling
+  const blendMax = 1 + cfg.weights.due + cfg.weights.campaign;
 
-  const ranked = rows.map((r) => {
-    const scoreNorm = span > 0 ? ((Number(r.priorityScore) || 0) - min) / span : 0.5;
+  const ranked = base.map((r) => {
+    const scoreNorm = span > 0 ? ((r.rawScore ?? 0) - min) / span : 0.5;
     const dueNorm = dueProximityNorm(r.dueDate ? new Date(r.dueDate) : null, now, win);
-    const w = r.officialCalendarId ? calWin.get(r.officialCalendarId) : undefined;
-    const campaignNorm = w ? campaignProximityNorm(w.start, w.end, now, win) : 0;
+    const campaignNorm = r.campaignWindow ? campaignProximityNorm(r.campaignWindow.start, r.campaignWindow.end, now, win) : 0;
     const blended = blendQueueScore({ scoreNorm, dueNorm, campaignNorm }, cfg);
     return { row: r, blended };
   });
 
-  // queue_rank (manual) overrides the blended score; unranked fall back to blended desc.
   ranked.sort((a, b) => {
     const ar = a.row.queueRank, br = b.row.queueRank;
     if (ar != null && br != null) return ar - br;
@@ -187,73 +165,54 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
   });
 
   return ranked.map(({ row, blended }) => {
-    const { assigneeId: _drop, ...rest } = row;
+    const { rawScore: _s, campaignWindow: _w, ...rest } = row;
     return { ...rest, priorityScore: String(Math.round((blended / blendMax) * 100)) };
   });
 }
 
-/**
- * The newest shipped (Done) tickets, capped. Sorted by "Created" desc (the Done set
- * has no reliable published-date), so the founder overview reads ~1 page instead of
- * scanning all ~9k Done rows via the includeCompleted path.
- */
-export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
-  const [res, employees, eventTypes, assetTypes, contractors, calendars] = await Promise.all([
-    listAll(TICKETS.baseId, TICKETS.tableId, {
-      filterByFormula: SHIPPED_FILTER,
-      sort: [{ field: 'Created', direction: 'desc' }],
-      maxRecords: limit,
-      fields: QUEUE_FIELDS,
-    }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
-  ]);
-  if (!res.ok) return [];
-  return res.data.map((rec) => {
-    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars);
-    return rest;
-  });
+export async function getQueueTickets(opts: { assigneeId?: string; includeCompleted?: boolean } = {}): Promise<QueueTicket[]> {
+  const rows = (await prisma.ticket.findMany({
+    where: {
+      ...(opts.includeCompleted ? {} : { ticketStatus: { notIn: ACTIVE_STATUSES_EXCLUDED } }),
+      // assigneeId here is an Airtable recId (from the UI); match via the relation.
+      ...(opts.assigneeId ? { assignee: { airtableId: opts.assigneeId } } : {}),
+    },
+    include: TICKET_INCLUDE,
+  })) as unknown as TicketWithRelations[];
+  return rankTickets(rows);
 }
 
 /**
- * The full archive of requests a person raised — every status, including the ~9k
- * Done history. The "Requested By" link can't be filtered by recId server-side, but
- * it resolves to the requester's Name in a formula, so we filter by name in Airtable
- * (scans only their records, not the whole table) and then re-filter by requesterId
- * client-side to drop any name collisions — so the result is exact.
+ * The newest shipped (Done) tickets, capped — for the founder overview.
+ */
+export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
+  const rows = (await prisma.ticket.findMany({
+    where: { ticketStatus: 'Done' },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: TICKET_INCLUDE,
+  })) as unknown as TicketWithRelations[];
+  return rankTickets(rows);
+}
+
+/**
+ * The full archive of requests a person raised (every status). Matched by the
+ * requester's Airtable recId (the id the app carries for employees).
  */
 export async function getMyRequests(employee: { id: string; name: string }): Promise<QueueTicket[]> {
-  if (!employee?.name) return [];
-  const safe = employee.name.replace(/["\\]/g, '\\$&');
-  const formula = `FIND(LOWER("${safe}"), LOWER(ARRAYJOIN({Requested By}))) > 0`;
-  const [res, employees, eventTypes, assetTypes, contractors, calendars] = await Promise.all([
-    listAll(TICKETS.baseId, TICKETS.tableId, {
-      filterByFormula: formula,
-      sort: [{ field: 'Created', direction: 'desc' }],
-      maxRecords: 1000,
-      fields: QUEUE_FIELDS,
-    }),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
-  ]);
-  if (!res.ok) return [];
-  return res.data
-    .map((rec) => mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars))
-    .filter((t) => t.requesterId === employee.id) // exact: drop same-name collisions
-    .map(({ assigneeId: _drop, ...rest }) => rest);
+  if (!employee?.id) return [];
+  const rows = (await prisma.ticket.findMany({
+    where: { requester: { airtableId: employee.id } },
+    orderBy: { createdAt: 'desc' },
+    include: TICKET_INCLUDE,
+  })) as unknown as TicketWithRelations[];
+  return rankTickets(rows);
 }
 
 // ── Scoped requests view (E9.3) ──────────────────────────────────────────────
 
 export type RequestScope = 'mine' | 'team' | 'campaign' | 'all';
 
-/**
- * Requests for a stakeholder view, scoped by the chosen lens:
- *  - mine     → every request the person raised (full archive, incl. Done)
- *  - team     → active requests raised by anyone on the person's team
- *  - campaign → active requests linked to the chosen Official Calendar
- *  - all      → all active requests (caller must gate to managers/admins)
- * Team/campaign/all intentionally scope to the *active* set (not the ~9k Done
- * history) to stay fast; "mine" keeps the full archive it always had.
- */
 export async function getRequestsForScope(
   employee: { id: string; name: string; team: string | null },
   scope: RequestScope,
@@ -302,7 +261,6 @@ export interface TicketDetail {
   sourceLinks: string | null;
   downloadLink: string | null;
   isAds: boolean;
-  // Editable delivery links (editor detail form). Bound 1:1 to Airtable fields.
   assetFolderLink: string | null;
   workingFiles: string | null;
   final16x9: string | null;
@@ -326,77 +284,96 @@ export interface TicketDetail {
   assets: AssetRow[];
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
-  const [res, employees, eventTypes, assetTypes, authorsMap, calendars, dimensionsMap, contractors] = await Promise.all([
-    getRecord(TICKETS.baseId, TICKETS.tableId, id),
-    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('authors'), nameMap('officialCalendars'), nameMap('dimensions'), nameMap('contractors'),
-  ]);
-  if (!res.ok) return null;
-  const f = res.data.fields as Record<string, unknown>;
+  // Accept our PG uuid (the id the queue now emits) or an Airtable recId (old links).
+  const where = UUID_RE.test(id) ? { id } : { airtableId: id };
+  const t = await prisma.ticket.findFirst({
+    where,
+    include: {
+      assignee: { select: { name: true, airtableId: true } },
+      requester: { select: { name: true, airtableId: true } },
+      eventType: { select: { name: true } },
+      assetType: {
+        select: {
+          name: true,
+          teamLeads: { select: { employee: { select: { name: true } } } },
+          dimensions: { select: { dimension: { select: { label: true } } } },
+        },
+      },
+      officialCalendar: { select: { name: true } },
+      authors: { select: { author: { select: { name: true } } } },
+      events: { orderBy: { createdAt: 'asc' }, include: { actor: { select: { name: true } } } },
+      approvals: { orderBy: { createdAt: 'asc' }, include: { approver: { select: { name: true } } } },
+    },
+  });
+  if (!t) return null;
 
-  // Assets are collapsed onto the Prio file-URL fields (raw/final/output).
+  // Assets are collapsed onto the delivery-link columns (raw / final / folder).
   const assets: AssetRow[] = [];
-  const pushAsset = (kind: string, url: unknown) => {
-    const u = typeof url === 'string' && url.trim() ? url.trim() : null;
-    if (u) assets.push({ id: `${id}:${kind}`, kind, fileUrl: u, distributionUrl: null, publishedAt: null, createdAt: res.data.createdTime });
+  const createdAt = t.createdAt.toISOString();
+  const pushAsset = (kind: string, url: string | null) => {
+    const u = url && url.trim() ? url.trim() : null;
+    if (u) assets.push({ id: `${t.id}:${kind}`, kind, fileUrl: u, distributionUrl: null, publishedAt: null, createdAt });
   };
-  pushAsset('raw', f[F.rawFileUrl]);
-  pushAsset('final', f[F.final16x9]);
-  pushAsset('final', f[F.final9x16]);
-  pushAsset('final', f[F.final4x5]);
-  pushAsset('final', f[F.outputLink]);
-  pushAsset('folder', f[F.assetFolderLink]);
+  pushAsset('raw', t.sourceLinks);
+  pushAsset('final', t.final16x9);
+  pushAsset('final', t.final9x16);
+  pushAsset('final', t.final4x5);
+  pushAsset('folder', t.assetFolderLink);
 
-  const teamServiceLevel = str(f[F.teamServiceLevel]);
-  const team = arr(f[F.creativeServiceType]);
-  // Ads tickets get the per-ratio delivery fields. Only "Ad Creatives Video" (and any
-  // "Ads" team value) contains the substring "ad" among the current taxonomy.
-  const isAds = [teamServiceLevel, team].filter(Boolean).join(' ').toLowerCase().includes('ad');
+  const teamServiceLevel = t.teamServiceLevel;
+  // "Ad Creatives Video" (and any Ads value) contains "ad" — the current taxonomy signal.
+  const isAds = (teamServiceLevel ?? '').toLowerCase().includes('ad');
 
-  const speakerNames = Array.isArray(f[L.speakers])
-    ? (f[L.speakers] as unknown[]).map((rid) => (typeof rid === 'string' ? authorsMap.get(rid) : null)).filter((n): n is string => !!n)
-    : [];
+  const teamLead = t.assetType?.teamLeads?.map((tl) => tl.employee?.name).filter(Boolean).join(', ') || null;
+  const dimensions = t.assetType?.dimensions?.map((d) => d.dimension?.label).filter(Boolean).join(', ') || null;
 
   return {
-    id: res.data.id,
-    title: str(f[F.name]) ?? '(untitled)',
-    creativeBrief: cleanBrief(str(f[F.creativeBrief])),
-    cta: str(f[F.cta]),
-    dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
-    ticketStatus: str(f[F.ticketStatus]),
-    prioStatus: str(f[F.prioStatus]),
-    typeOfRequest: str(f[F.typeOfRequest]),
+    id: t.id,
+    title: t.title || '(untitled)',
+    creativeBrief: cleanBrief(t.creativeBrief),
+    cta: t.cta,
+    dueDate: isoDate(t.dueDate),
+    ticketStatus: t.ticketStatus,
+    prioStatus: t.prioStatus,
+    typeOfRequest: t.typeOfRequest,
     teamServiceLevel,
-    team,
+    // creativeServiceType isn't stored discretely; teamServiceLevel is the closest signal.
+    team: teamServiceLevel,
     isAds,
-    assetFolderLink: str(f[F.assetFolderLink]),
-    workingFiles: str(f[F.workingFiles]),
-    final16x9: str(f[F.final16x9]),
-    folder16x9: str(f[F.folder16x9]),
-    final9x16: str(f[F.final9x16]),
-    folder9x16: str(f[F.folder9x16]),
-    final4x5: str(f[F.final4x5]),
-    folder4x5: str(f[F.folder4x5]),
-    project: str(f[F.projectProgram]),
-    dimensions: resolveLinkedNames(f[F.dimensionsLookup], dimensionsMap) ?? arr(f[F.dimensionsLookup]),
-    teamLead: resolveLinkedNames(f[F.teamLeadLookup], employees) ?? arr(f[F.teamLeadLookup]),
-    queueRank: num(f[F.queueRank]),
-    folderUrl: str(f[F.assetFolderLink]),
-    sourceLinks: str(f[F.rawFileUrl]),
-    downloadLink: str(f[F.downloadLink]),
-    notes: cleanBrief(str(f[F.notes])),
-    priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
-    eventType: firstLinkedName(f[L.eventTypes], eventTypes),
-    assetType: firstLinkedName(f[L.assetTypes], assetTypes),
-    requester: firstLinkedName(f[L.requestedBy], employees),
-    requesterId: firstLinkedId(f[L.requestedBy]),
-    assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
-    assigneeId: firstLinkedId(f[L.assignedCreative]) ?? firstLinkedId(f[L.assignedContractor]),
-    officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),
-    authors: speakerNames,
-    // Audit trail + approval history live in Airtable's record revision history now.
-    events: [],
-    approvals: [],
+    assetFolderLink: t.assetFolderLink,
+    workingFiles: t.workingFiles,
+    final16x9: t.final16x9,
+    folder16x9: t.folder16x9,
+    final9x16: t.final9x16,
+    folder9x16: t.folder9x16,
+    final4x5: t.final4x5,
+    folder4x5: t.folder4x5,
+    project: t.projectProgram,
+    dimensions,
+    teamLead,
+    queueRank: t.queueRank,
+    folderUrl: t.assetFolderLink,
+    sourceLinks: t.sourceLinks,
+    downloadLink: t.downloadLink,
+    notes: cleanBrief(t.notes),
+    priorityScore: t.priorityScore != null ? String(t.priorityScore) : null,
+    eventType: t.eventType?.name ?? null,
+    assetType: t.assetType?.name ?? null,
+    requester: t.requester?.name ?? null,
+    requesterId: t.requester?.airtableId ?? null,
+    assignee: t.assignee?.name ?? null,
+    assigneeId: t.assignee?.airtableId ?? null,
+    officialCalendar: t.officialCalendar?.name ?? null,
+    authors: t.authors.map((a) => a.author?.name).filter((n): n is string => !!n),
+    events: t.events.map((e) => ({
+      id: e.id, fromState: e.fromState, toState: e.toState, actor: e.actor?.name ?? null, note: e.note, createdAt: e.createdAt.toISOString(),
+    })),
+    approvals: t.approvals.map((a) => ({
+      id: a.id, approver: a.approver?.name ?? null, state: a.state, feedback: a.feedback, decidedAt: a.decidedAt?.toISOString() ?? null, createdAt: a.createdAt.toISOString(),
+    })),
     assets,
   };
 }

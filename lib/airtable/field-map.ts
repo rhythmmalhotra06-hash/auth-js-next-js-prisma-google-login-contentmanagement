@@ -42,6 +42,7 @@ export const TICKETS = {
     creativeTeamLookup: 'flddD9CYSvUSB0yVx', // "Creative Team (Editors)" (lookup)
     notes: 'fldVoECGWiDrOhbAt', // "V's Notes" (multilineText)
     score: 'fldjY4VfI44oGmtuS', // "SCORE" (formula) → priorityScore
+    lastModified: 'fld3auCPy53ekstlF', // "App Last Modified (sync)" formula = DATETIME_FORMAT(LAST_MODIFIED_TIME(),'YYYY-MM-DD HH:mm:ss') UTC; inbound-pull cursor
     // file/link fields → assets (Stage 2a)
     rawFileUrl: 'fldySmTUdhXlv4evT', // "Raw File/URL Links" (url) → kind=raw
     outputLink: 'fldjP3qkJhbZAqh6C', // "Output link" (multilineText)
