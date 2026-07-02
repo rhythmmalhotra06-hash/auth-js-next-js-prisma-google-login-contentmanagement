@@ -40,3 +40,11 @@ export async function rateVideo(id: string, rating: number): Promise<ActionResul
   revalidateMedia();
   return { ok: true };
 }
+
+/** Log the free-text 24h performance for a video (team-entered; Postiz/Hootsuite auto-fill later). */
+export async function saveViews24h(id: string, text: string): Promise<ActionResult> {
+  const res = await updateVishenVideo(id, { views24h: text.slice(0, 5000) });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidateMedia();
+  return { ok: true };
+}

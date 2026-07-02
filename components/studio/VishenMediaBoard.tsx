@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 import { Badge, type Tone } from '@/components/ui/Badge';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { DetailDrawer } from '@/components/ui/DetailDrawer';
-import { approveVideo, sendBackVideo, rateVideo } from '@/app/studio/media/actions';
+import { approveVideo, sendBackVideo, rateVideo, saveViews24h } from '@/app/studio/media/actions';
 import type { VishenVideo, VideoStage, VideoChannel } from '@/lib/media/vishen-videos';
 
 // ── Display maps ──────────────────────────────────────────────────────────────
@@ -106,6 +106,11 @@ export function VishenMediaBoard({ videos }: { videos: VishenVideo[] }) {
     setRows((rs) => rs.map((v) => (v.id === id ? { ...v, rating } : v)));
     setSelected((s) => (s && s.id === id ? { ...s, rating } : s));
     start(async () => { await rateVideo(id, rating); });
+  }
+  function applyViews24h(id: string, views24h: string) {
+    setRows((rs) => rs.map((v) => (v.id === id ? { ...v, views24h } : v)));
+    setSelected((s) => (s && s.id === id ? { ...s, views24h } : s));
+    start(async () => { await saveViews24h(id, views24h); });
   }
 
   return (
@@ -267,7 +272,14 @@ export function VishenMediaBoard({ videos }: { videos: VishenVideo[] }) {
           </div>
         ) : undefined}
       >
-        {selected && <VideoDetail v={selected} onRate={(n) => applyRating(selected.id, n)} />}
+        {selected && (
+          <VideoDetail
+            key={selected.id}
+            v={selected}
+            onRate={(n) => applyRating(selected.id, n)}
+            onSaveViews={(t) => applyViews24h(selected.id, t)}
+          />
+        )}
       </DetailDrawer>
     </div>
   );
@@ -311,9 +323,11 @@ const STEPS: { label: string; n: number }[] = [
   { label: 'Filmed', n: 4 }, { label: 'In editing', n: 5 }, { label: 'Published', n: 6 },
 ];
 
-function VideoDetail({ v, onRate }: { v: VishenVideo; onRate: (n: number) => void }) {
+function VideoDetail({ v, onRate, onSaveViews }: { v: VishenVideo; onRate: (n: number) => void; onSaveViews: (t: string) => void }) {
   const isPub = v.stage === 'published';
   const cur = isPub ? 6 : v.status ? parseInt(v.status, 10) : 0;
+  const [views, setViews] = useState(v.views24h ?? '');
+  const dirty = views.trim() !== (v.views24h ?? '').trim();
   return (
     <div className="space-y-6 text-sm">
       <div>
@@ -353,7 +367,19 @@ function VideoDetail({ v, onRate }: { v: VishenVideo; onRate: (n: number) => voi
         <div className="rounded-md border p-4"
           style={{ borderColor: 'color-mix(in srgb, var(--gold) 34%, transparent)', background: 'linear-gradient(180deg, var(--gold-soft), var(--surface) 82%)' }}>
           <div className="text-2xs font-bold uppercase tracking-wide text-warning-content">◆ 24h performance</div>
-          <p className="mt-1.5 text-xs text-text-muted">No 24h numbers yet. <b className="text-warning-content">Paul + team log these at 24h</b> — Postiz / Hootsuite auto-fill is Phase 2.</p>
+          <p className="mt-1.5 text-xs text-text-muted">Logged by the team at 24h (views + engagement, any format) — Postiz / Hootsuite auto-fill is Phase 2.</p>
+          <textarea
+            value={views}
+            onChange={(e) => setViews(e.target.value)}
+            rows={3}
+            placeholder="e.g. IG 71k views · 5.1% eng · LinkedIn 12k · 320 reactions"
+            className="mt-2.5 w-full resize-y rounded-sm border border-border-strong bg-surface px-3 py-2 text-[13px] text-text placeholder:text-text-subtle focus-visible:outline-none focus-visible:shadow-[var(--mv-shadow-focus)]"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button type="button" disabled={!dirty} onClick={() => onSaveViews(views.trim())}
+              className="rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright disabled:opacity-40">Save 24h data</button>
+            {!dirty && v.views24h && <span className="text-2xs text-text-subtle">saved</span>}
+          </div>
         </div>
       )}
     </div>

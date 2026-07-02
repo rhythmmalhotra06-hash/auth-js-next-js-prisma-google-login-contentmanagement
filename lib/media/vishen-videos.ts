@@ -39,6 +39,7 @@ export interface VishenVideo {
   channel: VideoChannel; // derived
   liveDate: string | null;
   rating: number | null; // 1–5
+  views24h: string | null; // free-text 24h performance (team-logged)
   createdTime: string;
 }
 
@@ -90,13 +91,14 @@ function mapVideo(rec: AirtableRecord<Raw>): VishenVideo {
     channel: deriveChannel(publishedLink, medium),
     liveDate: str(f[VF.liveDate]),
     rating: num(f[VF.rating]),
+    views24h: str(f[VF.views24h]),
     createdTime: rec.createdTime,
   };
 }
 
 const LIST_FIELDS = [
   VF.name, VF.source, VF.medium, VF.format, VF.product, VF.status, VF.approval,
-  VF.publishedLink, VF.liveDate, VF.rating,
+  VF.publishedLink, VF.liveDate, VF.rating, VF.views24h,
 ];
 
 /**
@@ -172,11 +174,12 @@ export function byProducer(videos: VishenVideo[], since: string): ProducerRollup
  */
 export async function updateVishenVideo(
   id: string,
-  patch: { approval?: string; rating?: number },
+  patch: { approval?: string; rating?: number; views24h?: string },
 ): Promise<AirtableResult<VishenVideo>> {
   const fields: Record<string, unknown> = {};
   if (patch.approval !== undefined) fields[VF.approval] = patch.approval;
   if (patch.rating !== undefined) fields[VF.rating] = patch.rating;
+  if (patch.views24h !== undefined) fields[VF.views24h] = patch.views24h;
   const res = await updateRecord<Raw>(V.baseId, V.tableId, id, fields);
   if (!res.ok) return res;
   return { ok: true, data: mapVideo(res.data) };

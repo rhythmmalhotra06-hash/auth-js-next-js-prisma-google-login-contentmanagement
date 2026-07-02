@@ -325,6 +325,7 @@ export const VISHEN_VIDEOS = {
     approval: 'fldGvNhEyTN1rfd9O', // "Approval" (singleSelect) — Vishen's sign-off; portal writes this
     publishedLink: 'fldrym088lQmqfhGg', // "Published Link" (url)
     liveDate: 'fldbdCEjsTMrQYRN7', // "Live Date" (date)
+    views24h: 'flduZSKFfHMDwMp9U', // "24h Data" (multilineText) — team logs 24h perf; portal writes this
     modified: 'fldirV7fXg8q7VuVg', // "Modified" (lastModifiedTime)
   },
   // singleSelect option values (write the plain name string). Status carries emojis
