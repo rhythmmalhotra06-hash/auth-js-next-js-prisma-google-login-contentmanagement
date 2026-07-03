@@ -9,11 +9,10 @@ name: Ticket metrics refresh
 # The app is public (IAP removed 2026-07-02), so a plain bearer curl reaches the
 # route — no OIDC needed.
 
-# ⚠️ SCHEDULE DISABLED — IAP still active (bearer curl → "Invalid IAP credentials").
-# Re-enable once IAP is removed or an OIDC auth step is added.
+# IAP removed 2026-07-03 (service public + co-located with DB). Schedule is live.
 on:
-  # schedule:
-  #   - cron: '0 3 * * *'   # 03:00 UTC daily — ENABLE AFTER IAP RESOLVED
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC daily
   workflow_dispatch:
 
 jobs:
@@ -22,7 +21,7 @@ jobs:
     steps:
       - name: Trigger metrics refresh
         env:
-          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app' }}
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
           SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
         run: |
           if [ -z "$SYNC_SECRET" ]; then

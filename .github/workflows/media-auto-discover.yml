@@ -1,15 +1,11 @@
-# Vishen media auto-discover — scheduled poll of the IAP-gated discover/slack-scan
-# endpoints. Mints a Google OIDC token via Workload Identity Federation so the
-# request clears IAP (see docs/media-auto-discover-setup.md).
+# Vishen media auto-discover — scheduled poll of the discover / slack-scan / clip-convert
+# endpoints. IAP removed 2026-07-03 (service public + co-located with the DB), so a plain
+# call with the shared secret reaches the app — no OIDC / Workload Identity needed.
 #
-# Required repo secrets (Settings → Secrets and variables → Actions):
-#   WIF_PROVIDER          full resource name of the Workload Identity provider
-#                         (projects/N/locations/global/workloadIdentityPools/POOL/providers/PROVIDER)
-#   WIF_SERVICE_ACCOUNT   SA email allowed past IAP (roles/iap.httpsResourceAccessor)
-#   IAP_OAUTH_CLIENT_ID   the backend's IAP OAuth client ID — used as the OIDC token audience
-#   DISCOVER_SHARED_SECRET  same value as the Kessel env secret (sent as x-discover-secret)
+# Required repo secret (Settings → Secrets and variables → Actions):
+#   DISCOVER_SHARED_SECRET  — same value as the Kessel env secret (sent as x-discover-secret)
 # Optional repo variable:
-#   DISCOVER_BASE_URL     defaults to the prod service URL below
+#   DISCOVER_BASE_URL       — defaults to the prod service URL below
 
 name: media-auto-discover
 
@@ -18,37 +14,24 @@ on:
     - cron: '0 * * * *' # hourly; adjust as needed
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
-permissions:
-  contents: read
-  id-token: write # required for Workload Identity Federation
-
 jobs:
   discover:
     runs-on: ubuntu-latest
     env:
-      BASE_URL: ${{ vars.DISCOVER_BASE_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app' }}
+      BASE_URL: ${{ vars.DISCOVER_BASE_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
     steps:
-      - id: auth
-        name: Authenticate to Google (WIF) and mint an IAP OIDC token
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-          token_format: id_token
-          id_token_audience: ${{ secrets.IAP_OAUTH_CLIENT_ID }}
-          id_token_include_email: true
-
       - name: Trigger discover + slack-scan
         env:
-          ID_TOKEN: ${{ steps.auth.outputs.id_token }}
           DISCOVER_SECRET: ${{ secrets.DISCOVER_SHARED_SECRET }}
         run: |
           set -euo pipefail
+          if [ -z "${DISCOVER_SECRET}" ]; then
+            echo "::error::DISCOVER_SHARED_SECRET is not set in repo secrets"; exit 1
+          fi
           call() {
             local path="$1"
             echo "→ POST $path"
             code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X POST "${BASE_URL}${path}" \
-              -H "Authorization: Bearer ${ID_TOKEN}" \
               -H "x-discover-secret: ${DISCOVER_SECRET}" \
               -H "Content-Type: application/json")
             echo "HTTP ${code}"; cat /tmp/resp.json; echo
