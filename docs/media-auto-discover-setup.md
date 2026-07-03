@@ -41,7 +41,7 @@ Each returns JSON: `{ ok, scanned, added, failed }`.
 | `SLACK_MEDIA_CHANNEL_ID` | plain | **not set yet** (Slack intake) |
 
 Endpoint base URL:
-`https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app`
+`https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app`
 
 ---
 
@@ -57,7 +57,7 @@ Needs GCP project access + a service account allowed through IAP. Run by whoever
    gcloud scheduler jobs create http vishen-media-discover \
      --location=us-central1 \
      --schedule="0 * * * *" \
-     --uri="https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app/api/media/discover" \
+     --uri="https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app/api/media/discover" \
      --http-method=POST \
      --oidc-service-account-email="<SA>@<PROJECT>.iam.gserviceaccount.com" \
      --oidc-token-audience="<IAP_OAUTH_CLIENT_ID>" \

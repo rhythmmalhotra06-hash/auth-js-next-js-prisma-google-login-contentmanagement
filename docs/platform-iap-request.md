@@ -35,7 +35,7 @@ The GitHub Actions scaffold is ready at
 > - Kessel project: `auth-js-next-js-prisma-google-login-ContentManagement`
 >   (project id `73a72afa-3d8f-40a4-afda-d4c038010760`)
 > - Cloud Run service: `auth-js-next-js-prisma-google-login-cont-73a7`
-> - URL: `https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app`
+> - URL: `https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app`
 > - Endpoint to call: `POST /api/sync/reference` (pulls reference data from
 >   Airtable; idempotent, read-only externally). It already requires a
 >   `SYNC_SECRET` bearer token as a second factor — IAP is the only thing

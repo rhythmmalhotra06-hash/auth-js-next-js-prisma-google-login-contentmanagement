@@ -26,7 +26,7 @@ jobs:
   discover:
     runs-on: ubuntu-latest
     env:
-      BASE_URL: ${{ vars.DISCOVER_BASE_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app' }}
+      BASE_URL: ${{ vars.DISCOVER_BASE_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
     steps:
       - id: auth
         name: Authenticate to Google (WIF) and mint an IAP OIDC token

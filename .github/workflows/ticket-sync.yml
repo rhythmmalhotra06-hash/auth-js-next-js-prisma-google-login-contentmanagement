@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Push (PG→Airtable) then Pull (Airtable→PG)
         env:
-          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-uc.a.run.app' }}
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
           SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
         run: |
           if [ -z "$SYNC_SECRET" ]; then
