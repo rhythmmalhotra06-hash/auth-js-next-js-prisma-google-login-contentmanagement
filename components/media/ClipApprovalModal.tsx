@@ -35,7 +35,7 @@ export function ClipApprovalModal({
   const [officialCalendarId, setOfficialCalendarId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [requesterId, setRequesterId] = useState('');
-  const [teamServiceLevel, setTeamServiceLevel] = useState('Social Media Video');
+  const [teamServiceLevel, setTeamServiceLevel] = useState('Video Team - Non Campaign');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

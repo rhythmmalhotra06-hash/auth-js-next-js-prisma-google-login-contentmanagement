@@ -31,7 +31,7 @@ export interface ConvertClipsInput {
   assetTypeId: string;
   officialCalendarId: string;
   dueDate: string; // ISO date
-  teamServiceLevel?: string; // defaults to Social Media Video
+  teamServiceLevel?: string; // defaults to Video Team - Non Campaign
   requesterId?: string; // defaults to the session employee
 }
 
@@ -97,7 +97,7 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
     const res = await createTicket({
       requesterId,
       title: ticketTitle(c),
-      teamServiceLevel: input.teamServiceLevel?.trim() || 'Social Media Video',
+      teamServiceLevel: input.teamServiceLevel?.trim() || 'Video Team - Non Campaign',
       typeOfRequest: 'Video',
       eventTypeId: input.eventTypeId,
       assetTypeId: input.assetTypeId,

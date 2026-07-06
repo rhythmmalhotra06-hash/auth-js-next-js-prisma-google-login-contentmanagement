@@ -66,7 +66,7 @@ export async function raiseSocialRequestAction(id: string, input: RaiseSocialInp
   const res = await createTicket({
     requesterId,
     title,
-    teamServiceLevel: 'Social Media Video',
+    teamServiceLevel: 'Video Team - Non Campaign',
     typeOfRequest: 'Video',
     eventTypeId: input.eventTypeId,
     assetTypeId: input.assetTypeId,
