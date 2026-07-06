@@ -349,8 +349,9 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
 
   const teamServiceLevel = str(f[F.teamServiceLevel]);
   const team = arr(f[F.creativeServiceType]);
-  // Ads tickets get the per-ratio delivery fields. Only "Ad Creatives Video" (and any
-  // "Ads" team value) contains the substring "ad" among the current taxonomy.
+  // Ads tickets get the per-ratio delivery fields. The "Team/Service Level" field no longer
+  // carries an "ad" option (its video options are now "Video Team - Non/Campaign"), so ad
+  // detection relies on the creativeServiceType ("team") value containing "ad".
   const isAds = [teamServiceLevel, team].filter(Boolean).join(' ').toLowerCase().includes('ad');
 
   const speakerNames = Array.isArray(f[L.speakers])

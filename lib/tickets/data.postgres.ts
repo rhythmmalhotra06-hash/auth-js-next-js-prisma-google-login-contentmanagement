@@ -324,7 +324,11 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   pushAsset('folder', t.assetFolderLink);
 
   const teamServiceLevel = t.teamServiceLevel;
-  // "Ad Creatives Video" (and any Ads value) contains "ad" — the current taxonomy signal.
+  // TODO(ads-signal): STALE. The "Team/Service Level" field no longer has an "ad" option
+  // (video options are now "Video Team - Non/Campaign"), so this always returns false and
+  // ad tickets lose their per-ratio delivery fields on the Postgres backend. The reliable
+  // signal is creativeServiceType, but it isn't synced to a discrete column yet — add that
+  // column + sync, then key isAds off it (the Airtable path already does).
   const isAds = (teamServiceLevel ?? '').toLowerCase().includes('ad');
 
   const teamLead = t.assetType?.teamLeads?.map((tl) => tl.employee?.name).filter(Boolean).join(', ') || null;

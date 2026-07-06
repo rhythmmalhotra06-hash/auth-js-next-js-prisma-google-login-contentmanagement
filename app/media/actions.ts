@@ -94,7 +94,7 @@ export interface ConvertClipsInput {
   officialCalendarId: string;
   dueDate: string; // ISO date
   sourceUrl?: string; // for provenance in the ticket
-  teamServiceLevel?: string; // defaults Social Media Video
+  teamServiceLevel?: string; // defaults Video Team - Non Campaign
   requesterId?: string; // Airtable Employee recId; defaults to session employee
 }
 
@@ -176,7 +176,7 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
     const res = await createTicket({
       requesterId,
       title: ticketTitle(c),
-      teamServiceLevel: input.teamServiceLevel?.trim() || 'Social Media Video',
+      teamServiceLevel: input.teamServiceLevel?.trim() || 'Video Team - Non Campaign',
       typeOfRequest: 'Video',
       eventTypeId: input.eventTypeId,
       assetTypeId: input.assetTypeId,

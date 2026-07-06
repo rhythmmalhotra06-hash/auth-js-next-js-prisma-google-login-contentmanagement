@@ -32,14 +32,14 @@ export interface IntakeReferenceData {
   typesOfRequest: string[];
 }
 
-// Live select-option values from the reconciliation (RECONCILIATION.md).
+// Live select-option values for the Airtable "Team/Service Level" single-select
+// (fldHGT2p5SObJEzPh). The token can't create new options, so this list MUST stay in
+// sync with the field's choices — verified against the live schema 2026-07-06.
 export const TEAM_SERVICE_LEVELS = [
-  'Content Video',
-  'Ad Creatives Video',
-  'Social Media Video',
+  'Video Team - Non Campaign',
+  'Video Team - Campaign [Events, etc]',
   'Event Design Graphic',
   'Brand Design Graphic',
-  'Pathway Organic',
 ];
 export const TYPES_OF_REQUEST = ['Video', 'Design'];
 
