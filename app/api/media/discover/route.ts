@@ -36,11 +36,21 @@ export async function POST(req: Request) {
   if (!seenRes.ok) return Response.json({ error: seenRes.error.message }, { status: 502 });
   const seen = seenRes.data;
 
+  // Auto-discover is for long-form only — skip Shorts. All Shorts are ≤180s (the
+  // Shorts cap), so a duration threshold reliably excludes them. Unknown/null
+  // duration is kept (never silently drop everything on an API hiccup).
+  const minSec = Number(process.env.DISCOVER_MIN_DURATION_SECONDS) || 180;
+
   const added: string[] = [];
   const failed: { url: string; error: string }[] = [];
+  let skipped = 0;
 
   for (const up of uploads) {
     if (seen.has(up.url)) continue;
+    if (up.durationSeconds != null && up.durationSeconds <= minSec) {
+      skipped++;
+      continue;
+    }
     const res = await createMediaSource({
       url: up.url,
       title: up.title || null,
@@ -51,7 +61,7 @@ export async function POST(req: Request) {
     else failed.push({ url: up.url, error: res.error.message });
   }
 
-  return Response.json({ ok: failed.length === 0, scanned: uploads.length, added: added.length, failed });
+  return Response.json({ ok: failed.length === 0, scanned: uploads.length, added: added.length, skipped, failed });
 }
 
 // GET for manual/cron flexibility (same logic).
