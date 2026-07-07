@@ -25,7 +25,6 @@ export async function AppShell({ title, subtitle, actions, children }: {
   const role = roleLabel(roles, isAdmin);
   const initials =
     (email ?? 'You').split('@')[0].split(/[.\-_]/).map((s) => s[0]?.toUpperCase() ?? '').slice(0, 2).join('') || 'YOU';
-  const canCreate = role.label !== 'Stakeholder';
   return (
     <ShellChrome
       title={title}
@@ -34,7 +33,6 @@ export async function AppShell({ title, subtitle, actions, children }: {
       roleLabel={role.label}
       roleDot={role.dot}
       initials={initials}
-      canCreate={canCreate}
       actions={actions}
     >
       {children}

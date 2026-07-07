@@ -10,10 +10,10 @@ import { groupNav, type NavItem } from '@/lib/roles';
 import { signOutAction } from '@/app/auth-actions';
 
 export function ShellChrome({
-  title, subtitle, actions, nav, roleLabel, roleDot, initials, canCreate, children,
+  title, subtitle, actions, nav, roleLabel, roleDot, initials, children,
 }: {
   title: string; subtitle?: string; actions?: React.ReactNode;
-  nav: NavItem[]; roleLabel: string; roleDot: string; initials: string; canCreate: boolean;
+  nav: NavItem[]; roleLabel: string; roleDot: string; initials: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -88,11 +88,9 @@ export function ShellChrome({
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}>
             <Icon name={resolvedTheme === 'dark' ? 'sun' : 'moon'} size={18} />
           </button>
-          {canCreate && (
-            <Link href="/intake" className="btn primary sm" style={{ textDecoration: 'none' }} aria-label="New request">
-              <Icon name="plus" size={14} /> <span className="btn-label">New request</span>
-            </Link>
-          )}
+          <Link href="/intake" className="btn primary sm" style={{ textDecoration: 'none' }} aria-label="New request">
+            <Icon name="plus" size={14} /> <span className="btn-label">New request</span>
+          </Link>
           <div className="rsw">
             <span className="cur" style={{ cursor: 'default' }}>
               <span className="rdot" style={{ background: roleDot }} />
