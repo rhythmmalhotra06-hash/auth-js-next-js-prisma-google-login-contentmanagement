@@ -227,6 +227,7 @@ export interface ClipSuggestion {
   ticketId: string | null;
   mediaSourceId: string | null;
   vishenClipId: string | null;
+  appTicketId: string | null; // ticket id created from this clip (Airtable recId or PG uuid) — reconcile key
 }
 
 function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
@@ -246,6 +247,7 @@ function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
     ticketId: firstLinkedId(f[CL.ticket]),
     mediaSourceId: firstLinkedId(f[CL.mediaSource]),
     vishenClipId: str(f[CF.vishenClipId]),
+    appTicketId: str(f[CF.appTicketId]),
   };
 }
 
@@ -353,12 +355,13 @@ export async function createClipSuggestions(
 
 export async function updateClipSuggestion(
   id: string,
-  patch: { status?: string; ticketRecId?: string; createTicket?: boolean },
+  patch: { status?: string; ticketRecId?: string; createTicket?: boolean; appTicketId?: string },
 ): Promise<AirtableResult<ClipSuggestion>> {
   const fields: Record<string, unknown> = {};
   if (patch.status) fields[CF.status] = patch.status;
   if (patch.ticketRecId) fields[CL.ticket] = [patch.ticketRecId];
   if (patch.createTicket !== undefined) fields[CF.createTicket] = patch.createTicket;
+  if (patch.appTicketId !== undefined) fields[CF.appTicketId] = patch.appTicketId;
   const res = await updateRecord<Raw>(C.baseId, C.tableId, id, fields);
   if (!res.ok) return res;
   const clip = mapClip(res.data);

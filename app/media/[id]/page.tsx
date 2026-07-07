@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { AppShell } from '@/components/ui/AppShell';
 import { getMediaSource, listClipSuggestions, type MediaSource } from '@/lib/media/repository';
+import { getIntakeReferenceData } from '@/lib/intake/data';
 import { MediaDetailClient } from '@/components/media/MediaDetailClient';
 import { MediaHero } from '@/components/media/MediaHero';
 import { CardSkeleton } from '@/components/ui/Skeletons';
@@ -10,7 +11,12 @@ import { CardSkeleton } from '@/components/ui/Skeletons';
 export const dynamic = 'force-dynamic';
 
 async function MediaBody({ source, autostart }: { source: MediaSource; autostart: boolean }) {
-  const clipsRes = await listClipSuggestions(source.id, source.clipSuggestionIds);
+  // Load clips + intake reference in parallel; reference feeds the inline "Convert to ticket"
+  // modal so editors can raise a ticket straight from an approved clip (parity with /manager).
+  const [clipsRes, reference] = await Promise.all([
+    listClipSuggestions(source.id, source.clipSuggestionIds),
+    getIntakeReferenceData(),
+  ]);
   const clips = clipsRes.ok ? clipsRes.data : [];
 
   return (
@@ -21,6 +27,8 @@ async function MediaBody({ source, autostart }: { source: MediaSource; autostart
       clips={clips}
       strategyJson={source.strategyJson}
       autostart={autostart}
+      reference={reference}
+      sourceUrl={source.sourceUrl}
     />
   );
 }

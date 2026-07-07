@@ -2,11 +2,13 @@ name: Ticket two-way sync
 
 # Continuous two-way ticket sync between Postgres (system of record) and Airtable
 # (the team's editing surface), for TICKETS_BACKEND=postgres:
-#   • POST /api/sync/push  — drain the outbox: PG ticket changes → Airtable
-#   • POST /api/sync/pull  — import Airtable ticket edits → PG (echo-suppressed,
-#                            last-writer-wins, incremental via the App Last Modified cursor)
+#   • POST /api/sync/push          — drain the outbox: PG ticket changes → Airtable
+#   • POST /api/sync/pull          — import Airtable ticket edits → PG (echo-suppressed,
+#                                    last-writer-wins, incremental via the App Last Modified cursor)
+#   • POST /api/media/link-tickets — reconcile clip→ticket links (🎬 Clip Suggestions + Clips (Sync));
+#                                    runs after push so the ticket's airtableId is already stamped
 #
-# Both routes are incremental (drain pending / pull since cursor) so each run is small
+# All routes are incremental (drain pending / pull since cursor / link only unlinked clips) so each run is small
 # and finishes well within the request window. The app is public (IAP removed), so a
 # plain bearer curl reaches the routes — no OIDC needed. SYNC_SECRET is a repo secret;
 # APP_URL is a repo variable.
@@ -31,7 +33,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Push (PG→Airtable) then Pull (Airtable→PG)
+      - name: Push (PG→Airtable), Pull (Airtable→PG), then reconcile clip↔ticket links
         env:
           APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
           SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
@@ -41,7 +43,8 @@ jobs:
           fi
           fail=0
           # Push before pull so airtablePushedAt is stamped before pull runs echo-suppression.
-          for path in /api/sync/push /api/sync/pull; do
+          # link-tickets runs last: it needs the ticket's airtableId (stamped by push) to link.
+          for path in /api/sync/push /api/sync/pull /api/media/link-tickets; do
             echo "→ POST $APP_URL$path"
             code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
               -X POST "$APP_URL$path" \

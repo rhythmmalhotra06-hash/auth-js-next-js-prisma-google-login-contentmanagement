@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ClipSuggestion } from '@/lib/media/repository';
+import type { IntakeReferenceData } from '@/lib/intake/data';
 import { ClipActions } from '@/components/vishen/ClipActions';
+import { ClipApprovalModal } from '@/components/media/ClipApprovalModal';
 import { CLIP_TYPES, DEFAULT_CLIP_TYPE } from '@/lib/clipping/clip-types';
 import { StrategyDetail, parseStrategy } from '@/components/media/StrategyDetail';
 
-// Approve/dismiss only — ticket creation happens on the Manager Queue. Approving a
-// clip surfaces it in the manager's "approved clips" panel there.
+// Approve/dismiss + raise the ticket inline. Approving a clip surfaces it in the manager's
+// "approved clips" panel; a "Convert to ticket" button here lets editors raise the ticket
+// straight from the source page too (same modal + flow as the Manager Queue).
 export function MediaDetailClient({
   sourceId,
   status,
@@ -16,6 +19,8 @@ export function MediaDetailClient({
   clips,
   strategyJson = null,
   autostart = false,
+  reference,
+  sourceUrl = null,
 }: {
   sourceId: string;
   status: string | null;
@@ -23,8 +28,11 @@ export function MediaDetailClient({
   clips: ClipSuggestion[];
   strategyJson?: string | null;
   autostart?: boolean;
+  reference: IntakeReferenceData;
+  sourceUrl?: string | null;
 }) {
   const router = useRouter();
+  const [modalClipId, setModalClipId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [webSearch, setWebSearch] = useState(false);
@@ -162,7 +170,7 @@ export function MediaDetailClient({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-text">{clips.length} suggested clips</h2>
-              <span className="text-xs text-text-subtle">Click a clip to see details · approve it to send it to the Manager queue.</span>
+              <span className="text-xs text-text-subtle">Click a clip to see details · approve it, then raise a ticket right here.</span>
             </div>
             {/* Card / Grid view toggle */}
             <div className="inline-flex rounded-sm border border-border-default p-0.5 text-xs">
@@ -226,6 +234,23 @@ export function MediaDetailClient({
                       {!approved && !dismissed && (
                         <div className="mt-3"><ClipActions clipId={c.id} /></div>
                       )}
+                      {/* Approved → raise the ticket inline (same modal/flow as the Manager Queue). */}
+                      {approved && !c.ticketId && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => setModalClipId(c.id)}
+                            className="rounded-sm border border-border-default px-3 py-1.5 text-sm font-semibold text-brand hover:bg-bg-subtle"
+                          >
+                            Convert to ticket →
+                          </button>
+                        </div>
+                      )}
+                      {approved && c.ticketId && (
+                        <div className="mt-3">
+                          <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs text-success-content">Ticket created</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -272,6 +297,15 @@ export function MediaDetailClient({
             </div>
           )}
         </div>
+      )}
+
+      {modalClipId && (
+        <ClipApprovalModal
+          clipIds={[modalClipId]}
+          sourceUrl={sourceUrl}
+          reference={reference}
+          onClose={() => setModalClipId(null)}
+        />
       )}
     </div>
   );
