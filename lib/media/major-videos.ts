@@ -65,6 +65,7 @@ export async function createMajorVideo(input: {
   title: string;
   url?: string | null;
   type?: string | null;
+  aiSuggested?: boolean; // tag the row as portal/AI-originated (set on approval-time creates)
 }): Promise<AirtableResult<{ id: string }>> {
   const fields: Record<string, unknown> = { [VF.name]: input.title };
   if (input.url) {
@@ -72,6 +73,7 @@ export async function createMajorVideo(input: {
     fields[VF.finalUrl] = input.url;
   }
   if (input.type) fields[VF.select] = [input.type];
+  if (input.aiSuggested) fields[VF.aiSuggested] = V.aiSuggested_;
   const res = await createRecord<Raw>(V.baseId, V.tableId, fields);
   if (!res.ok) return res;
   return { ok: true, data: { id: res.data.id } };

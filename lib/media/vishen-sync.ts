@@ -1,8 +1,11 @@
-// Outbound half of the two-way Vishen sync (portal → Vishen's content base), instant + best-effort.
-// Inbound (Vishen → portal) is handled by Airtable Automations — see docs/airtable-automations/.
-// Every write here is DIFF-GUARDED (only writes a field whose value actually changed) so an
-// outbound write can't ping-pong; automations live only in Vishen's base. See
-// plans/vishen-two-way-sync.md. Node runtime (Airtable REST writes).
+// Outbound writes: portal → Vishen's content base (his Major Videos + Clips are the SOURCE of the
+// native two-way sync into the Creative Services "(Sync)" mirror tables). Best-effort.
+// Inbound (Vishen → portal / mirror ⇄ source) is handled by Airtable's native two-way sync —
+// the old docs/airtable-automations scripts have been retired in its favour.
+// AI clip/media suggestions are pushed here ONLY on approval (a human blessed them); nothing
+// reaches Vishen's base while a suggestion is still pending in the portal. Rows created here are
+// tagged "AI Suggested" for provenance. Field-value writes are DIFF-GUARDED so they can't
+// ping-pong. Node runtime (Airtable REST writes).
 
 import { MAJOR_VIDEOS as V, VISHEN_CLIPS as VC, CLIP_SUGGESTIONS as C } from '@/lib/airtable/field-map';
 import { getRecord, updateRecord, createRecords, type AirtableResult } from '@/lib/airtable/rest';
@@ -54,9 +57,10 @@ export async function pushMediaSourceToMajorVideo(ms: MediaSource): Promise<void
 }
 
 /**
- * Create rows in Vishen's Clips table for app-generated clips, linked to the Major Video, and
- * stamp the correlation id both ways (Vishen row ← App Clip ID, Clip Suggestion ← Vishen Clip ID).
- * `appClipIds[i]` is the Clip Suggestion recId for `clips[i]` (same order).
+ * Create rows in Vishen's Clips table for APPROVED app clips, linked to the Major Video, tagged
+ * "AI Suggested", and stamp the correlation id both ways (Vishen row ← App Clip ID, Clip Suggestion
+ * ← Vishen Clip ID). Called only from the approval path (convertClipsToTickets) — pending
+ * suggestions are never mirrored here. `appClipIds[i]` is the Clip Suggestion recId for `clips[i]`.
  */
 export async function mirrorClipsToVishenBase(
   majorVideoRecId: string,
@@ -70,6 +74,7 @@ export async function mirrorClipsToVishenBase(
       [VC.fields.name]: (c.hookLine || `Clip ${i + 1}`).slice(0, 200),
       [VC.fields.notes]: clipNotes(c),
       [VC.fields.status]: VC.status_.todo,
+      [VC.fields.aiSuggested]: VC.aiSuggested_,
       [VC.links.source]: [majorVideoRecId],
       [VC.fields.appClipId]: appClipIds[i] ?? '',
     },
