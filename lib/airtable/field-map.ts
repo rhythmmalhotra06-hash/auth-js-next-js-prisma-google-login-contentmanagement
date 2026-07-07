@@ -301,6 +301,7 @@ export const MAJOR_VIDEOS = {
     select: 'fldoMVNmdmVEPz1Uc', // "Select" (multipleSelects) — content type (Podcast by Vishen, Youtube Long, Masterclass…)
     draftUrl: 'fldsqShd2qV1K1sae', // "Draft URL" (url)
     finalUrl: 'fldxHwImLHdsDWfuL', // "Final URL" (url)
+    aiSuggested: 'fldHhHijzk3vXX8mS', // "AI Suggested" (checkbox) — set true when the portal creates this from an approved AI suggestion
   },
   links: {
     clips: 'fldADk2WtsJawXAQy', // → 🎬 Clips (Vishen's), inverse of VISHEN_CLIPS.links.source
@@ -480,6 +481,7 @@ export const VISHEN_CLIPS = {
     draft: 'fldFih8GgfX0u5IU5', // "Draft" (url)
     notes: 'fldD5qTTkth62Fuyy', // "Notes" (multilineText)
     appClipId: 'fld8zMOlMzFG4Bn3v', // "App Clip ID" (singleLineText) — recId of the mirrored Clip Suggestion
+    aiSuggested: 'fldgybi2Iyp3Q5H4J', // "AI Suggested" (checkbox) — set true when the portal creates this from an approved AI clip suggestion
   },
   links: {
     source: 'fldAyfIU17piBfHZQ', // → 🎬 Major Videos (parent), inverse of MAJOR_VIDEOS.links.clips
