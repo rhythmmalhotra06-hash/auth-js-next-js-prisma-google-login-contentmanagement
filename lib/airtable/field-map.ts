@@ -65,6 +65,8 @@ export const TICKETS = {
     officialCalendar: 'fldGCRBjJXuiHjgw1', // → 📆 Official Calendar
     speakers: 'fldWYaTaYW6zh7G5f', // → Authors (Speakers/Authors)
     shoots: 'fldE0BeC6oUHs7NDk', // → 📺 Shoots & Raw Assets (optional)
+    clipSuggestions: 'fldP93wc2HWGsd7SZ', // → 🎬 Clip Suggestions (reverse of CLIP_SUGGESTIONS.links.ticket; auto-maintained by Airtable)
+    clipsSync: 'fld8evKonHAt3jBSH', // → Clips (Sync) — set by the ticket-link reconcile so the ticket points at the synced clip (perf/rating live here)
   },
 } as const;
 
@@ -394,6 +396,7 @@ export const CLIP_SUGGESTIONS = {
     addedDate: 'fldwmRqAJf2kcUrp3', // "Added Date" (dateTime) — set on create
     createTicket: 'fldNHVmcWAMuYVeXb', // "Create Ticket" (checkbox) — tick to convert to a ticket; convert cron unchecks it
     vishenClipId: 'fld4Qcvv1Q2biaJAO', // "Vishen Clip ID" (singleLineText) — recId of the mirrored row in Vishen's Clips table
+    appTicketId: 'fldtzqljzMbnmcRCD', // "App Ticket ID" (singleLineText) — ticket id created from this clip (Airtable recId or PG uuid); reconcile key. Do not edit by hand.
   },
   links: {
     mediaSource: 'fldcmDia3CiWEWJkI', // → 📺 Media Sources (parent)
@@ -489,4 +492,21 @@ export const VISHEN_CLIPS = {
   },
   status_: { todo: 'Todo', inProgress: 'In progress', done: 'Done' },
   aiSuggested_: 'AI Suggested', // the single option written into the AI Suggested tag (same on Major Videos)
+} as const;
+
+// Clips (Sync) — the read-only Airtable sync mirror of Vishen's 🎬 Clips, living inside the
+// Creative Services base. Carries the live clip signals (Rating, "24 Data", Released, Feedback).
+// The ticket-link reconcile (lib/media/ticket-links.ts) matches a mirror row to an app clip via
+// "App Clip ID" (a synced copy of VISHEN_CLIPS.appClipId = the Clip Suggestion recId) and links
+// it to the Prio ticket. NOTE: "App Clip ID" must be enabled in the Airtable sync's field set —
+// until then appClipIdName won't resolve and the reconcile's Clips (Sync) step is a no-op.
+export const CLIPS_SYNC = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblRXoSfDBFnpYk7G',
+  // Matched by field NAME in filterByFormula (Airtable formulas resolve names, not ids), so the
+  // reconcile works the moment the field is added to the sync — no field id needed here.
+  appClipIdName: 'App Clip ID',
+  links: {
+    prioTicket: 'fldBpNRq3e0oXka5F', // → 🎯 Prio: Creatives Requests (New) (reverse of TICKETS.links.clipsSync)
+  },
 } as const;

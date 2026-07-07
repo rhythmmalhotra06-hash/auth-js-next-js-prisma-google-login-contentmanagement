@@ -15,6 +15,8 @@ import {
 } from '@/lib/media/repository';
 import { createMajorVideo, derivePlatform } from '@/lib/media/major-videos';
 import { mirrorClipsToVishenBase } from '@/lib/media/vishen-sync';
+import { reconcileClipTicketLinks } from '@/lib/media/ticket-links';
+import { ticketAirtableId } from '@/lib/tickets/airtable-id';
 import { sliceTranscriptForClip } from '@/lib/clipping/transcript';
 import type { ReelsClip } from '@/lib/clipping/schema';
 
@@ -192,7 +194,16 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
     });
 
     if (res.ok && res.ticketId) {
-      await updateClipSuggestion(c.id, { status: 'Approved', ticketRecId: res.ticketId });
+      // res.ticketId is the backend's native id: an Airtable recId (airtable backend) or a PG
+      // uuid (postgres backend). Persist it as the pairing key, and set the Airtable Ticket link
+      // only when a real recId is resolvable now — otherwise the reconcile fills it once the PG
+      // ticket has mirrored to Airtable (writing a uuid into a link field is invalid).
+      const recId = await ticketAirtableId(res.ticketId);
+      await updateClipSuggestion(c.id, {
+        status: 'Approved',
+        appTicketId: res.ticketId,
+        ...(recId ? { ticketRecId: recId } : {}),
+      });
       converted.push(c);
       created += 1;
     } else {
@@ -205,6 +216,11 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
   // two-way sync then surfaces them in the "(Sync)" mirror tables. Best-effort — a Vishen hiccup
   // must not fail an approval whose tickets already exist.
   await pushApprovedClipsToVishen(converted, sources);
+
+  // Fill the ticket ↔ clip links now (best-effort). On the airtable backend the Clip
+  // Suggestions link resolves immediately; the Clips (Sync) link usually defers to the cron
+  // (POST /api/media/link-tickets) since the synced mirror row lands asynchronously.
+  try { await reconcileClipTicketLinks(); } catch { /* best-effort; cron retries */ }
 
   revalidatePath('/media');
   return { ok: failed.length === 0, created, failed };
