@@ -301,11 +301,12 @@ export const MAJOR_VIDEOS = {
     select: 'fldoMVNmdmVEPz1Uc', // "Select" (multipleSelects) — content type (Podcast by Vishen, Youtube Long, Masterclass…)
     draftUrl: 'fldsqShd2qV1K1sae', // "Draft URL" (url)
     finalUrl: 'fldxHwImLHdsDWfuL', // "Final URL" (url)
-    aiSuggested: 'fldHhHijzk3vXX8mS', // "AI Suggested" (checkbox) — set true when the portal creates this from an approved AI suggestion
+    aiSuggested: 'fld4ySW01N27CpmSs', // "AI Suggested" (singleSelect) — set to AI_SUGGESTED_TAG when the portal creates this from an approved AI suggestion
   },
   links: {
     clips: 'fldADk2WtsJawXAQy', // → 🎬 Clips (Vishen's), inverse of VISHEN_CLIPS.links.source
   },
+  aiSuggested_: 'AI Suggested', // the single option written into the AI Suggested tag
 } as const;
 
 // 🎬 Videos — Vishen's complete cross-channel content log in his own base (341 rows,
@@ -481,10 +482,11 @@ export const VISHEN_CLIPS = {
     draft: 'fldFih8GgfX0u5IU5', // "Draft" (url)
     notes: 'fldD5qTTkth62Fuyy', // "Notes" (multilineText)
     appClipId: 'fld8zMOlMzFG4Bn3v', // "App Clip ID" (singleLineText) — recId of the mirrored Clip Suggestion
-    aiSuggested: 'fldgybi2Iyp3Q5H4J', // "AI Suggested" (checkbox) — set true when the portal creates this from an approved AI clip suggestion
+    aiSuggested: 'fldshy239ELkRKxmk', // "AI Suggested" (singleSelect) — set to AI_SUGGESTED_TAG when the portal creates this from an approved AI clip suggestion
   },
   links: {
     source: 'fldAyfIU17piBfHZQ', // → 🎬 Major Videos (parent), inverse of MAJOR_VIDEOS.links.clips
   },
   status_: { todo: 'Todo', inProgress: 'In progress', done: 'Done' },
+  aiSuggested_: 'AI Suggested', // the single option written into the AI Suggested tag (same on Major Videos)
 } as const;

@@ -73,7 +73,7 @@ export async function createMajorVideo(input: {
     fields[VF.finalUrl] = input.url;
   }
   if (input.type) fields[VF.select] = [input.type];
-  if (input.aiSuggested) fields[VF.aiSuggested] = true;
+  if (input.aiSuggested) fields[VF.aiSuggested] = V.aiSuggested_;
   const res = await createRecord<Raw>(V.baseId, V.tableId, fields);
   if (!res.ok) return res;
   return { ok: true, data: { id: res.data.id } };

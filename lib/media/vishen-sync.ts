@@ -74,7 +74,7 @@ export async function mirrorClipsToVishenBase(
       [VC.fields.name]: (c.hookLine || `Clip ${i + 1}`).slice(0, 200),
       [VC.fields.notes]: clipNotes(c),
       [VC.fields.status]: VC.status_.todo,
-      [VC.fields.aiSuggested]: true,
+      [VC.fields.aiSuggested]: VC.aiSuggested_,
       [VC.links.source]: [majorVideoRecId],
       [VC.fields.appClipId]: appClipIds[i] ?? '',
     },
