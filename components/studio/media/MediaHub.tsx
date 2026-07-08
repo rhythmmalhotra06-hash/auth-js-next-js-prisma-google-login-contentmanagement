@@ -33,6 +33,7 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames }: 
   sourceNames: Record<string, string>;
 }) {
   const [tab, setTab] = useState<Tab>('overview');
+  const [boardAgency, setBoardAgency] = useState('all');
   const [rows, setRows] = useState<VishenVideo[]>(videos);
   const [proposed, setProposed] = useState<ClipSuggestion[]>(proposedClips);
   const [approved, setApproved] = useState<ClipSuggestion[]>(approvedClips);
@@ -96,13 +97,14 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames }: 
       </div>
 
       {tab === 'overview' && (
-        <MediaOverview rows={rows} onOpen={setSelected} onApprove={onApprove} onSendBack={onSendBack} onRate={onRate} />
+        <MediaOverview rows={rows} onOpen={setSelected} onApprove={onApprove} onSendBack={onSendBack}
+          onAgencyClick={(a) => { setBoardAgency(a); setTab('board'); }} />
       )}
       {tab === 'calendar' && <MediaCalendar videos={rows} onOpen={setSelected} />}
       {tab === 'clips' && (
         <ClipsPanel proposed={proposed} approved={approved} sourceNames={sourceNames} onApprove={onClipApprove} onDismiss={onClipDismiss} />
       )}
-      {tab === 'board' && <MediaBoard rows={rows} onOpen={setSelected} />}
+      {tab === 'board' && <MediaBoard key={boardAgency} rows={rows} onOpen={setSelected} initialAgency={boardAgency} />}
 
       {/* Trust footnote */}
       <p className="mt-8 flex items-start gap-3 rounded-md bg-brand-soft px-4 py-3.5 text-xs leading-relaxed text-brand-content">

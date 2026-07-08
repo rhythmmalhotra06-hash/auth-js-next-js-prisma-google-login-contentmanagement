@@ -156,23 +156,25 @@ export function MediaCalendar({ videos, onOpen }: { videos: VishenVideo[]; onOpe
           </div>
         </div>
 
-        {/* No-date-yet rail */}
-        <div className="overflow-hidden rounded-md border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
-          <div className="flex items-center gap-2 border-b border-border-default px-3.5 py-3 text-[12.5px] font-bold text-text">
+        {/* No-date-yet rail — capped height so a big backlog scrolls in place, never a wall */}
+        <div className="flex max-h-[560px] flex-col overflow-hidden rounded-md border border-border-default bg-surface shadow-[var(--mv-shadow-light)] lg:max-h-[640px]">
+          <div className="flex flex-none items-center gap-2 border-b border-border-default px-3.5 py-3 text-[12.5px] font-bold text-text">
             <Icon name="inbox" size={15} /> No date yet
             <span className="ml-auto text-2xs font-semibold text-text-subtle">{undated.length}</span>
           </div>
           {undated.length === 0 ? (
             <div className="px-3.5 py-6 text-center text-xs text-text-subtle">Everything has a date.</div>
           ) : (
-            undated.map((v) => (
-              <button key={v.id} onClick={() => onOpen(v)}
-                className="flex w-full items-center gap-2.5 border-b border-border-muted px-3.5 py-2.5 text-left last:border-0 hover:bg-bg-subtle">
-                <span className="h-2 w-2 flex-none rounded-full" style={{ background: agencyColor(v.source) }} />
-                <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-text">{v.name}</span>
-                {needsVishen(v) && <span className="flex-none text-warning-content" aria-hidden>⚑</span>}
-              </button>
-            ))
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {undated.map((v) => (
+                <button key={v.id} onClick={() => onOpen(v)}
+                  className="flex w-full items-center gap-2.5 border-b border-border-muted px-3.5 py-2.5 text-left last:border-0 hover:bg-bg-subtle">
+                  <span className="h-2 w-2 flex-none rounded-full" style={{ background: agencyColor(v.source) }} />
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-text">{v.name}</span>
+                  {needsVishen(v) && <span className="flex-none text-warning-content" aria-hidden>⚑</span>}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>

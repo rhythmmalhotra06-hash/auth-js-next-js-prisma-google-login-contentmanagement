@@ -1,29 +1,37 @@
 'use client';
 
-// Overview tab — the 3-section status hub: what needs Vishen, what each agency has in
-// flight, and what's recently live. The KPIs summarize; the sections below segment by status.
+// Overview tab — a calm summary cockpit, not a dump. "Needs you" shows the top few sign-offs
+// in a restrained card (single gold accent); "In motion" is a per-agency scoreboard (counts,
+// not item lists — the items live in Board/Calendar); "Live" is a small proof grid.
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import type { VishenVideo } from '@/lib/media/vishen-videos';
 import {
-  AGENCY_META, agencyColor, producerBucket, needsVishen,
-  STAGE_LABEL, STAGE_TONE, AgencyChip, Stars, RateStars,
+  AGENCY_META, producerBucket, needsVishen,
+  STAGE_LABEL, STAGE_TONE, AgencyChip, Stars,
 } from './shared';
 
-export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onRate }: {
+const NEEDS_PREVIEW = 5;
+
+export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onAgencyClick }: {
   rows: VishenVideo[];
   onOpen: (v: VishenVideo) => void;
   onApprove: (v: VishenVideo) => void;
   onSendBack: (v: VishenVideo) => void;
-  onRate: (v: VishenVideo, n: number) => void;
+  onAgencyClick: (agency: string) => void;
 }) {
   const since30 = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10); }, []);
+  const [showAllNeeds, setShowAllNeeds] = useState(false);
 
-  const waiting = useMemo(() => rows.filter(needsVishen), [rows]);
-  const inMotion = useMemo(() => rows.filter((v) => !needsVishen(v) && v.stage !== 'published'), [rows]);
+  // Soonest live date first; undated fall to the end.
+  const waiting = useMemo(
+    () => rows.filter(needsVishen).sort((a, b) => (a.liveDate ?? '9999').localeCompare(b.liveDate ?? '9999')),
+    [rows],
+  );
+  const inMotionCount = useMemo(() => rows.filter((v) => !needsVishen(v) && v.stage !== 'published').length, [rows]);
   const live = useMemo(
     () => rows.filter((v) => v.stage === 'published' && v.publishedLink)
       .sort((a, b) => (b.liveDate ?? '').localeCompare(a.liveDate ?? '')).slice(0, 6),
@@ -31,7 +39,6 @@ export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onRate }: {
   );
 
   const counts = useMemo(() => ({
-    production: rows.filter((v) => v.stage === 'production' || v.stage === 'filmed').length,
     editing: rows.filter((v) => v.stage === 'editing').length,
     published30: rows.filter((v) => v.stage === 'published' && (v.liveDate ?? '') >= since30).length,
   }), [rows, since30]);
@@ -40,48 +47,49 @@ export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onRate }: {
     return r.length ? (r.reduce((s, v) => s + (v.rating ?? 0), 0) / r.length).toFixed(1) : '—';
   }, [rows]);
 
-  // Agency lanes over in-flight work, most-loaded first.
-  const lanes = useMemo(() => {
+  // Per-agency scoreboard over the whole set — counts, not item lists.
+  const scoreboard = useMemo(() => {
     const map = new Map<string, VishenVideo[]>();
-    for (const v of inMotion) { const b = producerBucket(v.source); (map.get(b) ?? map.set(b, []).get(b)!).push(v); }
-    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
-  }, [inMotion]);
+    for (const v of rows) { const b = producerBucket(v.source); (map.get(b) ?? map.set(b, []).get(b)!).push(v); }
+    return [...map.entries()].map(([name, list]) => {
+      const rated = list.filter((r) => (r.rating ?? 0) > 0);
+      return {
+        name,
+        inFlight: list.filter((r) => r.stage !== 'published').length,
+        editing: list.filter((r) => r.stage === 'editing').length,
+        live30: list.filter((r) => r.stage === 'published' && (r.liveDate ?? '') >= since30).length,
+        avg: rated.length ? rated.reduce((s, r) => s + (r.rating ?? 0), 0) / rated.length : 0,
+      };
+    }).sort((a, b) => (b.inFlight + b.live30) - (a.inFlight + a.live30));
+  }, [rows, since30]);
+
+  const shownNeeds = showAllNeeds ? waiting : waiting.slice(0, NEEDS_PREVIEW);
 
   return (
     <div className="space-y-8">
       <KpiGrid>
         <Kpi label="Awaiting you" value={waiting.length} tone={waiting.length ? 'attention' : undefined} sub="on your desk" i={0} />
-        <Kpi label="In motion" value={inMotion.length} sub={`${counts.editing} in editing`} i={1} />
+        <Kpi label="In motion" value={inMotionCount} sub={`${counts.editing} in editing`} i={1} />
         <Kpi label="Published · 30d" value={counts.published30} sub="live across channels" i={2} />
         <Kpi label="Your avg rating" value={<>{avgRating}<span className="text-lg text-gold"> ★</span></>} i={3} />
       </KpiGrid>
 
-      {/* Needs you */}
+      {/* Needs you — calm card, one gold accent, capped */}
       <section>
-        <SecHead eyebrow="● Needs you" eyebrowTone="gold" title="Approve, rate, or send back" hint={`${waiting.length} waiting`} />
+        <SecHead eyebrow="● Needs you" eyebrowTone="gold" title="Approve, rate, or send back" hint={`${waiting.length} on your desk`} />
         {waiting.length === 0 ? (
-          <div className="rounded-md border border-border-default bg-surface p-5 text-sm text-text-subtle shadow-[var(--mv-shadow-light)]">
-            All caught up — nothing waiting on you. 🎉
-          </div>
+          <Placeholder>All caught up — nothing waiting on you. 🎉</Placeholder>
         ) : (
-          <section className="rounded-lg p-5 text-white shadow-[var(--mv-shadow-strong)]"
-            style={{ background: 'linear-gradient(150deg, var(--brand) 0%, var(--st-violet, #7c3aed) 118%)' }}>
-            <div className="mb-3.5 flex items-center gap-2.5">
-              <span className="text-base">✍️</span>
-              <h3 className="font-display text-base font-bold">These are on your desk</h3>
-              <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold">{waiting.length}</span>
-            </div>
-            <div className="space-y-2.5">
-              {waiting.map((v) => (
-                <div key={v.id} className="flex flex-wrap items-center gap-3 rounded-sm bg-surface p-3">
-                  <span className="grid h-9 w-9 flex-none place-items-center rounded-sm bg-brand-soft text-sm text-brand-content">🎬</span>
+          <div className="overflow-hidden rounded-md border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
+            <div className="border-l-[3px] border-gold">
+              {shownNeeds.map((v) => (
+                <div key={v.id} className="flex flex-wrap items-center gap-3 border-b border-border-muted px-4 py-3 last:border-0 hover:bg-bg-subtle">
                   <div className="min-w-0 flex-1">
                     <button onClick={() => onOpen(v)} className="block truncate text-left text-[13px] font-semibold text-text hover:underline">{v.name}</button>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
                       <AgencyChip source={v.source} />
                       <Badge tone={STAGE_TONE[v.stage]}>{STAGE_LABEL[v.stage]}</Badge>
                       {v.liveDate && <span className="text-2xs text-text-subtle">📅 {v.liveDate}</span>}
-                      <RateStars value={v.rating} onRate={(n) => onRate(v, n)} />
                     </div>
                   </div>
                   <div className="flex flex-none gap-2">
@@ -93,33 +101,37 @@ export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onRate }: {
                 </div>
               ))}
             </div>
-          </section>
+            {waiting.length > NEEDS_PREVIEW && (
+              <button onClick={() => setShowAllNeeds((s) => !s)}
+                className="w-full border-t border-border-default px-4 py-2.5 text-xs font-semibold text-brand-content hover:bg-bg-subtle">
+                {showAllNeeds ? 'Show fewer' : `Show all ${waiting.length} →`}
+              </button>
+            )}
+          </div>
         )}
       </section>
 
-      {/* In motion */}
+      {/* In motion — agency scoreboard (counts, not lists) */}
       <section>
-        <SecHead eyebrow="◆ In motion" title="What each agency is making" hint="not live yet" />
-        {lanes.length === 0 ? (
-          <div className="rounded-md border border-border-default bg-surface p-5 text-sm text-text-subtle shadow-[var(--mv-shadow-light)]">Nothing in flight right now.</div>
+        <SecHead eyebrow="◆ In motion" title="What each agency is making" hint="click an agency to see its work" />
+        {scoreboard.length === 0 ? (
+          <Placeholder>Nothing in flight right now.</Placeholder>
         ) : (
-          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
-            {lanes.map(([name, items]) => (
-              <div key={name} className="overflow-hidden rounded-md border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
-                <div className="flex items-center gap-2.5 border-b border-border-default px-4 py-3">
-                  <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: AGENCY_META[name].token }} />
-                  <span className="text-[13.5px] font-bold text-text">{name}</span>
-                  <span className="ml-auto text-xs text-text-subtle tabular-nums">{items.length} in flight</span>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {scoreboard.map((a) => (
+              <button key={a.name} onClick={() => onAgencyClick(a.name)}
+                className="rounded-md border border-border-default bg-surface p-4 text-left shadow-[var(--mv-shadow-light)] transition-all hover:-translate-y-0.5 hover:border-brand-border hover:shadow-[var(--mv-shadow-medium)]">
+                <div className="mb-3 flex items-center gap-2.5">
+                  <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: AGENCY_META[a.name].token }} />
+                  <span className="truncate text-[13.5px] font-bold text-text">{a.name}</span>
                 </div>
-                {items.map((v) => (
-                  <button key={v.id} onClick={() => onOpen(v)}
-                    className="flex w-full items-center gap-2.5 border-b border-border-muted px-4 py-2.5 text-left last:border-0 hover:bg-bg-subtle">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-text">{v.name}</span>
-                    <Badge tone={STAGE_TONE[v.stage]}>{STAGE_LABEL[v.stage]}</Badge>
-                    {v.liveDate && <span className="whitespace-nowrap text-2xs text-text-subtle">{v.liveDate}</span>}
-                  </button>
-                ))}
-              </div>
+                <div className="flex gap-5">
+                  <Stat k="In flight" v={<span className={cn(a.inFlight >= 10 && 'text-warning-content')}>{a.inFlight}</span>} />
+                  <Stat k="Editing" v={a.editing} />
+                  <Stat k="Live · 30d" v={a.live30} />
+                  <Stat k="Avg ★" v={a.avg ? <span className="tracking-wide text-gold">{a.avg.toFixed(1)}</span> : <span className="text-text-subtle">—</span>} />
+                </div>
+              </button>
             ))}
           </div>
         )}
@@ -129,14 +141,14 @@ export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onRate }: {
       <section>
         <SecHead eyebrow="◆ Live & performing" eyebrowTone="green" title="Recently published" />
         {live.length === 0 ? (
-          <div className="rounded-md border border-border-default bg-surface p-5 text-sm text-text-subtle shadow-[var(--mv-shadow-light)]">Nothing published yet.</div>
+          <Placeholder>Nothing published yet.</Placeholder>
         ) : (
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
             {live.map((v) => (
               <button key={v.id} onClick={() => onOpen(v)}
                 className="overflow-hidden rounded-md border border-border-default bg-surface text-left shadow-[var(--mv-shadow-light)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--mv-shadow-medium)]">
                 <div className="relative flex h-[74px] items-end p-3"
-                  style={{ background: `linear-gradient(135deg, ${agencyColor(v.source)}, var(--brand))` }}>
+                  style={{ background: `linear-gradient(135deg, ${AGENCY_META[producerBucket(v.source)].token}, var(--brand))` }}>
                   <span className="absolute left-2.5 top-2.5 rounded-full bg-white/90 px-2 py-0.5 text-[10.5px] font-bold text-g700">{v.channel}</span>
                 </div>
                 <div className="p-3">
@@ -155,6 +167,15 @@ export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onRate }: {
   );
 }
 
+function Stat({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1 text-[9.5px] font-bold uppercase tracking-wide text-text-subtle">{k}</div>
+      <div className="font-display text-lg font-bold leading-none tabular-nums text-text">{v}</div>
+    </div>
+  );
+}
+
 function SecHead({ eyebrow, eyebrowTone, title, hint }: {
   eyebrow: string; eyebrowTone?: 'gold' | 'green'; title: string; hint?: string;
 }) {
@@ -168,4 +189,8 @@ function SecHead({ eyebrow, eyebrowTone, title, hint }: {
       </div>
     </div>
   );
+}
+
+function Placeholder({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-md border border-border-default bg-surface p-5 text-sm text-text-subtle shadow-[var(--mv-shadow-light)]">{children}</div>;
 }

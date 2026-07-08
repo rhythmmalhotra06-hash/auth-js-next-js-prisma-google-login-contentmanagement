@@ -13,8 +13,10 @@ type TimeWindow = 'all' | 'year' | '30';
 const CHANNELS: VideoChannel[] = ['YouTube', 'LinkedIn', 'Instagram', 'Email', 'Web'];
 const COLUMNS = ['Title', 'Rating', 'Made by', 'Status', 'Sign-off', 'Channel', 'Live link', 'Live date'];
 
-export function MediaBoard({ rows, onOpen }: { rows: VishenVideo[]; onOpen: (v: VishenVideo) => void }) {
-  const [agency, setAgency] = useState('all');
+export function MediaBoard({ rows, onOpen, initialAgency = 'all' }: {
+  rows: VishenVideo[]; onOpen: (v: VishenVideo) => void; initialAgency?: string;
+}) {
+  const [agency, setAgency] = useState(initialAgency);
   const [channel, setChannel] = useState('all');
   const [time, setTime] = useState<TimeWindow>('all');
 

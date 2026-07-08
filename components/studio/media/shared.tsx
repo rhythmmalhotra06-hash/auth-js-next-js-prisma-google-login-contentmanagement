@@ -32,8 +32,10 @@ export function agencyColor(source: string | null): string {
 export const STAGE_LABEL: Record<VideoStage, string> = {
   production: 'In production', filmed: 'Filmed', editing: 'In editing', published: 'Published', other: 'Other',
 };
+// Calm by design: gold ('warning') is reserved for the single "needs you" accent, so
+// no stage badge uses it. Stages read as neutral pipeline states, not alarms.
 export const STAGE_TONE: Record<VideoStage, Tone> = {
-  production: 'info', filmed: 'brand', editing: 'warning', published: 'success', other: 'neutral',
+  production: 'info', filmed: 'brand', editing: 'neutral', published: 'success', other: 'neutral',
 };
 export const APPROVAL_TONE: Record<string, Tone> = {
   'To Review': 'warning', 'Approved': 'success', 'To Refine': 'brand', 'Rejected': 'danger', 'Parked for later': 'neutral',

@@ -81,3 +81,57 @@ This is the sign-off artifact. Also surface it as an Artifact link for easy revi
 
 - **Mock:** open `context/mockups/vishen-hub.html` in a browser (and as an Artifact). Confirm: tab switching; month grid renders with agency-colored chips + gold "needs you" markers; the "No date yet" rail shows undated items; filters (status/month/agency) narrow the grid; clicking a record opens the drawer with the lifecycle timeline; dark-mode toggle works; no horizontal page scroll; keyboard focus visible. Match against `studio-redesign.html` for chrome/spacing fidelity.
 - **Build:** `npm run dev`, sign in, visit `/studio` and `/studio/media`; drive Approve / Send back / rate on a To-Review item and confirm the write-back + revalidation (use the `verify` skill / a Playwright dev-login pass). `npm run lint` + `npm run build` clean.
+
+---
+
+# v2.1 — design-quality pass (2026-07-08)
+
+## Context
+
+Phase B shipped and deployed, but against **live volumes** it reads as a wall, not a designed
+surface (user: "horrible design"). Root cause: the hub components render **unbounded lists** —
+the Overview "Needs you" band stacks all **14** sign-offs inside one full-bleed saturated-purple
+gradient block, and "In motion" dumps **57** items under Internal + **29** under Simplex in ragged,
+uncapped columns. Gold is overused (every "In editing" badge is gold, plus the giant purple block),
+breaking "one focal accent, keep everything else quiet." The Calendar has the same latent bug — its
+"No date yet" rail would list ~80 undated items. Decisions locked with the user: **summary cockpit**
+for Overview, and **hub + a light landing polish**.
+
+## Fixes
+
+**1. Overview = summary cockpit** — `components/studio/media/MediaOverview.tsx`
+- **Needs you:** drop the full-bleed brand→violet gradient. Use a calm `bg-surface` card with a
+  single **gold left rail** (the one accent), gold eyebrow, count, and a **"Show all N"** inline
+  toggle. Sort soonest-live-date first; render top **5** by default. Rows are tidy — title · `AgencyChip`
+  · stage `Badge` · Approve / Send back. Move the star rating off the row into the drawer.
+- **In motion:** replace the unbounded agency lanes with a compact **agency scoreboard** — one card
+  per agency (colored dot + name + *in flight* / *in editing* / *live · 30d* / *avg ★*), computed by
+  grouping `rows` (reuse the `byProducer` shape from `lib/media/vishen-videos.ts` for inFlight/avg;
+  add in-editing inline). Clicking a card jumps to the **Board** filtered to that agency.
+- **Live & performing:** keep the 6-card grid (already capped) — it's the one section that reads well.
+
+**2. Cross-tab preset** — `MediaHub.tsx` + `MediaBoard.tsx`
+- `MediaHub` holds `boardAgency` state; the scoreboard card sets it and switches to the Board tab.
+  `MediaBoard` accepts an `initialAgency` prop (remount via `key={boardAgency}` so the preset applies).
+
+**3. Calendar rail cap** — `MediaCalendar.tsx`
+- Give the "No date yet" rail a fixed `max-h` with internal scroll + count header (prevents the
+  ~80-item wall). Day cells keep the existing 3-chip + "+N" cap.
+
+**4. Color calm** — `components/studio/media/shared.tsx`
+- Remap `STAGE_TONE.editing` from `'warning'` (gold) to `'neutral'` so lists stop shouting; gold is
+  reserved for the single Needs-you accent. (Sign-off "To Review" badge in the Board stays gold — it's
+  meaningful there and off the Overview.)
+
+**5. Landing polish** — `app/studio/page.tsx` (light pass, no restructure)
+- Tighten the sparse sign-off band (graceful "Untitled shoot / no details" state), and align the
+  section eyebrows/heading rhythm + spacing with the new hub. Keep the bento structure.
+
+## Verify
+
+Rebuild + dev-login fetch `/studio/media` (curl csrf → `/api/auth/callback/dev` as
+`rhythm@mindvalley.com` roles=Admin): confirm **Needs you** shows ≤5 rows + a "Show all 14" toggle in a
+calm card (no full purple block); **In motion** is a per-agency scoreboard (no 40-item dump); clicking an
+agency lands on Board filtered to it; the Calendar "No date yet" rail scrolls within a capped height; no
+gold stage badges in the lists. `npm run lint` + `npm run build` clean. Final visual check by the user on
+the deployed dev service.

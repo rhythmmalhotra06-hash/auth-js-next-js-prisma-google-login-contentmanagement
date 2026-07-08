@@ -69,7 +69,7 @@ function Row({ item, onDone }: { item: ShootSignOffItem; onDone: () => void }) {
               {item.filmingLocation && <span className="st-chip">📍 {item.filmingLocation}</span>}
             </div>
           ) : (
-            <div className="meta">No filming details yet</div>
+            <div className="meta">Filming details to come — open to review</div>
           )}
         </div>
         <div className="st-rowacts">
