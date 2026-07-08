@@ -69,7 +69,7 @@ export function MediaCalendar({ videos, onOpen }: { videos: VishenVideo[]; onOpe
   const todayKey = dateKey(now);
   const monthLabel = new Date(ym.y, ym.m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  const selCls = 'rounded-sm border border-border-strong bg-surface px-3 py-2 text-xs text-text';
+  const selCls = 'h-9 rounded-sm border border-border-strong bg-surface px-2.5 text-xs text-text';
 
   return (
     <div className="space-y-4">
@@ -82,9 +82,9 @@ export function MediaCalendar({ videos, onOpen }: { videos: VishenVideo[]; onOpe
           <button onClick={() => move(1)} aria-label="Next month"
             className="grid h-9 w-9 place-items-center rounded-sm border border-border-strong bg-surface text-text-muted hover:bg-bg-subtle">›</button>
           <button onClick={() => setYm({ y: now.getFullYear(), m: now.getMonth() })}
-            className="ml-1 rounded-sm border border-border-strong bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-bg-subtle">Today</button>
+            className="ml-1 h-9 rounded-sm border border-border-strong bg-surface px-3 text-xs font-semibold text-text hover:bg-bg-subtle">Today</button>
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as StatusBucket | 'all')} className={selCls}>
             <option value="all">All statuses</option>
             <option value="production">In production</option>

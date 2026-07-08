@@ -34,11 +34,11 @@ export function MediaBoard({ rows, onOpen, initialAgency = 'all' }: {
       inTime(v));
   }, [rows, agency, channel, time, since30]);
 
-  const selCls = 'rounded-sm border border-border-strong bg-surface px-3 py-2 text-xs text-text';
+  const selCls = 'h-9 rounded-sm border border-border-strong bg-surface px-2.5 text-xs text-text';
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
         <select aria-label="Agency" value={agency} onChange={(e) => setAgency(e.target.value)} className={selCls}>
           <option value="all">All agencies</option>
           {[...AGENCIES, 'Internal'].map((a) => <option key={a} value={a}>{a}</option>)}

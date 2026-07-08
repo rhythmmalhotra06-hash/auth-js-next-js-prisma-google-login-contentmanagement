@@ -48,15 +48,18 @@ async function StudioBody() {
     <div className="studio-bento">
       {/* Engine — the hero on top */}
       <section className="sz-funnel">
-        <div className="sec-head"><h3>The engine</h3><span className="hint">your pipeline, stage by stage — click a stage to open its grid</span></div>
+        <div className="sec-head">
+          <div><span className="eyebrow">⛓ The engine</span><h3>Your pipeline, stage by stage</h3></div>
+          <span className="hint">click a stage to open its grid</span>
+        </div>
         <PipelineFunnel stages={funnelStages} />
       </section>
 
       {/* Your media → clip ideas — the work closest to Vishen */}
       <section className="sz-media">
         <div className="sec-head">
-          <h3>Your media → clip ideas</h3>
-          <span className="hint">your films, podcasts and talks — and the clips we can ship from them</span>
+          <div><span className="eyebrow blue">🎬 Your media</span><h3>Your media → clip ideas</h3></div>
+          <span className="hint">films, podcasts and talks — and the clips we can ship</span>
           <Link href="/studio/media" className="st-seeall">Your full media board →</Link>
         </div>
         <AddVishenMedia />
@@ -87,7 +90,7 @@ async function StudioBody() {
       {/* Flowing to your launches */}
       <section className="sz-launches">
         <div className="sec-head">
-          <h3>Flowing to your launches</h3>
+          <div><span className="eyebrow">⛁ Launches</span><h3>Flowing to your launches</h3></div>
           <span className="hint">work grouped by the event it serves</span>
           {launches.length > 3 && <Link href="/studio/launches" className="st-seeall">See all →</Link>}
         </div>
@@ -98,7 +101,10 @@ async function StudioBody() {
 
       {/* Recently shipped — thin proof strip */}
       <section className="sz-shipped">
-        <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
+        <div className="sec-head">
+          <div><span className="eyebrow green">✓ Delivered</span><h3>Recently shipped</h3></div>
+          <span className="hint">who made it</span>
+        </div>
         <div className="st-shipstrip">
           <div className="lhs"><b>{data.recentShipped.length} recently shipped</b> · all delivered</div>
           <Link href="/studio/shipped" className="st-seeall">See all →</Link>
