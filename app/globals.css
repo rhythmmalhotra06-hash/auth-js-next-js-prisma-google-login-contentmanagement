@@ -785,6 +785,9 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
   background:linear-gradient(135deg,var(--brand) 0%,var(--brand-bright) 100%);box-shadow:var(--sh-2);
   transition:transform var(--ease) .15s,box-shadow var(--ease) .15s;}
 .submit-cta:hover{transform:translateY(-2px);box-shadow:var(--sh-3);}
+.submit-cta .cta-copy{flex:1;min-width:200px;}
+.submit-cta h3{font-size:19px;color:#fff;}
+.submit-cta p{font-size:13.5px;color:rgba(255,255,255,.92);margin:4px 0 0;}
 .submit-cta-ic{width:48px;height:48px;border-radius:var(--r-md);background:rgba(255,255,255,.18);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .submit-cta-btn{background:#fff;color:var(--brand);border:none;font-weight:600;padding:12px 20px;flex-shrink:0;}

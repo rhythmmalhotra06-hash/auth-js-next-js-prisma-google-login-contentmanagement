@@ -1,39 +1,29 @@
 // Page header for a media source: what this episode is + what the page does.
 // Server component — pure presentation from the already-fetched MediaSource.
 import type { MediaSource } from '@/lib/media/repository';
+import { Badge, type Tone } from '@/components/ui/Badge';
+import { Icon } from '@/components/ui/Icon';
 
-function StatusBadge({ status }: { status: string | null }) {
-  const map: Record<string, string> = {
-    New: 'bg-bg-subtle text-text-muted',
-    Transcribing: 'bg-warning-soft text-warning-content',
-    'Clips Suggested': 'bg-success-soft text-success-content',
-    Error: 'bg-danger-soft text-danger',
-  };
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${map[status ?? ''] ?? 'bg-bg-subtle text-text-muted'}`}>
-      {status ?? 'New'}
-    </span>
-  );
-}
-
-const Chip = ({ children }: { children: React.ReactNode }) => (
-  <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">{children}</span>
-);
+const STATUS_TONE: Record<string, Tone> = {
+  New: 'neutral',
+  Transcribing: 'info',
+  'Clips Suggested': 'brand',
+  Error: 'danger',
+};
 
 export function MediaHero({ source }: { source: MediaSource }) {
   const hasClips = source.clipCount > 0;
+  const status = source.status ?? 'New';
   return (
-    <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <section className="card pad">
       <div className="flex flex-wrap items-center gap-2">
-        {source.platform && <Chip>{source.platform}</Chip>}
-        <StatusBadge status={source.status} />
-        {source.audience && <Chip>{source.audience} audience</Chip>}
+        <Badge tone={STATUS_TONE[status] ?? 'neutral'}>{status}</Badge>
+        {source.platform && <Badge tone="neutral" dot={false}>{source.platform}</Badge>}
+        {source.audience && <Badge tone="neutral" dot={false}>{source.audience} audience</Badge>}
         {source.submittedVia && <span className="text-xs text-text-subtle">via {source.submittedVia}</span>}
       </div>
 
-      <h1 className="mt-3 text-xl font-semibold leading-snug text-text">
-        {source.title || source.sourceUrl || 'Untitled source'}
-      </h1>
+      <h1 className="mt-3 text-xl leading-snug">{source.title || source.sourceUrl || 'Untitled source'}</h1>
       {source.guestShow && <p className="mt-1 text-sm text-text-muted">{source.guestShow}</p>}
 
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-text-muted">
@@ -44,13 +34,8 @@ export function MediaHero({ source }: { source: MediaSource }) {
       </p>
 
       {source.sourceUrl && (
-        <a
-          href={source.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 inline-flex items-center gap-1 rounded-sm border border-border-default px-3 py-1.5 text-sm text-brand hover:bg-bg-subtle"
-        >
-          Watch original{source.platform ? ` on ${source.platform}` : ''} ↗
+        <a href={source.sourceUrl} target="_blank" rel="noreferrer" className="btn sm mt-4 no-underline">
+          <Icon name="ext" size={15} /> Watch original{source.platform ? ` on ${source.platform}` : ''}
         </a>
       )}
     </section>

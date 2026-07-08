@@ -7,6 +7,7 @@ import { getIntakeReferenceData } from '@/lib/intake/data';
 import { MediaDetailClient } from '@/components/media/MediaDetailClient';
 import { MediaHero } from '@/components/media/MediaHero';
 import { CardSkeleton } from '@/components/ui/Skeletons';
+import { Icon } from '@/components/ui/Icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,9 @@ export default async function MediaDetailPage({
     if (srcRes.error.type === 'NOT_FOUND') notFound();
     return (
       <AppShell title="Media">
-        <div className="rounded-sm bg-danger-soft px-4 py-3 text-sm text-danger">Couldn’t load: {srcRes.error.message}</div>
+        <div className="banner bg-danger-soft text-danger-content">
+          <Icon name="bolt" size={18} /> <div>Couldn’t load: {srcRes.error.message}</div>
+        </div>
       </AppShell>
     );
   }
@@ -56,9 +59,11 @@ export default async function MediaDetailPage({
 
   return (
     <AppShell title="Clips" subtitle={source.guestShow || undefined}>
-      <Link href="/media" className="text-sm text-brand hover:underline">← All clips</Link>
+      <Link href="/media" className="st-back">
+        <Icon name="arrow" size={14} className="rotate-180" /> All clips
+      </Link>
 
-      <div className="mt-3 space-y-6">
+      <div className="space-y-6">
         <MediaHero source={source} />
         <Suspense fallback={<CardSkeleton height={300} />}>
           <MediaBody source={source} autostart={autostart === '1'} />

@@ -4,19 +4,9 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { convertClipsToTickets } from '@/app/media/actions';
-
-const inputCls =
-  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-text">{label}</label>
-      {hint && <p className="text-xs text-text-muted">{hint}</p>}
-      {children}
-    </div>
-  );
-}
+import { Field, Input, Select } from '@/components/ui/Field';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 
 export function ClipApprovalModal({
   clipIds,
@@ -45,6 +35,8 @@ export function ClipApprovalModal({
     [eventTypeId, reference.assetTypes],
   );
 
+  const label = `${clipIds.length} ticket${clipIds.length === 1 ? '' : 's'}`;
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -72,56 +64,60 @@ export function ClipApprovalModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-md bg-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-text">Create {clipIds.length} ticket{clipIds.length === 1 ? '' : 's'}</h3>
-        <p className="mt-1 text-sm text-text-muted">
-          Taxonomy is shared across all selected clips. Title and brief are auto-filled per clip; tickets enter the Vishen review queue.
-        </p>
+    <div className="scrim" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="mh">
+          <h3 className="text-base font-semibold">Create {label}</h3>
+          <button type="button" className="icobtn" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
+        </div>
 
-        <form onSubmit={onSubmit} className="mt-5 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Event Type">
-              <select className={inputCls} value={eventTypeId} onChange={(e) => { setEventTypeId(e.target.value); setAssetTypeId(''); }}>
-                <option value="">Select…</option>
-                {reference.eventTypes.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Asset Type" hint={eventTypeId ? undefined : 'Pick an Event Type first'}>
-              <select className={inputCls} value={assetTypeId} onChange={(e) => setAssetTypeId(e.target.value)} disabled={!eventTypeId}>
-                <option value="">{eventTypeId ? `Select… (${filteredAssetTypes.length})` : 'Select an Event Type first'}</option>
-                {filteredAssetTypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Official Calendar" hint="Optional">
-              <select className={inputCls} value={officialCalendarId} onChange={(e) => setOfficialCalendarId(e.target.value)}>
-                <option value="">Select…</option>
-                {reference.officialCalendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Due date">
-              <input type="date" className={inputCls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-            </Field>
-            <Field label="Requested by" hint="Defaults to you">
-              <select className={inputCls} value={requesterId} onChange={(e) => setRequesterId(e.target.value)}>
-                <option value="">Me (current user)</option>
-                {reference.employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Team / Service Level">
-              <select className={inputCls} value={teamServiceLevel} onChange={(e) => setTeamServiceLevel(e.target.value)}>
-                {reference.teamServiceLevels.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </Field>
+        <form onSubmit={onSubmit}>
+          <div className="mb">
+            <p className="mb-4 text-sm text-text-muted">
+              Taxonomy is shared across all selected clips. Title and brief are auto-filled per clip; tickets enter the Vishen review queue.
+            </p>
+
+            <div className="form-grid">
+              <Field label="Event Type">
+                <Select value={eventTypeId} onChange={(e) => { setEventTypeId(e.target.value); setAssetTypeId(''); }}>
+                  <option value="">Select…</option>
+                  {reference.eventTypes.map((et) => <option key={et.id} value={et.id}>{et.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Asset Type" hint={eventTypeId ? undefined : 'Pick an Event Type first'}>
+                <Select value={assetTypeId} onChange={(e) => setAssetTypeId(e.target.value)} disabled={!eventTypeId}>
+                  <option value="">{eventTypeId ? `Select… (${filteredAssetTypes.length})` : 'Select an Event Type first'}</option>
+                  {filteredAssetTypes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Official Calendar" hint="Optional">
+                <Select value={officialCalendarId} onChange={(e) => setOfficialCalendarId(e.target.value)}>
+                  <option value="">Select…</option>
+                  {reference.officialCalendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Due date">
+                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </Field>
+              <Field label="Requested by" hint="Defaults to you">
+                <Select value={requesterId} onChange={(e) => setRequesterId(e.target.value)}>
+                  <option value="">Me (current user)</option>
+                  {reference.employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Team / Service Level">
+                <Select value={teamServiceLevel} onChange={(e) => setTeamServiceLevel(e.target.value)}>
+                  {reference.teamServiceLevels.map((t) => <option key={t} value={t}>{t}</option>)}
+                </Select>
+              </Field>
+            </div>
+
+            {error && <div className="mt-4 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger-content">{error}</div>}
           </div>
 
-          {error && <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
-
-          <div className="flex justify-end gap-2 border-t border-border-default pt-4">
-            <button type="button" onClick={onClose} className="rounded-sm px-4 py-2 text-sm text-text-muted hover:bg-bg-subtle">Cancel</button>
-            <button type="submit" disabled={submitting} className="rounded-sm px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-bright disabled:opacity-60">
-              {submitting ? 'Creating…' : `Create ${clipIds.length} ticket${clipIds.length === 1 ? '' : 's'}`}
-            </button>
+          <div className="mf">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? 'Creating…' : `Create ${label}`}</Button>
           </div>
         </form>
       </div>
