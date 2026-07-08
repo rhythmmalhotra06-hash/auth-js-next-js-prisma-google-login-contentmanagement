@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ClipSuggestion } from '@/lib/media/repository';
 import type { IntakeReferenceData } from '@/lib/intake/data';
+import { Badge } from '@/components/ui/Badge';
+import { Icon } from '@/components/ui/Icon';
 import { ClipActions } from '@/components/vishen/ClipActions';
 import { ClipApprovalModal } from '@/components/media/ClipApprovalModal';
 import { CLIP_TYPES, DEFAULT_CLIP_TYPE } from '@/lib/clipping/clip-types';
@@ -89,22 +91,17 @@ export function MediaDetailClient({
   // the (has-clips) collapsible re-run card.
   const controls = (
     <>
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-xs text-text-muted">
-          Clip type
-          <select
-            value={clipType}
-            onChange={(e) => setClipType(e.target.value)}
-            disabled={running}
-            className="rounded-sm border border-border-default px-2 py-1 text-xs text-text outline-none focus-visible:border-brand"
-          >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label>Clip type</label>
+          <select value={clipType} onChange={(e) => setClipType(e.target.value)} disabled={running}>
             {CLIP_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
-        </label>
+        </div>
         <label
-          className="flex items-center gap-2 text-xs text-text-muted"
+          className="mb-0 flex items-center gap-2 self-end text-sm text-text-muted"
           title="When on, the AI first searches the web for current context about the guest and topic, then writes clips grounded in what it finds. More accurate and up-to-date, but adds about a minute. When off, clips are generated from the transcript alone — faster, and usually enough."
         >
           <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} />
@@ -119,9 +116,9 @@ export function MediaDetailClient({
       </p>
 
       <div className="mt-4">
-        <label className="block text-sm font-medium text-text">
+        <label>
           Transcript{' '}
-          <span className="font-normal text-text-muted">
+          <span className="font-normal text-text-subtle">
             {hasClips
               ? '— optional. Paste a transcript to re-run from different source text; leave blank to reuse the existing one.'
               : '— recommended. Paste it for instant, reliable clips; leave blank to try auto-fetch.'}
@@ -132,21 +129,16 @@ export function MediaDetailClient({
           onChange={(e) => setPasted(e.target.value)}
           rows={6}
           placeholder="Paste the full transcript here…"
-          className="mt-1.5 w-full rounded-sm border border-border-default px-3 py-2 text-sm outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]"
         />
       </div>
 
       {error && status === 'Error' && (
-        <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>
+        <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger-content">{error}</div>
       )}
-      {runError && <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{runError}</div>}
+      {runError && <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger-content">{runError}</div>}
 
       <div className="mt-4 flex items-center gap-3">
-        <button
-          onClick={suggest}
-          disabled={running}
-          className="rounded-sm bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-60"
-        >
+        <button onClick={suggest} disabled={running} className="btn primary">
           {running ? 'Generating… (1–3 min)' : hasClips ? 'Re-run clips' : 'Suggest clips'}
         </button>
       </div>
@@ -154,65 +146,58 @@ export function MediaDetailClient({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="stack">
       {/* No clips yet → generation is the primary action. */}
       {!hasClips && (
-        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
-          <h2 className="text-sm font-semibold text-text">Generate clip suggestions</h2>
-          <p className="mt-1 text-xs text-text-subtle">Turn this episode into short-form clips. Paste the transcript for the most reliable results.</p>
-          <div className="mt-4">{controls}</div>
+        <div className="card pad">
+          <div className="mb-1 flex items-baseline gap-2">
+            <h3 className="text-sm font-semibold">Generate clip suggestions</h3>
+          </div>
+          <p className="mb-4 text-xs text-text-subtle">Turn this episode into short-form clips. Paste the transcript for the most reliable results.</p>
+          {controls}
         </div>
       )}
 
       {/* Clips — approve / dismiss. Approved clips become tickets on the Manager Queue. */}
       {hasClips && (
-        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
+        <div className="card pad">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-text">{clips.length} suggested clips</h2>
-              <span className="text-xs text-text-subtle">Click a clip to see details · approve it, then raise a ticket right here.</span>
+              <h3 className="text-sm font-semibold">{clips.length} suggested clips</h3>
+              <span className="hint">Click a clip to see details · approve it, then raise a ticket right here.</span>
             </div>
             {/* Card / Grid view toggle */}
-            <div className="inline-flex rounded-sm border border-border-default p-0.5 text-xs">
+            <div className="segmented">
               {(['card', 'grid'] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  aria-pressed={view === v}
-                  className={`rounded-[6px] px-3 py-1 capitalize ${view === v ? 'bg-brand text-white' : 'text-text-muted hover:text-text'}`}
-                >
+                <button key={v} type="button" onClick={() => setView(v)} aria-pressed={view === v} className={`capitalize ${view === v ? 'on' : ''}`}>
                   {v}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className={`mt-4 ${view === 'grid' ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3' : 'space-y-3'}`}>
+          <div className={`mt-4 ${view === 'grid' ? 'clipgrid' : 'stack'}`}>
             {clips.map((c) => {
               const approved = c.status === 'Approved';
               const dismissed = c.status === 'Dismissed';
               const isOpen = expanded.has(c.id);
               return (
-                <div
-                  key={c.id}
-                  className={`flex flex-col rounded-xl border ${dismissed ? 'border-border-muted opacity-50' : 'border-border-default'}`}
-                >
+                <div key={c.id} className={`card ${dismissed ? 'opacity-50' : ''}`}>
                   {/* Header — click to expand/collapse the clip's full details */}
                   <button
                     type="button"
                     onClick={() => toggleExpanded(c.id)}
-                    className="flex w-full items-start gap-2 rounded-xl px-4 py-3 text-left hover:bg-bg-subtle"
+                    className="flex w-full items-start gap-2 rounded-md px-4 py-3 text-left hover:bg-bg-subtle"
                     aria-expanded={isOpen}
                   >
-                    <span className={`mt-0.5 text-text-subtle transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                    <Icon name="chevron" size={16} className={`mt-0.5 shrink-0 text-text-subtle transition-transform ${isOpen ? '' : '-rotate-90'}`} />
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         {typeof c.viralityScore === 'number' && (
-                          <span className="rounded-full bg-gold/15 px-2 py-0.5 text-xs font-medium text-gold-content">★ {c.viralityScore}</span>
+                          <span className="badge b-gold">★ {c.viralityScore}</span>
                         )}
-                        {approved && <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs text-success-content">Approved</span>}
-                        {dismissed && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs text-text-muted">Dismissed</span>}
+                        {approved && <Badge tone="success">Approved</Badge>}
+                        {dismissed && <Badge tone="neutral">Dismissed</Badge>}
                         <span className="text-xs text-text-subtle">
                           {c.timestampStart}–{c.timestampEnd}{c.format ? ` · ${c.format}` : ''}
                         </span>
@@ -237,19 +222,13 @@ export function MediaDetailClient({
                       {/* Approved → raise the ticket inline (same modal/flow as the Manager Queue). */}
                       {approved && !c.ticketId && (
                         <div className="mt-3">
-                          <button
-                            type="button"
-                            onClick={() => setModalClipId(c.id)}
-                            className="rounded-sm border border-border-default px-3 py-1.5 text-sm font-semibold text-brand hover:bg-bg-subtle"
-                          >
-                            Convert to ticket →
+                          <button type="button" onClick={() => setModalClipId(c.id)} className="btn sm">
+                            Convert to ticket <Icon name="arrow" size={14} />
                           </button>
                         </div>
                       )}
                       {approved && c.ticketId && (
-                        <div className="mt-3">
-                          <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs text-success-content">Ticket created</span>
-                        </div>
+                        <div className="mt-3"><Badge tone="success">Ticket created</Badge></div>
                       )}
                     </div>
                   )}
@@ -262,16 +241,11 @@ export function MediaDetailClient({
 
       {/* Re-run — secondary once clips exist; collapsed by default. */}
       {hasClips && (
-        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
-          <button
-            type="button"
-            onClick={() => setShowRegenerate((v) => !v)}
-            className="flex w-full items-center gap-2 text-left"
-            aria-expanded={showRegenerate}
-          >
-            <span className={`text-text-subtle transition-transform ${showRegenerate ? 'rotate-90' : ''}`}>›</span>
-            <h2 className="text-sm font-semibold text-text">Not quite right? Re-run clips</h2>
-            <span className="ml-auto text-xs text-text-subtle">change clip type or settings</span>
+        <div className="card pad">
+          <button type="button" onClick={() => setShowRegenerate((v) => !v)} className="flex w-full items-center gap-2 text-left" aria-expanded={showRegenerate}>
+            <Icon name="chevron" size={16} className={`shrink-0 text-text-subtle transition-transform ${showRegenerate ? '' : '-rotate-90'}`} />
+            <h3 className="text-sm font-semibold">Not quite right? Re-run clips</h3>
+            <span className="hint ml-auto">change clip type or settings</span>
           </button>
           {showRegenerate && <div className="mt-4">{controls}</div>}
         </div>
@@ -280,16 +254,11 @@ export function MediaDetailClient({
       {/* Full content strategy — the rest of the generated output (titles, hook,
           thumbnail, pull quotes, show notes, distribution). Collapsed by default. */}
       {strategy && (
-        <div className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
-          <button
-            type="button"
-            onClick={() => setShowStrategy((v) => !v)}
-            className="flex w-full items-center gap-2 text-left"
-            aria-expanded={showStrategy}
-          >
-            <span className={`text-text-subtle transition-transform ${showStrategy ? 'rotate-90' : ''}`}>›</span>
-            <h2 className="text-sm font-semibold text-text">Full content strategy</h2>
-            <span className="ml-auto text-xs text-text-subtle">titles · hook · thumbnail · pull quotes · show notes · distribution</span>
+        <div className="card pad">
+          <button type="button" onClick={() => setShowStrategy((v) => !v)} className="flex w-full items-center gap-2 text-left" aria-expanded={showStrategy}>
+            <Icon name="chevron" size={16} className={`shrink-0 text-text-subtle transition-transform ${showStrategy ? '' : '-rotate-90'}`} />
+            <h3 className="text-sm font-semibold">Full content strategy</h3>
+            <span className="hint ml-auto">titles · hook · thumbnail · pull quotes · show notes · distribution</span>
           </button>
           {showStrategy && (
             <div className="mt-4">

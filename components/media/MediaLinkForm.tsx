@@ -3,19 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitMediaLink } from '@/app/media/actions';
-
-const inputCls =
-  'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-text">{label}</label>
-      {hint && <p className="text-xs text-text-muted">{hint}</p>}
-      {children}
-    </div>
-  );
-}
+import { Field, Input, Select } from '@/components/ui/Field';
+import { Button } from '@/components/ui/Button';
 
 export function MediaLinkForm() {
   const router = useRouter();
@@ -41,35 +30,33 @@ export function MediaLinkForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">
+    <form onSubmit={onSubmit} className="card pad space-y-4">
       <Field label="YouTube URL" hint="v1 supports YouTube links only.">
-        <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" autoFocus />
+        <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…" autoFocus />
       </Field>
       <Field label="Title" hint="Optional — auto-filled from YouTube when we fetch the transcript.">
-        <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Episode / interview title" />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Episode / interview title" />
       </Field>
       <Field label="Download link" hint="Optional — Dropbox/Drive link editors download to cut. Carried onto every ticket made from this media.">
-        <input className={inputCls} value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} placeholder="https://www.dropbox.com/…" />
+        <Input value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} placeholder="https://www.dropbox.com/…" />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Guest / Show" hint="Optional context for the clip prompt.">
-          <input className={inputCls} value={guestShow} onChange={(e) => setGuestShow(e.target.value)} placeholder="e.g. The Diary of a CEO" />
+          <Input value={guestShow} onChange={(e) => setGuestShow(e.target.value)} placeholder="e.g. The Diary of a CEO" />
         </Field>
         <Field label="Audience">
-          <select className={inputCls} value={audience} onChange={(e) => setAudience(e.target.value)}>
+          <Select value={audience} onChange={(e) => setAudience(e.target.value)}>
             <option value="">—</option>
             <option value="Cold">Cold</option>
             <option value="Warm">Warm</option>
-          </select>
+          </Select>
         </Field>
       </div>
 
-      {error && <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
+      {error && <div className="rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger-content">{error}</div>}
 
       <div className="flex justify-end gap-2 border-t border-border-default pt-4">
-        <button type="submit" disabled={submitting} className="rounded-sm px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-bright disabled:opacity-60">
-          {submitting ? 'Adding…' : 'Add to inbox'}
-        </button>
+        <Button type="submit" disabled={submitting}>{submitting ? 'Adding…' : 'Add to inbox'}</Button>
       </div>
     </form>
   );

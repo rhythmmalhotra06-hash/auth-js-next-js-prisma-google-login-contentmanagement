@@ -10,7 +10,7 @@ import type { Strategy } from '@/lib/clipping/schema';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-md bg-surface p-5 shadow-sm ring-1 ring-border-default">
+    <section className="card pad">
       <h3 className="text-sm font-semibold text-text">{title}</h3>
       <div className="mt-3 space-y-3 text-sm text-text-muted">{children}</div>
     </section>
@@ -39,7 +39,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
             <div className="space-y-2">
               {s.episodeTitles.map((t, i) => (
                 <div key={i} className="rounded-sm bg-bg-subtle p-3">
-                  <span className="rounded bg-brand/10 px-1.5 py-0.5 text-xs capitalize text-brand">{t.format}</span>
+                  <span className="rounded-sm bg-brand-soft px-1.5 py-0.5 text-xs capitalize text-brand-content">{t.format}</span>
                   <p className="mt-1 font-medium text-text">{t.title}</p>
                   <p className="text-xs text-text-subtle">{t.description}</p>
                 </div>
@@ -50,7 +50,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
           {s.episodeDescriptionLong && <p><span className="font-medium text-text">Full:</span> {s.episodeDescriptionLong}</p>}
           {s.youtubeTags?.length > 0 && (
             <p className="flex flex-wrap gap-1 pt-1">
-              {s.youtubeTags.map((tag, i) => <span key={i} className="rounded bg-bg-subtle px-1.5 py-0.5 text-xs text-text-subtle">{tag}</span>)}
+              {s.youtubeTags.map((tag, i) => <span key={i} className="rounded-sm bg-bg-subtle px-1.5 py-0.5 text-xs text-text-subtle">{tag}</span>)}
             </p>
           )}
         </Section>
@@ -105,7 +105,7 @@ export function StrategyDetail({ strategy }: { strategy: Strategy }) {
       {s.pullQuotes?.length > 0 && (
         <Section title="Pull quotes">
           {s.pullQuotes.map((q, i) => (
-            <div key={i} className="border-l-2 border-gold pl-3">
+            <div key={i} className="border-l-2 border-brand pl-3">
               <p className="italic">“{q.quote}”</p>
               <p className="text-xs text-text-subtle">{q.visualTreatment}</p>
             </div>
