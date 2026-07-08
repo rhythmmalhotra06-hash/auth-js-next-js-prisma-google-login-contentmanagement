@@ -41,6 +41,15 @@
   --mv-red-content:    #8a1f1f;
   --mv-red-soft:       #ffe4e4;
 
+  /* ————————————————— Agency palette (categorical — "who made it") —————————————————
+     Distinct hues for the media calendar/lanes only, so each agency reads at a glance.
+     NOT a status axis and NOT the accent — status stays green/blue/amber/red, gold stays attention. */
+  --mv-ag-simplex:  #0d9488; /* Simplex Media — teal */
+  --mv-ag-svishen:  #4f46e5; /* Simplex (by Vishen) — indigo */
+  --mv-ag-talking:  #db2777; /* Talking Heads — pink */
+  --mv-ag-twocomma: #0891b2; /* Two Comma PR — cyan */
+  --mv-ag-internal: #64748b; /* Internal / everyone else — slate */
+
   /* ————————————————— Neutral (cool, purple-tinted) ————————————————— */
   --mv-grey-100: #faf9fc;
   --mv-grey-150: #f4f2f8;
@@ -135,6 +144,13 @@
   --mv-amber-soft:  #2e2410;
   --mv-red-soft:    #2e1414;
   --mv-gold-soft:   #2e2410;
+
+  /* Agency palette — lifted for contrast on dark */
+  --mv-ag-simplex:  #2dd4bf;
+  --mv-ag-svishen:  #a5b4fc;
+  --mv-ag-talking:  #f472b6;
+  --mv-ag-twocomma: #22d3ee;
+  --mv-ag-internal: #a3aec2;
 
   --mv-shadow-light:  0 1px 2px 0 rgba(0,0,0,0.5), 0 4px 12px 0 rgba(0,0,0,0.4);
   --mv-shadow-medium: 0 4px 16px 0 rgba(0,0,0,0.55);
@@ -239,6 +255,8 @@
   --tier-mid-bg: #e1f5ee; --tier-mid-ink: #085041;
   --tier-soc-bg: #fbeaf0; --tier-soc-ink: #72243e;
   --tier-low-bg: #f1efe8; --tier-low-ink: #444441;
+  --ag-simplex: var(--mv-ag-simplex); --ag-svishen: var(--mv-ag-svishen); --ag-talking: var(--mv-ag-talking);
+  --ag-twocomma: var(--mv-ag-twocomma); --ag-internal: var(--mv-ag-internal);
 }
 .dark, [data-mv-theme="dark"] {
   --tier-high-bg: #2c2350; --tier-high-ink: #c3b6f4;

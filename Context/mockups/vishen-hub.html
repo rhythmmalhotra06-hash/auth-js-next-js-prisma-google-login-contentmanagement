@@ -1,0 +1,800 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vishen's Studio — media hub + calendar</title>
+<style>
+  /* ── Brand tokens (from app/globals.css; self-contained, CSP-safe) ── */
+  :root{
+    --brand:#572280; --brand-bright:#6d34a0; --brand-content:#3f1860; --brand-soft:#f1eaf7; --brand-border:#e3d4f0;
+    --violet:#7c3aed; --violet-soft:#ede4fb;
+    --gold:#f5b000; --gold-bright:#ffc62e; --gold-content:#6b4e00; --gold-soft:#fff6e0;
+    --green:#159f65; --green-content:#0e6742; --green-soft:#e8f9f1;
+    --blue:#2563cf; --blue-content:#1c3bd4; --blue-soft:#ebf2ff;
+    --red:#dc2626; --red-soft:#fdecec;
+    --g700:#1a1523;
+    --bg:#fff; --bg-muted:#faf9fc; --bg-subtle:#f4f2f8; --surface:#fff; --surface-2:#faf9fc;
+    --text:#1a1523; --text-muted:#5f5870; --text-subtle:#948ba6;
+    --border:rgba(40,20,60,.10); --border-strong:rgba(40,20,60,.20);
+    /* categorical agency palette — distinct from status hues */
+    --ag-simplex:#0d9488; --ag-svishen:#4f46e5; --ag-talking:#db2777; --ag-twocomma:#0891b2; --ag-internal:#64748b;
+    --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-full:9999px;
+    --sh-1:0 1px 2px 0 rgba(40,20,60,.05), 0 4px 14px 0 rgba(40,20,60,.05);
+    --sh-2:0 6px 22px 0 rgba(40,20,60,.10);
+    --sh-3:0 18px 46px 0 rgba(40,20,60,.20);
+    --ease:cubic-bezier(.2,0,0,1);
+    --font-display:"Plus Jakarta Sans","Bricolage Grotesque","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-body:"Plus Jakarta Sans","Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  }
+  :root[data-theme="dark"]{
+    --brand:#b98fe0; --brand-bright:#cda9ec; --brand-content:#e9dcf6; --brand-soft:#2a1c3a; --brand-border:#3d2c52;
+    --violet:#a878ee; --violet-soft:#241a33;
+    --gold:#ffc62e; --gold-bright:#ffd45e; --gold-content:#f5cf7a; --gold-soft:#2e2410;
+    --green:#37c790; --green-content:#5fd6a1; --green-soft:#11291f;
+    --blue:#6ea2f2; --blue-content:#8fb4f5; --blue-soft:#14233f;
+    --red:#f27573; --red-soft:#2c1414;
+    --bg:#15101d; --bg-muted:#0f0b16; --bg-subtle:#1f1730; --surface:#1b1426; --surface-2:#181022;
+    --text:#f3eefa; --text-muted:#b3a9c4; --text-subtle:#877c99;
+    --border:rgba(200,180,230,.13); --border-strong:rgba(200,180,230,.24);
+    --ag-simplex:#2dd4bf; --ag-svishen:#a5b4fc; --ag-talking:#f472b6; --ag-twocomma:#22d3ee; --ag-internal:#a3aec2;
+    --sh-1:0 1px 2px 0 rgba(0,0,0,.5), 0 4px 14px 0 rgba(0,0,0,.4);
+    --sh-2:0 6px 22px 0 rgba(0,0,0,.55); --sh-3:0 22px 46px 0 rgba(0,0,0,.65);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --brand:#b98fe0; --brand-bright:#cda9ec; --brand-content:#e9dcf6; --brand-soft:#2a1c3a; --brand-border:#3d2c52;
+      --violet:#a878ee; --violet-soft:#241a33;
+      --gold:#ffc62e; --gold-bright:#ffd45e; --gold-content:#f5cf7a; --gold-soft:#2e2410;
+      --green:#37c790; --green-content:#5fd6a1; --green-soft:#11291f;
+      --blue:#6ea2f2; --blue-content:#8fb4f5; --blue-soft:#14233f;
+      --red:#f27573; --red-soft:#2c1414;
+      --bg:#15101d; --bg-muted:#0f0b16; --bg-subtle:#1f1730; --surface:#1b1426; --surface-2:#181022;
+      --text:#f3eefa; --text-muted:#b3a9c4; --text-subtle:#877c99;
+      --border:rgba(200,180,230,.13); --border-strong:rgba(200,180,230,.24);
+      --ag-simplex:#2dd4bf; --ag-svishen:#a5b4fc; --ag-talking:#f472b6; --ag-twocomma:#22d3ee; --ag-internal:#a3aec2;
+      --sh-1:0 1px 2px 0 rgba(0,0,0,.5), 0 4px 14px 0 rgba(0,0,0,.4);
+      --sh-2:0 6px 22px 0 rgba(0,0,0,.55); --sh-3:0 22px 46px 0 rgba(0,0,0,.65);
+    }
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--text);background:var(--bg-muted);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:clip;}
+  h1,h2,h3,h4{margin:0;font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;text-wrap:balance;}
+  button{font-family:inherit;cursor:pointer;color:inherit;}
+  a{color:inherit;text-decoration:none;}
+  :focus-visible{outline:2px solid var(--brand-bright);outline-offset:2px;border-radius:4px;}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+  #atmo{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(58vw 48vh at 84% -10%, color-mix(in srgb,var(--brand) 12%,transparent), transparent 60%),
+      radial-gradient(44vw 40vh at -8% 2%, color-mix(in srgb,var(--brand) 7%,transparent), transparent 55%),
+      radial-gradient(40vw 44vh at 52% 114%, color-mix(in srgb,var(--gold) 5%,transparent), transparent 60%);}
+
+  /* ── Topbar ── */
+  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:11px 26px;
+    background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:saturate(150%) blur(12px);border-bottom:1px solid var(--border);}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(140deg,var(--brand),var(--brand-bright));color:#fff;display:grid;place-items:center;font-size:15px;position:relative;flex:none;}
+  .mark::after{content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid var(--bg);}
+  .brand b{font-family:var(--font-display);font-size:15px;letter-spacing:-.01em;display:block;line-height:1.1;}
+  .brand small{font-size:11px;color:var(--text-subtle);}
+  .topnav{display:flex;gap:2px;margin-left:14px;}
+  .topnav a{font-size:13px;font-weight:600;color:var(--text-muted);padding:7px 13px;border-radius:var(--r-sm);}
+  .topnav a:hover{background:var(--bg-subtle);color:var(--text);}
+  .topnav a.active{background:var(--brand-soft);color:var(--brand-content);}
+  .tb-spacer{flex:1;}
+  .icobtn{width:36px;height:36px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text-muted);display:grid;place-items:center;font-size:15px;flex:none;}
+  .icobtn:hover{background:var(--bg-subtle);color:var(--text);}
+  .newbtn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:var(--r-sm);background:var(--brand);border:1px solid var(--brand);color:#fff;}
+  .newbtn:hover{background:var(--brand-bright);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,var(--brand),var(--brand-bright));color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none;}
+
+  .wrap{max-width:1220px;margin:0 auto;padding:24px 26px 84px;display:flex;flex-direction:column;gap:24px;}
+  .page{display:none;}
+  .page.on{display:flex;flex-direction:column;gap:24px;}
+
+  /* ── Shared bits ── */
+  .hero{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .hero .lede{flex:1;min-width:280px;}
+  .hero h1{font-size:28px;line-height:1.08;}
+  .hero p{margin:7px 0 0;color:var(--text-muted);font-size:14px;max-width:60ch;}
+  .tally{display:flex;gap:9px;align-items:center;font-size:12.5px;color:var(--text-subtle);margin-top:11px;flex-wrap:wrap;}
+  .tally b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums;}
+  .tally .sep{width:4px;height:4px;border-radius:50%;background:var(--text-subtle);}
+  .note{font-size:12px;color:var(--text-subtle);} .note b{color:var(--text-muted);font-weight:600;}
+
+  .sec{display:flex;flex-direction:column;gap:13px;min-width:0;}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);display:inline-flex;align-items:center;gap:8px;}
+  .eyebrow.gold{color:var(--gold-content);} .eyebrow.green{color:var(--green-content);} .eyebrow.blue{color:var(--blue-content);}
+  .sechead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+  .sechead h2{font-size:16.5px;}
+  .sechead .hint{font-size:12.5px;color:var(--text-subtle);}
+  .sechead .hint.right,.sechead .seeall{margin-left:auto;}
+  .sechead .seeall{font-size:12.5px;color:var(--brand-content);font-weight:600;}
+  .sechead .seeall:hover{text-decoration:underline;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);}
+  .pad{padding:16px 18px;}
+  .muted{color:var(--text-subtle);}
+
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;line-height:1;padding:9px 14px;border-radius:var(--r-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);transition:all .12s var(--ease);white-space:nowrap;}
+  .btn:hover{background:var(--bg-subtle);transform:translateY(-1px);}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;} .btn.primary:hover{background:var(--brand-bright);}
+  .btn.green{background:var(--green);border-color:var(--green);color:#fff;}
+  .btn.sm{padding:7px 12px;font-size:12px;}
+  .btn.onfill{background:rgba(255,255,255,.16);border-color:transparent;color:#fff;} .btn.onfill:hover{background:rgba(255,255,255,.26);}
+  .btn.approve{background:#fff;border-color:#fff;color:var(--brand);}
+
+  /* ── Pipeline ribbon ── */
+  .ribbon{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1);}
+  .stage{padding:17px 18px 18px;border:0;border-right:1px solid var(--border);position:relative;text-align:left;background:transparent;transition:background .14s var(--ease);display:block;width:100%;}
+  .stage:last-child{border-right:0;}
+  .stage::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:.9;}
+  .stage:hover{background:color-mix(in srgb,var(--accent) 8%,var(--surface));}
+  .stage .top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .stage .dot{width:9px;height:9px;border-radius:3px;background:var(--accent);flex:none;}
+  .stage .name{font-size:11.5px;font-weight:700;color:var(--text-muted);letter-spacing:.01em;}
+  .stage .count{font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:var(--text);}
+  .stage .sub{font-size:11px;color:var(--text-subtle);margin-top:6px;line-height:1.35;}
+  .stage .flow{position:absolute;right:-10px;top:22px;z-index:2;width:20px;height:20px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--text-subtle);font-size:10px;}
+  .stage:last-child .flow{display:none;}
+  .stage.s-prod{--accent:var(--violet);} .stage.s-review{--accent:var(--gold);} .stage.s-ready{--accent:var(--blue);} .stage.s-pub{--accent:var(--green);}
+  @media(max-width:720px){.ribbon{grid-template-columns:1fr 1fr;} .stage:nth-child(2) .flow{display:none;}}
+
+  /* ── Needs-you gold band ── */
+  .commit{background:linear-gradient(150deg,var(--brand) 0%,var(--violet) 118%);border-radius:var(--r-lg);padding:18px 19px;color:#fff;box-shadow:var(--sh-3);}
+  .commit-head{display:flex;align-items:center;gap:10px;margin-bottom:13px;}
+  .commit-head h3{font-size:15.5px;color:#fff;}
+  .commit-head .cnt{margin-left:auto;background:rgba(255,255,255,.2);font-size:11px;font-weight:700;padding:2px 9px;border-radius:var(--r-full);}
+  .commit-row{background:var(--surface);border-radius:var(--r-sm);padding:12px 13px;display:flex;align-items:center;gap:12px;margin-bottom:9px;}
+  .commit-row:last-child{margin-bottom:0;}
+  .commit-row .body{flex:1;min-width:0;color:var(--text);}
+  .commit-row .body b{font-size:13px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .commit-row .metaline{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;}
+  .commit-row .ic{width:36px;height:36px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-content);display:grid;place-items:center;font-size:15px;flex:none;}
+  .acts{display:flex;gap:7px;flex:none;}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;border-radius:var(--r-full);padding:2px 9px;background:var(--bg-subtle);color:var(--text-muted);}
+  .two{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:start;}
+  @media(max-width:860px){.two{grid-template-columns:1fr;}}
+  .clipline{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);}
+  .clipline:last-child{border-bottom:0;} .clipline .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .vir{flex:none;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;background:var(--brand-soft);color:var(--brand-content);border-radius:var(--r-full);padding:1px 8px;}
+
+  /* peek strip */
+  .peek{display:flex;flex-direction:column;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);overflow:hidden;}
+  .peekrow{display:flex;align-items:center;gap:11px;padding:11px 15px;border-bottom:1px solid var(--border);}
+  .peekrow:last-child{border-bottom:0;}
+  .peekrow:hover{background:color-mix(in srgb,var(--brand) 4%,var(--surface));}
+  .peekrow .d{font-size:11px;font-weight:700;color:var(--text-muted);width:52px;flex:none;font-variant-numeric:tabular-nums;text-align:center;line-height:1.2;}
+  .peekrow .d b{display:block;font-family:var(--font-display);font-size:16px;color:var(--text);}
+  .peekrow .t{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* slim strip */
+  .shipstrip{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--sh-1);}
+  .shipstrip .lhs{font-size:13px;color:var(--text-muted);}
+  .shipstrip .seeall{margin-left:auto;font-size:12.5px;color:var(--brand-content);font-weight:600;}
+  .foot{display:flex;gap:12px;align-items:flex-start;background:var(--brand-soft);color:var(--brand-content);border-radius:var(--r-md);padding:15px 17px;font-size:12.5px;line-height:1.6;} .foot .ic{flex:none;font-size:15px;}
+
+  /* ── Hub tabs ── */
+  .hubhead{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .tabs{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-full);padding:3px;gap:2px;box-shadow:var(--sh-1);flex-wrap:wrap;}
+  .tabs button{border:none;background:transparent;color:var(--text-muted);font-size:13px;font-weight:600;padding:8px 15px;border-radius:var(--r-full);display:inline-flex;align-items:center;gap:8px;transition:all .15s var(--ease);white-space:nowrap;}
+  .tabs button .pip{font-size:10px;font-weight:700;background:var(--gold-soft);color:var(--gold-content);border-radius:var(--r-full);padding:1px 7px;font-variant-numeric:tabular-nums;}
+  .tabs button[aria-selected="true"]{background:var(--brand);color:#fff;box-shadow:var(--sh-1);}
+  .tabs button[aria-selected="true"] .pip{background:rgba(255,255,255,.24);color:#fff;}
+  .tabpanel{display:none;flex-direction:column;gap:22px;}
+  .tabpanel.on{display:flex;}
+
+  /* KPI row */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr;}}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;box-shadow:var(--sh-1);text-align:left;width:100%;}
+  .kpi .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}
+  .kpi .v{font-family:var(--font-display);font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:6px;font-variant-numeric:tabular-nums;}
+  .kpi .s{font-size:11.5px;color:var(--text-muted);margin-top:3px;}
+  .kpi.attn{border-color:color-mix(in srgb,var(--gold) 42%,transparent);background:linear-gradient(180deg,var(--gold-soft),var(--surface) 70%);}
+  .kpi.attn .v{color:var(--gold-content);}
+
+  /* status pill + agency dot */
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;border-radius:var(--r-full);padding:3px 10px;white-space:nowrap;}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .p-prod{background:var(--violet-soft);color:var(--violet);} .p-edit{background:var(--brand-soft);color:var(--brand-content);}
+  .p-review{background:var(--gold-soft);color:var(--gold-content);} .p-ready{background:var(--blue-soft);color:var(--blue-content);} .p-pub{background:var(--green-soft);color:var(--green-content);}
+  .agdot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block;}
+  .agchip{display:inline-flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap;font-weight:600;color:var(--text-muted);}
+  .stars{color:var(--gold);letter-spacing:1.5px;font-size:11px;white-space:nowrap;} .stars i{color:var(--border-strong);font-style:normal;}
+  .chan{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;color:var(--text-muted);} .chan .g{width:8px;height:8px;border-radius:2px;flex:none;}
+
+  /* In-motion agency lanes */
+  .lanes{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  @media(max-width:820px){.lanes{grid-template-columns:1fr;}}
+  .lane{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);overflow:hidden;}
+  .lane-head{display:flex;align-items:center;gap:10px;padding:12px 15px;border-bottom:1px solid var(--border);}
+  .lane-head .nm{font-size:13.5px;font-weight:700;} .lane-head .cnt{margin-left:auto;font-size:12px;color:var(--text-subtle);font-variant-numeric:tabular-nums;}
+  .lane-item{display:flex;align-items:center;gap:10px;padding:10px 15px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s var(--ease);}
+  .lane-item:last-child{border-bottom:0;} .lane-item:hover{background:color-mix(in srgb,var(--brand) 4%,var(--surface));}
+  .lane-item .t{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* Live grid */
+  .livegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:860px){.livegrid{grid-template-columns:1fr 1fr;}} @media(max-width:560px){.livegrid{grid-template-columns:1fr;}}
+  .livecard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);overflow:hidden;cursor:pointer;transition:border-color .15s var(--ease),box-shadow .15s var(--ease),transform .15s var(--ease);}
+  .livecard:hover{border-color:var(--brand-border);box-shadow:var(--sh-2);transform:translateY(-2px);}
+  .livecard .cap{height:90px;background:linear-gradient(135deg,var(--brand),var(--violet));position:relative;display:flex;align-items:flex-end;padding:10px 12px;}
+  .livecard .cap .chanb{position:absolute;top:9px;left:10px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.9);color:var(--g700);border-radius:var(--r-full);padding:2px 9px;}
+  .livecard .cap .views{color:#fff;font-family:var(--font-display);font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.3);}
+  .livecard .cap .views small{font-size:11px;font-weight:600;opacity:.85;}
+  .livecard .lb{padding:11px 13px;}
+  .livecard .lb b{font-size:13px;font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .livecard .lb .meta{display:flex;align-items:center;gap:8px;margin-top:7px;justify-content:space-between;}
+
+  /* ── Calendar ── */
+  .calbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .calnav{display:inline-flex;align-items:center;gap:6px;}
+  .calnav .mlabel{font-family:var(--font-display);font-size:17px;font-weight:700;min-width:150px;text-align:center;}
+  .filters{margin-left:auto;display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  select{font-family:inherit;font-size:12.5px;padding:8px 11px;border:1px solid var(--border-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);}
+  .callayout{display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:start;}
+  @media(max-width:900px){.callayout{grid-template-columns:1fr;}}
+  .calgrid{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);overflow:hidden;}
+  .caldow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--bg-subtle);border-bottom:1px solid var(--border);}
+  .caldow span{padding:9px 10px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}
+  .calbody{display:grid;grid-template-columns:repeat(7,1fr);}
+  .celld{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:104px;padding:6px;display:flex;flex-direction:column;gap:4px;position:relative;}
+  .celld:nth-child(7n){border-right:0;}
+  .celld.out{background:var(--surface-2);} .celld.out .dn{color:var(--text-subtle);opacity:.6;}
+  .celld .dn{font-size:11.5px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums;padding:1px 3px;}
+  .celld.today .dn{background:var(--brand);color:#fff;border-radius:var(--r-full);width:22px;height:22px;display:grid;place-items:center;}
+  .cchip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 7px;border-radius:var(--r-xs);background:color-mix(in srgb,var(--ac) 12%,var(--surface));color:var(--text);border-left:3px solid var(--ac);cursor:pointer;overflow:hidden;transition:background .1s var(--ease);}
+  .cchip:hover{background:color-mix(in srgb,var(--ac) 22%,var(--surface));}
+  .cchip .ct{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cchip.needs{border-left-color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,var(--surface));}
+  .cchip .flag{color:var(--gold-content);flex:none;}
+  .cmore{font-size:10.5px;color:var(--text-subtle);font-weight:600;padding-left:4px;}
+
+  .railcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);overflow:hidden;}
+  .railcard .rh{padding:12px 14px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .railcard .rh .cnt{margin-left:auto;font-size:11px;color:var(--text-subtle);font-weight:600;}
+  .railitem{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s var(--ease);}
+  .railitem:last-child{border-bottom:0;} .railitem:hover{background:color-mix(in srgb,var(--brand) 4%,var(--surface));}
+  .railitem .t{flex:1;min-width:0;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .callegend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);align-items:center;}
+  .callegend .li{display:inline-flex;align-items:center;gap:6px;}
+
+  /* ── Clips ── */
+  .clipgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+  .clip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-1);overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s var(--ease),box-shadow .15s var(--ease),transform .15s var(--ease);}
+  .clip:hover{border-color:var(--brand-border);box-shadow:var(--sh-2);transform:translateY(-2px);}
+  .clip .cap{height:118px;background:linear-gradient(135deg,var(--brand),var(--violet));position:relative;}
+  .clip .cap .ts{position:absolute;bottom:8px;left:9px;font-size:10.5px;font-weight:700;background:rgba(0,0,0,.4);color:#fff;border-radius:var(--r-full);padding:2px 8px;font-variant-numeric:tabular-nums;}
+  .clip .cap .vir{position:absolute;top:8px;right:9px;font-size:11px;font-weight:700;background:var(--gold);color:var(--gold-content);border-radius:var(--r-full);padding:2px 9px;font-variant-numeric:tabular-nums;}
+  .clip .cap .aib{position:absolute;top:8px;left:9px;font-size:10px;font-weight:700;background:var(--brand-soft);color:var(--brand-content);border-radius:var(--r-full);padding:2px 8px;}
+  .clip .body{padding:12px 13px;display:flex;flex-direction:column;gap:8px;flex:1;}
+  .clip .hk{font-size:13px;font-weight:600;line-height:1.35;}
+  .clip .src{font-size:11.5px;color:var(--text-subtle);}
+  .clip .foot{display:flex;gap:7px;margin-top:auto;padding-top:4px;}
+  .clip .foot .btn{flex:1;justify-content:center;}
+
+  /* ── Board table ── */
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);box-shadow:var(--sh-1);}
+  table.list{width:100%;border-collapse:collapse;font-size:13px;min-width:920px;}
+  table.list th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);padding:12px 15px;border-bottom:1px solid var(--border);background:var(--bg-subtle);white-space:nowrap;}
+  table.list th.num,table.list td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  table.list td{padding:11px 15px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  table.list tr:last-child td{border-bottom:0;}
+  table.list tbody tr{cursor:pointer;transition:background .1s var(--ease);}
+  table.list tbody tr:hover{background:color-mix(in srgb,var(--brand) 4%,var(--surface));}
+  .ttl{font-weight:600;max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ttl small{display:block;font-weight:500;font-size:11px;color:var(--text-subtle);margin-top:1px;}
+  .lnk{color:var(--brand-content);font-weight:600;} .lnk:hover{text-decoration:underline;}
+  .empty{padding:34px;text-align:center;color:var(--text-subtle);font-size:13px;}
+
+  /* ── Drawer ── */
+  .scrim{position:fixed;inset:0;background:rgba(20,10,30,.42);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s var(--ease);z-index:40;} .scrim.open{opacity:1;pointer-events:auto;}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(500px,94vw);background:var(--bg);box-shadow:var(--sh-3);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .26s var(--ease);z-index:41;display:flex;flex-direction:column;} .drawer.open{transform:none;}
+  .dr-head{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;} .dr-head h3{font-size:16.5px;line-height:1.32;} .dr-head .x{margin-left:auto;flex:none;}
+  .dr-body{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+  .sub-h{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:10px;display:block;}
+  .meta-grid{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;font-size:12.5px;align-items:center;} .meta-grid dt{color:var(--text-subtle);font-weight:600;} .meta-grid dd{margin:0;text-align:right;}
+  .timeline{display:flex;flex-direction:column;}
+  .step{display:flex;gap:12px;padding-bottom:15px;position:relative;} .step:last-child{padding-bottom:0;}
+  .step:not(:last-child)::before{content:"";position:absolute;left:8px;top:19px;bottom:-2px;width:2px;background:var(--border-strong);} .step.done:not(:last-child)::before{background:var(--green);}
+  .step .node{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-strong);background:var(--surface);flex:none;display:grid;place-items:center;font-size:9px;color:transparent;margin-top:1px;}
+  .step.done .node{background:var(--green);border-color:var(--green);color:#fff;} .step.current .node{border-color:var(--brand);background:var(--brand);color:#fff;box-shadow:0 0 0 4px var(--brand-soft);}
+  .step .lab{font-size:13px;font-weight:600;} .step .when{font-size:11px;color:var(--text-subtle);margin-top:1px;} .step.pending .lab{color:var(--text-subtle);font-weight:500;}
+  .rate{display:flex;gap:4px;} .rate button{font-size:18px;line-height:1;color:var(--border-strong);background:none;border:0;padding:0;} .rate button.on{color:var(--gold);}
+  .perf-panel{background:linear-gradient(180deg,var(--green-soft),var(--surface) 82%);border:1px solid color-mix(in srgb,var(--green) 32%,transparent);border-radius:var(--r-md);padding:16px 17px;}
+  .perf-panel .src{font-size:10.5px;color:var(--green-content);font-weight:700;display:inline-flex;gap:6px;letter-spacing:.03em;}
+  .perf-panel .n{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:8px;}
+  .drawer-acts{display:flex;gap:8px;} .drawer-acts .btn{flex:1;justify-content:center;}
+
+  .rise{animation:rise .45s var(--ease) both;} @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--g700);color:#fff;padding:12px 20px;border-radius:var(--r-full);font-size:12.5px;font-weight:600;box-shadow:var(--sh-3);z-index:60;opacity:0;transition:opacity .2s var(--ease);pointer-events:none;}
+  .toast.on{opacity:1;}
+</style>
+
+<div id="atmo"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">▶</span><span><b>Content Studio</b><small>Vishen Lakhiani</small></span></div>
+  <nav class="topnav">
+    <a href="#" data-page="studio" class="active">Studio</a>
+    <a href="#" data-page="media">Your media</a>
+  </nav>
+  <div class="tb-spacer"></div>
+  <button class="icobtn" title="Toggle light / dark" onclick="toggleTheme()">◐</button>
+  <button class="newbtn">+ New request</button>
+  <span class="avatar">VL</span>
+</header>
+
+<main class="wrap">
+
+  <!-- ══════════════════ PAGE 1 · STUDIO LANDING ══════════════════ -->
+  <section class="page on" id="page-studio">
+
+    <div class="hero rise">
+      <div class="lede">
+        <h1>Studio</h1>
+        <p>What's moving, what needs you, and how it performed — everything made for your channels, end to end.</p>
+        <div class="tally" id="tally"></div>
+      </div>
+    </div>
+    <p class="note rise" style="margin:-12px 0 0">Click a <b>stage</b> or a <b>row</b> to open it · <b>◐</b> for dark mode · the full board &amp; calendar live under <b>Your media</b>.</p>
+
+    <!-- Pipeline ribbon -->
+    <section class="sec rise" style="animation-delay:.05s">
+      <div class="sechead"><div><span class="eyebrow">⛓ The engine</span><h2>Your pipeline, stage by stage</h2></div><span class="hint right">click a stage to open it in the calendar</span></div>
+      <div class="ribbon" id="ribbon"></div>
+    </section>
+
+    <!-- Needs you -->
+    <section class="sec rise" style="animation-delay:.1s">
+      <div class="sechead"><div><span class="eyebrow gold">● Needs you</span><h2>Awaiting your sign-off</h2></div><a class="seeall" href="#" onclick="go('media','overview');return false;">Open the hub →</a></div>
+      <div class="two">
+        <div class="commit">
+          <div class="commit-head"><span>🎬</span><h3>Shoots &amp; videos awaiting you</h3><span class="cnt" id="s-need-cnt">0</span></div>
+          <div id="s-need-list"></div>
+        </div>
+        <div class="card pad">
+          <div class="eyebrow" style="margin-bottom:10px">✦ Clips awaiting you · <span id="s-clip-cnt">0</span></div>
+          <div id="s-clip-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- This month peek -->
+    <section class="sec rise" style="animation-delay:.15s">
+      <div class="sechead"><div><span class="eyebrow blue">🗓 Coming up</span><h2>Scheduled &amp; live this month</h2></div><a class="seeall" href="#" onclick="go('media','calendar');return false;">Open calendar →</a></div>
+      <div class="peek" id="s-peek"></div>
+    </section>
+
+    <!-- Slim strips -->
+    <section class="sec rise" style="animation-delay:.2s">
+      <div class="shipstrip"><div class="lhs"><b id="s-live-n">0</b> published for you in the last 30 days · all live across your channels</div><a class="seeall" href="#" onclick="go('media','overview');return false;">See what's live →</a></div>
+    </section>
+
+    <footer class="sec rise" style="animation-delay:.24s">
+      <div class="foot"><span class="ic">🔒</span><div><b>Nothing here changes without you.</b> The team and AI surface proposals; they go live the moment you approve. This is your window onto their work — not a second system to maintain.</div></div>
+    </footer>
+  </section>
+
+  <!-- ══════════════════ PAGE 2 · MEDIA HUB ══════════════════ -->
+  <section class="page" id="page-media">
+
+    <div class="hubhead rise">
+      <div class="lede" style="flex:1;min-width:260px">
+        <h1 style="font-size:26px">Your media</h1>
+        <p style="margin:6px 0 0;color:var(--text-muted);font-size:13.5px;max-width:56ch">Everything made for your channels — by your team and the agencies. Catch up, approve, and see what's coming.</p>
+      </div>
+    </div>
+
+    <div class="tabs rise" role="tablist" style="animation-delay:.04s">
+      <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-tab="calendar" aria-selected="false">Calendar</button>
+      <button role="tab" data-tab="clips" aria-selected="false">Clips &amp; suggestions <span class="pip" id="tab-clip-pip">0</span></button>
+      <button role="tab" data-tab="board" aria-selected="false">Board</button>
+    </div>
+
+    <!-- TAB · OVERVIEW -->
+    <div class="tabpanel on" id="tab-overview">
+      <div class="kpis" id="ov-kpis"></div>
+
+      <section class="sec">
+        <div class="sechead"><span class="eyebrow gold">● Needs you</span><h2>Approve, rate, or send back</h2><span class="hint right" id="ov-need-hint"></span></div>
+        <div id="ov-need"></div>
+      </section>
+
+      <section class="sec">
+        <div class="sechead"><span class="eyebrow">◆ In motion</span><h2>What each agency is making</h2><span class="hint right">not live yet</span></div>
+        <div class="lanes" id="ov-lanes"></div>
+      </section>
+
+      <section class="sec">
+        <div class="sechead"><span class="eyebrow green">◆ Live &amp; performing</span><h2>Recently published</h2><a class="seeall" href="#" onclick="setTab('board');return false;">Full board →</a></div>
+        <div class="livegrid" id="ov-live"></div>
+      </section>
+    </div>
+
+    <!-- TAB · CALENDAR -->
+    <div class="tabpanel" id="tab-calendar">
+      <div class="calbar">
+        <div class="calnav">
+          <button class="icobtn" onclick="calMove(-1)" aria-label="Previous month">‹</button>
+          <span class="mlabel" id="cal-mlabel"></span>
+          <button class="icobtn" onclick="calMove(1)" aria-label="Next month">›</button>
+          <button class="btn sm" onclick="calToday()">Today</button>
+        </div>
+        <div class="filters">
+          <select id="f-status" onchange="renderCalendar()">
+            <option value="all">All statuses</option>
+            <option value="production">In production</option>
+            <option value="editing">In editing</option>
+            <option value="review">To review</option>
+            <option value="ready">Ready to publish</option>
+            <option value="published">Published</option>
+          </select>
+          <select id="f-agency" onchange="renderCalendar()"><option value="all">All agencies</option></select>
+          <select id="f-channel" onchange="renderCalendar()">
+            <option value="all">All channels</option>
+            <option>YouTube</option><option>LinkedIn</option><option>Instagram</option><option>Email</option><option>Web</option>
+          </select>
+        </div>
+      </div>
+      <div class="callayout">
+        <div>
+          <div class="calgrid">
+            <div class="caldow"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+            <div class="calbody" id="cal-body"></div>
+          </div>
+          <div class="callegend" style="margin-top:12px" id="cal-legend"></div>
+        </div>
+        <div class="railcard" id="cal-rail"></div>
+      </div>
+    </div>
+
+    <!-- TAB · CLIPS -->
+    <div class="tabpanel" id="tab-clips">
+      <section class="sec">
+        <div class="sechead"><span class="eyebrow gold">✦ Awaiting your approval</span><h2>Clip ideas from your media</h2><span class="hint right">approve to send to your channels</span></div>
+        <div class="clipgrid" id="clips-proposed"></div>
+      </section>
+      <section class="sec">
+        <div class="sechead"><span class="eyebrow">✨ AI suggested</span><h2>New clips &amp; major videos the AI proposed</h2></div>
+        <div class="clipgrid" id="clips-ai"></div>
+      </section>
+    </div>
+
+    <!-- TAB · BOARD -->
+    <div class="tabpanel" id="tab-board">
+      <div class="calbar">
+        <div class="filters" style="margin-left:0">
+          <select id="b-status" onchange="renderBoard()">
+            <option value="all">All statuses</option>
+            <option value="production">In production</option>
+            <option value="editing">In editing</option>
+            <option value="review">To review</option>
+            <option value="ready">Ready to publish</option>
+            <option value="published">Published</option>
+          </select>
+          <select id="b-agency" onchange="renderBoard()"><option value="all">All agencies</option></select>
+        </div>
+        <div class="filters"><span class="hint" id="b-count"></span></div>
+      </div>
+      <div class="tablewrap">
+        <table class="list"><thead><tr>
+          <th>Title</th><th>Rating</th><th>Made by</th><th>Status</th><th>Sign-off</th><th>Channel</th><th>Live link</th><th>Live date</th>
+        </tr></thead><tbody id="board-rows"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Record detail"></aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─────────── Agency palette + meta ─────────── */
+const AGENCIES = {
+  'Simplex Media':      {var:'--ag-simplex',  short:'Simplex'},
+  'Simplex (by Vishen)':{var:'--ag-svishen',  short:'Simplex·V'},
+  'Talking Heads':      {var:'--ag-talking',  short:'Talking Heads'},
+  'Two Comma PR':       {var:'--ag-twocomma', short:'Two Comma'},
+  'Internal':           {var:'--ag-internal', short:'Internal'},
+};
+const CHAN_COLOR = {YouTube:'#e5372b', LinkedIn:'#2563cf', Instagram:'#d6249f', Email:'#7c8798', Web:'#7c8798'};
+const STATUS = {
+  production:{cls:'p-prod', label:'In production'},
+  editing:   {cls:'p-edit', label:'In editing'},
+  review:    {cls:'p-review',label:'To review'},
+  ready:     {cls:'p-ready', label:'Ready to publish'},
+  published: {cls:'p-pub',   label:'Published'},
+};
+const APPROVAL = {toReview:'To Review', toRefine:'To Refine', approved:'Approved', parked:'Parked for later'};
+
+/* ─────────── Sample data (realistic Vishen content) ─────────── */
+/* status: production|editing|review|ready|published · needsYou => on Vishen's desk */
+let VIDEOS = [
+  // ── needs you (To Review) ──
+  {id:1, name:'"I call them my team — God, Angels, Ancestors, and the Universe."', agency:'Talking Heads', channel:'Instagram', status:'review', approval:'toReview', needsYou:true, liveDate:'2026-07-12', rating:0, format:'Podcast clip', product:'6 Phase', views:null},
+  {id:2, name:'Vishen keynote — the 6-minute stage cut', agency:'Simplex Media', channel:'YouTube', status:'review', approval:'toReview', needsYou:true, liveDate:'2026-07-15', rating:0, format:'Stage-talk clip', product:'Mastery Summit', views:null},
+  {id:3, name:'The blind spot keeping smart founders stuck', agency:'Two Comma PR', channel:'LinkedIn', status:'review', approval:'toReview', needsYou:true, liveDate:null, rating:0, format:'Talking-head', product:'Business track', views:null},
+  {id:4, name:'MV · Superbrain relaunch teaser — needs your OK', agency:'Internal', channel:'YouTube', status:'review', approval:'toReview', needsYou:true, mindvalley:true, liveDate:null, rating:0, format:'Campaign', product:'Superbrain', views:null},
+
+  // ── in motion (production / editing / scheduled) ──
+  {id:5, name:'Tim Gray podcast — long-form cut', agency:'Simplex Media', channel:'YouTube', status:'editing', approval:'toRefine', needsYou:false, liveDate:'2026-07-20', rating:0, format:'Long-form', product:'Podcast', views:null},
+  {id:6, name:'Eve × Vishen fireside — full interview', agency:'Simplex (by Vishen)', channel:'YouTube', status:'editing', approval:'toRefine', needsYou:false, liveDate:'2026-07-18', rating:0, format:'Interview', product:'Podcast', views:null},
+  {id:7, name:'What I learned from failure — Vishen vlog', agency:'Internal', channel:'Instagram', status:'production', approval:null, needsYou:false, liveDate:null, rating:0, format:'Vlog', product:'Personal brand', views:null},
+  {id:8, name:'LinkedIn carousel series — 5 posts on leadership', agency:'Two Comma PR', channel:'LinkedIn', status:'production', approval:null, needsYou:false, liveDate:'2026-07-25', rating:0, format:'Carousel', product:'Business track', views:null},
+  {id:9, name:'Reels batch — 5 hooks from the Tim Gray pod', agency:'Talking Heads', channel:'Instagram', status:'editing', approval:'toRefine', needsYou:false, liveDate:'2026-07-22', rating:0, format:'Reel', product:'Podcast', views:null},
+  {id:10, name:'August campaign teaser — concept film', agency:'Simplex Media', channel:'YouTube', status:'production', approval:null, needsYou:false, liveDate:'2026-08-03', rating:0, format:'Campaign', product:'Mastery Summit', views:null},
+  {id:11, name:'Mastery Summit — invite to camera', agency:'Simplex (by Vishen)', channel:'YouTube', status:'ready', approval:'approved', needsYou:false, liveDate:'2026-07-28', rating:0, format:'Campaign', product:'Mastery Summit', views:null},
+
+  // ── published (live, with perf) ──
+  {id:12, name:'Why most entrepreneurs burn out by 40', agency:'Simplex Media', channel:'YouTube', status:'published', approval:'approved', needsYou:false, liveDate:'2026-07-02', rating:5, format:'Long-form', product:'Business track', link:'youtu.be/aZ21kd', views:128400, eng:6.1},
+  {id:13, name:'LIVE: The 6-phase morning routine', agency:'Two Comma PR', channel:'LinkedIn', status:'published', approval:'approved', needsYou:false, liveDate:'2026-07-05', rating:4, format:'Talking-head', product:'6 Phase', link:'linkedin.com/posts/vishen-6ph', views:42100, eng:4.8},
+  {id:14, name:'"You can meditate all you want — it won’t fix this."', agency:'Talking Heads', channel:'Instagram', status:'published', approval:'approved', needsYou:false, liveDate:'2026-06-28', rating:5, format:'Podcast clip', product:'6 Phase', link:'instagram.com/p/Cx91', views:96200, eng:7.2},
+  {id:15, name:'"The thing that really raises your HRV? Spooning."', agency:'Simplex (by Vishen)', channel:'Instagram', status:'published', approval:'approved', needsYou:false, liveDate:'2026-07-06', rating:4, format:'Podcast clip', product:'Podcast', link:'instagram.com/p/Cx88', views:118400, eng:5.1},
+  {id:16, name:'Naveen interview — full cut', agency:'Simplex Media', channel:'YouTube', status:'published', approval:'approved', needsYou:false, liveDate:'2026-06-18', rating:3, format:'Interview', product:'Podcast', link:'youtu.be/n4v33n', views:61200, eng:3.9},
+  {id:17, name:'How to 10x your learning speed', agency:'Simplex Media', channel:'YouTube', status:'published', approval:'approved', needsYou:false, liveDate:'2026-06-12', rating:4, format:'Long-form', product:'Superbrain', link:'youtu.be/lrn10x', views:84300, eng:5.5},
+  {id:18, name:'3 lessons I stole from Ray Dalio', agency:'Two Comma PR', channel:'LinkedIn', status:'published', approval:'approved', needsYou:false, liveDate:'2026-07-07', rating:4, format:'Talking-head', product:'Business track', link:'linkedin.com/posts/vishen-dalio', views:37800, eng:6.4},
+  {id:19, name:'Mastery Summit 2026 — save the date', agency:'Internal', channel:'Email', status:'published', approval:'approved', needsYou:false, liveDate:'2026-07-01', rating:4, format:'Campaign', product:'Mastery Summit', link:'mindvalley.com/mastery', views:null},
+  {id:20, name:'"If you’re still working 40 hours, you have no idea what you’re doing."', agency:'Talking Heads', channel:'Instagram', status:'published', approval:'approved', needsYou:false, liveDate:'2026-06-24', rating:5, format:'Podcast clip', product:'Business track', link:'instagram.com/p/Cx70', views:61200, eng:7.9},
+];
+
+/* Proposed clips (approval-gated) + AI-suggested */
+let CLIPS = [
+  {id:'c1', hook:'"You can meditate all you want — it won’t fix this."', ts:'12:04–12:31', vir:9, src:'Tim Gray podcast', ai:false},
+  {id:'c2', hook:'"The thing that really raises your HRV? Spooning."', ts:'27:41–28:03', vir:9, src:'Tim Gray podcast', ai:false},
+  {id:'c3', hook:'"I thought I was cursed until my early 20s."', ts:'41:10–41:38', vir:8, src:'Eve × Vishen fireside', ai:false},
+  {id:'c4', hook:'"For years I thought I couldn’t do both."', ts:'08:55–09:20', vir:8, src:'Eve × Vishen fireside', ai:false},
+];
+let AICLIPS = [
+  {id:'a1', hook:'"The 5am club is a lie — here’s what actually works."', ts:'33:02–33:29', vir:9, src:'Tim Gray podcast', ai:true, kind:'Clip'},
+  {id:'a2', hook:'Major video: "Naveen interview" — worth a full YouTube cut', ts:'full', vir:8, src:'Auto-discovered · YouTube', ai:true, kind:'Major video'},
+  {id:'a3', hook:'"Your morning coffee is sabotaging your focus."', ts:'19:12–19:40', vir:7, src:'Tim Gray podcast', ai:true, kind:'Clip'},
+];
+/* Shoots awaiting Vishen (landing) */
+let SHOOTS = [
+  {id:'s1', title:'The blind spot keeping smart founders stuck', asset:'Invite video', format:'Studio', date:'2026-07-11', location:'Studio — London'},
+  {id:'s2', title:'Mastery Summit — concept intro to camera', asset:'Campaign video', format:'VLOG', date:'2026-07-14', location:'Home office'},
+];
+
+/* ─────────── helpers ─────────── */
+const TODAY = new Date(2026,6,8); // 2026-07-08
+const nf = new Intl.NumberFormat('en-US');
+const $ = id => document.getElementById(id);
+const agVar = a => 'var(' + (AGENCIES[a]||AGENCIES.Internal).var + ')';
+const agShort = a => (AGENCIES[a]||AGENCIES.Internal).short;
+function compact(n){ if(n==null) return '—'; if(n>=1000){ const k=n/1000; return (k>=100?Math.round(k):k.toFixed(1).replace(/\.0$/,''))+'K'; } return ''+n; }
+function stars(n){ let s=''; for(let i=0;i<5;i++) s+= i<n?'★':'<i>★</i>'; return '<span class="stars">'+s+'</span>'; }
+function fmtDate(d){ if(!d) return '<span class="muted">—</span>'; return new Date(d+'T00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function fmtShort(d){ return new Date(d+'T00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function statusPill(s){ const m=STATUS[s]; return '<span class="pill '+m.cls+'">'+m.label+'</span>'; }
+function agchip(a){ return '<span class="agchip"><span class="agdot" style="background:'+agVar(a)+'"></span>'+agShort(a)+'</span>'; }
+function chanchip(c){ return c?'<span class="chan"><span class="g" style="background:'+(CHAN_COLOR[c]||'#7c8798')+'"></span>'+c+'</span>':'<span class="muted">—</span>'; }
+function needsList(){ return VIDEOS.filter(v=>v.needsYou); }
+function inMotion(){ return VIDEOS.filter(v=>!v.needsYou && v.status!=='published'); }
+function publishedList(){ return VIDEOS.filter(v=>v.status==='published'); }
+
+/* ─────────── page + tab switching ─────────── */
+function go(page, tab){ setPage(page); if(tab) setTab(tab); window.scrollTo({top:0,behavior:'smooth'}); }
+function setPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on', p.id==='page-'+page));
+  document.querySelectorAll('.topnav a').forEach(a=>a.classList.toggle('active', a.dataset.page===page));
+}
+function setTab(tab){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===tab)));
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.toggle('on', p.id==='tab-'+tab));
+  if(tab==='calendar') renderCalendar();
+  if(tab==='board') renderBoard();
+}
+document.querySelectorAll('.topnav a').forEach(a=>a.onclick=e=>{e.preventDefault();setPage(a.dataset.page);});
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+
+/* ─────────── LANDING ─────────── */
+function renderLanding(){
+  const need=needsList(), motion=inMotion(), pub=publishedList();
+  const recent = pub.filter(v=>v.liveDate && (TODAY-new Date(v.liveDate+'T00:00'))/864e5<=30);
+  $('tally').innerHTML='<b>'+VIDEOS.length+'</b> in your world <span class="sep"></span> <b>'+(need.length+SHOOTS.length)+'</b> awaiting you <span class="sep"></span> <b>'+pub.length+'</b> live <span class="sep"></span> <b>'+Object.keys(AGENCIES).length+'</b> teams shipping';
+  $('s-live-n').textContent=recent.length;
+
+  // ribbon
+  const c=s=>VIDEOS.filter(v=>v.status===s).length;
+  const stages=[
+    {cls:'s-prod', name:'In production', sub:'being made now', n:VIDEOS.filter(v=>v.status==='production'||v.status==='editing').length, f:'production'},
+    {cls:'s-review',name:'Awaiting your sign-off', sub:need.length+' videos · '+SHOOTS.length+' shoots', n:need.length+SHOOTS.length, f:'review'},
+    {cls:'s-ready', name:'Ready to publish', sub:'approved · queued', n:c('ready'), f:'ready'},
+    {cls:'s-pub',   name:'Published', sub:'live across channels', n:c('published'), f:'published'},
+  ];
+  $('ribbon').innerHTML=stages.map((s,i)=>'<button class="stage '+s.cls+'" onclick="go(\'media\',\'calendar\');setStatusFilter(\''+s.f+'\')">'+(i<3?'<span class="flow">→</span>':'')+'<div class="top"><span class="dot"></span><span class="name">'+s.name+'</span></div><div class="count">'+s.n+'</div><div class="sub">'+s.sub+'</div></button>').join('');
+
+  // needs-you band
+  $('s-need-cnt').textContent=need.length+SHOOTS.length;
+  const shootRows=SHOOTS.map(s=>'<div class="commit-row"><span class="ic">🎥</span><div class="body"><b>'+s.title+'</b><div class="metaline"><span class="tag">'+s.asset+'</span><span class="tag">'+s.format+'</span><span class="tag">📅 '+fmtShort(s.date)+'</span></div></div><div class="acts"><button class="btn sm onfill" onclick="resolveShoot(\''+s.id+'\',false)">Decline</button><button class="btn sm approve" onclick="resolveShoot(\''+s.id+'\',true)">✓ Approve</button></div></div>').join('');
+  const vidRows=need.map(v=>'<div class="commit-row"><span class="ic">🎬</span><div class="body"><b>'+v.name+'</b><div class="metaline"><span class="tag">'+agShort(v.agency)+'</span><span class="tag">'+STATUS[v.status].label+'</span>'+(v.mindvalley?'<span class="tag">🏷 Mindvalley · review now</span>':'')+'</div></div><div class="acts"><button class="btn sm onfill" onclick="approveVideo('+v.id+',false)">Send back</button><button class="btn sm approve" onclick="approveVideo('+v.id+',true)">✓ Approve</button></div></div>').join('');
+  $('s-need-list').innerHTML=(shootRows+vidRows)||'<div class="commit-row"><div class="body"><b>All caught up 🎉</b><span>Nothing waiting on you.</span></div></div>';
+
+  // clips awaiting
+  $('s-clip-cnt').textContent=CLIPS.length;
+  $('s-clip-list').innerHTML=CLIPS.slice(0,4).map(c=>'<div class="clipline"><span class="vir">'+c.vir+'</span><span class="txt">'+c.hook+'</span><button class="btn sm primary" onclick="go(\'media\',\'clips\')">Review</button></div>').join('');
+
+  // this-month peek
+  const peek=VIDEOS.filter(v=>v.liveDate && new Date(v.liveDate+'T00:00').getMonth()===TODAY.getMonth() && new Date(v.liveDate+'T00:00').getFullYear()===TODAY.getFullYear())
+    .sort((a,b)=>a.liveDate<b.liveDate?-1:1);
+  $('s-peek').innerHTML=peek.map(v=>{
+    const dt=new Date(v.liveDate+'T00:00');
+    return '<div class="peekrow" onclick="openDrawer('+v.id+')"><div class="d">'+dt.toLocaleDateString('en-US',{month:'short'})+'<b>'+dt.getDate()+'</b></div>'
+      +'<div class="t">'+v.name+'</div>'+agchip(v.agency)+statusPill(v.status)+chanchip(v.channel)+'</div>';
+  }).join('')||'<div class="empty">Nothing scheduled this month yet.</div>';
+}
+
+/* ─────────── OVERVIEW ─────────── */
+function renderOverview(){
+  const need=needsList(), motion=inMotion(), pub=publishedList();
+  const inEdit=VIDEOS.filter(v=>v.status==='editing').length;
+  const rec30=pub.filter(v=>v.liveDate && (TODAY-new Date(v.liveDate+'T00:00'))/864e5<=30).length;
+  const rated=pub.filter(v=>v.rating>0); const avg=rated.length?(rated.reduce((s,v)=>s+v.rating,0)/rated.length):0;
+  $('ov-kpis').innerHTML=[
+    {k:'Awaiting you', v:need.length, s:'on your desk', attn:true},
+    {k:'In motion', v:motion.length, s:inEdit+' in editing'},
+    {k:'Published · 30d', v:rec30, s:'live across channels'},
+    {k:'Your avg rating', v:(avg?avg.toFixed(1):'—')+' ★', s:rated.length+' rated'},
+  ].map(x=>'<div class="kpi'+(x.attn?' attn':'')+'"><div class="k">'+x.k+'</div><div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>').join('');
+
+  $('ov-need-hint').textContent=need.length+' waiting';
+  $('ov-need').innerHTML= need.length? '<div class="commit">'+
+    '<div class="commit-head"><span>●</span><h3>These are on your desk</h3><span class="cnt">'+need.length+'</span></div>'+
+    need.map(v=>'<div class="commit-row"><span class="ic">🎬</span><div class="body"><b>'+v.name+'</b><div class="metaline"><span class="tag">'+agShort(v.agency)+'</span><span class="tag">'+STATUS[v.status].label+'</span>'+(v.liveDate?'<span class="tag">📅 '+fmtShort(v.liveDate)+'</span>':'')+(v.mindvalley?'<span class="tag">🏷 Mindvalley · review now</span>':'')+'</div></div><div class="acts"><button class="btn sm onfill" onclick="approveVideo('+v.id+',false)">Send back</button><button class="btn sm" onclick="openDrawer('+v.id+')">Open</button><button class="btn sm approve" onclick="approveVideo('+v.id+',true)">✓ Approve</button></div></div>').join('')
+    +'</div>' : '<div class="card pad muted">All caught up — nothing waiting on you. 🎉</div>';
+
+  // lanes by agency
+  const laneOrder=Object.keys(AGENCIES).filter(a=>motion.some(v=>v.agency===a));
+  $('ov-lanes').innerHTML=laneOrder.map(a=>{
+    const items=motion.filter(v=>v.agency===a);
+    return '<div class="lane"><div class="lane-head"><span class="agdot" style="background:'+agVar(a)+'"></span><span class="nm">'+a+'</span><span class="cnt">'+items.length+' in flight</span></div>'+
+      items.map(v=>'<div class="lane-item" onclick="openDrawer('+v.id+')"><span class="t">'+v.name+'</span>'+statusPill(v.status)+(v.liveDate?'<span class="tag">'+fmtShort(v.liveDate)+'</span>':'')+'</div>').join('')+'</div>';
+  }).join('');
+
+  // live grid
+  const recent=pub.filter(v=>v.link).sort((a,b)=>a.liveDate<b.liveDate?1:-1).slice(0,6);
+  $('ov-live').innerHTML=recent.map(v=>'<div class="livecard" onclick="openDrawer('+v.id+')">'+
+    '<div class="cap" style="background:linear-gradient(135deg,'+agVar(v.agency)+',var(--brand))"><span class="chanb">'+v.channel+'</span>'+(v.views!=null?'<span class="views">'+compact(v.views)+'<small> views</small></span>':'')+'</div>'+
+    '<div class="lb"><b>'+v.name+'</b><div class="meta">'+stars(v.rating)+agchip(v.agency)+'</div></div></div>').join('');
+}
+
+/* ─────────── CALENDAR ─────────── */
+let calY=2026, calM=6; // July 2026
+function setStatusFilter(s){ const el=$('f-status'); if(el){ el.value=s==='production'?'production':s; renderCalendar(); } }
+function calMove(d){ calM+=d; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} renderCalendar(); }
+function calToday(){ calY=TODAY.getFullYear(); calM=TODAY.getMonth(); renderCalendar(); }
+function calFiltered(){
+  const st=$('f-status').value, ag=$('f-agency').value, ch=$('f-channel').value;
+  return VIDEOS.filter(v=>{
+    if(st!=='all' && v.status!==st) return false;
+    if(ag!=='all' && v.agency!==ag) return false;
+    if(ch!=='all' && v.channel!==ch) return false;
+    return true;
+  });
+}
+function renderCalendar(){
+  const rows=calFiltered();
+  $('cal-mlabel').textContent=new Date(calY,calM,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  // Monday-first grid
+  const first=new Date(calY,calM,1); let lead=(first.getDay()+6)%7;
+  const daysIn=new Date(calY,calM+1,0).getDate();
+  const cells=[];
+  for(let i=0;i<lead;i++){ const dd=new Date(calY,calM,1-lead+i); cells.push({date:dd,out:true}); }
+  for(let d=1;d<=daysIn;d++) cells.push({date:new Date(calY,calM,d),out:false});
+  while(cells.length%7!==0){ cells.push({date:new Date(calY,calM+1,cells.length-lead-daysIn+1),out:true}); }
+  const key=dt=>dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+  const byDay={}; rows.forEach(v=>{ if(v.liveDate){ (byDay[v.liveDate]=byDay[v.liveDate]||[]).push(v); } });
+  const todayKey=key(TODAY);
+  $('cal-body').innerHTML=cells.map(c=>{
+    const k=key(c.date); const items=byDay[k]||[];
+    const chips=items.slice(0,3).map(v=>'<div class="cchip'+(v.needsYou?' needs':'')+'" style="--ac:'+agVar(v.agency)+'" onclick="event.stopPropagation();openDrawer('+v.id+')">'+(v.needsYou?'<span class="flag">⚑</span>':'')+'<span class="ct">'+v.name+'</span></div>').join('');
+    const more=items.length>3?'<div class="cmore">+'+(items.length-3)+' more</div>':'';
+    return '<div class="celld'+(c.out?' out':'')+(k===todayKey?' today':'')+'"><div class="dn">'+c.date.getDate()+'</div>'+chips+more+'</div>';
+  }).join('');
+
+  // legend
+  $('cal-legend').innerHTML=Object.keys(AGENCIES).map(a=>'<span class="li"><span class="agdot" style="background:'+agVar(a)+'"></span>'+agShort(a)+'</span>').join('')
+    +'<span class="li" style="margin-left:auto"><span class="flag" style="color:var(--gold-content)">⚑</span> needs you</span>';
+
+  // no-date rail (respect filters, in-flight only)
+  const undated=rows.filter(v=>!v.liveDate);
+  $('cal-rail').innerHTML='<div class="rh">🗂 No date yet <span class="cnt">'+undated.length+'</span></div>'+
+    (undated.length? undated.map(v=>'<div class="railitem" onclick="openDrawer('+v.id+')"><span class="agdot" style="background:'+agVar(v.agency)+'"></span><span class="t">'+v.name+'</span>'+(v.needsYou?'<span class="flag" style="color:var(--gold-content)">⚑</span>':'')+'</div>').join('')
+      : '<div class="empty" style="padding:22px">Everything has a date.</div>');
+}
+
+/* ─────────── CLIPS ─────────── */
+function renderClips(){
+  $('tab-clip-pip').textContent=CLIPS.length+AICLIPS.length;
+  const card=(c,ai)=>'<div class="clip"><div class="cap">'+(ai?'<span class="aib">✨ AI · '+(c.kind||'Clip')+'</span>':'')+'<span class="vir">🔥 '+c.vir+'</span><span class="ts">'+c.ts+'</span></div>'+
+    '<div class="body"><div class="hk">'+c.hook+'</div><div class="src">from '+c.src+'</div>'+
+    '<div class="foot"><button class="btn sm" onclick="dropClip(\''+c.id+'\')">Dismiss</button><button class="btn sm primary" onclick="approveClip(\''+c.id+'\')">✓ Approve</button></div></div></div>';
+  $('clips-proposed').innerHTML=CLIPS.length?CLIPS.map(c=>card(c,false)).join(''):'<div class="empty">No clips waiting — all reviewed. 🎉</div>';
+  $('clips-ai').innerHTML=AICLIPS.length?AICLIPS.map(c=>card(c,true)).join(''):'<div class="empty">No new AI suggestions.</div>';
+}
+
+/* ─────────── BOARD ─────────── */
+function renderBoard(){
+  const st=$('b-status').value, ag=$('b-agency').value;
+  const rows=VIDEOS.filter(v=>(st==='all'||v.status===st)&&(ag==='all'||v.agency===ag));
+  $('b-count').textContent=rows.length+' of '+VIDEOS.length+' shown';
+  $('board-rows').innerHTML=rows.length?rows.map(v=>'<tr onclick="openDrawer('+v.id+')">'+
+    '<td class="ttl">'+v.name+'<small>'+(v.format||'')+' · '+(v.product||'')+'</small></td>'+
+    '<td>'+(v.rating?stars(v.rating):'<span class="muted">—</span>')+'</td>'+
+    '<td>'+agchip(v.agency)+'</td>'+
+    '<td>'+statusPill(v.status)+'</td>'+
+    '<td>'+(v.approval?'<span class="tag">'+APPROVAL[v.approval]+'</span>':'<span class="muted">—</span>')+'</td>'+
+    '<td>'+chanchip(v.channel)+'</td>'+
+    '<td>'+(v.link?'<a class="lnk" onclick="event.stopPropagation()" href="#">'+v.link+' ↗</a>':'<span class="muted">not live</span>')+'</td>'+
+    '<td>'+fmtDate(v.liveDate)+'</td></tr>').join('')
+    :'<tr><td colspan="8" class="empty">No videos match these filters.</td></tr>';
+}
+
+/* ─────────── DRAWER ─────────── */
+const LIFECYCLE=['Idea','In production','In editing','To review','Ready','Published'];
+function stageIndex(v){ if(v.status==='published')return 5; if(v.status==='ready')return 4; if(v.status==='review')return 3; if(v.status==='editing')return 2; return 1; }
+function openDrawer(id){
+  const v=VIDEOS.find(x=>x.id===id); if(!v) return;
+  const cur=stageIndex(v);
+  const steps=LIFECYCLE.map((s,i)=>{ const cls=i<cur?'done':(i===cur?'current':'pending'); const when=i<cur?'Done':(i===cur?'Now':''); return '<div class="step '+cls+'"><span class="node">✓</span><div><div class="lab">'+s+'</div>'+(when?'<div class="when">'+when+'</div>':'')+'</div></div>'; }).join('');
+  let perf='';
+  if(v.status==='published' && v.views!=null){
+    perf='<div class="perf-panel"><span class="src">✎ Logged by the team</span><div class="n">'+nf.format(v.views)+' <span style="font-size:13px;color:var(--text-muted)">views · '+(v.eng||0)+'% engagement</span></div><div class="note" style="margin-top:8px">Auto-sync via Hootsuite/Postiz coming.</div></div>';
+  } else if(v.status==='published'){
+    perf='<div class="perf-panel"><span class="src">✎ Add the numbers</span><div class="note" style="margin-top:8px">Pull from Insights for now — automated later.</div></div>';
+  }
+  let ratingBlock='';
+  if(v.status==='published'||v.needsYou){
+    ratingBlock='<div><span class="sub-h">Your rating</span><div class="rate" id="dr-rate">'+[1,2,3,4,5].map(n=>'<button class="'+(n<=v.rating?'on':'')+'" onclick="rate('+v.id+','+n+')">★</button>').join('')+'</div></div>';
+  }
+  let approveBlock='';
+  if(v.needsYou){
+    approveBlock='<div class="drawer-acts"><button class="btn" onclick="approveVideo('+v.id+',false)">Send back</button><button class="btn green" onclick="approveVideo('+v.id+',true)">✓ Approve</button></div>';
+  }
+  $('drawer').innerHTML='<div class="dr-head"><div>'+statusPill(v.status)+(v.needsYou?' <span class="pill p-review">Needs you</span>':'')+'<h3 style="margin-top:9px">'+v.name+'</h3></div><button class="icobtn x" onclick="closeDrawer()" aria-label="Close">✕</button></div>'+
+    '<div class="dr-body">'+
+    approveBlock+
+    '<div><span class="sub-h">Where it stands</span><div class="timeline">'+steps+'</div></div>'+
+    perf+
+    ratingBlock+
+    '<div><span class="sub-h">Details</span><dl class="meta-grid">'+
+      '<dt>Made by</dt><dd>'+agchip(v.agency)+'</dd>'+
+      '<dt>Channel</dt><dd>'+chanchip(v.channel)+'</dd>'+
+      '<dt>Format</dt><dd>'+(v.format||'—')+'</dd>'+
+      '<dt>Promotes</dt><dd>'+(v.product||'—')+'</dd>'+
+      '<dt>Sign-off</dt><dd>'+(v.approval?APPROVAL[v.approval]:'—')+'</dd>'+
+      '<dt>Live date</dt><dd>'+fmtDate(v.liveDate)+'</dd>'+
+      '<dt>Live link</dt><dd>'+(v.link?'<a class="lnk" href="#" onclick="return false">'+v.link+' ↗</a>':'<span class="muted">—</span>')+'</dd>'+
+    '</dl></div></div>';
+  $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden','false'); $('scrim').classList.add('open');
+}
+function closeDrawer(){ $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden','true'); $('scrim').classList.remove('open'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+
+/* ─────────── mutations (optimistic, mock only) ─────────── */
+function approveVideo(id, ok){ const v=VIDEOS.find(x=>x.id===id); if(!v)return; v.needsYou=false; v.approval= ok?'approved':'toRefine'; if(ok && v.status==='review') v.status='ready'; renderAll(); if($('drawer').classList.contains('open')) closeDrawer(); flash(ok?'Approved — moving forward.':'Sent back with your note.'); }
+function rate(id,n){ const v=VIDEOS.find(x=>x.id===id); if(!v)return; v.rating=n; renderAll(); openDrawer(id); flash('Rated '+n+' ★.'); }
+function resolveShoot(id, ok){ SHOOTS=SHOOTS.filter(s=>s.id!==id); renderAll(); flash(ok?'Shoot approved — moved to filming.':'Shoot sent back.'); }
+function approveClip(id){ CLIPS=CLIPS.filter(c=>c.id!==id); AICLIPS=AICLIPS.filter(c=>c.id!==id); renderAll(); flash('Clip approved — queued for your channels.'); }
+function dropClip(id){ CLIPS=CLIPS.filter(c=>c.id!==id); AICLIPS=AICLIPS.filter(c=>c.id!==id); renderAll(); flash('Clip dismissed.'); }
+
+/* ─────────── boot ─────────── */
+function populateAgencyFilters(){
+  const opts=Object.keys(AGENCIES).map(a=>'<option value="'+a+'">'+a+'</option>').join('');
+  $('f-agency').insertAdjacentHTML('beforeend',opts);
+  $('b-agency').insertAdjacentHTML('beforeend',opts);
+}
+function renderAll(){ renderLanding(); renderOverview(); renderClips(); if($('tab-calendar').classList.contains('on')) renderCalendar(); if($('tab-board').classList.contains('on')) renderBoard(); }
+let flashT;
+function flash(msg){ const el=$('toast'); el.textContent=msg; el.classList.add('on'); clearTimeout(flashT); flashT=setTimeout(()=>el.classList.remove('on'),2800); }
+function toggleTheme(){ const el=document.documentElement; const cur=el.getAttribute('data-theme'); const dark=cur? cur==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; el.setAttribute('data-theme', dark?'light':'dark'); }
+
+populateAgencyFilters();
+renderAll();
+renderCalendar();
+renderBoard();
+</script>

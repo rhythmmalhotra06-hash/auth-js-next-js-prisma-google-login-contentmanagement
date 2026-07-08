@@ -96,6 +96,13 @@ light brand), `-soft` `#f1eaf7` (tint bg), `-border` `#e3d4f0`.
 **Event/priority tiers** (`.tier` + `.high/.mid/.soc/.low`) have dedicated bg/ink pairs that
 invert in dark mode — use the `TierBadge` primitive, don't reach for the raw tokens.
 
+**Agency palette** (`--mv-ag-simplex` teal · `-svishen` indigo · `-talking` pink · `-twocomma`
+cyan · `-internal` slate; short aliases `--ag-*`, lifted in dark). A **categorical** palette for
+"who made it" on Vishen's media calendar/lanes only — it is **not** a status axis and **not** the
+accent. Status stays green/blue/amber/red; gold stays attention. Map an agency to its color with
+`agencyColor()` in `components/studio/media/shared.tsx`; a data-driven `style={{ background:
+agencyColor(source) }}` (dynamic value) is the sanctioned use.
+
 ---
 
 ## 4. Radius, shadow, spacing, motion
