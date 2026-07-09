@@ -135,3 +135,36 @@ calm card (no full purple block); **In motion** is a per-agency scoreboard (no 4
 agency lands on Board filtered to it; the Calendar "No date yet" rail scrolls within a capped height; no
 gold stage badges in the lists. `npm run lint` + `npm run build` clean. Final visual check by the user on
 the deployed dev service.
+
+---
+
+# v2.2 — Clips tab: master–detail, grouped by source video (2026-07-09)
+
+## Context
+
+The **Clips & suggestions** tab renders ~100 clips as one flat grid of big purple-gradient cards (57
+proposed + ~40 approved) — a wall, too cluttered ("Vishen won't like this"). Fix (locked with user):
+**group clips by the source "main" video** and use a **master–detail** layout, with proposed vs approved
+behind a **toggle** so only one set shows at a time.
+
+## Design — rebuild `components/studio/media/ClipsPanel.tsx` (props unchanged)
+
+- **Status toggle** (segmented): `Awaiting you (N) | Approved (N)` — one set at a time; proposed default.
+- **Master–detail**:
+  - **Left rail** — scrollable list of source videos for the active set. Group the active clips by
+    `mediaSourceId`, name via `sourceNames` ("Other / unlinked" fallback), sort by clip-count desc. Each
+    row: 🎬 title (truncate) + clip-count badge; selected row highlighted (brand tint + left accent).
+  - **Right panel** — the selected video's clips as **calm cards** (surface + gold left-rail, **no purple
+    gradient cap** — borrow the `ClipSummaryCard` treatment from `components/vishen/ClipBoard.tsx`): hook
+    line, virality pill, format/timestamp, clamped caption; for the proposed set inline **Approve /
+    Dismiss**, for approved set a read-only "Approved" state.
+- Selection defaults to the first video and stays valid as Approve/Dismiss shrink/empty groups.
+- Reuse the existing `onApprove` / `onDismiss` optimistic handlers from `MediaHub` (no `MediaHub` change;
+  the tab pip already tracks `proposed.length`). Responsive: left rail stacks above the detail on mobile.
+
+## Verify
+
+Build + `tsc` clean; the tab is client-rendered so confirm structurally, then eyeball on deploy: toggle
+switches sets; left rail lists videos with counts; picking a video shows only its clips; Approve/Dismiss
+removes a clip and updates the count; no 100-card wall; calm cards (no purple gradient). `npm run lint` +
+`npm run build` clean.
