@@ -4,11 +4,14 @@
 // in a restrained card (single gold accent); "In motion" is a per-agency scoreboard (counts,
 // not item lists — the items live in Board/Calendar); "Live" is a small proof grid.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import type { VishenVideo } from '@/lib/media/vishen-videos';
+import type { ShootSignOffItem } from '@/lib/studio/data';
+import { approveShoot, declineShoot } from '@/app/studio/actions';
+import { shortDate } from '@/lib/studio/format';
 import {
   AGENCY_META, producerBucket, needsVishen,
   STAGE_LABEL, STAGE_TONE, AgencyChip, Stars,
@@ -16,12 +19,15 @@ import {
 
 const NEEDS_PREVIEW = 5;
 
-export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onAgencyClick }: {
+export function MediaOverview({ rows, shoots, clipCount, onOpen, onApprove, onSendBack, onAgencyClick, onGoToClips }: {
   rows: VishenVideo[];
+  shoots: ShootSignOffItem[];
+  clipCount: number;
   onOpen: (v: VishenVideo) => void;
   onApprove: (v: VishenVideo) => void;
   onSendBack: (v: VishenVideo) => void;
   onAgencyClick: (agency: string) => void;
+  onGoToClips: () => void;
 }) {
   const since30 = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10); }, []);
   const [showAllNeeds, setShowAllNeeds] = useState(false);
@@ -74,38 +80,63 @@ export function MediaOverview({ rows, onOpen, onApprove, onSendBack, onAgencyCli
         <Kpi label="Your avg rating" value={<>{avgRating}<span className="text-lg text-gold"> ★</span></>} i={3} />
       </KpiGrid>
 
-      {/* Needs you — calm card, one gold accent, capped */}
+      {/* Needs you — one calm card, gold accent; unifies video + shoot + clip sign-offs */}
       <section>
-        <SecHead eyebrow="● Needs you" eyebrowTone="gold" title="Approve, rate, or send back" hint={`${waiting.length} on your desk`} />
-        {waiting.length === 0 ? (
+        <SecHead eyebrow="● Needs you" eyebrowTone="gold" title="Approve, rate, or send back"
+          hint={`${waiting.length + shoots.length} to sign off${clipCount ? ` · ${clipCount} clips` : ''}`} />
+        {waiting.length === 0 && shoots.length === 0 && clipCount === 0 ? (
           <Placeholder>All caught up — nothing waiting on you. 🎉</Placeholder>
         ) : (
-          <div className="overflow-hidden rounded-md border border-border-default bg-surface shadow-[var(--mv-shadow-light)]">
-            <div className="border-l-[3px] border-gold">
-              {shownNeeds.map((v) => (
-                <div key={v.id} className="flex flex-wrap items-center gap-3 border-b border-border-muted px-4 py-3 last:border-0 hover:bg-bg-subtle">
-                  <div className="min-w-0 flex-1">
-                    <button onClick={() => onOpen(v)} className="block truncate text-left text-[13px] font-semibold text-text hover:underline">{v.name}</button>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <AgencyChip source={v.source} />
-                      <Badge tone={STAGE_TONE[v.stage]}>{STAGE_LABEL[v.stage]}</Badge>
-                      {v.liveDate && <span className="text-2xs text-text-subtle">📅 {v.liveDate}</span>}
+          <div className="overflow-hidden rounded-md border border-l-[3px] border-border-default border-l-gold bg-surface shadow-[var(--mv-shadow-light)]">
+            {/* Videos */}
+            {waiting.length > 0 && (
+              <>
+                <GroupLabel>🎬 Videos · {waiting.length}</GroupLabel>
+                {shownNeeds.map((v) => (
+                  <div key={v.id} className="flex flex-wrap items-center gap-3 border-b border-border-muted px-4 py-3 last:border-0 hover:bg-bg-subtle">
+                    <div className="min-w-0 flex-1">
+                      <button onClick={() => onOpen(v)} className="block truncate text-left text-[13px] font-semibold text-text hover:underline">{v.name}</button>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <AgencyChip source={v.source} />
+                        <Badge tone={STAGE_TONE[v.stage]}>{STAGE_LABEL[v.stage]}</Badge>
+                        {v.liveDate && <span className="text-2xs text-text-subtle">📅 {v.liveDate}</span>}
+                      </div>
+                    </div>
+                    <div className="flex flex-none gap-2">
+                      <button onClick={() => onSendBack(v)}
+                        className="rounded-sm border border-border-strong bg-surface px-3 py-1.5 text-xs font-semibold text-text hover:bg-bg-subtle">Send back</button>
+                      <button onClick={() => onApprove(v)}
+                        className="rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright">Approve</button>
                     </div>
                   </div>
-                  <div className="flex flex-none gap-2">
-                    <button onClick={() => onSendBack(v)}
-                      className="rounded-sm border border-border-strong bg-surface px-3 py-1.5 text-xs font-semibold text-text hover:bg-bg-subtle">Send back</button>
-                    <button onClick={() => onApprove(v)}
-                      className="rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright">Approve</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {waiting.length > NEEDS_PREVIEW && (
-              <button onClick={() => setShowAllNeeds((s) => !s)}
-                className="w-full border-t border-border-default px-4 py-2.5 text-xs font-semibold text-brand-content hover:bg-bg-subtle">
-                {showAllNeeds ? 'Show fewer' : `Show all ${waiting.length} →`}
-              </button>
+                ))}
+                {waiting.length > NEEDS_PREVIEW && (
+                  <button onClick={() => setShowAllNeeds((s) => !s)}
+                    className="w-full border-b border-border-muted px-4 py-2 text-xs font-semibold text-brand-content hover:bg-bg-subtle">
+                    {showAllNeeds ? 'Show fewer' : `Show all ${waiting.length} →`}
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Shoots */}
+            {shoots.length > 0 && (
+              <>
+                <GroupLabel>🎥 Shoots · {shoots.length}</GroupLabel>
+                <NeedsYouShoots items={shoots} />
+              </>
+            )}
+
+            {/* Clips */}
+            {clipCount > 0 && (
+              <>
+                <GroupLabel>✦ Clip ideas · {clipCount}</GroupLabel>
+                <button onClick={onGoToClips}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] font-medium text-text hover:bg-bg-subtle">
+                  <span className="min-w-0 flex-1">Clip ideas from your media, ready for a look</span>
+                  <span className="flex-none text-xs font-semibold text-brand-content">Review in Clips →</span>
+                </button>
+              </>
             )}
           </div>
         )}
@@ -193,4 +224,46 @@ function SecHead({ eyebrow, eyebrowTone, title, hint }: {
 
 function Placeholder({ children }: { children: React.ReactNode }) {
   return <div className="rounded-md border border-border-default bg-surface p-5 text-sm text-text-subtle shadow-[var(--mv-shadow-light)]">{children}</div>;
+}
+
+/** Sub-group divider inside the unified "Needs you" card. */
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-border-muted bg-bg-subtle px-4 py-1.5 text-2xs font-bold uppercase tracking-wide text-text-subtle">
+      {children}
+    </div>
+  );
+}
+
+/** Shoot sign-offs inside "Needs you" — calm rows with Approve / Send back via the existing
+ *  studio actions; optimistic hide. Full note-decline lives on /studio/shoots/[id]. */
+function NeedsYouShoots({ items }: { items: ShootSignOffItem[] }) {
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [pending, start] = useTransition();
+  const hide = (id: string) => setHidden((prev) => new Set(prev).add(id));
+  const visible = items.filter((s) => !hidden.has(s.id));
+
+  if (visible.length === 0) return null;
+  return (
+    <>
+      {visible.map((s) => (
+        <div key={s.id} className={cn('flex flex-wrap items-center gap-3 border-b border-border-muted px-4 py-3 last:border-0 hover:bg-bg-subtle', pending && 'opacity-70')}>
+          <div className="min-w-0 flex-1">
+            <a href={`/studio/shoots/${s.id}`} className="block truncate text-[13px] font-semibold text-text hover:underline">{s.title}</a>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-2xs text-text-subtle">
+              {s.format && <span>{s.format}</span>}
+              {s.filmingDate && <span>📅 {shortDate(s.filmingDate)}</span>}
+              {s.filmingLocation && <span>📍 {s.filmingLocation}</span>}
+            </div>
+          </div>
+          <div className="flex flex-none gap-2">
+            <button disabled={pending} onClick={() => start(async () => { const r = await declineShoot(s.id); if (r.ok) hide(s.id); })}
+              className="rounded-sm border border-border-strong bg-surface px-3 py-1.5 text-xs font-semibold text-text hover:bg-bg-subtle disabled:opacity-50">Send back</button>
+            <button disabled={pending} onClick={() => start(async () => { const r = await approveShoot(s.id); if (r.ok) hide(s.id); })}
+              className="rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright disabled:opacity-50">Approve</button>
+          </div>
+        </div>
+      ))}
+    </>
+  );
 }

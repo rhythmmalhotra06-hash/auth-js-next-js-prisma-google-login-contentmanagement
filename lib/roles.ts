@@ -117,14 +117,20 @@ export type NavGroup = 'Vishen' | 'Workflow' | 'Library & media' | 'Intelligence
 export const NAV_GROUP_ORDER: NavGroup[] = ['Vishen', 'Workflow', 'Library & media', 'Intelligence', 'Admin'];
 
 /** Role-scoped, grouped nav. Mirrors the prototype's per-role categorised sidebar. */
-export function navForRoles(roles: readonly string[] | null | undefined, isAdmin: boolean, division?: string | null): NavItem[] {
+export function navForRoles(
+  roles: readonly string[] | null | undefined,
+  isAdmin: boolean,
+  division?: string | null,
+  studioAccess = false,
+): NavItem[] {
   const r = effectiveRoles(roles);
   const exec = r.includes('Executive / CEO');
   const marketing = isMarketingDivision(division);
   const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
   const ed = isAdmin || r.includes('Editor') || r.includes('Designer');
+  const studio = isAdmin || exec || studioAccess; // who sees the founder "Vishen" surface
   const items: NavItem[] = [];
-  if (isAdmin || exec) {
+  if (studio) {
     items.push({ href: '/studio', label: 'Studio', icon: 'sparkle', group: 'Vishen' });
     // Vishen's two queues, surfaced as first-class founder surfaces (the rest of the
     // expanded views are reached via in-page "See all" links).

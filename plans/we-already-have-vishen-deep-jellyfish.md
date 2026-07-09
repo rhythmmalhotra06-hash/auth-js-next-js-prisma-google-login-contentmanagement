@@ -168,3 +168,61 @@ Build + `tsc` clean; the tab is client-rendered so confirm structurally, then ey
 switches sets; left rail lists videos with counts; picking a video shows only its clips; Approve/Dismiss
 removes a clip and updates the count; no 100-card wall; calm cards (no purple gradient). `npm run lint` +
 `npm run build` clean.
+
+---
+
+# v3 — one founder/exec page + widen access (2026-07-09)
+
+## Context
+
+The `/studio` landing and `/studio/media` hub feel redundant ("everything is the same"). They are NOT
+the same data — the landing is the ticket/shoot **production pipeline** (funnel, launches, shipped,
+shoot sign-offs); the hub is **Vishen's Videos base** (his channel content). What repeats is the
+"● Needs you" framing (3× across pages, on 3 different sources). Decision (with user): collapse to
+**one page** — the media hub, served at `/studio` — **folding** the landing's unique surfaces into hub
+tabs so nothing is lost, and **widening access** to Exec/CEO + Admin (already pass) **+ Titus + Vishen**
+(email allowlist).
+
+## Access — `lib/studio/guard.ts` (+ small allowlist helper) + `lib/roles.ts` + `components/ui/AppShell.tsx`
+- Allowlist: `STUDIO_ALLOWLIST = ['vishen@mindvalley.com','titus@mindvalley.com']`, merged with optional
+  `STUDIO_ALLOWLIST_EMAILS` env (comma-split, lower-cased) — mirrors `BOOTSTRAP_ADMINS` in
+  `lib/admin/access.ts`. `isStudioAllowlisted(email)`.
+- `requireStudioAccess`: pass if `isAdmin || isFounder(roles) || isStudioAllowlisted(email)` (email is
+  already returned by `getAdminAccess()`).
+- Nav: thread a `studioAccess` boolean into `navForRoles()` (`lib/roles.ts:120`); `AppShell` computes it
+  (`isAdmin || isFounder(roles) || isStudioAllowlisted(email)`) and the "Vishen" group condition becomes
+  `isAdmin || exec || studioAccess` so Titus/Vishen see it.
+
+## Make `/studio` the hub — one page
+- `app/studio/page.tsx`: drop `StudioBody`; render the hub. Parallel-load `loadVishenVideos()` +
+  `listClipsByStatus('Proposed'|'Approved')` + `listMediaSources(100)` (sourceNames) [moved from
+  `media/page.tsx`] **and** `loadStudio()` (tickets/shoots). Compute `pendingShoots`
+  (`getPendingShoots`→`toShootSignOffItem`, fallback `getShootsToFilm`), `launches` (`getLaunches`),
+  `funnelStages`, recent-shipped count. Build a server **`pipelineSlot`** node = `PipelineFunnel` +
+  `LaunchesSection` + shipped strip, with "see all →" links to `/studio/launches`, `/studio/shipped`,
+  `/studio/shoots`. Render `<MediaHub … shoots={pendingShoots} pipelineSlot={pipelineSlot} />`.
+- `app/studio/media/page.tsx` → `redirect('/studio')` (back-compat: BackLink, old links, prior deploy URL).
+- Drop `<BackLink/>` from the hub. Keep sub-routes `/studio/{launches,shipped,shoots,shoots/[id],sign-off,
+  ranking}` as deep-dives the hub links into (nothing orphaned). Nav keeps Studio (→`/studio`) + Review
+  queue + Priority ranking; `homeRouteForRoles` unchanged (exec → `/studio`, now the hub).
+
+## MediaHub — add Pipeline tab + shoots
+- New props `shoots: ShootSignOffItem[]`, `pipelineSlot: React.ReactNode`. Add a **Pipeline** tab (icon
+  `chart`) rendering `{tab==='pipeline' && pipelineSlot}`. Pass `shoots` + an `onGoTo(tab)` callback to
+  `MediaOverview`. (`PipelineFunnel`/`LaunchesSection` stay server/client as-is — they live inside the
+  server-rendered `pipelineSlot`, so no client/server conflict.)
+
+## MediaOverview — one unified "Needs you"
+Single gold-accented section, three calm sub-blocks (kills the cross-page repetition):
+- **Videos** — existing rows (Approve / Send back).
+- **Shoots** — small calm client rows (title + format/date) with Approve / Send back via existing
+  `approveShoot` / `declineShoot` (`app/studio/actions.ts`), optimistic hide. Full note-decline stays on
+  `/studio/shoots/[id]`.
+- **Clips** — one summary row ("N clip ideas from your media →") that jumps to the Clips tab via `onGoTo`.
+
+## Verify
+`npm run build` + `tsc` + lint clean. Dev-login checks: (a) `email=rhythm@…, roles=Admin` → `/studio` is
+the hub with Overview/Calendar/Clips/Board/**Pipeline**; unified Needs-you shows videos + shoots + a
+clip-count row; Pipeline tab shows funnel + launches + shipped. (b) `GET /studio/media` → 307 → `/studio`.
+(c) `email=titus@mindvalley.com, roles=Manager` (non-exec, non-admin) → still reaches `/studio` (200) and
+the sidebar shows the "Vishen" group. Then deploy + user visual check.

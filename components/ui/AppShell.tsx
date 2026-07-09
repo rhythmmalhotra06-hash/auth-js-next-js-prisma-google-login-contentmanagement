@@ -1,5 +1,6 @@
 import { getAdminAccess } from '@/lib/admin/access';
-import { navForRoles, effectiveRoles } from '@/lib/roles';
+import { navForRoles, effectiveRoles, isFounder } from '@/lib/roles';
+import { isStudioAllowlisted } from '@/lib/studio/access';
 import { ShellChrome } from '@/components/ui/ShellChrome';
 import { AskPanel } from '@/components/ui/AskPanel';
 import { Tour } from '@/components/ui/Tour';
@@ -21,7 +22,8 @@ export async function AppShell({ title, subtitle, actions, children }: {
   children: React.ReactNode;
 }) {
   const { roles, isAdmin, email, division } = await getAdminAccess();
-  const nav = navForRoles(roles, isAdmin, division);
+  const studioAccess = isAdmin || isFounder(roles) || isStudioAllowlisted(email);
+  const nav = navForRoles(roles, isAdmin, division, studioAccess);
   const role = roleLabel(roles, isAdmin);
   const initials =
     (email ?? 'You').split('@')[0].split(/[.\-_]/).map((s) => s[0]?.toUpperCase() ?? '').slice(0, 2).join('') || 'YOU';

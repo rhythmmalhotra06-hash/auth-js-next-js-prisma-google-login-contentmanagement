@@ -1,53 +1,48 @@
-import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
-import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { requireStudioAccess } from '@/lib/studio/guard';
 import {
-  loadStudio, pulseCounts, getLaunches, getVishenMedia,
-  getPendingShoots, getShootsToFilm, toShootSignOffItem,
+  loadStudio, loadVishenVideos, pulseCounts, getLaunches,
+  getPendingShoots, toShootSignOffItem,
 } from '@/lib/studio/data';
-import { ShootSignOff } from '@/components/studio/ShootSignOff';
-import { ShootsToFilm } from '@/components/studio/ShootsToFilm';
-import { LaunchesSection } from '@/components/studio/LaunchesSection';
-import { ClipsList } from '@/components/studio/ClipsList';
-import { AddVishenMedia } from '@/components/studio/AddVishenMedia';
+import { listClipsByStatus, listMediaSources } from '@/lib/media/repository';
+import { MediaHub } from '@/components/studio/media/MediaHub';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
+import { LaunchesSection } from '@/components/studio/LaunchesSection';
 
 export const dynamic = 'force-dynamic';
 
-async function StudioBody() {
-  const data = await loadStudio();
-  const pulse = pulseCounts(data.active, data.metrics);
-  const launches = getLaunches(data.active, data.recentShipped);
-  const pendingShoots = getPendingShoots(data.shoots).map(toShootSignOffItem);
-  // Fallback for the shoots box when nothing needs review: next shoots lined up to film.
-  const shootsToFilm = getShootsToFilm(data.shoots).map(toShootSignOffItem);
+export default async function StudioPage() {
+  await requireStudioAccess();
 
-  // Vishen's media — pinned to the top (most important to Vishen). The per-clip
-  // ideas live in the "Clips awaiting you" card below, so the list stays at the source level.
-  const allVishenMedia = getVishenMedia(data.media);
-  const vishenMedia = allVishenMedia.slice(0, 3);
+  const [videos, proposedRes, approvedRes, mediaRes, studio] = await Promise.all([
+    loadVishenVideos(),
+    listClipsByStatus('Proposed'),
+    listClipsByStatus('Approved'),
+    listMediaSources(100),
+    loadStudio(),
+  ]);
 
-  // Engine funnel — the pipeline stages, counts derived from existing selectors (no new data source).
-  // "Ready to publish" = signed off + queued.
-  const readyToPublish = data.active.filter((t) => t.ticketStatus === 'Approved' || t.ticketStatus === 'Shipping').length;
+  const sources = mediaRes.ok ? mediaRes.data : [];
+  const sourceNames: Record<string, string> = {};
+  for (const s of sources) if (s.title) sourceNames[s.id] = s.title;
+
+  // Shoots actually awaiting Vishen's sign-off (Filming Status = "Needs Vishen's Review").
+  const pendingShoots = getPendingShoots(studio.shoots).map(toShootSignOffItem);
+
+  // Pipeline tab (server-rendered slot): the ticket production funnel + launches + shipped.
+  const pulse = pulseCounts(studio.active, studio.metrics);
+  const launches = getLaunches(studio.active, studio.recentShipped);
+  const readyToPublish = studio.active.filter((t) => t.ticketStatus === 'Approved' || t.ticketStatus === 'Shipping').length;
   const funnelStages: FunnelStage[] = [
     { key: 'prod', label: 'In production', count: pulse.inProduction, cap: 'being made now', href: '/studio/launches?ticketStatus=In+Progress', icon: '✂️', tone: 'prod' },
     { key: 'await', label: 'Awaiting sign-off', count: pulse.awaiting + pendingShoots.length, cap: 'clips + shoots', sub: `${pendingShoots.length} shoot${pendingShoots.length === 1 ? '' : 's'} for you`, href: '/studio/sign-off', icon: '⏳', tone: 'review' },
     { key: 'ready', label: 'Ready to publish', count: readyToPublish, cap: 'approved · queued', href: '/studio/launches', icon: '📤', tone: 'ready' },
   ];
 
-  return (
-    <>
-    <header className="st-cockpit-head">
-      <span className="eyebrow">For Vishen · end to end</span>
-      <h2>Your studio, end to end</h2>
-      <p>Where it is, where it got posted, and how it performed — one thread per request.</p>
-    </header>
-    <div className="studio-bento">
-      {/* Engine — the hero on top */}
-      <section className="sz-funnel">
+  const pipelineSlot = (
+    <div className="space-y-8">
+      <section className="sec">
         <div className="sec-head">
           <div><span className="eyebrow">⛓ The engine</span><h3>Your pipeline, stage by stage</h3></div>
           <span className="hint">click a stage to open its grid</span>
@@ -55,73 +50,42 @@ async function StudioBody() {
         <PipelineFunnel stages={funnelStages} />
       </section>
 
-      {/* Your media → clip ideas — the work closest to Vishen */}
-      <section className="sz-media">
-        <div className="sec-head">
-          <div><span className="eyebrow blue">🎬 Your media</span><h3>Your media → clip ideas</h3></div>
-          <span className="hint">films, podcasts and talks — and the clips we can ship</span>
-          <Link href="/studio/media" className="st-seeall">Your full media board →</Link>
-        </div>
-        <AddVishenMedia />
-        {vishenMedia.length > 0 && <div style={{ marginTop: 12 }}><ClipsList media={vishenMedia} /></div>}
-        {allVishenMedia.length > vishenMedia.length && (
-          <Link href="/vishen" className="st-seeall" style={{ display: 'inline-block', marginTop: 10 }}>
-            +{allVishenMedia.length - vishenMedia.length} more media · see all clips →
-          </Link>
-        )}
-      </section>
-
-      {/* Awaiting your sign-off — focal zone: shoots (purple) + clips (white card) */}
-      <section className="sz-signoff">
-        <div className="sec-head">
-          <div>
-            <span className="eyebrow gold">● Needs you</span>
-            <h3>Awaiting your sign-off</h3>
-          </div>
-          <Link href="/studio/shoots" className="st-seeall">See all shoots →</Link>
-        </div>
-        <div className="space-y-4">
-          {pendingShoots.length > 0
-            ? <ShootSignOff items={pendingShoots} />
-            : <ShootsToFilm items={shootsToFilm} />}
-        </div>
-      </section>
-
-      {/* Flowing to your launches */}
-      <section className="sz-launches">
+      <section className="sec">
         <div className="sec-head">
           <div><span className="eyebrow">⛁ Launches</span><h3>Flowing to your launches</h3></div>
           <span className="hint">work grouped by the event it serves</span>
-          {launches.length > 3 && <Link href="/studio/launches" className="st-seeall">See all →</Link>}
+          {launches.length > 4 && <Link href="/studio/launches" className="st-seeall">See all →</Link>}
         </div>
-        {launches.length === 0
-          ? <div className="empty">No active launches.</div>
-          : <LaunchesSection launches={launches} />}
+        {launches.length === 0 ? <div className="empty">No active launches.</div> : <LaunchesSection launches={launches} />}
       </section>
 
-      {/* Recently shipped — thin proof strip */}
-      <section className="sz-shipped">
+      <section className="sec">
         <div className="sec-head">
           <div><span className="eyebrow green">✓ Delivered</span><h3>Recently shipped</h3></div>
-          <span className="hint">who made it</span>
+          <Link href="/studio/shipped" className="st-seeall">See all →</Link>
         </div>
         <div className="st-shipstrip">
-          <div className="lhs"><b>{data.recentShipped.length} recently shipped</b> · all delivered</div>
+          <div className="lhs"><b>{studio.recentShipped.length} recently shipped</b> · all delivered</div>
           <Link href="/studio/shipped" className="st-seeall">See all →</Link>
         </div>
       </section>
     </div>
-    </>
   );
-}
 
-export default async function StudioPage() {
-  await requireStudioAccess();
   return (
-    <AppShell title="Studio" subtitle="What's moving, and what needs you">
-      <Suspense fallback={<QueueSkeleton kpis={4} />}>
-        <StudioBody />
-      </Suspense>
+    <AppShell title="Your media" subtitle="Everything made for your channels — catch up, approve, and see what's coming">
+      {videos.length === 0 ? (
+        <div className="empty">No videos found in your content base yet.</div>
+      ) : (
+        <MediaHub
+          videos={videos}
+          proposedClips={proposedRes.ok ? proposedRes.data : []}
+          approvedClips={approvedRes.ok ? approvedRes.data : []}
+          sourceNames={sourceNames}
+          shoots={pendingShoots}
+          pipelineSlot={pipelineSlot}
+        />
+      )}
     </AppShell>
   );
 }

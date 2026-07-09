@@ -12,25 +12,29 @@ import { approveVideo, sendBackVideo, rateVideo, saveViews24h } from '@/app/stud
 import { approveClip, dismissClip } from '@/app/vishen/actions';
 import type { VishenVideo } from '@/lib/media/vishen-videos';
 import type { ClipSuggestion } from '@/lib/media/repository';
+import type { ShootSignOffItem } from '@/lib/studio/data';
 import { producerBucket, needsVishen, VideoDetail } from './shared';
 import { MediaOverview } from './MediaOverview';
 import { MediaCalendar } from './MediaCalendar';
 import { ClipsPanel } from './ClipsPanel';
 import { MediaBoard } from './MediaBoard';
 
-type Tab = 'overview' | 'calendar' | 'clips' | 'board';
+type Tab = 'overview' | 'calendar' | 'clips' | 'board' | 'pipeline';
 const TABS: { key: Tab; label: string; icon: IconName }[] = [
   { key: 'overview', label: 'Overview', icon: 'list' },
   { key: 'calendar', label: 'Calendar', icon: 'calendar' },
   { key: 'clips', label: 'Clips & suggestions', icon: 'film' },
   { key: 'board', label: 'Board', icon: 'columns' },
+  { key: 'pipeline', label: 'Pipeline', icon: 'chart' },
 ];
 
-export function MediaHub({ videos, proposedClips, approvedClips, sourceNames }: {
+export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, shoots, pipelineSlot }: {
   videos: VishenVideo[];
   proposedClips: ClipSuggestion[];
   approvedClips: ClipSuggestion[];
   sourceNames: Record<string, string>;
+  shoots: ShootSignOffItem[];
+  pipelineSlot: React.ReactNode;
 }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [boardAgency, setBoardAgency] = useState('all');
@@ -97,14 +101,17 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames }: 
       </div>
 
       {tab === 'overview' && (
-        <MediaOverview rows={rows} onOpen={setSelected} onApprove={onApprove} onSendBack={onSendBack}
-          onAgencyClick={(a) => { setBoardAgency(a); setTab('board'); }} />
+        <MediaOverview rows={rows} shoots={shoots} clipCount={proposed.length} onOpen={setSelected}
+          onApprove={onApprove} onSendBack={onSendBack}
+          onAgencyClick={(a) => { setBoardAgency(a); setTab('board'); }}
+          onGoToClips={() => setTab('clips')} />
       )}
       {tab === 'calendar' && <MediaCalendar videos={rows} onOpen={setSelected} />}
       {tab === 'clips' && (
         <ClipsPanel proposed={proposed} approved={approved} sourceNames={sourceNames} onApprove={onClipApprove} onDismiss={onClipDismiss} />
       )}
       {tab === 'board' && <MediaBoard key={boardAgency} rows={rows} onOpen={setSelected} initialAgency={boardAgency} />}
+      {tab === 'pipeline' && <div>{pipelineSlot}</div>}
 
       {/* Trust footnote */}
       <p className="mt-8 flex items-start gap-3 rounded-md bg-brand-soft px-4 py-3.5 text-xs leading-relaxed text-brand-content">
