@@ -15,11 +15,17 @@ export interface DrainReport { enabled: boolean; scanned: number; pushed: number
 
 const pushEnabled = (): boolean => process.env.AIRTABLE_PUSH_ENABLED === 'true';
 
+// A push that errored is retried automatically until it has failed this many times, then it's
+// parked (avoids hammering a permanently-bad row while still recovering from transient failures).
+const MAX_ATTEMPTS = 5;
+
 export async function drainOutbox(limit = 100): Promise<DrainReport> {
   if (!pushEnabled()) return { enabled: false, scanned: 0, pushed: 0, failed: 0, errors: [] };
 
+  // Drain pending rows AND error rows that haven't exhausted their retry budget, so a transient
+  // failure (network blip, momentary 5xx) doesn't strand an edit forever.
   const rows = await prisma.airtableOutbox.findMany({
-    where: { status: 'pending' },
+    where: { OR: [{ status: 'pending' }, { status: 'error', attempts: { lt: MAX_ATTEMPTS } }] },
     orderBy: { enqueuedAt: 'asc' },
     take: limit,
   });
@@ -45,37 +51,51 @@ export async function drainOutbox(limit = 100): Promise<DrainReport> {
   let pushed = 0, failed = 0;
   const errors: string[] = [];
 
+  // Each group is isolated in its own try/catch so one bad row (or a DB blip during stamp) can't
+  // abort the whole drain batch and wedge the remaining groups.
+  const markError = (rowIds: string[], msg: string) =>
+    prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'error', attempts: { increment: 1 }, lastError: msg.slice(0, 500) } });
+
   for (const { entity, entityId, rowIds } of groups.values()) {
     const handler = PUSH_HANDLERS[entity];
     if (!handler) {
-      await prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'error', lastError: `unknown entity: ${entity}`, attempts: { increment: 1 } } });
+      await markError(rowIds, `unknown entity: ${entity}`);
       errors.push(`${entity}:${entityId}: unknown entity`);
       failed++;
       continue;
     }
 
-    const loaded = await handler.load(entityId);
-    if (!loaded) {
-      // Orphaned enqueue (row deleted) — clear so it doesn't wedge the queue.
-      await prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } });
-      continue;
-    }
+    try {
+      const loaded = await handler.load(entityId);
+      if (!loaded) {
+        // Orphaned enqueue (row deleted) — clear so it doesn't wedge the queue.
+        await prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } });
+        continue;
+      }
 
-    const res = loaded.recId
-      ? await updateRecord(handler.baseId, handler.tableId, loaded.recId, loaded.fields)
-      : await createRecord(handler.baseId, handler.tableId, loaded.fields);
+      const res = loaded.recId
+        ? await updateRecord(handler.baseId, handler.tableId, loaded.recId, loaded.fields)
+        : await createRecord(handler.baseId, handler.tableId, loaded.fields);
 
-    if (res.ok) {
-      const recId = loaded.recId ?? res.data.id;
-      await handler.stamp(entityId, recId);
-      await prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } });
-      pushed++;
-    } else {
-      await prisma.airtableOutbox.updateMany({
-        where: { id: { in: rowIds } },
-        data: { status: 'error', attempts: { increment: 1 }, lastError: res.error.message },
-      });
-      errors.push(`${entity}:${entityId}: ${res.error.message}`);
+      if (res.ok) {
+        const recId = loaded.recId ?? res.data.id;
+        // Stamp (airtableId + pushedAt + any one-shot consume) and mark the outbox rows done in ONE
+        // transaction — either both land or neither, so a create's recId can't be lost (which would
+        // re-create a duplicate on the next drain).
+        await prisma.$transaction([
+          ...handler.stampOps(entityId, recId),
+          prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } }),
+        ]);
+        pushed++;
+      } else {
+        await markError(rowIds, res.error.message);
+        errors.push(`${entity}:${entityId}: ${res.error.message}`);
+        failed++;
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await markError(rowIds, msg).catch(() => {});
+      errors.push(`${entity}:${entityId}: ${msg}`);
       failed++;
     }
   }

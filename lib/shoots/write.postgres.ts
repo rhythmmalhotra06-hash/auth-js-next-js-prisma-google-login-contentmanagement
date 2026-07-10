@@ -14,23 +14,28 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function createShoot(input: CreateShootInput): Promise<AirtableResult<ShootRow>> {
   // Vishen-approved shoots skip the review gate (mirrors the Airtable impl).
   const status = input.vishenApproved ? SHOOT_STATUS.approved : SHOOT_STATUS.needsReview;
-  const created = await prisma.shoot.create({
-    data: {
-      title: input.title,
-      status,
-      vishenApproved: input.vishenApproved === true,
-      format: input.format ?? null,
-      brief: input.brief ?? null,
-      productionSupport: input.productionSupport ?? null,
-      filmingLocation: input.filmingLocation ?? null,
-      filmingDate: input.filmingDate ?? null,
-      requestedById: input.requestedByRecId ?? null,
-      authorIds: input.authorRecIds ?? [],
-      eventTypeIds: input.eventTypeRecIds ?? [],
-      assetTypeIds: input.assetTypeRecIds ?? [],
-    },
+  // Create the row + enqueue its push in ONE transaction — otherwise a failure between them leaves
+  // a PG shoot with no outbox row that never reaches Airtable (there is no PG→Airtable create reconcile).
+  const created = await prisma.$transaction(async (tx) => {
+    const s = await tx.shoot.create({
+      data: {
+        title: input.title,
+        status,
+        vishenApproved: input.vishenApproved === true,
+        format: input.format ?? null,
+        brief: input.brief ?? null,
+        productionSupport: input.productionSupport ?? null,
+        filmingLocation: input.filmingLocation ?? null,
+        filmingDate: input.filmingDate ?? null,
+        requestedById: input.requestedByRecId ?? null,
+        authorIds: input.authorRecIds ?? [],
+        eventTypeIds: input.eventTypeRecIds ?? [],
+        assetTypeIds: input.assetTypeRecIds ?? [],
+      },
+    });
+    await tx.airtableOutbox.create({ data: { entity: 'shoot', entityId: s.id, op: 'upsert' } });
+    return s;
   });
-  await prisma.airtableOutbox.create({ data: { entity: 'shoot', entityId: created.id, op: 'upsert' } });
   return getShoot(created.id);
 }
 

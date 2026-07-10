@@ -53,7 +53,9 @@ function toVideo(v: Row): VishenVideo {
 }
 
 export async function listVishenVideos(limit = 200): Promise<AirtableResult<VishenVideo[]>> {
-  const rows = await prisma.vishenVideo.findMany({ where: { NOT: { status: 'Rejected' } }, take: limit, select: SELECT });
+  // Match Airtable's NOT({Status}='Rejected'), which includes blank-status rows (realistic here —
+  // many rows leave Status blank); Prisma's `not` drops nulls, so include them explicitly.
+  const rows = await prisma.vishenVideo.findMany({ where: { OR: [{ status: null }, { status: { not: 'Rejected' } }] }, take: limit, select: SELECT });
   const data = rows.map(toVideo).sort((a, b) => {
     const ad = a.liveDate ?? '', bd = b.liveDate ?? '';
     if (ad !== bd) return ad < bd ? 1 : -1; // live date desc; empty last

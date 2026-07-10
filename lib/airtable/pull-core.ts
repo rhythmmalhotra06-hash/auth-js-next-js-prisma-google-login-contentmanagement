@@ -7,6 +7,19 @@
 // string — true for both the ticket "YYYY-MM-DD HH:mm:ss" formula field and native
 // Airtable lastModifiedTime ISO values ("2026-07-07T..Z"). Don't mix formats within a
 // domain.
+//
+// KNOWN LIMITATION (inherited from the original ticket sync; unchanged by the migration) —
+// harden before the team-heavy domains (shoots/vishen videos) rely on inbound edits:
+//   1. Echo-suppression is TIME-ONLY, not field-aware: any Airtable edit whose modified time
+//      falls within ~90s AFTER our own push is treated as an echo and skipped — even if a
+//      teammate genuinely changed a different field in that window. The cursor still advances
+//      past it (it must, or the pull would loop forever on that fixed-timestamp echo), so that
+//      edit is dropped from PG until the row is touched again. A proper fix compares the incoming
+//      fields against what we pushed (store the pushed snapshot) instead of a time window.
+//   2. The cursor is second-resolution + strict IS_AFTER, so a second edit landing in the SAME
+//      clock second as the watermark, not returned in the current snapshot, can be missed.
+// Both are low-probability with a 2–3 min poll + human edit rates and are acceptable for the
+// interim; the periodic full reference/backfill reconcile is the backstop.
 
 import { prisma } from '@/lib/prisma';
 import { listAll, type AirtableRecord } from './rest';

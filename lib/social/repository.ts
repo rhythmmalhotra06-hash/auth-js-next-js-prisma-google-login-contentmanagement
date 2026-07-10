@@ -19,6 +19,7 @@ import {
 } from '@/lib/airtable/rest';
 import type { ReelsClip } from '@/lib/clipping/schema';
 import { socialIsPostgres } from '@/lib/social/backend';
+import { TICKETS_BACKEND } from '@/lib/tickets/backend';
 
 const SF = S.fields;
 
@@ -201,6 +202,21 @@ export interface TicketState {
 export async function getSocialTicketStates(ticketIds: string[]): Promise<Record<string, TicketState>> {
   const ids = [...new Set(ticketIds.filter(Boolean))];
   if (!ids.length) return {};
+
+  // `creativeTicketId` holds whatever createTicket returned — an Airtable recId when
+  // TICKETS_BACKEND=airtable, or a PG uuid when =postgres. Read from the matching source so the
+  // status resolves in both modes (an Airtable RECORD_ID() query can't match a uuid).
+  if (TICKETS_BACKEND === 'postgres') {
+    const { prisma } = await import('@/lib/prisma');
+    const rows = await prisma.ticket.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, prioStatus: true, ticketStatus: true, officialCalendar: { select: { airtableId: true } } },
+    });
+    const pgOut: Record<string, TicketState> = {};
+    for (const t of rows) pgOut[t.id] = { prioStatus: t.prioStatus, ticketStatus: t.ticketStatus, officialCalendarId: t.officialCalendar?.airtableId ?? null };
+    return pgOut;
+  }
+
   const out: Record<string, TicketState> = {};
   // Batch ≤50 ids per query (the RECORD_ID() OR formula gets unwieldy, and a single
   // page caps at 100 — chunking keeps every raised clip's state resolvable past 100).

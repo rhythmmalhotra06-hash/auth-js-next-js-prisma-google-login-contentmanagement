@@ -6,6 +6,7 @@
 // enqueue AirtableOutbox rows with that `entity`. No changes to push.ts needed.
 
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@/app/generated/prisma/client';
 import { TICKETS, SHOOTS, SOCIAL, VISHEN_VIDEOS } from './field-map';
 import { ticketToAirtableFields, type TicketForPush } from './push-map';
 import { shootToAirtableFields } from './shoot-push-map';
@@ -24,8 +25,11 @@ export interface PushHandler {
   tableId: string;
   /** Load current PG state by internal id → recId + Airtable fields; null if the row is gone. */
   load(id: string): Promise<LoadedPush | null>;
-  /** Persist the Airtable recId + pushed-at (echo-suppression window) after a successful push. */
-  stamp(id: string, recId: string): Promise<void>;
+  /** Prisma write ops to run in the SAME transaction as the outbox mark-done (atomic): stamp
+   *  airtableId + airtablePushedAt (echo-suppression window), plus any post-push state a domain
+   *  needs to consume (e.g. shoots reset the one-shot newPrioTicket trigger). Not awaited here —
+   *  the drainer composes them into one $transaction. */
+  stampOps(id: string, recId: string): Prisma.PrismaPromise<unknown>[];
 }
 
 // ── Ticket handler (the original, unchanged behavior) ────────────────────────
@@ -117,8 +121,8 @@ const ticketHandler: PushHandler = {
     if (!t) return null;
     return { recId: t.airtableId, fields: ticketToAirtableFields(toTicketPush(t)) };
   },
-  async stamp(id, recId) {
-    await prisma.ticket.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } });
+  stampOps(id, recId) {
+    return [prisma.ticket.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } })];
   },
 };
 
@@ -140,8 +144,12 @@ const shootHandler: PushHandler = {
     const { airtableId, ...rest } = s;
     return { recId: airtableId, fields: shootToAirtableFields(rest) };
   },
-  async stamp(id, recId) {
-    await prisma.shoot.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } });
+  stampOps(id, recId) {
+    // Reset newPrioTicket to false post-push: the checkbox is a ONE-SHOT trigger for the
+    // Airtable "raise Prio ticket" automation. The push just delivered its current value; if we
+    // left it true in PG, every later full-state push would re-check it and raise duplicate
+    // tickets. Consuming it here (atomic with the outbox mark-done) makes it fire exactly once.
+    return [prisma.shoot.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date(), newPrioTicket: false } })];
   },
 };
 
@@ -161,8 +169,8 @@ const socialHandler: PushHandler = {
     const { airtableId, ...rest } = s;
     return { recId: airtableId, fields: socialToAirtableFields(rest) };
   },
-  async stamp(id, recId) {
-    await prisma.socialPost.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } });
+  stampOps(id, recId) {
+    return [prisma.socialPost.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } })];
   },
 };
 
@@ -177,8 +185,8 @@ const vishenVideoHandler: PushHandler = {
     const { airtableId, ...rest } = v;
     return { recId: airtableId, fields: vishenVideoToAirtableFields(rest) };
   },
-  async stamp(id, recId) {
-    await prisma.vishenVideo.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } });
+  stampOps(id, recId) {
+    return [prisma.vishenVideo.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } })];
   },
 };
 

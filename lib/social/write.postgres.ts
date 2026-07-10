@@ -17,27 +17,32 @@ export async function createSocialSuggestions(
   clips: ReelsClip[],
   opts: { calendarId?: string | null } = {},
 ): Promise<AirtableResult<{ count: number; ids: string[] }>> {
-  const ids: string[] = [];
-  for (const c of clips) {
-    const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
-    const row = await prisma.socialPost.create({
-      data: {
-        title: c.hookLine,
-        notes: c.rationale ?? '',
-        captions: c.caption,
-        status: S.status_.proposal,
-        clipSourceUrl: sourceUrl,
-        sourceTitle: sourceTitle || null,
-        viralityScore: c.viralityScore,
-        timecode,
-        officialCalId: opts.calendarId ?? null,
-      },
-    });
-    ids.push(row.id);
-  }
-  if (ids.length) {
-    await prisma.airtableOutbox.createMany({ data: ids.map((id) => ({ entity: 'social', entityId: id, op: 'upsert' })) });
-  }
+  // Create the proposal rows + enqueue their pushes in ONE transaction, so a failure can't leave
+  // orphaned PG social posts with no outbox row (never pushed to Airtable).
+  const ids = await prisma.$transaction(async (tx) => {
+    const out: string[] = [];
+    for (const c of clips) {
+      const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
+      const row = await tx.socialPost.create({
+        data: {
+          title: c.hookLine,
+          notes: c.rationale ?? '',
+          captions: c.caption,
+          status: S.status_.proposal,
+          clipSourceUrl: sourceUrl,
+          sourceTitle: sourceTitle || null,
+          viralityScore: c.viralityScore,
+          timecode,
+          officialCalId: opts.calendarId ?? null,
+        },
+      });
+      out.push(row.id);
+    }
+    if (out.length) {
+      await tx.airtableOutbox.createMany({ data: out.map((id) => ({ entity: 'social', entityId: id, op: 'upsert' })) });
+    }
+    return out;
+  });
   return { ok: true, data: { count: ids.length, ids } };
 }
 

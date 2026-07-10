@@ -68,7 +68,9 @@ const SELECT = {
 /** Queue list — newest first, excludes Cancelled (matches the Airtable repo). */
 export async function listShoots(limit = 200): Promise<AirtableResult<ShootRow[]>> {
   const rows = await prisma.shoot.findMany({
-    where: { NOT: { status: SHOOT_STATUS.cancelled } },
+    // Match Airtable's NOT({Status}='Cancelled'), which includes blank-status rows — Prisma's
+    // `not` excludes nulls, so add them back explicitly.
+    where: { OR: [{ status: null }, { status: { not: SHOOT_STATUS.cancelled } }] },
     orderBy: [{ createdTime: 'desc' }],
     take: limit,
     select: SELECT,

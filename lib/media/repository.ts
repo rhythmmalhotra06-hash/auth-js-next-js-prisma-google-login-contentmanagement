@@ -229,8 +229,11 @@ export async function updateMediaSource(
  * twice. Scans all sources incl. Archived — an archived duplicate still means the
  * link was processed. Returns null when there's no match.
  */
+// Dedupe reads stay AIRTABLE-DIRECT even under MEDIA_BACKEND=postgres: the PG mirror lags Airtable
+// by up to a pull cycle, so a duplicate added directly in Airtable wouldn't be visible yet and the
+// "reject duplicate link" guard (+ auto-discover/Major-Videos dedupe) could let a dup through.
+// These are low-frequency guards where correctness beats the read-speed win.
 export async function findMediaSourceByUrl(url: string): Promise<AirtableResult<MediaSource | null>> {
-  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).findMediaSourceByUrl(url);
   const target = normalizeMediaUrl(url);
   if (!target) return { ok: true, data: null };
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: LIST_FIELDS });
@@ -241,7 +244,6 @@ export async function findMediaSourceByUrl(url: string): Promise<AirtableResult<
 
 /** Existing source URLs (for auto-discover dedupe). */
 export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>> {
-  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).existingSourceUrls();
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceUrl] });
   if (!res.ok) return res;
   const set = new Set<string>();
@@ -254,7 +256,6 @@ export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>>
 
 /** Existing source URLs, normalized (for the Major Videos → Media Sources URL dedupe). */
 export async function existingNormalizedSourceUrls(): Promise<AirtableResult<Set<string>>> {
-  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).existingNormalizedSourceUrls();
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceUrl] });
   if (!res.ok) return res;
   const set = new Set<string>();
@@ -267,7 +268,6 @@ export async function existingNormalizedSourceUrls(): Promise<AirtableResult<Set
 
 /** Existing Source Record IDs (for cross-base dedupe — Major Videos sync + write-back). */
 export async function existingSourceRecordIds(): Promise<AirtableResult<Set<string>>> {
-  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).existingSourceRecordIds();
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceRecordId] });
   if (!res.ok) return res;
   const set = new Set<string>();

@@ -6,7 +6,6 @@
 import { prisma } from '@/lib/prisma';
 import type { AirtableResult } from '@/lib/airtable/rest';
 import type { MediaSource } from '@/lib/media/repository';
-import { normalizeMediaUrl } from '@/lib/media/repository';
 import { MEDIA_SOURCES } from '@/lib/airtable/field-map';
 
 type Row = {
@@ -77,7 +76,9 @@ const ARCHIVED = MEDIA_SOURCES.status_.archived;
 
 export async function listMediaSources(limit = 100): Promise<AirtableResult<MediaSource[]>> {
   const rows = await prisma.mediaSource.findMany({
-    where: { NOT: { status: ARCHIVED } },
+    // Match Airtable's NOT({Status}='Archived'), which includes blank-status rows; Prisma's `not`
+    // excludes nulls, so add them back.
+    where: { OR: [{ status: null }, { status: { not: ARCHIVED } }] },
     orderBy: [{ createdTime: 'desc' }],
     take: limit,
     select: SELECT,
@@ -92,31 +93,7 @@ export async function getMediaSource(idOrRec: string): Promise<AirtableResult<Me
   return { ok: true, data: toSource(s) };
 }
 
-export async function findMediaSourceByUrl(url: string): Promise<AirtableResult<MediaSource | null>> {
-  const target = normalizeMediaUrl(url);
-  if (!target) return { ok: true, data: null };
-  const rows = await prisma.mediaSource.findMany({ select: SELECT }); // small table; scan incl. Archived
-  const match = rows.filter((r) => r.airtableId).map(toSource).find((s) => normalizeMediaUrl(s.sourceUrl) === target);
-  return { ok: true, data: match ?? null };
-}
-
-export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>> {
-  const rows = await prisma.mediaSource.findMany({ select: { sourceUrl: true } });
-  const set = new Set<string>();
-  for (const r of rows) if (r.sourceUrl) set.add(r.sourceUrl);
-  return { ok: true, data: set };
-}
-
-export async function existingNormalizedSourceUrls(): Promise<AirtableResult<Set<string>>> {
-  const rows = await prisma.mediaSource.findMany({ select: { sourceUrl: true } });
-  const set = new Set<string>();
-  for (const r of rows) { const u = normalizeMediaUrl(r.sourceUrl); if (u) set.add(u); }
-  return { ok: true, data: set };
-}
-
-export async function existingSourceRecordIds(): Promise<AirtableResult<Set<string>>> {
-  const rows = await prisma.mediaSource.findMany({ select: { sourceRecordId: true } });
-  const set = new Set<string>();
-  for (const r of rows) if (r.sourceRecordId) set.add(r.sourceRecordId);
-  return { ok: true, data: set };
-}
+// NOTE: the dedupe reads (findMediaSourceByUrl / existing*SourceUrls / existingSourceRecordIds)
+// intentionally stay Airtable-direct in the repository even under MEDIA_BACKEND=postgres — the PG
+// mirror lags, so a not-yet-pulled Airtable duplicate could slip past the guard. Only the fast
+// dashboard reads (listMediaSources/getMediaSource) come from PG here.

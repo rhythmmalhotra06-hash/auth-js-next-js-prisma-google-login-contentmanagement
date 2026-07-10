@@ -1,10 +1,9 @@
 // Inbound pull: Airtable → Postgres for 📺 SHOOTS. Same conflict model as tickets
 // (echo-suppression + record-level last-writer-wins), built on the generic runPull.
 //
-// PREREQUISITE: a formula cursor field "App Last Modified (sync)" must exist on the Shoots
-// table and its id set in SHOOTS.fields.lastModified (see field-map TODO). Until then this
-// stays UNREGISTERED in pull-registry.ts — do NOT add it to PULL_RUNNERS or the live ticket
-// pull cron would run it against a missing field and re-import echoes.
+// The cursor field "App Last Modified (sync)" exists on the Shoots table (SHOOTS.fields.lastModified
+// = fldrfHdoRnXSqp7K3, created 2026-07-09), so this IS registered in pull-registry.ts — gated on
+// SHOOTS_BACKEND=postgres so it only runs once shoots are PG-backed (and their columns exist).
 
 import { prisma } from '@/lib/prisma';
 import { SHOOTS } from './field-map';
