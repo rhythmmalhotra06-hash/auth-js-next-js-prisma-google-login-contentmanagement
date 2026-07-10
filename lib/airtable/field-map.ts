@@ -480,8 +480,8 @@ export const VISHEN_CLIPS = {
   tableId: 'tblgGCaDK7W22UvSG',
   fields: {
     name: 'fldgUxxaSXsYeplFe', // "Name" (singleLineText, primary)
-    status: 'fldrBTX1eD26lPZx1', // "Status" (singleSelect: Todo | In progress | Done)
-    type: 'fldgy2VapMn4X6iti', // "Type" (singleSelect: duration buckets) — not synced (no app equivalent)
+    status: 'fldrBTX1eD26lPZx1', // "Status" (singleSelect) — mirrored from the ticket's Ticket Status (see clip-ticket-sync)
+    type: 'fldgy2VapMn4X6iti', // "Type" (singleSelect: duration buckets) — mirrored from the ticket's Asset Type
     draft: 'fldFih8GgfX0u5IU5', // "Draft" (url)
     notes: 'fldD5qTTkth62Fuyy', // "Notes" (multilineText)
     appClipId: 'fld8zMOlMzFG4Bn3v', // "App Clip ID" (singleLineText) — recId of the mirrored Clip Suggestion
@@ -489,9 +489,32 @@ export const VISHEN_CLIPS = {
   },
   links: {
     source: 'fldAyfIU17piBfHZQ', // → 🎬 Major Videos (parent), inverse of MAJOR_VIDEOS.links.clips
+    editorAssigned: 'fldlpgkvMiXsPoJKD', // "Editor Assigned" → Vishen-base 👥 EMPLOYEES (VISHEN_EMPLOYEES); mirrored from the ticket's assigned creative, matched by Work Email
   },
-  status_: { todo: 'Todo', inProgress: 'In progress', done: 'Done' },
+  // singleSelect option names. status_ covers every value we write from the ticket-status map.
+  status_: {
+    todo: 'Todo',
+    inProgress: 'In progress',
+    done: 'Done',
+    review: 'Review',
+    rejected: 'Rejected',
+    applyFeedback: 'Apply Feedback',
+    published: 'Published',
+  },
+  type_: { reel: 'Reel (Under 3 mins)', shortForm: 'Short Form (Under 7 mins)', youtubeClip: 'Youtube Clip (5 to 20 mins)' },
   aiSuggested_: 'AI Suggested', // the single option written into the AI Suggested tag (same on Major Videos)
+} as const;
+
+// 👥 EMPLOYEES — Vishen's own content-base employee directory. The Vishen Clips "Editor Assigned"
+// link points here, so mirroring a ticket's assigned creative (which lives in the Creative Services
+// EMPLOYEES table, a DIFFERENT base) requires a cross-base match by Work Email.
+export const VISHEN_EMPLOYEES = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblvpsk2UzHHVkNjF',
+  fields: {
+    name: 'fldPzYAzUnJjTB30C', // "Name" (multilineText, primary)
+    email: 'fldueWTRT1DfteQts', // "Work Email"
+  },
 } as const;
 
 // Clips (Sync) — the read-only Airtable sync mirror of Vishen's 🎬 Clips, living inside the

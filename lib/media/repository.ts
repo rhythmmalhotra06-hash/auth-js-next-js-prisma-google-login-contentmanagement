@@ -234,6 +234,18 @@ export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>>
   return { ok: true, data: set };
 }
 
+/** Existing source URLs, normalized (for the Major Videos → Media Sources URL dedupe). */
+export async function existingNormalizedSourceUrls(): Promise<AirtableResult<Set<string>>> {
+  const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceUrl] });
+  if (!res.ok) return res;
+  const set = new Set<string>();
+  for (const rec of res.data) {
+    const u = normalizeMediaUrl(str(rec.fields[MF.sourceUrl]));
+    if (u) set.add(u);
+  }
+  return { ok: true, data: set };
+}
+
 /** Existing Source Record IDs (for cross-base dedupe — Major Videos sync + write-back). */
 export async function existingSourceRecordIds(): Promise<AirtableResult<Set<string>>> {
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceRecordId] });
