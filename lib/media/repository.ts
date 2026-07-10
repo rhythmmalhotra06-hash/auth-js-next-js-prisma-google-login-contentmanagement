@@ -42,6 +42,27 @@ function linkedIds(v: unknown): string[] {
 }
 const firstLinkedId = (v: unknown): string | null => linkedIds(v)[0] ?? null;
 
+// Canonical form for comparing two media links. Strips the hash and common tracking
+// params, drops a trailing slash, and lowercases the host — but NOT the path/query,
+// since e.g. a YouTube video id (`?v=AbC`) is case-sensitive and must stay distinct.
+export function normalizeMediaUrl(u: string | null | undefined): string {
+  const raw = (u ?? '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    url.hash = '';
+    for (const p of [...url.searchParams.keys()]) {
+      if (/^utm_/i.test(p) || ['fbclid', 'gclid', 'si', 'feature'].includes(p)) url.searchParams.delete(p);
+    }
+    const host = url.host.toLowerCase();
+    const path = url.pathname.replace(/\/+$/, '');
+    const qs = url.searchParams.toString();
+    return `${url.protocol}//${host}${path}${qs ? `?${qs}` : ''}`;
+  } catch {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
 // ── Media Sources ──────────────────────────────────────────────────────────
 
 export interface MediaSource {
@@ -184,6 +205,21 @@ export async function updateMediaSource(
     try { await pushMediaSourceToMajorVideo(updated); } catch { /* sync is best-effort */ }
   }
   return { ok: true, data: updated };
+}
+
+/**
+ * Find an existing media source whose URL matches `url` (normalized). Used by the
+ * portal add path to reject a link that's already been submitted so it isn't clipped
+ * twice. Scans all sources incl. Archived — an archived duplicate still means the
+ * link was processed. Returns null when there's no match.
+ */
+export async function findMediaSourceByUrl(url: string): Promise<AirtableResult<MediaSource | null>> {
+  const target = normalizeMediaUrl(url);
+  if (!target) return { ok: true, data: null };
+  const res = await listAll<Raw>(M.baseId, M.tableId, { fields: LIST_FIELDS });
+  if (!res.ok) return res;
+  const match = res.data.map(mapSource).find((s) => normalizeMediaUrl(s.sourceUrl) === target);
+  return { ok: true, data: match ?? null };
 }
 
 /** Existing source URLs (for auto-discover dedupe). */
