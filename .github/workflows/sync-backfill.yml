@@ -1,0 +1,37 @@
+name: Sync backfill (domain → Postgres)
+
+# On-demand one-time backfill of a single domain Airtable → Postgres, for the staged
+# PG-SoR cutover. Idempotent (upsert on airtable_id) — safe to re-run. Bearer-gated;
+# the app is public (IAP removed) so a plain bearer curl reaches the route.
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Which domain to backfill'
+        type: choice
+        required: true
+        options:
+          - shoots
+          - social
+          - vishen-videos
+          - media-sources
+          - tickets
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backfill
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+          DOMAIN: ${{ github.event.inputs.domain }}
+        run: |
+          if [ -z "$SYNC_SECRET" ]; then echo "::error::SYNC_SECRET not set"; exit 1; fi
+          # tickets uses backfill-tickets; the rest use backfill-<domain>
+          if [ "$DOMAIN" = "tickets" ]; then ROUTE="backfill-tickets"; else ROUTE="backfill-$DOMAIN"; fi
+          echo "POST $APP_URL/api/sync/$ROUTE"
+          HTTP=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X POST "$APP_URL/api/sync/$ROUTE" -H "Authorization: Bearer $SYNC_SECRET")
+          echo "HTTP $HTTP"; cat /tmp/resp.json; echo
+          if [ "$HTTP" != "200" ]; then echo "::error::backfill failed (HTTP $HTTP)"; exit 1; fi
