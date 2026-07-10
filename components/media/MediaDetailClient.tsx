@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { ClipActions } from '@/components/vishen/ClipActions';
 import { ClipApprovalModal } from '@/components/media/ClipApprovalModal';
-import { CLIP_TYPES, DEFAULT_CLIP_TYPE } from '@/lib/clipping/clip-types';
+import { CLIP_TYPES, DEFAULT_CLIP_TYPE, RULE_SCOPE_ALL, RULE_SCOPES } from '@/lib/clipping/clip-types';
 import { StrategyDetail, parseStrategy } from '@/components/media/StrategyDetail';
 
 // Approve/dismiss + raise the ticket inline. Approving a clip surfaces it in the manager's
@@ -40,6 +40,10 @@ export function MediaDetailClient({
   const [webSearch, setWebSearch] = useState(false);
   const [clipType, setClipType] = useState<string>(DEFAULT_CLIP_TYPE);
   const [pasted, setPasted] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [rememberScope, setRememberScope] = useState<string>(clipType);
+  const [learnNote, setLearnNote] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showStrategy, setShowStrategy] = useState(false);
   const [showRegenerate, setShowRegenerate] = useState(false);
@@ -57,15 +61,35 @@ export function MediaDetailClient({
 
   async function suggest() {
     setRunError(null);
+    setLearnNote(null);
     setRunning(true);
     try {
       const res = await fetch(`/api/media/${sourceId}/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ webSearch, clipType, transcript: pasted.trim() || undefined }),
+        body: JSON.stringify({
+          webSearch,
+          clipType,
+          transcript: pasted.trim() || undefined,
+          feedback: feedback.trim() || undefined,
+          remember: remember && !!feedback.trim(),
+          rememberScope,
+        }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; clips?: number };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        clips?: number;
+        learning?: { saved?: boolean; rule?: string; skipped?: boolean; error?: string };
+      };
       if (!data.ok) setRunError(data.error ?? 'Generation failed.');
+      if (data.learning?.saved && data.learning.rule) {
+        setLearnNote(`Saved as a learning: “${data.learning.rule}” — manage it in Settings → Clip Rules.`);
+      } else if (data.learning?.skipped) {
+        setLearnNote('Feedback applied to this run; nothing general enough to remember.');
+      } else if (data.learning?.error) {
+        setLearnNote(`Feedback applied, but the learning couldn’t be saved: ${data.learning.error}`);
+      }
       router.refresh();
     } catch (e) {
       setRunError(e instanceof Error ? e.message : 'Request failed.');
@@ -131,6 +155,49 @@ export function MediaDetailClient({
           placeholder="Paste the full transcript here…"
         />
       </div>
+
+      {/* Feedback — the primary "steer it" lever on a re-run. */}
+      <div className="mt-4">
+        <label>
+          Feedback{' '}
+          <span className="font-normal text-text-subtle">
+            — tell the AI what to change this time (e.g. “clips ran too long”, “too salesy — lead with the insight”).
+          </span>
+        </label>
+        <textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          rows={3}
+          placeholder="What should be different about this run?"
+          disabled={running}
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <label className="mb-0 flex items-center gap-2 text-sm text-text-muted" title="When on, this feedback is distilled into a durable rule and applied to every future clip generation, not just this run.">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-brand"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              disabled={running || !feedback.trim()}
+            />
+            Remember this as a learning
+          </label>
+          {remember && (
+            <label className="mb-0 flex items-center gap-2 text-sm text-text-subtle">
+              applies to
+              <select value={rememberScope} onChange={(e) => setRememberScope(e.target.value)} disabled={running} className="w-auto">
+                {RULE_SCOPES.map((s) => (
+                  <option key={s} value={s}>{s === RULE_SCOPE_ALL ? 'All clip types' : s}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      </div>
+
+      {learnNote && (
+        <div className="mt-3 rounded-sm bg-brand-soft px-3 py-2 text-sm text-text">{learnNote}</div>
+      )}
 
       {error && status === 'Error' && (
         <div className="mt-3 rounded-sm bg-danger-soft px-3 py-2 text-sm text-danger-content">{error}</div>
@@ -245,7 +312,7 @@ export function MediaDetailClient({
           <button type="button" onClick={() => setShowRegenerate((v) => !v)} className="flex w-full items-center gap-2 text-left" aria-expanded={showRegenerate}>
             <Icon name="chevron" size={16} className={`shrink-0 text-text-subtle transition-transform ${showRegenerate ? '' : '-rotate-90'}`} />
             <h3 className="text-sm font-semibold">Not quite right? Re-run clips</h3>
-            <span className="hint ml-auto">change clip type or settings</span>
+            <span className="hint ml-auto">add feedback · change clip type or settings</span>
           </button>
           {showRegenerate && <div className="mt-4">{controls}</div>}
         </div>

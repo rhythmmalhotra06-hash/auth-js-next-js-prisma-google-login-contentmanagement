@@ -18,6 +18,10 @@ export const RULE_SCOPE_ALL = 'All';
 export type RuleScope = ClipType | typeof RULE_SCOPE_ALL;
 export const RULE_SCOPES = [RULE_SCOPE_ALL, ...CLIP_TYPES] as const;
 
+// Marker on a Clip Rule's Note identifying a Tier-2 auto-proposal awaiting approval.
+// Lives here (server-free) so client components can read it without pulling in server deps.
+export const PROPOSED_NOTE_PREFIX = 'Proposed from performance';
+
 export function isClipType(v: string | null | undefined): v is ClipType {
   return !!v && (CLIP_TYPES as readonly string[]).includes(v);
 }

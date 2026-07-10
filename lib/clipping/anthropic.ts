@@ -12,6 +12,11 @@ if (process.env.NODE_ENV !== 'production') globalForAnthropic.anthropic = anthro
 
 export const CLIP_MODEL = 'claude-opus-4-8';
 
+// Fast/cheap model for the "learning" side-tasks (distilling editor feedback into a
+// rule, proposing learnings from performance). These are short structured calls, not
+// the main 10-section generation, so a smaller model keeps them quick and low-cost.
+export const DISTILL_MODEL = 'claude-haiku-4-5';
+
 /**
  * Translate an Anthropic SDK error into a clear, user-facing sentence.
  * Returns null when `e` isn't a recognizable API error, so callers can fall

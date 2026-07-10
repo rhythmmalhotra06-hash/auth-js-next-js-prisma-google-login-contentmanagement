@@ -51,6 +51,39 @@ export function shortStatus(status: string | null): string {
   return status.replace(/^New Requests - /, '');
 }
 
+// Low-level create input (recIds for links). Shared by the Airtable + Postgres write impls.
+export interface CreateShootInput {
+  title: string;
+  format?: string | null; // Studio | VLOG | Broll | Testimonial | Livestream
+  brief?: string | null;
+  productionSupport?: string | null;
+  filmingLocation?: string | null; // must match a Filming Location option
+  filmingDate?: string | null; // ISO date
+  vishenApproved?: boolean;
+  requestedByRecId?: string | null; // Employee recId ("Requester" link)
+  authorRecIds?: string[];
+  eventTypeRecIds?: string[];
+  assetTypeRecIds?: string[];
+}
+
+// Typed patch for shoot edits — backend-agnostic. The Airtable impl maps these to
+// field IDs; the Postgres impl maps them to columns (+ enqueues an outbox push).
+export interface ShootPatch {
+  status?: string | null;
+  format?: string | null;
+  filmingDate?: string | null; // ISO date; '' / null clears
+  filmingLocation?: string | null;
+  brief?: string | null;
+  productionSupport?: string | null;
+  rawFiles?: string | null;
+  vishenApproved?: boolean;
+  platforms?: string[];
+  eventTypeIds?: string[];
+  priorityRanking?: number | null;
+  ticketIds?: string[]; // postProductionTicket link (recIds)
+  newPrioTicket?: boolean;
+}
+
 export interface ShootRow {
   id: string;
   title: string | null;

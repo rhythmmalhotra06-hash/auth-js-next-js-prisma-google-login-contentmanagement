@@ -1,144 +1,101 @@
-// Outbound drainer: Postgres tickets → Airtable (the team's editing surface).
-//
-// Ticket writes enqueue an AirtableOutbox row (by ticketId) in-transaction; this
-// drainer pulls pending rows, loads CURRENT ticket state (so rapid successive edits
-// collapse to one push), and creates/updates the Prio Requests record. It stamps
-// ticket.airtableId (new records) + ticket.airtablePushedAt (echo-suppression window
-// for the Phase 3 pull). Gated by AIRTABLE_PUSH_ENABLED; paced + 429-backed-off by
-// rest.ts. Trigger via POST /api/sync/push (Kessel internal cron).
+// Outbound drainer: Postgres → Airtable (the team's editing surface), generalized
+// across domains. Writes enqueue an AirtableOutbox row (entity, entityId) in-transaction;
+// this drainer pulls pending rows, groups them by (entity, entityId) so rapid successive
+// edits collapse to one push, dispatches to the domain's PushHandler (push-registry.ts)
+// to load CURRENT state + map fields, and creates/updates the target record. On success
+// the handler stamps airtableId (new records) + airtablePushedAt (echo-suppression window
+// for the pull). Gated by AIRTABLE_PUSH_ENABLED; paced + 429-backed-off by rest.ts.
+// Trigger via POST /api/sync/push (Kessel internal cron).
 
 import { prisma } from '@/lib/prisma';
-import { TICKETS } from './field-map';
 import { createRecord, updateRecord } from './rest';
-import { ticketToAirtableFields, type TicketForPush } from './push-map';
+import { PUSH_HANDLERS } from './push-registry';
 
 export interface DrainReport { enabled: boolean; scanned: number; pushed: number; failed: number; errors: string[] }
 
 const pushEnabled = (): boolean => process.env.AIRTABLE_PUSH_ENABLED === 'true';
 
-// Relations the push payload needs — each reference row's airtableId (recId).
-const PUSH_INCLUDE = {
-  assignee: { select: { airtableId: true } },
-  requester: { select: { airtableId: true } },
-  eventType: { select: { airtableId: true } },
-  assetType: { select: { airtableId: true } },
-  officialCalendar: { select: { airtableId: true } },
-  authors: { select: { author: { select: { airtableId: true } } } },
-  shoots: { select: { shoot: { select: { airtableId: true } } } },
-} as const;
-
-type PushRow = {
-  id: string;
-  airtableId: string | null;
-  title: string | null;
-  queueRank: number | null;
-  projectProgram: string | null;
-  creativeBrief: string | null;
-  cta: string | null;
-  dueDate: Date | null;
-  prioStatus: string | null;
-  ticketStatus: string | null;
-  typeOfRequest: string | null;
-  teamServiceLevel: string | null;
-  notes: string | null;
-  sourceLinks: string | null;
-  downloadLink: string | null;
-  assetFolderLink: string | null;
-  workingFiles: string | null;
-  final16x9: string | null;
-  folder16x9: string | null;
-  final9x16: string | null;
-  folder9x16: string | null;
-  final4x5: string | null;
-  folder4x5: string | null;
-  assignee: { airtableId: string | null } | null;
-  requester: { airtableId: string | null } | null;
-  eventType: { airtableId: string | null } | null;
-  assetType: { airtableId: string | null } | null;
-  officialCalendar: { airtableId: string | null } | null;
-  authors: { author: { airtableId: string | null } | null }[];
-  shoots: { shoot: { airtableId: string | null } | null }[];
-};
-
-function toPush(t: PushRow): TicketForPush {
-  return {
-    title: t.title,
-    projectProgram: t.projectProgram,
-    creativeBrief: t.creativeBrief,
-    cta: t.cta,
-    dueDate: t.dueDate,
-    prioStatus: t.prioStatus,
-    ticketStatus: t.ticketStatus,
-    typeOfRequest: t.typeOfRequest,
-    teamServiceLevel: t.teamServiceLevel,
-    notes: t.notes,
-    sourceLinks: t.sourceLinks,
-    downloadLink: t.downloadLink,
-    assetFolderLink: t.assetFolderLink,
-    workingFiles: t.workingFiles,
-    final16x9: t.final16x9,
-    folder16x9: t.folder16x9,
-    final9x16: t.final9x16,
-    folder9x16: t.folder9x16,
-    final4x5: t.final4x5,
-    folder4x5: t.folder4x5,
-    eventTypeAirtableId: t.eventType?.airtableId ?? null,
-    assetTypeAirtableId: t.assetType?.airtableId ?? null,
-    assigneeAirtableId: t.assignee?.airtableId ?? null,
-    requesterAirtableId: t.requester?.airtableId ?? null,
-    officialCalendarAirtableId: t.officialCalendar?.airtableId ?? null,
-    authorAirtableIds: t.authors.map((a) => a.author?.airtableId).filter((x): x is string => !!x),
-    shootAirtableIds: t.shoots.map((s) => s.shoot?.airtableId).filter((x): x is string => !!x),
-    queueRank: t.queueRank,
-  };
-}
+// A push that errored is retried automatically until it has failed this many times, then it's
+// parked (avoids hammering a permanently-bad row while still recovering from transient failures).
+const MAX_ATTEMPTS = 5;
 
 export async function drainOutbox(limit = 100): Promise<DrainReport> {
   if (!pushEnabled()) return { enabled: false, scanned: 0, pushed: 0, failed: 0, errors: [] };
 
+  // Drain pending rows AND error rows that haven't exhausted their retry budget, so a transient
+  // failure (network blip, momentary 5xx) doesn't strand an edit forever.
   const rows = await prisma.airtableOutbox.findMany({
-    where: { status: 'pending' },
+    where: { OR: [{ status: 'pending' }, { status: 'error', attempts: { lt: MAX_ATTEMPTS } }] },
     orderBy: { enqueuedAt: 'asc' },
     take: limit,
   });
 
-  // Collapse rapid successive edits: one push per ticket for its current state.
-  const rowsByTicket = new Map<string, string[]>();
+  // Collapse rapid successive edits: one push per (entity, entityId) for its current
+  // state. `entityId ?? ticketId` tolerates legacy pre-0012 rows (entity defaults to
+  // 'ticket', entity_id null → fall back to the old ticket_id column).
+  const groups = new Map<string, { entity: string; entityId: string; rowIds: string[] }>();
+  const orphanRowIds: string[] = [];
   for (const r of rows) {
-    const arr = rowsByTicket.get(r.ticketId) ?? [];
-    arr.push(r.id);
-    rowsByTicket.set(r.ticketId, arr);
+    const entity = r.entity || 'ticket';
+    const entityId = r.entityId ?? (r.ticketId ?? null);
+    if (!entityId) { orphanRowIds.push(r.id); continue; } // no id to act on → clear
+    const key = `${entity}:${entityId}`;
+    const g = groups.get(key) ?? { entity, entityId, rowIds: [] };
+    g.rowIds.push(r.id);
+    groups.set(key, g);
+  }
+  if (orphanRowIds.length) {
+    await prisma.airtableOutbox.updateMany({ where: { id: { in: orphanRowIds } }, data: { status: 'error', lastError: 'no entityId', attempts: { increment: 1 } } });
   }
 
   let pushed = 0, failed = 0;
   const errors: string[] = [];
 
-  for (const [ticketId, rowIds] of rowsByTicket) {
-    const t = (await prisma.ticket.findUnique({ where: { id: ticketId }, include: PUSH_INCLUDE })) as unknown as PushRow | null;
-    if (!t) {
-      // Orphaned enqueue (ticket deleted) — clear the rows so they don't wedge the queue.
-      await prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } });
+  // Each group is isolated in its own try/catch so one bad row (or a DB blip during stamp) can't
+  // abort the whole drain batch and wedge the remaining groups.
+  const markError = (rowIds: string[], msg: string) =>
+    prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'error', attempts: { increment: 1 }, lastError: msg.slice(0, 500) } });
+
+  for (const { entity, entityId, rowIds } of groups.values()) {
+    const handler = PUSH_HANDLERS[entity];
+    if (!handler) {
+      await markError(rowIds, `unknown entity: ${entity}`);
+      errors.push(`${entity}:${entityId}: unknown entity`);
+      failed++;
       continue;
     }
 
-    const fields = ticketToAirtableFields(toPush(t));
-    const res = t.airtableId
-      ? await updateRecord(TICKETS.baseId, TICKETS.tableId, t.airtableId, fields)
-      : await createRecord(TICKETS.baseId, TICKETS.tableId, fields);
+    try {
+      const loaded = await handler.load(entityId);
+      if (!loaded) {
+        // Orphaned enqueue (row deleted) — clear so it doesn't wedge the queue.
+        await prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } });
+        continue;
+      }
 
-    if (res.ok) {
-      const recId = t.airtableId ?? res.data.id;
-      await prisma.$transaction([
-        prisma.ticket.update({ where: { id: ticketId }, data: { airtableId: recId, airtablePushedAt: new Date() } }),
-        prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } }),
-      ]);
-      pushed++;
-    } else {
-      await prisma.airtableOutbox.updateMany({
-        where: { id: { in: rowIds } },
-        data: { status: 'error', attempts: { increment: 1 }, lastError: res.error.message },
-      });
-      errors.push(`${ticketId}: ${res.error.message}`);
+      const res = loaded.recId
+        ? await updateRecord(handler.baseId, handler.tableId, loaded.recId, loaded.fields)
+        : await createRecord(handler.baseId, handler.tableId, loaded.fields);
+
+      if (res.ok) {
+        const recId = loaded.recId ?? res.data.id;
+        // Stamp (airtableId + pushedAt + any one-shot consume) and mark the outbox rows done in ONE
+        // transaction — either both land or neither, so a create's recId can't be lost (which would
+        // re-create a duplicate on the next drain).
+        await prisma.$transaction([
+          ...handler.stampOps(entityId, recId),
+          prisma.airtableOutbox.updateMany({ where: { id: { in: rowIds } }, data: { status: 'done', processedAt: new Date() } }),
+        ]);
+        pushed++;
+      } else {
+        await markError(rowIds, res.error.message);
+        errors.push(`${entity}:${entityId}: ${res.error.message}`);
+        failed++;
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await markError(rowIds, msg).catch(() => {});
+      errors.push(`${entity}:${entityId}: ${msg}`);
       failed++;
     }
   }

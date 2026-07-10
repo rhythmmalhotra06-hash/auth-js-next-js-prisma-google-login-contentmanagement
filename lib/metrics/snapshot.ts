@@ -7,6 +7,7 @@
 import { prisma } from '@/lib/prisma';
 import { TICKETS } from '@/lib/airtable/field-map';
 import { listAll } from '@/lib/airtable/rest';
+import { TICKETS_BACKEND } from '@/lib/tickets/backend';
 
 const STATUS_FIELD = TICKETS.fields.ticketStatus;
 const SNAPSHOT_KEY = 'ticket_status_counts';
@@ -24,21 +25,40 @@ const statusName = (v: unknown): string => {
   return '(none)';
 };
 
-/**
- * Scan the full Airtable ticket table once (status field only), tally counts by
- * status, and persist the snapshot. Background-only — pulls ~10k rows over ~100
- * paced requests, so never call this from a page render.
- */
-export async function refreshTicketMetrics(): Promise<TicketMetrics> {
+// Tally status counts from Postgres — a cheap groupBy over the tickets table (used once
+// TICKETS_BACKEND=postgres; no ~10k-row Airtable scan needed).
+async function byStatusFromPg(): Promise<{ byStatus: Record<string, number>; total: number }> {
+  const groups = await prisma.ticket.groupBy({ by: ['ticketStatus'], _count: { _all: true } });
+  const byStatus: Record<string, number> = {};
+  let total = 0;
+  for (const g of groups) {
+    const s = g.ticketStatus ?? '(none)';
+    byStatus[s] = (byStatus[s] ?? 0) + g._count._all;
+    total += g._count._all;
+  }
+  return { byStatus, total };
+}
+
+// Tally from the full Airtable ticket table (status field only). Pulls ~10k rows over ~100
+// paced requests — background-only.
+async function byStatusFromAirtable(): Promise<{ byStatus: Record<string, number>; total: number }> {
   const res = await listAll(TICKETS.baseId, TICKETS.tableId, { fields: [STATUS_FIELD] });
   if (!res.ok) throw new Error(`Airtable read failed: ${res.error.message}`);
-
   const byStatus: Record<string, number> = {};
   for (const rec of res.data) {
     const s = statusName((rec.fields as Record<string, unknown>)[STATUS_FIELD]);
     byStatus[s] = (byStatus[s] ?? 0) + 1;
   }
-  const data = { total: res.data.length, byStatus, shipped: byStatus['Done'] ?? 0 };
+  return { byStatus, total: res.data.length };
+}
+
+/**
+ * Tally lifetime ticket counts by status and persist the snapshot. Reads from Postgres
+ * when tickets are PG-backed (cheap groupBy), else scans Airtable. Background-only.
+ */
+export async function refreshTicketMetrics(): Promise<TicketMetrics> {
+  const { byStatus, total } = TICKETS_BACKEND === 'postgres' ? await byStatusFromPg() : await byStatusFromAirtable();
+  const data = { total, byStatus, shipped: byStatus['Done'] ?? 0 };
 
   const row = await prisma.metricSnapshot.upsert({
     where: { key: SNAPSHOT_KEY },

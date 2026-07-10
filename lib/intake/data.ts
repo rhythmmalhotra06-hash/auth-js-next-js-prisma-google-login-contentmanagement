@@ -1,10 +1,12 @@
 import { getLiveIntakeReference } from '@/lib/airtable/reference-live';
+import { referenceIsPostgres } from '@/lib/reference/backend';
 
-// Reference data for the intake form — LIVE from Airtable. Option values are
-// Airtable recIds, written straight into the ticket's link fields at create time.
-// No Postgres fallback: a fallback that returned UUIDs would break the Airtable
-// link write, so on failure we surface empty lists (form shows nothing → retry)
-// rather than silently submit invalid record IDs.
+// Reference data for the intake form. Option values are Airtable recIds, written
+// straight into the ticket's link fields at create time — true whether we read LIVE
+// from Airtable (default) or from the mirrored Postgres tables (REFERENCE_BACKEND=postgres),
+// since PG rows expose their airtableId as the option id. No silent fallback across
+// backends: on failure we surface empty lists (form shows nothing → retry) rather than
+// submit invalid record IDs.
 
 export interface Option {
   id: string;
@@ -50,7 +52,9 @@ const EMPTY: IntakeReferenceData = {
 
 export async function getIntakeReferenceData(): Promise<IntakeReferenceData> {
   try {
-    const live = await getLiveIntakeReference();
+    const live = referenceIsPostgres()
+      ? await (await import('@/lib/reference/intake.postgres')).getPgIntakeReference()
+      : await getLiveIntakeReference();
     return {
       employees: live.employees,
       eventTypes: live.eventTypes,

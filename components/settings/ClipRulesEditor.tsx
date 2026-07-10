@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { addRule, setRuleActive, updateRowContent } from '@/app/settings/actions';
+import { addRule, setRuleActive, updateRowContent, dismissProposedLearning } from '@/app/settings/actions';
+import { PROPOSED_NOTE_PREFIX } from '@/lib/clipping/clip-types';
 
 const inputCls =
   'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)] disabled:opacity-60';
@@ -157,6 +158,52 @@ function RuleRow({ rule, canEdit }: { rule: EditorRule; canEdit: boolean }) {
   );
 }
 
+/** A machine-proposed learning awaiting approval — Approve activates it; Dismiss retires it. */
+function ProposedRow({ rule }: { rule: EditorRule }) {
+  const router = useRouter();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+  const evidence = (rule.note ?? '').replace(new RegExp(`^${PROPOSED_NOTE_PREFIX}\\s*—?\\s*`), '');
+
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>, okText: string) {
+    setMsg(null);
+    start(async () => {
+      const res = await fn();
+      setMsg(res.ok ? { ok: true, text: okText } : { ok: false, text: res.error ?? 'Failed.' });
+      if (res.ok) router.refresh();
+    });
+  }
+
+  return (
+    <div className="rounded-[10px] border border-dashed border-brand-border bg-brand-soft/40 p-3">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-2xs">
+        <span className="rounded-full bg-brand px-2 py-0.5 text-white">Proposed</span>
+        <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-text-muted ring-1 ring-border-default">{rule.clipType ?? 'All'}</span>
+        {rule.section && <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-text-muted ring-1 ring-border-default">{rule.section}</span>}
+      </div>
+      <p className="text-sm text-text">{rule.content}</p>
+      {evidence && <p className="mt-1 text-xs text-text-subtle">Evidence: {evidence}</p>}
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          onClick={() => run(() => setRuleActive(rule.id, true), 'Approved — now active.')}
+          disabled={pending}
+          className="rounded-sm bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-bright disabled:opacity-50"
+        >
+          Approve
+        </button>
+        <button
+          onClick={() => run(() => dismissProposedLearning(rule.id), 'Dismissed.')}
+          disabled={pending}
+          className="rounded-sm px-3 py-1.5 text-xs font-medium text-text-muted ring-1 ring-border-default hover:bg-bg-subtle disabled:opacity-50"
+        >
+          Dismiss
+        </button>
+      </div>
+      <Msg msg={msg} />
+    </div>
+  );
+}
+
 function AddRuleForm({ ruleScopes }: { ruleScopes: readonly string[] }) {
   const router = useRouter();
   const [content, setContent] = useState('');
@@ -232,9 +279,14 @@ function AddRuleForm({ ruleScopes }: { ruleScopes: readonly string[] }) {
 }
 
 export function ClipRulesEditor({ basePrompt, pillars, rules, ruleScopes, canEdit }: ClipRulesEditorProps) {
-  // Group rules by clip type, preserving the ruleScopes ordering.
+  // Auto-proposed learnings (inactive + carrying the marker note) get their own review list.
+  const isProposed = (r: EditorRule) => !r.active && (r.note ?? '').startsWith(PROPOSED_NOTE_PREFIX);
+  const proposed = rules.filter(isProposed);
+  const authored = rules.filter((r) => !isProposed(r));
+
+  // Group the authored rules by clip type, preserving the ruleScopes ordering.
   const byType = ruleScopes
-    .map((scope) => ({ scope, items: rules.filter((r) => (r.clipType ?? 'All') === scope) }))
+    .map((scope) => ({ scope, items: authored.filter((r) => (r.clipType ?? 'All') === scope) }))
     .filter((g) => g.items.length > 0);
 
   return (
@@ -269,6 +321,20 @@ export function ClipRulesEditor({ basePrompt, pillars, rules, ruleScopes, canEdi
           rows={2}
           canEdit={canEdit}
         />
+      )}
+
+      {canEdit && proposed.length > 0 && (
+        <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-brand-border">
+          <h2 className="text-sm font-semibold text-text">Proposed learnings (from performance)</h2>
+          <p className="mt-1 text-xs text-text-muted">
+            The engine suggested these from rated / released clips. Approve to add them to the prompt, or dismiss.
+          </p>
+          <div className="mt-4 space-y-2">
+            {proposed.map((r) => (
+              <ProposedRow key={r.id} rule={r} />
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="rounded-md bg-surface p-6 shadow-sm ring-1 ring-border-default">

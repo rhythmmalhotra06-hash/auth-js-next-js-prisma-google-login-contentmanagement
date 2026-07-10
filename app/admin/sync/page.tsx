@@ -59,17 +59,42 @@ export default async function SyncHealthPage() {
         </div>
       </div>
 
+      {h.outboxByEntity.length > 0 && (
+        <div className="card pad" style={{ marginBottom: 16 }}>
+          <div className="font-display text-lg" style={{ marginBottom: 8 }}>Outbox by domain</div>
+          <table className="list">
+            <thead>
+              <tr><th>Domain</th><th>Pending</th><th>Failed</th></tr>
+            </thead>
+            <tbody>
+              {h.outboxByEntity.map((d) => (
+                <tr key={d.entity}>
+                  <td>{d.entity}</td>
+                  <td>{d.pending}</td>
+                  <td className={d.error > 0 ? 'text-brand' : 'text-text-muted'}>{d.error}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {h.recentErrors.length > 0 && (
         <div className="card pad">
           <div className="font-display text-lg" style={{ marginBottom: 8 }}>Recent push failures</div>
           <table className="list">
             <thead>
-              <tr><th>Ticket</th><th>Attempts</th><th>Last error</th><th>Enqueued</th></tr>
+              <tr><th>Domain</th><th>Record</th><th>Attempts</th><th>Last error</th><th>Enqueued</th></tr>
             </thead>
             <tbody>
               {h.recentErrors.map((e) => (
-                <tr key={e.ticketId + e.enqueuedAt}>
-                  <td><Link href={`/tickets/${e.ticketId}`}>{e.ticketId.slice(0, 8)}…</Link></td>
+                <tr key={e.entity + e.entityId + e.enqueuedAt}>
+                  <td>{e.entity}</td>
+                  <td>
+                    {e.entity === 'ticket'
+                      ? <Link href={`/tickets/${e.entityId}`}>{e.entityId.slice(0, 8)}…</Link>
+                      : <span className="text-text-muted">{e.entityId.slice(0, 8)}…</span>}
+                  </td>
                   <td>{e.attempts}</td>
                   <td className="text-text-muted">{e.lastError ?? '—'}</td>
                   <td className="text-text-muted">{ago(e.enqueuedAt)}</td>

@@ -8,6 +8,7 @@ const API = 'https://api.airtable.com/v0';
 
 export interface AirtableRecord {
   id: string; // rec… — our airtable_id provenance
+  createdTime?: string; // ISO; returned by the Airtable API on every record
   fields: Record<string, unknown>; // keyed by field ID
 }
 

@@ -6,6 +6,7 @@
 
 import { VISHEN_VIDEOS as V } from '@/lib/airtable/field-map';
 import { listAll, updateRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
+import { vishenVideosArePostgres } from '@/lib/media/backend';
 
 const VF = V.fields;
 type Raw = Record<string, unknown>;
@@ -107,6 +108,7 @@ const LIST_FIELDS = [
  * `limit` caps the read (the table is ~341 rows and grows).
  */
 export async function listVishenVideos(limit = 200): Promise<AirtableResult<VishenVideo[]>> {
+  if (vishenVideosArePostgres()) return (await import('@/lib/media/vishen-videos.postgres')).listVishenVideos(limit);
   const res = await listAll<Raw>(V.baseId, V.tableId, {
     fields: LIST_FIELDS,
     filterByFormula: `NOT({Status} = 'Rejected')`,
@@ -176,6 +178,7 @@ export async function updateVishenVideo(
   id: string,
   patch: { approval?: string; rating?: number; views24h?: string },
 ): Promise<AirtableResult<VishenVideo>> {
+  if (vishenVideosArePostgres()) return (await import('@/lib/media/vishen-videos.postgres')).updateVishenVideo(id, patch);
   const fields: Record<string, unknown> = {};
   if (patch.approval !== undefined) fields[VF.approval] = patch.approval;
   if (patch.rating !== undefined) fields[VF.rating] = patch.rating;

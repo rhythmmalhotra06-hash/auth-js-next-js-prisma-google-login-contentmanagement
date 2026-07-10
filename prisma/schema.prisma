@@ -77,6 +77,8 @@ model Employee {
   isTeamLead     Boolean  @default(false) @map("is_team_lead")
   employmentType String   @default("employee") @map("employment_type") // ← Airtable "Employment Status"
   active         Boolean  @default(true) // ← Airtable "Active Status": Active | Not Active
+  roles          String[] @default([]) // ← Airtable "Roles" (multiselect): app access roles (Editor, Manager, Admin, …)
+  capacity       Int? // ← Airtable "Capacity" (number): weighted load = 100%; blank → global default
   syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
   assetTypeTeamLeads        AssetTypeTeamLead[]        @relation("AssetTypeTeamLead")
@@ -107,6 +109,8 @@ model EventType {
   name           String // e.g. Masterclass, Mastery, States, MBU, Social Media Promotion, Pathway
   brainProgramId String?  @map("brain_program_id") // [VERIFY] link to Mindvalley Brain
   active         Boolean  @default(true)
+  loadWeight     Float?   @map("load_weight") // ← Airtable "Load Weight": capacity cost/ticket; blank → 1
+  tierNorm       Float?   @map("tier_norm") // ← Airtable "Tier Norm" (0–1): priority event tier
   syncedAt       DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
   assetTypes AssetTypeEventType[]
@@ -132,9 +136,16 @@ model AssetType {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   airtableId        String?  @unique @map("airtable_id")
   name              String // e.g. "Masterclass Trailer"
+  fullName          String?  @map("full_name") // ← Airtable "Asset Type (Full title)": fallback when short name is blank
   category          String? // ← Airtable "Type of Asset": Print | Digital
-  dnaId             String?  @map("dna_id") @db.Uuid // DNA records live in the Ads Creative Library base
+  creativeCategory  String?  @map("creative_category") // ← Airtable "Category": Creative Video/Brand Design/Event Design Type
+  dnaId             String?  @map("dna_id") @db.Uuid // legacy; DNA is dormant (text fields below are the live source, E9.7)
   active            Boolean  @default(true) // ← Airtable "Status": Active | Inactive
+  loadWeight        Float?   @map("load_weight") // ← Airtable "Load Weight": capacity cost/ticket; blank → 1
+  effortNorm        Float?   @map("effort_norm") // ← Airtable "Effort Norm" (0–1): priority complexity effort
+  dnaRequirements   String?  @map("dna_requirements") // ← Airtable "DNA / Requirements" (E9.7)
+  feedbackStandards String?  @map("feedback_standards") // ← Airtable "Feedback Standards" (E9.7)
+  dnaUpdatedBy      String?  @map("dna_updated_by") // ← Airtable "DNA Updated By": last portal editor email
   syncedAt          DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
   dna Dna? @relation(fields: [dnaId], references: [id])
@@ -195,6 +206,59 @@ model AssetTypePreferredEditor {
 
   @@id([assetTypeId, employeeId])
   @@map("asset_type_preferred_editors")
+}
+
+// Contractors / freelancers — the second assignable pool (alongside Employee
+// creatives). Reference: one-way Airtable → PG; edited in Airtable.
+model Contractor {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId   String?  @unique @map("airtable_id")
+  name         String
+  active       Boolean  @default(true) // ← Airtable "Status": Active | …
+  serviceLevel String?  @map("service_level") // ← Airtable "Team/Service Level"
+  capacity     Int? // ← Airtable "Capacity" (number)
+  syncedAt     DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@map("contractors")
+}
+
+// ⚙️ Scoring Config — app-owned global knobs (key→number). Mirrored one-way from
+// Airtable for fast reads; edited at /settings/scoring (writes still go to Airtable,
+// mirror refreshes). Per-type weights live on EventType/AssetType; per-person
+// capacity on Employee/Contractor.
+model ScoringConfigKnob {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId String?  @unique @map("airtable_id")
+  key        String // stable config key (e.g. w_due, default_capacity)
+  value      Float? // the numeric knob value
+  label      String? // admin-panel label
+  group      String? // Capacity | Priority weights | Thresholds
+  note       String?
+  updatedBy  String?  @map("updated_by")
+  syncedAt   DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@map("scoring_config")
+}
+
+// 🧠 Clip Rules — editable clip-generation prompt/pillars/rules. Mirrored one-way
+// from Airtable for fast reads; edited at /settings/clip-rules (writes go to Airtable).
+model ClipRule {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId    String?  @unique @map("airtable_id")
+  name          String?
+  kind          String? // Base Prompt | Brand Pillars | Rule
+  clipType      String?  @map("clip_type") // All | Reel | Stage Talk | Short
+  content       String?
+  active        Boolean  @default(true)
+  order         Int? // sort for appended rules
+  section       String? // General | Clips | Thumbnail | Titles | Distribution
+  note          String?
+  updatedBy     String?  @map("updated_by")
+  airtableUpdatedAt String? @map("airtable_updated_at") // ← Airtable "Last Modified" string (display/sort)
+  createdTime   String?  @map("created_time") // ← Airtable createdTime (display/sort)
+  syncedAt      DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@map("clip_rules")
 }
 
 // ===========================================================================
@@ -276,15 +340,23 @@ model Ticket {
   @@map("tickets")
 }
 
-// Phase 2 — outbox for two-way ticket PUSH (portal → Airtable). Ticket writes
-// enqueue a row in the same transaction; a background drainer (drainOutbox) pushes
-// current ticket state to the Prio Requests table, batched + rate-limited. We
-// enqueue by ticketId (not a field snapshot) so the drainer always sends the
-// latest state and collapses rapid successive edits.
+// Phase 2 — outbox for two-way PUSH (portal → Airtable). Writes enqueue a row in the
+// same transaction; a background drainer (drainOutbox) pushes current state to the
+// target Airtable table, batched + rate-limited. We enqueue by (entity, entityId) —
+// not a field snapshot — so the drainer always sends the latest state and collapses
+// rapid successive edits.
+//
+// POLYMORPHIC (0012): `entity` names the domain ('ticket' | 'shoot' | 'social' | …)
+// and `entityId` is that domain's internal PG id (uuid-as-text) or a domain key.
+// The drainer dispatches on `entity` via lib/airtable/push-registry.ts. `ticketId`
+// is retained (nullable) for in-flight rows enqueued before the migration; the
+// drainer falls back to it when `entityId` is null (legacy 'ticket' rows).
 model AirtableOutbox {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketId    String    @map("ticket_id") @db.Uuid
-  op          String    @default("upsert") // upsert (create-or-update)
+  entity      String    @default("ticket") // domain discriminator → push-registry key
+  entityId    String?   @map("entity_id") // internal PG id (text) of the domain row; null only on legacy rows
+  ticketId    String?   @map("ticket_id") @db.Uuid // DEPRECATED: legacy fallback for pre-0012 rows
+  op          String    @default("upsert") // upsert (create-or-update) | delete
   status      String    @default("pending") // pending | done | error
   attempts    Int       @default(0)
   lastError   String?   @map("last_error")
@@ -292,6 +364,7 @@ model AirtableOutbox {
   processedAt DateTime? @map("processed_at") @db.Timestamptz
 
   @@index([status, enqueuedAt], map: "idx_outbox_pending")
+  @@index([entity, entityId], map: "idx_outbox_entity")
   @@map("airtable_outbox")
 }
 
@@ -325,18 +398,42 @@ model Approval {
   @@map("approvals")
 }
 
+// Shoots — pre-production filming requests. PG system-of-record with two-way Airtable
+// sync (SHOOTS_BACKEND). Link fields (requester/authors/event types/asset-library/tickets)
+// are stored as Airtable recId arrays — the shoot's OWN state is authoritative here; the
+// drainer pushes these back to Airtable as link arrays. `notes`/`location` columns are
+// reused (from the original reference model) as brief/filmingLocation. `shoot_date` column
+// is legacy/dead (superseded by filming_date text).
 model Shoot {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  airtableId String?   @unique @map("airtable_id")
-  title      String
-  status     String? // New Requests - Approved by Vishen | New Requests - Needs Vishen's Review | To Film | Done - Filmed | Cancelled
-  shootDate  DateTime? @map("shoot_date") @db.Date
-  location   String?
-  notes      String?
-  syncedAt   DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId        String?   @unique @map("airtable_id")
+  title             String?
+  status            String? // New Requests - Approved/Needs Review | To Film | Done - Filmed | Cancelled
+  format            String?
+  filmingDate       String?   @map("filming_date") // raw Airtable "Filming Date" string
+  filmingLocation   String?   @map("location") // reuse legacy `location` column
+  brief             String?   @map("notes") // reuse legacy `notes` column (Airtable notes)
+  productionSupport String?   @map("production_support")
+  vishenApproved    Boolean   @default(false) @map("vishen_approved")
+  priorityRanking   Int?      @map("priority_ranking")
+  rawFiles          String?   @map("raw_files")
+  platforms         String[]  @default([])
+  newPrioTicket     Boolean   @default(false) @map("new_prio_ticket")
+  requestedById     String?   @map("requested_by_id") // Airtable Employee recId
+  authorIds         String[]  @default([]) @map("author_ids")
+  eventTypeIds      String[]  @default([]) @map("event_type_ids")
+  assetTypeIds      String[]  @default([]) @map("asset_type_ids") // "Creative Asset Type" link (set at create; round-tripped, not read into ShootRow)
+  assetLibraryIds   String[]  @default([]) @map("asset_library_ids")
+  ticketIds         String[]  @default([]) @map("ticket_ids")
+  createdTime       String?   @map("created_time") // Airtable createdTime (list ordering)
+  airtablePushedAt  DateTime? @map("airtable_pushed_at") @db.Timestamptz // echo-suppression window
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt          DateTime  @default(now()) @map("synced_at") @db.Timestamptz
 
   tickets ShootTicket[]
 
+  @@index([airtablePushedAt], map: "idx_shoots_pushed")
   @@map("shoots")
 }
 
@@ -420,6 +517,113 @@ model TicketAuthor {
 
   @@id([ticketId, authorId])
   @@map("ticket_authors")
+}
+
+// 📣 Social — Marketing content board (Content & Comms base). PG system-of-record with
+// two-way Airtable sync (SOCIAL_BACKEND). Only the app-managed fields live here; other
+// columns on the Airtable row (social format, content type, transcript, shoots link) are
+// left untouched by the drainer. `creativeTicketId` is a Creative Services ticket recId
+// stored as text (cross-base — can't be an Airtable link); `officialCalId` is a same-base
+// link to CommsCalendar (recId).
+model SocialPost {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId       String?   @unique @map("airtable_id")
+  title            String?
+  notes            String?
+  captions         String?
+  status           String? // 1: Proposal | 2: Approved | 2A. Ticket Raised | 13: Reject
+  clipSourceUrl    String?   @map("clip_source_url") // engine-origin marker + grouping key
+  sourceTitle      String?   @map("source_title")
+  viralityScore    Int?      @map("virality_score")
+  timecode         String?
+  creativeTicketId String?   @map("creative_ticket_id") // Creative Services ticket recId (text; presence ⇒ raised)
+  officialCalId    String?   @map("official_cal_id") // Content & Comms calendar recId (same-base link)
+  createdTime      String?   @map("created_time")
+  airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt         DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@index([airtablePushedAt], map: "idx_social_pushed")
+  @@map("social_posts")
+}
+
+// 📺 Media Sources — the media inbox (app-owned, Creative Services base). READ-MIRROR:
+// PG is a fast read replica (MEDIA_BACKEND); writes still go to Airtable (createMediaSource/
+// updateMediaSource, incl. the vishen-sync cross-base fan-out) and are write-through-upserted
+// here, plus a pull catches external edits. No outbox — Airtable stays the source of truth.
+// Link fields are kept as Airtable recId arrays/scalars. Clip Suggestions are NOT mirrored.
+model MediaSource {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId               String?  @unique @map("airtable_id")
+  title                    String?
+  sourceUrl                String?  @map("source_url")
+  downloadUrl              String?  @map("download_url")
+  platform                 String?
+  status                   String?
+  guestShow                String?  @map("guest_show")
+  audience                 String?
+  submittedVia             String?  @map("submitted_via")
+  usedWebSearch            Boolean  @default(false) @map("used_web_search")
+  strategyJson             String?  @map("strategy_json")
+  transcript               String?
+  error                    String?
+  submittedDate            String?  @map("submitted_date")
+  clipsAddedDate           String?  @map("clips_added_date")
+  clipSuggestionIds        String[] @default([]) @map("clip_suggestion_ids")
+  submittedById            String?  @map("submitted_by_id")
+  ticketEventTypeId        String?  @map("ticket_event_type_id")
+  ticketAssetTypeId        String?  @map("ticket_asset_type_id")
+  ticketOfficialCalendarId String?  @map("ticket_official_calendar_id")
+  ticketDueDate            String?  @map("ticket_due_date")
+  sourceRecordId           String?  @map("source_record_id")
+  createdTime              String?  @map("created_time")
+  syncedAt                 DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@map("media_sources")
+}
+
+// 🎬 Vishen's Videos — his complete cross-channel content log (team-maintained by hand).
+// PG system-of-record with two-way Airtable sync (VISHEN_VIDEOS_BACKEND). The team edits most
+// fields in Airtable (pulled in); the portal writes back ONLY approval/rating/views24h on an
+// explicit tap (loop-safe — no inbound automation reads them, Status is never written), so the
+// push-map touches only those three fields. `stage`/`channel` are derived in code, not stored.
+model VishenVideo {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId       String?   @unique @map("airtable_id")
+  name             String?
+  source           String? // producer/agency
+  medium           String?
+  format           String?
+  product          String?
+  status           String? // 6-stage pipeline (read-only from the app)
+  approval         String? // Vishen's sign-off (app writes)
+  publishedLink    String?   @map("published_link")
+  liveDate         String?   @map("live_date")
+  rating           Int? // 1–5 (app writes)
+  views24h         String?   @map("views_24h") // team-logged 24h perf (app writes)
+  createdTime      String?   @map("created_time")
+  airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt         DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@index([airtablePushedAt], map: "idx_vishen_videos_pushed")
+  @@map("vishen_videos")
+}
+
+// 📅 Content & Comms campaign calendar (distinct from OfficialCalendar). Reference:
+// one-way Airtable → PG; edited in Airtable. Powers the /social/new calendar picker.
+model CommsCalendar {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId String?  @unique @map("airtable_id")
+  name       String
+  status     String?
+  startDate  String?  @map("start_date") // raw Airtable date string (display/sort)
+  endDate    String?  @map("end_date")
+  syncedAt   DateTime @default(now()) @map("synced_at") @db.Timestamptz
+
+  @@map("comms_calendars")
 }
 
 // ===========================================================================
