@@ -541,6 +541,16 @@ export const CLIPS_SYNC = {
   // Matched by field NAME in filterByFormula (Airtable formulas resolve names, not ids), so the
   // reconcile works the moment the field is added to the sync — no field id needed here.
   appClipIdName: 'App Clip ID',
+  // Outcome signals for the clip-learning loop (lib/media/clip-signals.ts). Verified live
+  // 2026-07-10. NOTE these must be enabled in the Airtable sync's field set to carry values.
+  fields: {
+    appClipId: 'fldnKMR6Ddc7yrg1z', // "App Clip ID" (singleLineText) = mirrored Clip Suggestion recId
+    rating: 'fldZ2a6sfhmVOAyot', // "Rating" (rating) — performance proxy
+    released: 'fldjluotR0yrj3uBk', // "Released" (multipleSelects) — non-empty ⇒ the clip was released
+    notes: 'fld0EsWNWnue7getv', // "Notes" (multilineText) — qualitative feedback text
+    data24: 'fldHIilibHMKKCASC', // "24 Data" (multilineText) — 24-hour performance numbers
+    feedbackUrl: 'fld4M8AKRn7WSFz42', // "Feedback" (url) — Loom review link (presence only; not text)
+  },
   links: {
     prioTicket: 'fldBpNRq3e0oXka5F', // → 🎯 Prio: Creatives Requests (New) (reverse of TICKETS.links.clipsSync)
   },

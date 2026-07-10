@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchYouTube } from '@/app/content-engine/actions';
+import { DEFAULT_CLIP_TYPE, RULE_SCOPE_ALL, RULE_SCOPES } from '@/lib/clipping/clip-types';
 
 const inputCls =
   'w-full rounded-sm border border-border-strong px-3 py-2 text-sm text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -32,6 +33,9 @@ export function ClipEngineForm() {
   const [guestAudience, setGuestAudience] = useState('');
   const [brandPillars, setBrandPillars] = useState('');
   const [webSearch, setWebSearch] = useState(true);
+  const [feedback, setFeedback] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [rememberScope, setRememberScope] = useState<string>(DEFAULT_CLIP_TYPE);
 
   const [fetching, setFetching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -84,6 +88,9 @@ export function ClipEngineForm() {
           guestAudience,
           brandPillars,
           webSearch,
+          feedback: feedback.trim() || undefined,
+          remember: remember && !!feedback.trim(),
+          rememberScope,
         }),
       });
       const data = await res.json();
@@ -155,6 +162,28 @@ export function ClipEngineForm() {
         <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} className="h-4 w-4 accent-brand" />
         Use web search to ground SEO keywords, trends & posting times (slower, more current)
       </label>
+
+      <div className="border-t border-border-default pt-6">
+        <Field label="Feedback" hint="Optional — tell the AI what to change (e.g. “clips too long”, “too salesy — lead with the insight”).">
+          <textarea className={inputCls} rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="What should be different about this run?" />
+        </Field>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <label className="flex items-center gap-2 text-sm text-text-muted" title="When on, this feedback is distilled into a durable rule and applied to every future clip generation, not just this run.">
+            <input type="checkbox" className="h-4 w-4 accent-brand" checked={remember} onChange={(e) => setRemember(e.target.checked)} disabled={!feedback.trim()} />
+            Remember this as a learning
+          </label>
+          {remember && (
+            <label className="flex items-center gap-2 text-sm text-text-subtle">
+              applies to
+              <select value={rememberScope} onChange={(e) => setRememberScope(e.target.value)} className={`${inputCls} w-auto`}>
+                {RULE_SCOPES.map((s) => (
+                  <option key={s} value={s}>{s === RULE_SCOPE_ALL ? 'All clip types' : s}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      </div>
 
       {error && <div className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger-content">{error}</div>}
 

@@ -8,6 +8,8 @@ export interface GenerateOptions {
   webSearch: boolean;
   /** Which content form to generate for — scopes which rules apply. Defaults to Reel. */
   clipType?: ClipType;
+  /** Editor guidance for this run (e.g. from a re-run) — steers this generation only. */
+  feedback?: string;
 }
 
 export interface GenerateResult {
@@ -87,7 +89,7 @@ export async function generateStrategy(
         thinking: { type: 'adaptive' },
         output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } },
         system: systemPrompt,
-        messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary, brandPillars) }],
+        messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary, brandPillars, opts.feedback ?? '') }],
       } as AnyParams as never);
 
       return await stream.finalMessage();

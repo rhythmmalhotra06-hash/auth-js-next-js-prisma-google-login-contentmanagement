@@ -34,12 +34,17 @@ export interface GenerationContext {
   brandPillars?: string;
 }
 
-/** Build the Phase B user turn: context + optional web research + the transcript. */
+/**
+ * Build the Phase B user turn: context + optional web research + the transcript.
+ * `feedback` is optional editor guidance for THIS run (e.g. from a re-run) — it is
+ * kept in its own labelled block so it never gets mistaken for transcript text.
+ */
 export function buildUserMessage(
   transcript: string,
   ctx: GenerationContext,
   research: string,
   defaultBrandPillars: string = DEFAULT_BRAND_PILLARS,
+  feedback: string = '',
 ): string {
   const pillars = ctx.brandPillars?.trim() || defaultBrandPillars;
   const lines = [
@@ -52,6 +57,15 @@ export function buildUserMessage(
   if (ctx.guestAudience?.trim()) lines.push(`Guest audience / reach: ${ctx.guestAudience.trim()}`);
   if (research.trim()) {
     lines.push('', 'Current web research to ground SEO keywords, hashtags, and platform timing:', research.trim());
+  }
+  if (feedback.trim()) {
+    lines.push(
+      '',
+      '--- EDITOR FEEDBACK (steer this run) ---',
+      'The previous output was not quite right. Apply this feedback to this generation:',
+      feedback.trim(),
+      '--- END EDITOR FEEDBACK ---',
+    );
   }
   lines.push('', '--- TRANSCRIPT START ---', transcript.trim(), '--- TRANSCRIPT END ---');
   return lines.join('\n');
