@@ -41,6 +41,27 @@ export interface PullDomain {
   importRecords(records: AirtableRecord[]): Promise<PullStats>;
 }
 
+// Seed a domain's pull cursor to the newest modified value in a freshly-backfilled record set.
+// WITHOUT this, the first post-backfill pull runs with no cursor, re-evaluates every backfilled
+// row, and — because the backfill upsert bumps each row's updatedAt to "now" — the last-writer-wins
+// check sees PG as newer than Airtable and RE-ASSERTS the whole set back through the outbox (a
+// pointless mass push, and dangerous for trigger fields like the shoots newPrioTicket checkbox).
+// Seeding the cursor makes that first pull incremental, so only genuinely-newer rows are touched.
+export async function seedPullCursor(
+  cursorKey: string,
+  records: AirtableRecord[],
+  rawModified: (r: AirtableRecord) => string | null,
+): Promise<void> {
+  let max: string | null = null;
+  for (const r of records) {
+    const v = rawModified(r);
+    if (v && (!max || v > max)) max = v; // fixed-width timestamp strings sort chronologically
+  }
+  if (max) {
+    await prisma.syncState.upsert({ where: { key: cursorKey }, create: { key: cursorKey, value: max }, update: { value: max } });
+  }
+}
+
 export async function runPull(domain: PullDomain, opts: { fullResync?: boolean } = {}): Promise<PullReport> {
   const state = opts.fullResync ? null : await prisma.syncState.findUnique({ where: { key: domain.cursorKey } });
   const since = state?.value ?? null;
