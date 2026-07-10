@@ -106,6 +106,8 @@ export interface CreateClipRuleInput {
   note?: string;
   order?: number;
   updatedBy?: string | null;
+  /** Defaults to true. Set false for "proposed" learnings awaiting admin approval. */
+  active?: boolean;
 }
 
 export async function createClipRule(input: CreateClipRuleInput): Promise<AirtableResult<ClipRule>> {
@@ -114,7 +116,7 @@ export async function createClipRule(input: CreateClipRuleInput): Promise<Airtab
     [RF.kind]: R.kind_.rule,
     [RF.clipType]: input.clipType,
     [RF.content]: input.content,
-    [RF.active]: true,
+    [RF.active]: input.active ?? true,
     [RF.order]: input.order ?? 0,
   };
   if (input.section) fields[RF.section] = input.section;

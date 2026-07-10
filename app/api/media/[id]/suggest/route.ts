@@ -1,7 +1,9 @@
 import { getMediaSource, updateMediaSource, createClipSuggestions } from '@/lib/media/repository';
 import { generateStrategy } from '@/lib/clipping/generate';
+import { rememberFeedbackAsLearning, type RememberResult } from '@/lib/clipping/learn';
 import { fetchYouTubeTranscript, normalizeTranscript, TranscriptFetchError } from '@/lib/clipping/transcript';
-import { DEFAULT_CLIP_TYPE, isClipType } from '@/lib/clipping/clip-types';
+import { DEFAULT_CLIP_TYPE, isClipType, RULE_SCOPE_ALL, type RuleScope } from '@/lib/clipping/clip-types';
+import { auth } from '@/lib/auth';
 
 // Node runtime: Anthropic SDK + youtubei.js need Node; long duration for
 // transcript fetch + web search + 10-section generation.
@@ -37,6 +39,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const clipType = isClipType(rawClipType) ? rawClipType : DEFAULT_CLIP_TYPE;
   // Allow a pasted transcript as a fallback when YouTube auto-fetch is blocked.
   const pastedTranscript = typeof body.transcript === 'string' ? normalizeTranscript(body.transcript) : '';
+  // Editor feedback steers this run; `remember` also persists it as a learning.
+  const feedback = typeof body.feedback === 'string' ? body.feedback.trim() : '';
+  const remember = body.remember === true && feedback.length > 0;
+  const rememberScope: RuleScope = isClipType(body.rememberScope as string)
+    ? (body.rememberScope as RuleScope)
+    : body.rememberScope === RULE_SCOPE_ALL
+      ? RULE_SCOPE_ALL
+      : clipType;
 
   await updateMediaSource(id, { status: 'Transcribing', error: '' });
 
@@ -61,10 +71,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       guestAudience: source.audience ?? undefined,
     };
 
-    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch, clipType });
+    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch, clipType, feedback });
 
     const clipRes = await createClipSuggestions(id, strategy.reelsClips);
     if (!clipRes.ok) throw new Error(`Failed to write clips: ${clipRes.error.message}`);
+
+    // Best-effort: persist the feedback as a durable learning if the editor asked.
+    let learning: RememberResult | undefined;
+    if (remember) {
+      const session = await auth();
+      learning = await rememberFeedbackAsLearning({
+        feedback,
+        clipType,
+        scope: rememberScope,
+        email: session?.user?.email ?? null,
+        date: new Date().toISOString(),
+      });
+    }
 
     // NOTE: clips are NOT pushed to Vishen's base here. They stay in the portal as Proposed
     // suggestions until a human approves them (convertClipsToTickets), which is the only path
@@ -79,7 +102,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       strategyJson: JSON.stringify(strategy).slice(0, 95000),
     });
 
-    return Response.json({ ok: true, clips: clipRes.data.count });
+    return Response.json({ ok: true, clips: clipRes.data.count, learning });
   } catch (e) {
     const message =
       e instanceof TranscriptFetchError

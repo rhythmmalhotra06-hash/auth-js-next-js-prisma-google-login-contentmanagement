@@ -37,6 +37,21 @@ export async function setRuleActive(id: string, active: boolean): Promise<Action
   return { ok: true };
 }
 
+/**
+ * Dismiss an auto-proposed learning (from the performance loop). Leaves it inactive but
+ * rewrites the Note to drop the "Proposed from performance" marker so it no longer shows
+ * in the proposals review list. Reversible — the row is still there, just deactivated.
+ */
+export async function dismissProposedLearning(id: string): Promise<ActionResult> {
+  const g = await guard();
+  if ('error' in g) return { ok: false, error: g.error };
+
+  const res = await updateClipRule(id, { active: false, note: 'Dismissed proposal', updatedBy: g.email });
+  if (!res.ok) return { ok: false, error: res.error.message };
+  revalidatePath('/settings/clip-rules');
+  return { ok: true };
+}
+
 export interface AddRuleInput {
   content: string;
   clipType: string; // All | Reel | Stage Talk | Short

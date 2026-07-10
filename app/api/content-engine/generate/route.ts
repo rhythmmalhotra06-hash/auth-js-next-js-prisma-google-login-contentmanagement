@@ -3,7 +3,10 @@ import { Prisma } from '@/app/generated/prisma/client';
 import { getEmployeeForSession } from '@/lib/employee';
 import { CLIP_MODEL } from '@/lib/clipping/anthropic';
 import { generateStrategy } from '@/lib/clipping/generate';
+import { rememberFeedbackAsLearning, type RememberResult } from '@/lib/clipping/learn';
+import { DEFAULT_CLIP_TYPE, isClipType, RULE_SCOPE_ALL, type RuleScope } from '@/lib/clipping/clip-types';
 import { normalizeTranscript } from '@/lib/clipping/transcript';
+import { auth } from '@/lib/auth';
 import { createMediaSource, updateMediaSource, createClipSuggestions } from '@/lib/media/repository';
 import type { Strategy } from '@/lib/clipping/schema';
 
@@ -41,6 +44,14 @@ export async function POST(req: Request) {
   };
   const webSearch = body.webSearch === true;
   const sourceType = ['paste', 'file', 'youtube'].includes(String(body.sourceType)) ? String(body.sourceType) : 'paste';
+  // Editor feedback steers this run; `remember` also persists it as a learning.
+  const feedback = typeof body.feedback === 'string' ? body.feedback.trim() : '';
+  const remember = body.remember === true && feedback.length > 0;
+  const rememberScope: RuleScope = isClipType(body.rememberScope as string)
+    ? (body.rememberScope as RuleScope)
+    : body.rememberScope === RULE_SCOPE_ALL
+      ? RULE_SCOPE_ALL
+      : DEFAULT_CLIP_TYPE;
 
   const employee = await getEmployeeForSession();
 
@@ -98,9 +109,22 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch });
+    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch, feedback });
 
     await captureClips(strategy, usedWebSearch);
+
+    // Best-effort: persist the feedback as a durable learning if the editor asked.
+    let learning: RememberResult | undefined;
+    if (remember) {
+      const session = await auth();
+      learning = await rememberFeedbackAsLearning({
+        feedback,
+        clipType: DEFAULT_CLIP_TYPE,
+        scope: rememberScope,
+        email: session?.user?.email ?? null,
+        date: new Date().toISOString(),
+      });
+    }
 
     await prisma.clipStrategy.update({
       where: { id: strategyRow.id },
@@ -125,7 +149,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return Response.json({ strategyId: strategyRow.id });
+    return Response.json({ strategyId: strategyRow.id, learning });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Generation failed';
     await prisma.clipStrategy.update({ where: { id: strategyRow.id }, data: { status: 'error', error: message } });
