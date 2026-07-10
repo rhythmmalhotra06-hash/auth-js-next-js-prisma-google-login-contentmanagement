@@ -15,11 +15,10 @@ import {
   type MediaSource,
 } from '@/lib/media/repository';
 import { createMajorVideo, derivePlatform } from '@/lib/media/major-videos';
-import { mirrorClipsToVishenBase } from '@/lib/media/vishen-sync';
+import { mirrorApprovedClips } from '@/lib/media/clip-mirror';
 import { reconcileClipTicketLinks } from '@/lib/media/ticket-links';
 import { ticketAirtableId } from '@/lib/tickets/airtable-id';
 import { sliceTranscriptForClip } from '@/lib/clipping/transcript';
-import type { ReelsClip } from '@/lib/clipping/schema';
 
 // ── Submit a media link (portal intake) ─────────────────────────────────────
 
@@ -225,11 +224,12 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
     }
   }
 
-  // Approval is the only gate that reaches Vishen's base: create the parent Major Video (if the
-  // source has none yet) + the approved clips as Vishen Clips rows, tagged AI Suggested. Native
-  // two-way sync then surfaces them in the "(Sync)" mirror tables. Best-effort — a Vishen hiccup
-  // must not fail an approval whose tickets already exist.
-  await pushApprovedClipsToVishen(converted, sources);
+  // Approval is the only gate that reaches Vishen's base: ensure a live parent Major Video +
+  // create the approved clips as Vishen Clips rows, tagged AI Suggested. Native two-way sync then
+  // surfaces them in the "(Sync)" mirror tables. Best-effort — a Vishen hiccup must not fail an
+  // approval whose tickets already exist, but we surface the errors instead of swallowing them.
+  const mirror = await mirrorApprovedClips(converted, sources);
+  if (mirror.errors.length) console.error('convertClipsToTickets: Vishen mirror errors:', mirror.errors);
 
   // Fill the ticket ↔ clip links now (best-effort). On the airtable backend the Clip
   // Suggestions link resolves immediately; the Clips (Sync) link usually defers to the cron
@@ -238,59 +238,6 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
 
   revalidatePath('/media');
   return { ok: failed.length === 0, created, failed };
-}
-
-/**
- * Push clips that were just approved into Vishen's content base (his Major Videos + Clips are the
- * source of the "(Sync)" mirrors). Groups by parent Media Source so at most one Major Video is
- * created per source; skips clips already mirrored (vishenClipId set). Tags everything AI Suggested.
- */
-async function pushApprovedClipsToVishen(
-  clips: ClipSuggestion[],
-  sources: Map<string, MediaSource>,
-): Promise<void> {
-  const bySource = new Map<string, ClipSuggestion[]>();
-  for (const c of clips) {
-    if (!c.mediaSourceId || c.vishenClipId) continue; // no parent, or already mirrored
-    const arr = bySource.get(c.mediaSourceId) ?? [];
-    arr.push(c);
-    bySource.set(c.mediaSourceId, arr);
-  }
-
-  for (const [sourceId, group] of bySource) {
-    const src = sources.get(sourceId);
-    if (!src) continue;
-    try {
-      // Ensure the parent Media Source has a Major Video in Vishen's base (create if it originated
-      // in the portal and was never linked). AI Suggested only when WE create it — a Major Video
-      // that came from Vishen's own base is his real content, not AI-originated.
-      let majorVideoId = src.sourceRecordId;
-      if (!majorVideoId) {
-        const mv = await createMajorVideo({
-          title: src.title ?? src.sourceUrl ?? 'Untitled',
-          url: src.sourceUrl,
-          aiSuggested: true,
-        });
-        if (!mv.ok) continue; // best-effort
-        majorVideoId = mv.data.id;
-        await updateMediaSource(sourceId, { sourceRecordId: majorVideoId });
-      }
-      // Map the Clip Suggestions to the shape mirrorClipsToVishenBase expects (format/virality are
-      // only used for the notes blurb; missing values are harmless).
-      const reels: ReelsClip[] = group.map((c) => ({
-        timestampStart: c.timestampStart ?? '',
-        timestampEnd: c.timestampEnd ?? '',
-        rationale: c.rationale ?? '',
-        caption: c.caption ?? '',
-        hookLine: c.hookLine ?? c.name ?? '',
-        format: (c.format ?? 'talking_head') as ReelsClip['format'],
-        viralityScore: c.viralityScore ?? 0,
-      }));
-      await mirrorClipsToVishenBase(majorVideoId, reels, group.map((c) => c.id));
-    } catch {
-      /* best-effort — never fail an approval on a Vishen sync error */
-    }
-  }
 }
 
 // ── Airtable checkbox → ticket (polled by /api/clips/convert) ────────────────

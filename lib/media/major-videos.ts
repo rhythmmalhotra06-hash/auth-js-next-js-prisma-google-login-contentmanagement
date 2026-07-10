@@ -4,8 +4,8 @@
 // Videos for the Studio "add media" entry. Node runtime (Airtable REST writes).
 
 import { MAJOR_VIDEOS as V } from '@/lib/airtable/field-map';
-import { listAll, createRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
-import { createMediaSource, existingSourceRecordIds } from '@/lib/media/repository';
+import { listAll, createRecord, getRecord, type AirtableRecord, type AirtableResult } from '@/lib/airtable/rest';
+import { createMediaSource, existingSourceRecordIds, existingNormalizedSourceUrls, normalizeMediaUrl } from '@/lib/media/repository';
 import { parseVideoId } from '@/lib/media/youtube';
 
 const VF = V.fields;
@@ -79,6 +79,16 @@ export async function createMajorVideo(input: {
   return { ok: true, data: { id: res.data.id } };
 }
 
+/**
+ * True when the Major Video recId still exists in Vishen's base. Used before mirroring clips so a
+ * dangling Source Record ID (its Major Video was deleted, e.g. during a manual de-dupe) is treated
+ * as missing and recreated rather than causing an invalid-linked-record create failure.
+ */
+export async function majorVideoExists(id: string): Promise<boolean> {
+  const res = await getRecord<Raw>(V.baseId, V.tableId, id);
+  return res.ok; // getRecord returns ok:false (NOT_FOUND) on a 404
+}
+
 export interface SyncResult {
   scanned: number;
   added: string[];
@@ -87,8 +97,11 @@ export interface SyncResult {
 
 /**
  * Mirror new Major Videos rows into 📺 Media Sources (Status New, Submitted Via Airtable,
- * Guest/Show = the content type), deduped on Source Record ID. Adds rows only — never runs
- * the clip engine (a human still clicks "Suggest clips").
+ * Guest/Show = the content type). Adds rows only — never runs the clip engine (a human still
+ * clicks "Suggest clips"). Deduped two ways so the same video can't spawn a second source:
+ *   • Source Record ID (this exact Major Video was already synced), and
+ *   • normalized Source URL (a different Major Video row that points at a URL a live source
+ *     already covers — the path that historically created URL-duplicates).
  */
 export async function syncMajorVideos(cutoffDate: string): Promise<AirtableResult<SyncResult>> {
   const vids = await recentMajorVideos(cutoffDate);
@@ -98,12 +111,18 @@ export async function syncMajorVideos(cutoffDate: string): Promise<AirtableResul
   if (!seenRes.ok) return seenRes;
   const seen = seenRes.data;
 
+  const urlSeenRes = await existingNormalizedSourceUrls();
+  if (!urlSeenRes.ok) return urlSeenRes;
+  const urlSeen = urlSeenRes.data;
+
   const added: string[] = [];
   const failed: { id: string; error: string }[] = [];
 
   for (const v of vids.data) {
     if (seen.has(v.id)) continue;
     const url = v.finalUrl || v.draftUrl || null; // prefer Final over Draft
+    const norm = normalizeMediaUrl(url);
+    if (norm && urlSeen.has(norm)) continue; // a live Media Source already covers this URL
     const platform = derivePlatform(url);
     const res = await createMediaSource({
       url,
@@ -115,8 +134,10 @@ export async function syncMajorVideos(cutoffDate: string): Promise<AirtableResul
       submittedVia: 'Airtable',
       sourceRecordId: v.id,
     });
-    if (res.ok) added.push(v.id);
-    else failed.push({ id: v.id, error: res.error.message });
+    if (res.ok) {
+      added.push(v.id);
+      if (norm) urlSeen.add(norm); // guard against two new Major Videos sharing a URL in one run
+    } else failed.push({ id: v.id, error: res.error.message });
   }
 
   return { ok: true, data: { scanned: vids.data.length, added, failed } };

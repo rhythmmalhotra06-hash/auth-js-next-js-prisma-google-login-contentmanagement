@@ -66,8 +66,8 @@ export async function mirrorClipsToVishenBase(
   majorVideoRecId: string,
   clips: ReelsClip[],
   appClipIds: string[],
-): Promise<AirtableResult<{ count: number }>> {
-  if (!vishenSyncEnabled() || clips.length === 0) return { ok: true, data: { count: 0 } };
+): Promise<AirtableResult<{ count: number; results: { appClipId: string; vishenClipId: string }[] }>> {
+  if (!vishenSyncEnabled() || clips.length === 0) return { ok: true, data: { count: 0, results: [] } };
 
   const records = clips.map((c, i) => ({
     fields: {
@@ -92,7 +92,11 @@ export async function mirrorClipsToVishenBase(
     }),
   );
 
-  return { ok: true, data: { count: res.data.length } };
+  // Return the correlation so callers can update in-memory clips (e.g. link Clips (Sync) same run).
+  const results = res.data
+    .map((rec, i) => ({ appClipId: appClipIds[i] ?? '', vishenClipId: rec.id }))
+    .filter((r) => r.appClipId);
+  return { ok: true, data: { count: res.data.length, results } };
 }
 
 /**

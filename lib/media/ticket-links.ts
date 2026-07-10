@@ -16,12 +16,16 @@
 import { CLIPS_SYNC, TICKETS } from '@/lib/airtable/field-map';
 import { getRecord, listRecords, updateRecord } from '@/lib/airtable/rest';
 import { ticketAirtableId } from '@/lib/tickets/airtable-id';
-import { listClipsByStatus, updateClipSuggestion } from './repository';
+import { listClipsByStatus, getMediaSource, updateClipSuggestion, type MediaSource } from './repository';
+import { mirrorApprovedClips } from './clip-mirror';
+import { syncTicketFieldsToVishenClip, newSyncCaches } from './clip-ticket-sync';
 
 export interface LinkReconcileReport {
   scanned: number;
+  reMirrored: number; // approved clips that never reached Vishen's base, mirrored this run
   suggestionLinked: number;
   clipsSyncLinked: number;
+  fieldsSynced: number; // Vishen clips whose Editor Assigned/Status/Type were refreshed from the ticket
   deferred: number; // ticket not mirrored to Airtable yet — will retry next run
   errors: string[];
 }
@@ -58,7 +62,8 @@ async function linkTicketToClipsSync(ticketRecId: string, clipRecId: string): Pr
 }
 
 export async function reconcileClipTicketLinks(limit = 60): Promise<LinkReconcileReport> {
-  const report: LinkReconcileReport = { scanned: 0, suggestionLinked: 0, clipsSyncLinked: 0, deferred: 0, errors: [] };
+  const report: LinkReconcileReport = { scanned: 0, reMirrored: 0, suggestionLinked: 0, clipsSyncLinked: 0, fieldsSynced: 0, deferred: 0, errors: [] };
+  const caches = newSyncCaches(); // memoize employee/asset-type lookups across the run
 
   const clipsRes = await listClipsByStatus('Approved', limit);
   if (!clipsRes.ok) {
@@ -68,6 +73,22 @@ export async function reconcileClipTicketLinks(limit = 60): Promise<LinkReconcil
   // Only clips raised through the app convert flow carry an App Ticket ID pairing key.
   const clips = clipsRes.data.filter((c) => c.appTicketId);
   report.scanned = clips.length;
+
+  // Safety net: re-mirror any approved clip that never reached Vishen's base (no vishenClipId) —
+  // e.g. its convert-time mirror failed on a dangling Major Video ref. mirrorApprovedClips
+  // self-heals the Major Video and MUTATES each clip's vishenClipId in place, so the Clips (Sync)
+  // link step below can run in the same pass. Best-effort; errors are surfaced, not thrown.
+  const unmirrored = clips.filter((c) => !c.vishenClipId && c.mediaSourceId);
+  if (unmirrored.length) {
+    const sources = new Map<string, MediaSource>();
+    for (const sid of [...new Set(unmirrored.map((c) => c.mediaSourceId!).filter(Boolean))]) {
+      const r = await getMediaSource(sid);
+      if (r.ok) sources.set(sid, r.data);
+    }
+    const mirror = await mirrorApprovedClips(unmirrored, sources);
+    report.reMirrored = mirror.mirrored;
+    report.errors.push(...mirror.errors);
+  }
 
   for (const c of clips) {
     try {
@@ -90,6 +111,11 @@ export async function reconcileClipTicketLinks(limit = 60): Promise<LinkReconcil
         const outcome = await linkTicketToClipsSync(recId, c.id);
         if (outcome === 'linked') report.clipsSyncLinked++;
         else if (outcome === 'error') report.errors.push(`${c.id} Clips (Sync) link failed`);
+
+        // 3. Mirror the ticket's live Editor Assigned / Status / Type onto the Vishen clip row.
+        const fs = await syncTicketFieldsToVishenClip(recId, c.vishenClipId, caches);
+        if (fs === 'updated') report.fieldsSynced++;
+        else if (fs === 'error') report.errors.push(`${c.id} field sync failed`);
       }
     } catch (e) {
       report.errors.push(`${c.id}: ${e instanceof Error ? e.message : String(e)}`);
