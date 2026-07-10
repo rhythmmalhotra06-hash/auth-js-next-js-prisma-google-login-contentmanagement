@@ -5,7 +5,7 @@ import { PRIO_STATUSES, TICKET_STATUSES } from '@/lib/tickets/constants';
 import { getTicketDetail } from '@/lib/tickets/data';
 import { updateTicket } from '@/lib/tickets/write';
 import { getShoot, updateShoot, SHOOT_STATUS } from '@/lib/shoots/repository';
-import { SHOOTS as S } from '@/lib/airtable/field-map';
+import type { ShootPatch } from '@/lib/shoots/constants';
 
 export interface ActionResult {
   ok: boolean;
@@ -92,8 +92,8 @@ export async function sendBackContentReview(ticketId: string, note: string): Pro
 /** Approve a pending shoot — Filming Status → "Approved by Vishen" + tick the approval checkbox. */
 export async function approveShoot(shootId: string): Promise<ActionResult> {
   const res = await updateShoot(shootId, {
-    [S.fields.status]: SHOOT_STATUS.approved,
-    [S.fields.vishenApproval]: true,
+    status: SHOOT_STATUS.approved,
+    vishenApproved: true,
   });
   if (!res.ok) return { ok: false, error: res.error.message };
   revalidateStudio();
@@ -105,7 +105,7 @@ export async function approveShoot(shootId: string): Promise<ActionResult> {
  * when present it's appended to Notes/Brief with a light Vishen attribution stamp.
  */
 export async function declineShoot(shootId: string, note?: string): Promise<ActionResult> {
-  const fields: Record<string, unknown> = { [S.fields.status]: SHOOT_STATUS.cancelled };
+  const patch: ShootPatch = { status: SHOOT_STATUS.cancelled };
 
   const trimmed = note?.trim();
   if (trimmed) {
@@ -113,10 +113,10 @@ export async function declineShoot(shootId: string, note?: string): Promise<Acti
     const stamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const entry = `[Vishen · ${stamp}] ${trimmed}`;
     const existing = detail.ok ? detail.data.brief : null;
-    fields[S.fields.notes] = existing ? `${existing}\n\n${entry}` : entry;
+    patch.brief = existing ? `${existing}\n\n${entry}` : entry;
   }
 
-  const res = await updateShoot(shootId, fields);
+  const res = await updateShoot(shootId, patch);
   if (!res.ok) return { ok: false, error: res.error.message };
   revalidateStudio();
   return { ok: true };

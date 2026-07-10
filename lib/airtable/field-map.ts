@@ -93,6 +93,10 @@ export const SHOOTS = {
     rawFiles: 'fld3EaYUxVfpKyZCM', // "Raw Files" (url)
     platforms: 'fldzADgA2zZfdrXZy', // "Platfom" (multipleSelects) — note the live typo in the field name
     newPrioTicket: 'fldNvoj7UUYkHeLov', // "New Prio Ticket" (checkbox → Airtable automation raises the Prio ticket)
+    // Inbound-pull cursor: "App Last Modified (sync)" formula = DATETIME_FORMAT(LAST_MODIFIED_TIME(),
+    // 'YYYY-MM-DD HH:mm:ss') (UTC, watches ALL fields). Created via MCP 2026-07-09; pullShoots is
+    // registered in pull-registry.ts.
+    lastModified: 'fldrfHdoRnXSqp7K3',
   },
   links: {
     requestedBy: 'fldnLRFDHVXuUvUba', // "Requester" → 👬 Employees
@@ -276,6 +280,8 @@ export const MEDIA_SOURCES = {
     clipsAddedDate: 'fldn3QKcQCIiK6nrr', // "Clips Added Date" (dateTime) — set when clips written
     ticketDueDate: 'fldDfUyOazIWkgq98', // "Ticket Due Date" (date) — default due date for checkbox-created tickets; falls back to today+7
     sourceRecordId: 'fldaSr62jen1C1wgI', // "Source Record ID" (singleLineText) — provenance/dedupe for cross-base sync (Major Videos)
+    // Inbound-pull cursor for the read-mirror: "App Last Modified (sync)" formula UTC. Created via MCP 2026-07-09.
+    lastModified: 'fld1y92PoEPpLKb0j',
   },
   links: {
     submittedBy: 'fldFXpTr3za0Qc8Pd', // → 👬 Employees
@@ -331,7 +337,10 @@ export const VISHEN_VIDEOS = {
     publishedLink: 'fldrym088lQmqfhGg', // "Published Link" (url)
     liveDate: 'fldbdCEjsTMrQYRN7', // "Live Date" (date)
     views24h: 'flduZSKFfHMDwMp9U', // "24h Data" (multilineText) — team logs 24h perf; portal writes this
-    modified: 'fldirV7fXg8q7VuVg', // "Modified" (lastModifiedTime)
+    modified: 'fldirV7fXg8q7VuVg', // "Modified" (lastModifiedTime, native ISO)
+    // Inbound-pull cursor: "App Last Modified (sync)" formula = DATETIME_FORMAT(LAST_MODIFIED_TIME(),
+    // 'YYYY-MM-DD HH:mm:ss') UTC. Created via MCP 2026-07-09 (formatted to match the shared pull parser).
+    lastModified: 'fld4wVqxMStdAyNAg',
   },
   // singleSelect option values (write the plain name string). Status carries emojis
   // in some options — never write Status from the app (it's read-only here).
@@ -434,6 +443,9 @@ export const SOCIAL = {
     virality: 'fldAXQ9pnLCijAHLQ', // "Clip Virality" (number 1–10) — AI virality score (app-created 2026-07-01)
     timecode: 'flduMYNwWM6dgXRbt', // "Clip Timecode" (singleLineText) — source in/out, e.g. 12:30–13:45 (app-created 2026-07-01)
     sourceTitle: 'fldSCFY9NRsnP95V1', // "Clip Source Title" (singleLineText) — AI label (author — topic) that groups clips from the same talk (app-created 2026-07-01)
+    // Inbound-pull cursor: "App Last Modified (sync)" formula = DATETIME_FORMAT(LAST_MODIFIED_TIME(),
+    // 'YYYY-MM-DD HH:mm:ss') UTC, watches all fields. Created via MCP 2026-07-09.
+    lastModified: 'fldyYNCIzWdMNtys5',
   },
   links: {
     shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)

@@ -1,6 +1,9 @@
-// Inbound pull: Airtable → Postgres. Closes the two-way loop so a Mindvalley
-// editor's Airtable ticket edit reaches the portal. Incremental via the
+// Inbound pull: Airtable → Postgres for TICKETS. Closes the two-way loop so a
+// Mindvalley editor's Airtable ticket edit reaches the portal. Incremental via the
 // "App Last Modified (sync)" cursor; guarded against ping-pong with our own pushes.
+//
+// The generic cursor/fetch/advance machinery lives in pull-core.ts; this file is the
+// ticket domain: its cursor field, filter format, and the echo/conflict importer.
 //
 // Conflict model (record-level last-writer-wins, per the plan):
 //   • ECHO — incoming modified time within ~90s AFTER ticket.airtablePushedAt → skip
@@ -13,8 +16,9 @@
 
 import { prisma } from '@/lib/prisma';
 import { TICKETS } from './field-map';
-import { listAll } from './rest';
+import { type AirtableRecord } from './rest';
 import { upsertTicketsFromRecords } from './ticket-upsert';
+import { runPull, type PullReport, type PullStats } from './pull-core';
 
 export const TICKET_PULL_CURSOR = 'ticket_pull_cursor';
 const F = TICKETS.fields;
@@ -33,36 +37,20 @@ function statusOf(v: unknown): string | null {
   return null;
 }
 
-export interface PullReport { scanned: number; imported: number; echoSkipped: number; conflictSkipped: number; cursor: string | null }
-
-export async function pullTickets(opts: { fullResync?: boolean } = {}): Promise<PullReport> {
-  const state = opts.fullResync ? null : await prisma.syncState.findUnique({ where: { key: TICKET_PULL_CURSOR } });
-  const since = state?.value ?? null;
-
-  // Fetch only records modified after the cursor (DATETIME_PARSE both sides so the
-  // string field compares as a real datetime). No cursor → first/full pass.
-  const filter = since
-    ? `IS_AFTER(DATETIME_PARSE({App Last Modified (sync)}, 'YYYY-MM-DD HH:mm:ss'), DATETIME_PARSE("${since}", 'YYYY-MM-DD HH:mm:ss'))`
-    : undefined;
-  const res = await listAll(TICKETS.baseId, TICKETS.tableId, { ...(filter ? { filterByFormula: filter } : {}) });
-  if (!res.ok) throw new Error(res.error.message);
-  const records = res.data;
-
+async function importTicketRecords(records: AirtableRecord[]): Promise<PullStats> {
   const recIds = records.map((r) => r.id);
   const existing = recIds.length
     ? await prisma.ticket.findMany({ where: { airtableId: { in: recIds } }, select: { id: true, airtableId: true, updatedAt: true, airtablePushedAt: true } })
     : [];
   const byRec = new Map(existing.map((t) => [t.airtableId as string, t]));
 
-  const toImport: typeof records = [];
+  const toImport: AirtableRecord[] = [];
   const provenance: { pgId: string; status: string | null }[] = [];
   const reassert: string[] = [];
   let echoSkipped = 0, conflictSkipped = 0;
-  let cursor = since;
 
   for (const r of records) {
     const rawMod = typeof r.fields[F.lastModified] === 'string' ? (r.fields[F.lastModified] as string) : null;
-    if (rawMod && (!cursor || rawMod > cursor)) cursor = rawMod; // fixed-width UTC string sorts chronologically
     const mod = parseTs(rawMod);
     const pg = byRec.get(r.id);
 
@@ -92,16 +80,25 @@ export async function pullTickets(opts: { fullResync?: boolean } = {}): Promise<
   }
   // Re-assert portal-newer records via the outbox (drainer will push them).
   if (reassert.length) {
-    await prisma.airtableOutbox.createMany({ data: reassert.map((ticketId) => ({ ticketId, op: 'upsert' })) });
+    await prisma.airtableOutbox.createMany({ data: reassert.map((id) => ({ entity: 'ticket', entityId: id, op: 'upsert' })) });
   }
 
-  if (cursor && cursor !== since) {
-    await prisma.syncState.upsert({
-      where: { key: TICKET_PULL_CURSOR },
-      create: { key: TICKET_PULL_CURSOR, value: cursor },
-      update: { value: cursor },
-    });
-  }
+  return { imported: toImport.length, echoSkipped, conflictSkipped };
+}
 
-  return { scanned: records.length, imported: toImport.length, echoSkipped, conflictSkipped, cursor };
+export async function pullTickets(opts: { fullResync?: boolean } = {}): Promise<PullReport> {
+  return runPull(
+    {
+      cursorKey: TICKET_PULL_CURSOR,
+      baseId: TICKETS.baseId,
+      tableId: TICKETS.tableId,
+      // DATETIME_PARSE both sides so the formatted-string field compares as a real datetime.
+      // No cursor → undefined (full scan).
+      buildFilter: (since) =>
+        since ? `IS_AFTER(DATETIME_PARSE({App Last Modified (sync)}, 'YYYY-MM-DD HH:mm:ss'), DATETIME_PARSE("${since}", 'YYYY-MM-DD HH:mm:ss'))` : undefined,
+      rawModified: (r) => (typeof r.fields[F.lastModified] === 'string' ? (r.fields[F.lastModified] as string) : null),
+      importRecords: importTicketRecords,
+    },
+    opts,
+  );
 }

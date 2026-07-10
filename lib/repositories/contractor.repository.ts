@@ -1,8 +1,10 @@
-// Contractor/Freelancer repository — Airtable-direct. The second pool tickets get
-// assigned to (alongside Employee creatives). Small table; cached ~60s.
+// Contractor/Freelancer repository — the second pool tickets get assigned to (alongside
+// Employee creatives). Reads from Airtable OR the mirrored Postgres table by
+// REFERENCE_BACKEND; edited in Airtable. Small table; cached ~60s.
 
 import { CONTRACTORS } from '@/lib/airtable/field-map';
 import { listAll } from '@/lib/airtable/rest';
+import { referenceIsPostgres } from '@/lib/reference/backend';
 
 const C = CONTRACTORS.fields;
 
@@ -25,7 +27,7 @@ const selectOne = (v: unknown): string | null => {
   return null;
 };
 
-async function load(): Promise<ContractorRecord[]> {
+async function loadAirtable(): Promise<ContractorRecord[]> {
   const res = await listAll(CONTRACTORS.baseId, CONTRACTORS.tableId, {
     fields: [C.name, C.status, C.serviceLevel],
   });
@@ -39,6 +41,19 @@ async function load(): Promise<ContractorRecord[]> {
       serviceLevel: selectOne(f[C.serviceLevel]),
     };
   });
+}
+
+// Postgres mirror — exposes airtableId as `id` (recId) so assignment writes keep working.
+async function loadPostgres(): Promise<ContractorRecord[]> {
+  const { prisma } = await import('@/lib/prisma');
+  const rows = await prisma.contractor.findMany({ select: { airtableId: true, name: true, active: true, serviceLevel: true } });
+  return rows
+    .filter((r): r is typeof r & { airtableId: string } => !!r.airtableId)
+    .map((r) => ({ id: r.airtableId, name: r.name, active: r.active, serviceLevel: r.serviceLevel }));
+}
+
+function load(): Promise<ContractorRecord[]> {
+  return referenceIsPostgres() ? loadPostgres() : loadAirtable();
 }
 
 async function all(): Promise<ContractorRecord[]> {

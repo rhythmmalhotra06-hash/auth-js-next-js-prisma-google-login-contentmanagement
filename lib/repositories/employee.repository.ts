@@ -1,8 +1,11 @@
-// Employee repository — Airtable-direct. Resolves the signed-in user (by email) to
-// an Employees record. Cached ~60s; the Employees table is small.
+// Employee repository — resolves the signed-in user (by email) to an Employees record,
+// plus the active/all lists. Reads come from Airtable OR the mirrored Postgres table by
+// REFERENCE_BACKEND (see lib/reference/backend.ts); writes always go to Airtable (roles are
+// edited in Airtable / the /settings/team panel). Cached ~60s; the Employees table is small.
 
 import { EMPLOYEES } from '@/lib/airtable/field-map';
 import { listAll, updateRecord, type AirtableResult } from '@/lib/airtable/rest';
+import { referenceIsPostgres } from '@/lib/reference/backend';
 
 const E = EMPLOYEES.fields;
 
@@ -40,7 +43,7 @@ function selectOne(v: unknown): string | null {
   return null;
 }
 
-async function load(): Promise<EmployeeRecord[]> {
+async function loadAirtable(): Promise<EmployeeRecord[]> {
   const res = await listAll(EMPLOYEES.baseId, EMPLOYEES.tableId, {
     fields: [E.name, E.email, E.activeStatus, E.roles, E.division, E.team],
   });
@@ -58,6 +61,32 @@ async function load(): Promise<EmployeeRecord[]> {
       team: selectOne(f[E.team]),
     };
   });
+}
+
+// Postgres mirror (REFERENCE_BACKEND=postgres). Exposes airtableId as `id` so recId-based
+// gating/pickers keep working. Rows without an airtableId (shouldn't happen for synced rows)
+// are skipped so `id` is always a real recId.
+async function loadPostgres(): Promise<EmployeeRecord[]> {
+  const { prisma } = await import('@/lib/prisma');
+  const rows = await prisma.employee.findMany({
+    select: { airtableId: true, name: true, email: true, active: true, roles: true, division: true, team: true },
+  });
+  return rows
+    .filter((r): r is typeof r & { airtableId: string } => !!r.airtableId)
+    .map((r) => ({
+      id: r.airtableId,
+      airtableId: r.airtableId,
+      name: r.name,
+      email: r.email,
+      active: r.active,
+      roles: r.roles,
+      division: r.division,
+      team: r.team,
+    }));
+}
+
+function load(): Promise<EmployeeRecord[]> {
+  return referenceIsPostgres() ? loadPostgres() : loadAirtable();
 }
 
 async function all(): Promise<EmployeeRecord[]> {
@@ -88,10 +117,20 @@ export async function listAllEmployeeRecords(): Promise<EmployeeRecord[]> {
   });
 }
 
-/** Overwrite an employee's app roles (multi-select). Busts the cache on success. */
+/** Overwrite an employee's app roles (multi-select). Writes Airtable (source of truth);
+ *  when reading from Postgres, also mirror the change so gating reflects it before the
+ *  next syncReference. Busts the cache on success. */
 export async function updateEmployeeRoles(id: string, roles: string[]): Promise<AirtableResult<true>> {
   const res = await updateRecord(EMPLOYEES.baseId, EMPLOYEES.tableId, id, { [E.roles]: roles });
   if (!res.ok) return res;
+  if (referenceIsPostgres()) {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      await prisma.employee.updateMany({ where: { airtableId: id }, data: { roles } });
+    } catch (err) {
+      console.error('[employee] PG role mirror failed (Airtable write succeeded):', err);
+    }
+  }
   cache = null; // force a fresh read so gating/UI reflect the change immediately
   return { ok: true, data: true };
 }

@@ -11,7 +11,10 @@ import {
   type AirtableRecord,
   type AirtableResult,
 } from '@/lib/airtable/rest';
-import type { ShootRow } from '@/lib/shoots/constants';
+import type { ShootRow, CreateShootInput, ShootPatch } from '@/lib/shoots/constants';
+import { shootsArePostgres } from '@/lib/shoots/backend';
+
+export type { CreateShootInput, ShootPatch } from '@/lib/shoots/constants';
 
 export type { ShootRow } from '@/lib/shoots/constants';
 export {
@@ -90,6 +93,7 @@ const LIST_FIELDS = [
  * beyond the first 100 (in default view order) silently dropped before the sort.
  */
 export async function listShoots(limit = 200): Promise<AirtableResult<ShootRow[]>> {
+  if (shootsArePostgres()) return (await import('@/lib/shoots/data.postgres')).listShoots(limit);
   const res = await listAll<Raw>(S.baseId, S.tableId, {
     fields: LIST_FIELDS,
     filterByFormula: `NOT({${S.statusFieldName}} = '${S.status_.cancelled}')`,
@@ -104,26 +108,14 @@ export async function listShoots(limit = 200): Promise<AirtableResult<ShootRow[]
 
 /** Single shoot (full fields). */
 export async function getShoot(id: string): Promise<AirtableResult<ShootRow>> {
+  if (shootsArePostgres()) return (await import('@/lib/shoots/data.postgres')).getShoot(id);
   const res = await getRecord<Raw>(S.baseId, S.tableId, id);
   if (!res.ok) return res;
   return { ok: true, data: mapShoot(res.data) };
 }
 
-export interface CreateShootInput {
-  title: string;
-  format?: string | null; // Studio | VLOG | Broll | Testimonial | Livestream
-  brief?: string | null;
-  productionSupport?: string | null;
-  filmingLocation?: string | null; // must match a Filming Location option
-  filmingDate?: string | null; // ISO date
-  vishenApproved?: boolean;
-  requestedByRecId?: string | null; // Employee recId ("Requester" link)
-  authorRecIds?: string[];
-  eventTypeRecIds?: string[];
-  assetTypeRecIds?: string[];
-}
-
 export async function createShoot(input: CreateShootInput): Promise<AirtableResult<ShootRow>> {
+  if (shootsArePostgres()) return (await import('@/lib/shoots/write.postgres')).createShoot(input);
   const fields: Record<string, unknown> = {
     [SF.title]: input.title,
     // Vishen-approved shoots skip the review gate.
@@ -145,12 +137,29 @@ export async function createShoot(input: CreateShootInput): Promise<AirtableResu
   return { ok: true, data: mapShoot(res.data) };
 }
 
-/** Patch a shoot by field-id. Data-only; orchestration (status transitions) lives in the caller. */
-export async function updateShoot(
-  id: string,
-  fields: Record<string, unknown>,
-): Promise<AirtableResult<ShootRow>> {
-  const res = await updateRecord<Raw>(S.baseId, S.tableId, id, fields);
+// Typed patch → Airtable field-id payload (the Airtable write path).
+function patchToAirtableFields(patch: ShootPatch): Record<string, unknown> {
+  const fields: Record<string, unknown> = {};
+  if (patch.status !== undefined) fields[SF.status] = patch.status;
+  if (patch.format !== undefined) fields[SF.format] = patch.format;
+  if (patch.filmingDate !== undefined) fields[SF.filmingDate] = patch.filmingDate || null;
+  if (patch.filmingLocation !== undefined) fields[SF.filmingLocation] = patch.filmingLocation;
+  if (patch.brief !== undefined) fields[SF.notes] = patch.brief;
+  if (patch.productionSupport !== undefined) fields[SF.productionSupport] = patch.productionSupport;
+  if (patch.rawFiles !== undefined) fields[SF.rawFiles] = patch.rawFiles;
+  if (patch.vishenApproved !== undefined) fields[SF.vishenApproval] = patch.vishenApproved;
+  if (patch.platforms !== undefined) fields[SF.platforms] = patch.platforms;
+  if (patch.eventTypeIds !== undefined) fields[SL.eventTypes] = patch.eventTypeIds;
+  if (patch.priorityRanking !== undefined) fields[SF.priorityRanking] = patch.priorityRanking;
+  if (patch.ticketIds !== undefined) fields[SL.postProductionTicket] = patch.ticketIds;
+  if (patch.newPrioTicket !== undefined) fields[SF.newPrioTicket] = patch.newPrioTicket;
+  return fields;
+}
+
+/** Patch a shoot with a typed ShootPatch. Orchestration (which fields to set) lives in the caller. */
+export async function updateShoot(id: string, patch: ShootPatch): Promise<AirtableResult<ShootRow>> {
+  if (shootsArePostgres()) return (await import('@/lib/shoots/write.postgres')).updateShoot(id, patch);
+  const res = await updateRecord<Raw>(S.baseId, S.tableId, id, patchToAirtableFields(patch));
   if (!res.ok) return res;
   return { ok: true, data: mapShoot(res.data) };
 }

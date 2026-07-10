@@ -12,6 +12,7 @@ import {
   SCORING_CONFIG as C, EVENT_TYPES, ASSET_TYPES, EMPLOYEES, CONTRACTORS,
 } from '@/lib/airtable/field-map';
 import { listAll, updateRecord, type AirtableResult } from '@/lib/airtable/rest';
+import { referenceIsPostgres } from '@/lib/reference/backend';
 import { type ScoringConfig, emptyConfig } from './config';
 
 export { DEFAULTS, capacityFor, loadWeightFor, type ScoringConfig } from './config';
@@ -39,6 +40,16 @@ const G = {
 } as const;
 const WEIGHT_KEYS = new Set(['due', 'event', 'effort', 'variants', 'shoot', 'campaign']);
 
+// Apply one global knob (Scoring Config key→value) onto the config object. Shared by
+// the Airtable and Postgres readers so the key→target mapping lives in one place.
+function applyGlobalKnob(cfg: ScoringConfig, key: string | null, val: number | null): void {
+  if (!key || val == null) return;
+  const target = (G as Record<string, string>)[key];
+  if (!target) return;
+  if (WEIGHT_KEYS.has(target)) cfg.weights[target as keyof typeof cfg.weights] = val;
+  else (cfg as unknown as Record<string, number>)[target] = val;
+}
+
 async function fetchConfig(): Promise<ScoringConfig> {
   const cfg = emptyConfig();
 
@@ -46,13 +57,7 @@ async function fetchConfig(): Promise<ScoringConfig> {
   const globals = await listAll(C.baseId, C.tableId);
   if (globals.ok) {
     for (const rec of globals.data) {
-      const key = str(rec.fields[C.fields.key]);
-      const val = num(rec.fields[C.fields.value]);
-      if (!key || val == null) continue;
-      const target = (G as Record<string, string>)[key];
-      if (!target) continue;
-      if (WEIGHT_KEYS.has(target)) cfg.weights[target as keyof typeof cfg.weights] = val;
-      else (cfg as unknown as Record<string, number>)[target] = val;
+      applyGlobalKnob(cfg, str(rec.fields[C.fields.key]), num(rec.fields[C.fields.value]));
     }
   }
 
@@ -101,11 +106,43 @@ async function fetchConfig(): Promise<ScoringConfig> {
   return cfg;
 }
 
-/** Cached scoring/capacity config. Never throws — falls back to DEFAULTS if Airtable is unreachable. */
+// Postgres reader (REFERENCE_BACKEND=postgres) — same composite config from the mirrored
+// tables (scoring_config globals + event/asset type weights + employee/contractor capacity).
+async function fetchConfigPg(): Promise<ScoringConfig> {
+  const cfg = emptyConfig();
+  const { prisma } = await import('@/lib/prisma');
+
+  const [knobs, events, assets, emps, cons] = await Promise.all([
+    prisma.scoringConfigKnob.findMany({ select: { key: true, value: true } }),
+    prisma.eventType.findMany({ select: { name: true, loadWeight: true, tierNorm: true } }),
+    prisma.assetType.findMany({ select: { name: true, fullName: true, loadWeight: true, effortNorm: true } }),
+    prisma.employee.findMany({ select: { name: true, capacity: true } }),
+    prisma.contractor.findMany({ select: { name: true, capacity: true } }),
+  ]);
+
+  for (const k of knobs) applyGlobalKnob(cfg, k.key, k.value);
+  for (const ev of events) {
+    if (!ev.name) continue;
+    if (ev.loadWeight != null) cfg.loadWeightByEventType[ev.name] = ev.loadWeight;
+    if (ev.tierNorm != null) cfg.tierByEventType[ev.name] = ev.tierNorm;
+  }
+  for (const a of assets) {
+    const name = a.name ?? a.fullName;
+    if (!name) continue;
+    if (a.loadWeight != null) cfg.loadWeightByAssetType[name] = a.loadWeight;
+    if (a.effortNorm != null) cfg.effortByAssetType[name] = a.effortNorm;
+  }
+  for (const e of emps) if (e.name && e.capacity != null) cfg.capacityByName[e.name] = e.capacity;
+  for (const c of cons) if (c.name && c.capacity != null) cfg.capacityByName[c.name] = c.capacity;
+
+  return cfg;
+}
+
+/** Cached scoring/capacity config. Never throws — falls back to DEFAULTS if the source is unreachable. */
 export async function getScoringConfig(): Promise<ScoringConfig> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
   if (inflight) return inflight;
-  inflight = fetchConfig()
+  inflight = (referenceIsPostgres() ? fetchConfigPg() : fetchConfig())
     .then((data) => { cache = { at: Date.now(), data }; return data; })
     .catch(() => emptyConfig())
     .finally(() => { inflight = null; });

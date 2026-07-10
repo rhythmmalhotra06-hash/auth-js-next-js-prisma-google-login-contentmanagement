@@ -15,6 +15,18 @@ import {
 } from '@/lib/airtable/rest';
 import type { ReelsClip } from '@/lib/clipping/schema';
 import { pushMediaSourceToMajorVideo, pushClipStatusToVishen } from '@/lib/media/vishen-sync';
+import { mediaIsPostgres } from '@/lib/media/backend';
+
+// Write-through: after an Airtable Media Source write, upsert the returned record into the PG
+// read-mirror so PG reflects it immediately (MEDIA_BACKEND=postgres). Best-effort — Airtable is SoR.
+async function mirrorMediaSourceWrite(rec: AirtableRecord<Record<string, unknown>>): Promise<void> {
+  if (!mediaIsPostgres()) return;
+  try {
+    await (await import('@/lib/airtable/media-source-upsert')).upsertMediaSourcesFromRecords([rec]);
+  } catch (err) {
+    console.error('[media] PG write-through failed (Airtable write succeeded):', err);
+  }
+}
 
 const MF = M.fields;
 const ML = M.links;
@@ -137,6 +149,7 @@ const LIST_FIELDS = [
  * client-side createdTime sort. `limit` still caps the total.
  */
 export async function listMediaSources(limit = 100): Promise<AirtableResult<MediaSource[]>> {
+  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).listMediaSources(limit);
   const res = await listAll<Raw>(M.baseId, M.tableId, {
     fields: LIST_FIELDS,
     filterByFormula: `NOT({Status} = 'Archived')`,
@@ -151,6 +164,7 @@ export async function listMediaSources(limit = 100): Promise<AirtableResult<Medi
 
 /** Single source (full fields incl. Strategy JSON). */
 export async function getMediaSource(id: string): Promise<AirtableResult<MediaSource>> {
+  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).getMediaSource(id);
   const res = await getRecord<Raw>(M.baseId, M.tableId, id);
   if (!res.ok) return res;
   return { ok: true, data: mapSource(res.data) };
@@ -188,6 +202,7 @@ export async function createMediaSource(input: CreateMediaSourceInput): Promise<
 
   const res = await createRecord<Raw>(M.baseId, M.tableId, fields);
   if (!res.ok) return res;
+  await mirrorMediaSourceWrite(res.data);
   return { ok: true, data: mapSource(res.data) };
 }
 
@@ -199,6 +214,7 @@ export async function updateMediaSource(
   for (const [k, v] of Object.entries(patch)) fields[MF[k as keyof typeof MF]] = v;
   const res = await updateRecord<Raw>(M.baseId, M.tableId, id, fields);
   if (!res.ok) return res;
+  await mirrorMediaSourceWrite(res.data); // refresh PG read-mirror
   const updated = mapSource(res.data);
   // Outbound: mirror shared fields onto the linked Major Video (best-effort, diff-guarded).
   if (updated.sourceRecordId) {
@@ -214,6 +230,7 @@ export async function updateMediaSource(
  * link was processed. Returns null when there's no match.
  */
 export async function findMediaSourceByUrl(url: string): Promise<AirtableResult<MediaSource | null>> {
+  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).findMediaSourceByUrl(url);
   const target = normalizeMediaUrl(url);
   if (!target) return { ok: true, data: null };
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: LIST_FIELDS });
@@ -224,6 +241,7 @@ export async function findMediaSourceByUrl(url: string): Promise<AirtableResult<
 
 /** Existing source URLs (for auto-discover dedupe). */
 export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>> {
+  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).existingSourceUrls();
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceUrl] });
   if (!res.ok) return res;
   const set = new Set<string>();
@@ -236,6 +254,7 @@ export async function existingSourceUrls(): Promise<AirtableResult<Set<string>>>
 
 /** Existing source URLs, normalized (for the Major Videos → Media Sources URL dedupe). */
 export async function existingNormalizedSourceUrls(): Promise<AirtableResult<Set<string>>> {
+  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).existingNormalizedSourceUrls();
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceUrl] });
   if (!res.ok) return res;
   const set = new Set<string>();
@@ -248,6 +267,7 @@ export async function existingNormalizedSourceUrls(): Promise<AirtableResult<Set
 
 /** Existing Source Record IDs (for cross-base dedupe — Major Videos sync + write-back). */
 export async function existingSourceRecordIds(): Promise<AirtableResult<Set<string>>> {
+  if (mediaIsPostgres()) return (await import('@/lib/media/media-sources.postgres')).existingSourceRecordIds();
   const res = await listAll<Raw>(M.baseId, M.tableId, { fields: [MF.sourceRecordId] });
   if (!res.ok) return res;
   const set = new Set<string>();

@@ -10,6 +10,7 @@ import {
   type AirtableRecord,
   type AirtableResult,
 } from '@/lib/airtable/rest';
+import { referenceIsPostgres } from '@/lib/reference/backend';
 
 const RF = R.fields;
 
@@ -59,14 +60,42 @@ function mapRule(rec: AirtableRecord<Raw>): ClipRule {
   };
 }
 
+const byOrderThenCreated = (a: ClipRule, b: ClipRule) => {
+  const o = (a.order ?? 0) - (b.order ?? 0);
+  return o !== 0 ? o : a.createdTime < b.createdTime ? -1 : 1;
+};
+
+// Postgres mirror (REFERENCE_BACKEND=postgres). id = airtableId (recId) so the editor's
+// per-row writes (which go to Airtable) still target the right record.
+async function listClipRulesPg(): Promise<AirtableResult<ClipRule[]>> {
+  const { prisma } = await import('@/lib/prisma');
+  const rows = await prisma.clipRule.findMany();
+  const mapped: ClipRule[] = rows
+    .filter((r): r is typeof r & { airtableId: string } => !!r.airtableId)
+    .map((r) => ({
+      id: r.airtableId,
+      name: r.name,
+      kind: (r.kind as ClipRuleKind | null),
+      clipType: r.clipType,
+      content: r.content,
+      active: r.active,
+      order: r.order,
+      section: r.section,
+      note: r.note,
+      updatedBy: r.updatedBy,
+      updatedAt: r.airtableUpdatedAt,
+      createdTime: r.createdTime ?? '',
+    }))
+    .sort(byOrderThenCreated);
+  return { ok: true, data: mapped };
+}
+
 /** All rows (small config table). Sorted by Order then creation for stable display. */
 export async function listClipRules(): Promise<AirtableResult<ClipRule[]>> {
+  if (referenceIsPostgres()) return listClipRulesPg();
   const res = await listAll<Raw>(R.baseId, R.tableId);
   if (!res.ok) return res;
-  const rows = res.data.map(mapRule).sort((a, b) => {
-    const o = (a.order ?? 0) - (b.order ?? 0);
-    return o !== 0 ? o : a.createdTime < b.createdTime ? -1 : 1;
-  });
+  const rows = res.data.map(mapRule).sort(byOrderThenCreated);
   return { ok: true, data: rows };
 }
 

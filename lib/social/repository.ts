@@ -18,6 +18,7 @@ import {
   type AirtableResult,
 } from '@/lib/airtable/rest';
 import type { ReelsClip } from '@/lib/clipping/schema';
+import { socialIsPostgres } from '@/lib/social/backend';
 
 const SF = S.fields;
 
@@ -50,6 +51,7 @@ export interface CommsCalendarEntry {
  * base). Newest start date first; undated last. Powers the /social/new calendar picker.
  */
 export async function listCommsCalendarEntries(): Promise<AirtableResult<CommsCalendarEntry[]>> {
+  if (socialIsPostgres()) return (await import('@/lib/social/data.postgres')).listCommsCalendarEntries();
   const res = await listAll<Raw>(CAL.baseId, CAL.tableId, {
     fields: [CAL.fields.name, CAL.fields.status, CAL.fields.startDate, CAL.fields.endDate],
   });
@@ -115,6 +117,7 @@ const LIST_FIELDS = [
  * feedback loop but off the active board).
  */
 export async function listSocialSuggestions(opts: { includeRejected?: boolean } = {}): Promise<AirtableResult<SocialSuggestion[]>> {
+  if (socialIsPostgres()) return (await import('@/lib/social/data.postgres')).listSocialSuggestions(opts);
   const formula = opts.includeRejected
     ? `NOT({Clip Source URL} = '')`
     : `AND(NOT({Clip Source URL} = ''), {Status} != '${S.status_.reject}')`;
@@ -125,6 +128,7 @@ export async function listSocialSuggestions(opts: { includeRejected?: boolean } 
 }
 
 export async function getSocialSuggestion(id: string): Promise<AirtableResult<SocialSuggestion>> {
+  if (socialIsPostgres()) return (await import('@/lib/social/data.postgres')).getSocialSuggestion(id);
   const res = await getRecord<Raw>(S.baseId, S.tableId, id);
   if (!res.ok) return res;
   return { ok: true, data: mapSuggestion(res.data) };
@@ -140,6 +144,7 @@ export async function createSocialSuggestions(
   clips: ReelsClip[],
   opts: { calendarId?: string | null } = {},
 ): Promise<AirtableResult<{ count: number; ids: string[] }>> {
+  if (socialIsPostgres()) return (await import('@/lib/social/write.postgres')).createSocialSuggestions(sourceUrl, sourceTitle, clips, opts);
   const records = clips.map((c) => {
     const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
     const fields: Record<string, unknown> = {
@@ -164,6 +169,7 @@ export async function createSocialSuggestions(
 
 /** Approve / reject a suggestion (status only). Reject is retained (not deleted). */
 export async function setSocialStatus(id: string, status: 'approved' | 'reject'): Promise<AirtableResult<SocialSuggestion>> {
+  if (socialIsPostgres()) return (await import('@/lib/social/write.postgres')).setSocialStatus(id, status);
   const res = await updateRecord<Raw>(S.baseId, S.tableId, id, { [SF.status]: S.status_[status] });
   if (!res.ok) return res;
   return { ok: true, data: mapSuggestion(res.data) };
@@ -171,6 +177,7 @@ export async function setSocialStatus(id: string, status: 'approved' | 'reject')
 
 /** Stamp a suggestion as raised: store the Creative Services ticket recId + flip Status. */
 export async function markSocialTicketRaised(id: string, ticketId: string): Promise<AirtableResult<SocialSuggestion>> {
+  if (socialIsPostgres()) return (await import('@/lib/social/write.postgres')).markSocialTicketRaised(id, ticketId);
   const res = await updateRecord<Raw>(S.baseId, S.tableId, id, {
     [SF.creativeTicketId]: ticketId,
     [SF.status]: S.status_.ticketRaised,

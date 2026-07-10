@@ -6,6 +6,7 @@
 import { ASSET_TYPES as A } from '@/lib/airtable/field-map';
 import { listAll, getRecord, updateRecord, type AirtableResult } from '@/lib/airtable/rest';
 import { nameMap } from '@/lib/repositories/reference.repository';
+import { referenceIsPostgres } from '@/lib/reference/backend';
 
 const AF = A.fields;
 const AL = A.links;
@@ -34,8 +35,44 @@ export interface AssetTypeDnaRow {
   eventTypes: string[]; // display
 }
 
+// Postgres mirror (REFERENCE_BACKEND=postgres). Joins resolve names in one query; id +
+// teamLeadIds are exposed as Airtable recIds (via airtableId) so the DNA-edit permission
+// check + write (which target Airtable) keep working.
+async function listAssetTypeDnaPg(): Promise<AirtableResult<AssetTypeDnaRow[]>> {
+  const { prisma } = await import('@/lib/prisma');
+  const rows = await prisma.assetType.findMany({
+    where: { active: true },
+    select: {
+      airtableId: true, name: true, fullName: true,
+      dnaRequirements: true, feedbackStandards: true, dnaUpdatedBy: true,
+      teamLeads: { select: { employee: { select: { name: true, airtableId: true } } } },
+      preferredEditors: { select: { employee: { select: { name: true } } } },
+      dimensions: { select: { dimension: { select: { label: true } } } },
+      eventTypes: { select: { eventType: { select: { name: true } } } },
+    },
+  });
+  const data: AssetTypeDnaRow[] = rows
+    .filter((r): r is typeof r & { airtableId: string } => !!r.airtableId)
+    .map((r) => ({
+      id: r.airtableId,
+      name: r.name ?? r.fullName ?? '(unnamed)',
+      active: true,
+      requirements: r.dnaRequirements,
+      feedbackStandards: r.feedbackStandards,
+      updatedBy: r.dnaUpdatedBy,
+      teamLeadIds: r.teamLeads.map((t) => t.employee.airtableId).filter((x): x is string => !!x),
+      teamLeads: r.teamLeads.map((t) => t.employee.name).filter((x): x is string => !!x),
+      preferredEditors: r.preferredEditors.map((p) => p.employee.name).filter((x): x is string => !!x),
+      dimensions: r.dimensions.map((d) => d.dimension.label).filter((x): x is string => !!x),
+      eventTypes: r.eventTypes.map((e) => e.eventType.name).filter((x): x is string => !!x),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return { ok: true, data };
+}
+
 /** Active asset types with their DNA + read-only reference links, name-sorted. */
 export async function listAssetTypeDna(): Promise<AirtableResult<AssetTypeDnaRow[]>> {
+  if (referenceIsPostgres()) return listAssetTypeDnaPg();
   const [res, employees, dimensions, eventTypes] = await Promise.all([
     listAll(A.baseId, A.tableId),
     nameMap('employees'), nameMap('dimensions'), nameMap('eventTypes'),

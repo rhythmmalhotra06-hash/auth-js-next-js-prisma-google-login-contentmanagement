@@ -75,7 +75,7 @@ export async function updateTicket(idOrRec: string, patch: TicketPatch, opts: { 
     ...(statusChanged
       ? [prisma.ticketEvent.create({ data: { ticketId: current.id, fromState: current.ticketStatus, toState: patch.ticketStatus as string, note: opts.note ?? null, actorId: opts.actorId ?? null } })]
       : []),
-    prisma.airtableOutbox.create({ data: { ticketId: current.id, op: 'upsert' } }),
+    prisma.airtableOutbox.create({ data: { entity: 'ticket', entityId: current.id, op: 'upsert' } }),
   ]);
   return { ok: true, id: current.id };
 }
@@ -162,7 +162,7 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
 
   await prisma.$transaction([
     prisma.ticketEvent.create({ data: { ticketId: created.id, toState: ticketStatus, note: 'created', actorId: refs.requesterId } }),
-    prisma.airtableOutbox.create({ data: { ticketId: created.id, op: 'upsert' } }),
+    prisma.airtableOutbox.create({ data: { entity: 'ticket', entityId: created.id, op: 'upsert' } }),
   ]);
 
   return { ok: true, id: created.id };
