@@ -5,6 +5,7 @@ import { createTicket } from '@/app/intake/actions';
 import { getEmployeeForSession } from '@/lib/employee';
 import {
   createMediaSource,
+  findMediaSourceByUrl,
   getClipsByIds,
   getMediaSource,
   listClipsToConvert,
@@ -42,6 +43,19 @@ export interface SubmitMediaResult {
 export async function submitMediaLink(input: SubmitMediaInput): Promise<SubmitMediaResult> {
   const url = input.url?.trim();
   if (!url) return { ok: false, error: 'Paste a media link first.' };
+
+  // Reject a link that's already been added — the existing Media Source is (or will be)
+  // clipped, so re-adding would duplicate the source and re-run clip generation.
+  const dupe = await findMediaSourceByUrl(url);
+  if (dupe.ok && dupe.data) {
+    const generated = dupe.data.clipCount > 0 || !!dupe.data.clipsAddedDate;
+    return {
+      ok: false,
+      error: generated
+        ? 'Clips already generated for this link.'
+        : 'This link has already been added.',
+    };
+  }
 
   const employee = await getEmployeeForSession();
   const platform = derivePlatform(url);
