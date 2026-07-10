@@ -22,6 +22,7 @@ import { socialIsPostgres } from '@/lib/social/backend';
 import { TICKETS_BACKEND } from '@/lib/tickets/backend';
 
 const SF = S.fields;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Raw = Record<string, unknown>;
 
@@ -203,17 +204,30 @@ export async function getSocialTicketStates(ticketIds: string[]): Promise<Record
   const ids = [...new Set(ticketIds.filter(Boolean))];
   if (!ids.length) return {};
 
-  // `creativeTicketId` holds whatever createTicket returned — an Airtable recId when
-  // TICKETS_BACKEND=airtable, or a PG uuid when =postgres. Read from the matching source so the
-  // status resolves in both modes (an Airtable RECORD_ID() query can't match a uuid).
+  // `creativeTicketId` holds whatever createTicket returned when the clip was raised — an Airtable
+  // recId (TICKETS_BACKEND=airtable) OR a PG uuid (=postgres). Existing rows are almost always
+  // recIds (raised before any cutover), so even under TICKETS_BACKEND=postgres the set is MIXED.
+  // Query PG by id for uuids and by airtableId for recIds (never pass a recId to the uuid `id`
+  // column — that throws), and key the result under BOTH so the caller resolves either shape.
   if (TICKETS_BACKEND === 'postgres') {
     const { prisma } = await import('@/lib/prisma');
+    const uuidIds = ids.filter((i) => UUID_RE.test(i));
+    const recIds = ids.filter((i) => !UUID_RE.test(i));
+    const orClauses = [
+      ...(uuidIds.length ? [{ id: { in: uuidIds } }] : []),
+      ...(recIds.length ? [{ airtableId: { in: recIds } }] : []),
+    ];
+    if (!orClauses.length) return {};
     const rows = await prisma.ticket.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, prioStatus: true, ticketStatus: true, officialCalendar: { select: { airtableId: true } } },
+      where: { OR: orClauses },
+      select: { id: true, airtableId: true, prioStatus: true, ticketStatus: true, officialCalendar: { select: { airtableId: true } } },
     });
     const pgOut: Record<string, TicketState> = {};
-    for (const t of rows) pgOut[t.id] = { prioStatus: t.prioStatus, ticketStatus: t.ticketStatus, officialCalendarId: t.officialCalendar?.airtableId ?? null };
+    for (const t of rows) {
+      const state: TicketState = { prioStatus: t.prioStatus, ticketStatus: t.ticketStatus, officialCalendarId: t.officialCalendar?.airtableId ?? null };
+      pgOut[t.id] = state;
+      if (t.airtableId) pgOut[t.airtableId] = state; // resolve whether the row stored a uuid or a recId
+    }
     return pgOut;
   }
 
