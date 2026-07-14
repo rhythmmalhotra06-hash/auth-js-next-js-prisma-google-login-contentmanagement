@@ -3,6 +3,7 @@ import { STRATEGY_SCHEMA, validateStrategy, type Strategy } from '@/lib/clipping
 import { buildUserMessage, buildResearchPrompt, type GenerationContext } from '@/lib/clipping/prompt';
 import { getClipEngineConfig } from '@/lib/clipping/config';
 import { DEFAULT_CLIP_TYPE, type ClipType } from '@/lib/clipping/clip-types';
+import { buildSegmentIndex, snapStrategyTimestamps } from '@/lib/clipping/timestamps';
 
 export interface GenerateOptions {
   webSearch: boolean;
@@ -116,6 +117,15 @@ export async function generateStrategy(
 
   const v = validateStrategy(parsed);
   if (!v.ok) throw new Error(v.error);
+
+  // Ground timestamps in the real video: snap any value the model returned to the
+  // nearest actual transcript segment. No-op when the transcript carried no timing
+  // (e.g. a bare pasted transcript) — the index is empty and values pass through.
+  const index = buildSegmentIndex(transcript);
+  if (index.length) {
+    const { corrected } = snapStrategyTimestamps(v.strategy, index);
+    if (corrected) console.log(`[clip-ts] snapped ${corrected} model timestamp(s) to nearest transcript segment`);
+  }
 
   return { strategy: v.strategy, usedWebSearch };
 }

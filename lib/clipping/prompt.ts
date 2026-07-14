@@ -67,6 +67,17 @@ export function buildUserMessage(
       '--- END EDITOR FEEDBACK ---',
     );
   }
+  // When the transcript is timestamped ([M:SS] markers per line), instruct the
+  // model to reuse only those real times — the fix for hallucinated timecodes.
+  if (/^\s*\[\d{1,2}(?::\d{1,2}){1,2}\]/m.test(transcript)) {
+    lines.push(
+      '',
+      'The transcript below is timestamped: each line begins with a [M:SS] or [H:MM:SS] marker. ' +
+        'For every timestamp you output (clip start/end, chapter markers, show-note times), copy the ' +
+        'marker from the transcript line where that moment actually occurs. Never invent, estimate, or ' +
+        'round to a timestamp that does not appear in the transcript.',
+    );
+  }
   lines.push('', '--- TRANSCRIPT START ---', transcript.trim(), '--- TRANSCRIPT END ---');
   return lines.join('\n');
 }

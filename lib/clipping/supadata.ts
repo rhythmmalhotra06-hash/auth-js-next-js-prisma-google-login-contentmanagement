@@ -3,6 +3,7 @@
 // Cloud Run datacenter IP where YouTube blocks youtubei.js (see transcript.ts).
 // Docs: https://docs.supadata.ai/get-transcript  (GET /v1/transcript, x-api-key)
 import { TranscriptFetchError, normalizeTranscript } from './transcript';
+import { secondsToLabel } from './timestamps';
 
 const API_BASE = 'https://api.supadata.ai/v1';
 
@@ -10,13 +11,27 @@ export function isSupadataConfigured(): boolean {
   return !!process.env.SUPADATA_API_KEY?.trim();
 }
 
-/** Join Supadata's `content` (plain string with text=true, or a segment array) into text. */
+/**
+ * Join Supadata's `content` into a timestamped transcript. In segment mode (no
+ * `text=true`) each item carries `offset`/`duration` in ms — preserved as a
+ * `[M:SS] text` marker so clip timestamps can be grounded in the real video. If
+ * the API still returns a plain string (some plans/modes), it passes through
+ * un-timed and the segment index will simply be empty.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function contentToText(content: any): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return content.map((s: any) => s?.text ?? '').filter(Boolean).join(' ');
+    return content
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((s: any) => {
+        const text = (s?.text ?? '').trim();
+        if (!text) return '';
+        const ms = Number(s?.offset);
+        return Number.isFinite(ms) ? `[${secondsToLabel(ms / 1000)}] ${text}` : text;
+      })
+      .filter(Boolean)
+      .join('\n');
   }
   return '';
 }
@@ -60,8 +75,9 @@ export async function fetchSupadataTranscript(url: string): Promise<string> {
   const headers = { 'x-api-key': key };
   // lang=en: prefer the English track (Vishen's content is English) — without it
   // Supadata may return an arbitrary available language. Falls back automatically
-  // if en is unavailable.
-  const reqUrl = `${API_BASE}/transcript?url=${encodeURIComponent(url)}&text=true&mode=auto&lang=en`;
+  // if en is unavailable. NOTE: we intentionally DON'T pass text=true — segment
+  // mode returns per-line `offset`/`duration` we need to timestamp clips.
+  const reqUrl = `${API_BASE}/transcript?url=${encodeURIComponent(url)}&mode=auto&lang=en`;
   const res = await fetch(reqUrl, { headers });
   if (!res.ok && res.status !== 202) await throwForStatus(res);
 

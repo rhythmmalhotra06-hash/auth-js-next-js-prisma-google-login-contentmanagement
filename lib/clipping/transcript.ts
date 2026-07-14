@@ -1,5 +1,11 @@
 // Transcript ingestion: normalize pasted/uploaded text and best-effort YouTube
 // fetch. Node-runtime only (youtubei.js needs Node networking).
+//
+// Timing is PRESERVED as a `[M:SS] text` marker at the start of each segment/cue
+// line so downstream clip generation can quote real timestamps (see timestamps.ts).
+// Bare transcripts with no timing pass through unchanged (empty segment index).
+
+import { secondsToLabel, labelToSeconds } from '@/lib/clipping/timestamps';
 
 /** Why a YouTube transcript fetch failed — drives the user-facing copy. */
 export type TranscriptFailReason = 'blocked' | 'no_captions' | 'unavailable' | 'invalid_url' | 'unknown';
@@ -88,8 +94,11 @@ export function normalizeTranscript(raw: string): string {
   const lines = raw.replace(/\r\n/g, '\n').split('\n');
   const out: string[] = [];
 
-  const tsLine = /^\s*\d{1,2}:\d{2}(:\d{2})?[.,]\d{3}\s*-->\s*\d{1,2}:\d{2}(:\d{2})?[.,]\d{3}/;
+  // Capture the cue START time so we can re-attach it as a [M:SS] marker rather
+  // than discarding it. VTT/SRT cue timings always carry milliseconds.
+  const tsLine = /^\s*(\d{1,2}:\d{2}(?::\d{2})?)[.,]\d{3}\s*-->\s*\d{1,2}:\d{2}(?::\d{2})?[.,]\d{3}/;
   const cueNumber = /^\s*\d+\s*$/;
+  let pendingTs: string | null = null;
 
   for (let line of lines) {
     const trimmed = line.trim();
@@ -99,15 +108,28 @@ export function normalizeTranscript(raw: string): string {
     }
     if (/^WEBVTT/i.test(trimmed)) continue;
     if (/^(NOTE|STYLE|REGION)\b/.test(trimmed)) continue;
-    if (tsLine.test(trimmed)) continue;
+    const cue = trimmed.match(tsLine);
+    if (cue) {
+      const secs = labelToSeconds(cue[1]);
+      pendingTs = secs == null ? null : secondsToLabel(secs);
+      continue;
+    }
     if (cueNumber.test(trimmed)) continue;
     // Strip inline VTT tags like <00:00:01.000> and <c>...</c>
     line = trimmed.replace(/<[^>]+>/g, '').trim();
-    if (line) out.push(line);
+    if (line) {
+      // Prefix only the first spoken line of a cue; keep an existing [M:SS]
+      // marker (already-timestamped input) intact rather than double-prefixing.
+      out.push(pendingTs && !LINE_HAS_MARKER.test(line) ? `[${pendingTs}] ${line}` : line);
+      pendingTs = null;
+    }
   }
 
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+
+/** True when a line already begins with a `[M:SS]` timestamp marker. */
+const LINE_HAS_MARKER = /^\[\s*\d{1,2}(?::\d{1,2}){1,2}\s*\]/;
 
 /** Extract a video id from common YouTube URL shapes. Returns null if none. */
 export function extractYouTubeId(url: string): string | null {
@@ -133,16 +155,19 @@ export function extractYouTubeId(url: string): string | null {
 // (paste alongside the link) is the dependable safety net instead.
 const YT_CLIENTS = ['ANDROID', 'IOS', 'WEB', 'TV'] as const;
 
-/** Pull transcript text from a getTranscript() response (initial_segments shape). */
+/** Pull timestamped transcript text from a getTranscript() response (initial_segments shape). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function segmentsToText(data: any): string {
   const segments = data?.transcript?.content?.body?.initial_segments ?? [];
-  return segments
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((s: any) => s?.snippet?.text ?? '')
-    .filter(Boolean)
-    .join(' ')
-    .trim();
+  const lines: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const s of segments as any[]) {
+    const text = (s?.snippet?.text ?? '').trim();
+    if (!text) continue;
+    const ms = Number(s?.start_ms ?? s?.startMs);
+    lines.push(Number.isFinite(ms) ? `[${secondsToLabel(ms / 1000)}] ${text}` : text);
+  }
+  return lines.join('\n').trim();
 }
 
 /** Decode the handful of XML/HTML entities timedtext uses. */
@@ -157,18 +182,28 @@ function decodeEntities(s: string): string {
 }
 
 /**
- * Parse YouTube timedtext XML (srv1 `<text>` / srv3 `<p>` cues) into plain text.
- * This is the format caption-track base_urls actually return — `getTranscript()`
- * is currently broken (HTTP 400) in youtubei.js, so this is the primary path.
+ * Parse YouTube timedtext XML (srv1 `<text start="s">` / srv3 `<p t="ms">` cues)
+ * into timestamped `[M:SS] text` lines. This is the format caption-track base_urls
+ * actually return — `getTranscript()` is currently broken (HTTP 400) in
+ * youtubei.js, so this is the primary path. The cue start attribute (`start` in
+ * seconds for srv1, `t` in milliseconds for srv3) is preserved as the marker.
  */
 function parseTimedText(xml: string): string {
-  const blocks = xml.match(/<(?:p|text)\b[^>]*>([\s\S]*?)<\/(?:p|text)>/g) ?? [];
-  return blocks
-    .map((b) => decodeEntities(b.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const blocks = xml.match(/<(?:p|text)\b[^>]*>[\s\S]*?<\/(?:p|text)>/g) ?? [];
+  const lines: string[] = [];
+  for (const b of blocks) {
+    const openTag = b.match(/^<(?:p|text)\b[^>]*>/)?.[0] ?? '';
+    const inner = decodeEntities(b.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+    if (!inner) continue;
+    const attr = openTag.match(/\b(start|t)="([\d.]+)"/);
+    let seconds: number | null = null;
+    if (attr) {
+      const raw = parseFloat(attr[2]);
+      if (Number.isFinite(raw)) seconds = attr[1] === 't' ? raw / 1000 : raw; // t is ms, start is seconds
+    }
+    lines.push(seconds != null ? `[${secondsToLabel(seconds)}] ${inner}` : inner);
+  }
+  return lines.join('\n').trim();
 }
 
 /** Fetch a caption track's timedtext and turn it into plain spoken text. */
