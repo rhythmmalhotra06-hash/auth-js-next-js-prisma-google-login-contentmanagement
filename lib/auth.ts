@@ -9,4 +9,15 @@ import authConfig from '@/lib/auth.config'
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   session: { strategy: 'jwt' },
+  // TEMPORARY DIAGNOSTIC (auth pkce InvalidCheck investigation, 2026-07-13):
+  // surface the exact Auth.js error name/detail in runtime logs. Remove once
+  // the pkce round-trip cause is identified. No secrets are logged.
+  logger: {
+    error(error) {
+      console.log('[auth-diag][error]', error?.name, '-', error?.message)
+    },
+    warn(code) {
+      console.log('[auth-diag][warn]', code)
+    },
+  },
 })
