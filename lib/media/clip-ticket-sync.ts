@@ -10,7 +10,7 @@
 
 import { TICKETS, ASSET_TYPES, EMPLOYEES, VISHEN_CLIPS as VC, VISHEN_EMPLOYEES as VE } from '@/lib/airtable/field-map';
 import { getRecord, listRecords, updateRecord } from '@/lib/airtable/rest';
-import { vishenSyncEnabled } from '@/lib/media/vishen-sync';
+import { vishenSyncEnabled, isFounderLockedClipStatus } from '@/lib/media/vishen-sync';
 
 type Raw = Record<string, unknown>;
 
@@ -131,7 +131,13 @@ export async function syncTicketFieldsToVishenClip(
     // Reflect the single assigned creative; only rewrite when it isn't already the sole editor.
     if (!(current.length === 1 && current[0] === editorVishenId)) patch[VC.links.editorAssigned] = [editorVishenId];
   }
-  if (mappedStatus && selectName(cf[VC.fields.status]) !== mappedStatus) patch[VC.fields.status] = mappedStatus;
+  // Status mirror — but NEVER clobber a founder-set terminal verdict (Rejected/Published). Without
+  // this lock the reconcile reasserts the ticket's status every 5 min, overriding the founder's
+  // "don't release" (Rejected). Editor Assigned / Type still sync — only the status write is locked.
+  const currentStatus = selectName(cf[VC.fields.status]);
+  if (mappedStatus && currentStatus !== mappedStatus && !isFounderLockedClipStatus(currentStatus)) {
+    patch[VC.fields.status] = mappedStatus;
+  }
   if (mappedType && selectName(cf[VC.fields.type]) !== mappedType) patch[VC.fields.type] = mappedType;
 
   if (Object.keys(patch).length === 0) return 'nochange';

@@ -27,6 +27,20 @@ function mapClipStatusToVishen(appStatus: string | null): string | null {
   return null; // Dismissed / unknown → don't touch the Vishen row
 }
 
+/**
+ * Founder-owned terminal statuses on Vishen's Clips table. These are the founder's own review
+ * verdicts — Rejected ("do not release") and Published ("it's live") — NOT production-lifecycle
+ * states that the ticket drives. The ticket-status mirror + approval push must NEVER overwrite
+ * them, or they ping-pong the founder's decision back to a ticket-derived status.
+ *
+ * Bug (reported 2026-07-16): Vishen set a clip to Rejected; the 5-min ticket reconcile reasserted
+ * the ticket's status (Review, then Done) on top of it. This is the decision-lock from CLAUDE.md §10.
+ */
+const FOUNDER_LOCKED_STATUSES: readonly string[] = [VC.status_.rejected, VC.status_.published];
+export function isFounderLockedClipStatus(status: string | null | undefined): boolean {
+  return !!status && FOUNDER_LOCKED_STATUSES.includes(status);
+}
+
 function clipNotes(c: ReelsClip): string {
   return [
     c.hookLine && `Hook: ${c.hookLine}`,
@@ -111,6 +125,7 @@ export async function pushClipStatusToVishen(vishenClipId: string | null, appSta
   if (!cur.ok) return;
   const currentName = (cur.data.fields[VC.fields.status] as { name?: string } | string | undefined);
   const currentVal = typeof currentName === 'string' ? currentName : currentName?.name ?? null;
+  if (isFounderLockedClipStatus(currentVal)) return; // founder verdict (Rejected/Published) is locked
   if (currentVal === target) return; // already there → no write → no echo
   await updateRecord(VC.baseId, VC.tableId, vishenClipId, { [VC.fields.status]: target });
 }
