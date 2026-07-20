@@ -28,17 +28,27 @@ function mapClipStatusToVishen(appStatus: string | null): string | null {
 }
 
 /**
- * Founder-owned terminal statuses on Vishen's Clips table. These are the founder's own review
- * verdicts — Rejected ("do not release") and Published ("it's live") — NOT production-lifecycle
- * states that the ticket drives. The ticket-status mirror + approval push must NEVER overwrite
- * them, or they ping-pong the founder's decision back to a ticket-derived status.
+ * The ONLY Vishen Clips statuses the app is allowed to overwrite — the early production-lifecycle
+ * values the app itself sets. Everything else on that field is human-owned: the team's manual
+ * review workflow (Review - Marisha/Gareth → Marisha/Gareth Approved → Done), holds (On Hold),
+ * terminal verdicts (Rejected/Published), and any option they add in future. The status sync must
+ * NEVER touch those, or it ping-pongs a manual change back to a ticket-derived status.
  *
- * Bug (reported 2026-07-16): Vishen set a clip to Rejected; the 5-min ticket reconcile reasserted
- * the ticket's status (Review, then Done) on top of it. This is the decision-lock from CLAUDE.md §10.
+ * Allowlist, not a lock-list: a lock-list has to enumerate every human status and silently breaks
+ * the moment the team adds a new one — which is exactly what happened.
+ *   - 2026-07-16: app reasserted Review/Done over a manual "Rejected".
+ *   - 2026-07-20: app reasserted "Done" over the new "Marisha/Gareth Approved" (not yet locked).
+ * This is the decision-lock from CLAUDE.md §10.
  */
-const FOUNDER_LOCKED_STATUSES: readonly string[] = [VC.status_.rejected, VC.status_.published];
-export function isFounderLockedClipStatus(status: string | null | undefined): boolean {
-  return !!status && FOUNDER_LOCKED_STATUSES.includes(status);
+const APP_MANAGED_VISHEN_STATUSES: readonly string[] = [
+  VC.status_.todo,
+  VC.status_.inProgress,
+  VC.status_.applyFeedback,
+];
+
+/** True when the sync may overwrite this status: it's empty or one the app itself manages. */
+export function appManagesVishenStatus(status: string | null | undefined): boolean {
+  return !status || APP_MANAGED_VISHEN_STATUSES.includes(status);
 }
 
 function clipNotes(c: ReelsClip): string {
@@ -125,7 +135,7 @@ export async function pushClipStatusToVishen(vishenClipId: string | null, appSta
   if (!cur.ok) return;
   const currentName = (cur.data.fields[VC.fields.status] as { name?: string } | string | undefined);
   const currentVal = typeof currentName === 'string' ? currentName : currentName?.name ?? null;
-  if (isFounderLockedClipStatus(currentVal)) return; // founder verdict (Rejected/Published) is locked
+  if (!appManagesVishenStatus(currentVal)) return; // human-owned status → never overwrite
   if (currentVal === target) return; // already there → no write → no echo
   await updateRecord(VC.baseId, VC.tableId, vishenClipId, { [VC.fields.status]: target });
 }

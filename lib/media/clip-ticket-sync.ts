@@ -10,7 +10,7 @@
 
 import { TICKETS, ASSET_TYPES, EMPLOYEES, VISHEN_CLIPS as VC, VISHEN_EMPLOYEES as VE } from '@/lib/airtable/field-map';
 import { getRecord, listRecords, updateRecord } from '@/lib/airtable/rest';
-import { vishenSyncEnabled, isFounderLockedClipStatus } from '@/lib/media/vishen-sync';
+import { vishenSyncEnabled, appManagesVishenStatus } from '@/lib/media/vishen-sync';
 
 type Raw = Record<string, unknown>;
 
@@ -29,18 +29,17 @@ function linkIds(v: unknown): string[] {
 }
 const firstLinkId = (v: unknown): string | null => linkIds(v)[0] ?? null;
 
-// Ticket Status (CS Prio) → Vishen Clips Status. Anything not listed leaves the clip status untouched.
+// Ticket Status (CS Prio) → Vishen Clips Status. The app ONLY drives the early production lifecycle.
+// Once a clip enters the team's manual review workflow (Review - Marisha/Gareth, Marisha/Gareth
+// Approved, Done, On Hold, Rejected, Published) the humans own the status and the sync never writes
+// it again — see appManagesVishenStatus. Ticket statuses that map to a review/terminal outcome are
+// deliberately absent here so the app can't yank a clip out of the team's review lane.
 const STATUS_MAP: Record<string, string> = {
   Backlog: VC.status_.todo,
   'To Do': VC.status_.todo,
   'Request on Hold': VC.status_.todo,
   'In Progress': VC.status_.inProgress,
-  Review: VC.status_.review,
   'In Revision': VC.status_.applyFeedback,
-  Approved: VC.status_.done,
-  Done: VC.status_.done,
-  Shipping: VC.status_.published,
-  "Won't Do": VC.status_.rejected,
 };
 
 // Asset type name → one of the 3 Vishen Clips Type buckets. Unmatched → don't set Type (the API
@@ -131,11 +130,11 @@ export async function syncTicketFieldsToVishenClip(
     // Reflect the single assigned creative; only rewrite when it isn't already the sole editor.
     if (!(current.length === 1 && current[0] === editorVishenId)) patch[VC.links.editorAssigned] = [editorVishenId];
   }
-  // Status mirror — but NEVER clobber a founder-set terminal verdict (Rejected/Published). Without
-  // this lock the reconcile reasserts the ticket's status every 5 min, overriding the founder's
-  // "don't release" (Rejected). Editor Assigned / Type still sync — only the status write is locked.
+  // Status mirror — only overwrite a status the app manages (early lifecycle / empty). A human-owned
+  // status (the team's review workflow, holds, terminal verdicts, or any option they add later) is
+  // left untouched, so a manual change on Airtable always sticks. Editor Assigned / Type still sync.
   const currentStatus = selectName(cf[VC.fields.status]);
-  if (mappedStatus && currentStatus !== mappedStatus && !isFounderLockedClipStatus(currentStatus)) {
+  if (mappedStatus && currentStatus !== mappedStatus && appManagesVishenStatus(currentStatus)) {
     patch[VC.fields.status] = mappedStatus;
   }
   if (mappedType && selectName(cf[VC.fields.type]) !== mappedType) patch[VC.fields.type] = mappedType;
