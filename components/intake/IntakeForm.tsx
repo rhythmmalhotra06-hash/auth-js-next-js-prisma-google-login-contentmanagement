@@ -63,7 +63,9 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
   const teamOpts: SelectOption[] = useMemo(() => data.teamServiceLevels.map((t) => ({ value: t, label: t })), [data.teamServiceLevels]);
   const requestTypeOpts: SelectOption[] = useMemo(() => data.typesOfRequest.map((t) => ({ value: t, label: t })), [data.typesOfRequest]);
   const eventTypeOpts: SelectOption[] = useMemo(() => data.eventTypes.map((e) => ({ value: e.id, label: e.name })), [data.eventTypes]);
-  const assetTypeOpts: SelectOption[] = useMemo(() => filteredAssetTypes.map((a) => ({ value: a.id, label: a.name })), [filteredAssetTypes]);
+  // Prefer the full title (e.g. "Event - MVU - Stage Talk Snippets") — many asset types share a short
+  // name (e.g. several "Hero Video") under one event type, so the full title disambiguates them.
+  const assetTypeOpts: SelectOption[] = useMemo(() => filteredAssetTypes.map((a) => ({ value: a.id, label: a.fullName || a.name })), [filteredAssetTypes]);
   // Once an asset type is picked, its team lead / preferred editor / dimensions / category
   // show as locked read-only lookups (CLAUDE.md §4 — never user inputs).
   const selectedAssetType = useMemo(

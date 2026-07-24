@@ -54,7 +54,7 @@ async function fetchLive(): Promise<LiveReference> {
 
   const assetTypes = (await listRecords(ASSET_TYPES.baseId, ASSET_TYPES.tableId))
     .map(mapAssetType).filter((a) => a.active)
-    .map((a) => ({ id: a.airtableId, name: a.name, category: a.category, eventTypeIds: a.links.eventTypes,
+    .map((a) => ({ id: a.airtableId, name: a.name, fullName: a.fullName, category: a.category, eventTypeIds: a.links.eventTypes,
       isVideo: a.creativeCategory === 'Creative Video Type',
       teamLead: names(a.links.teamLeads, empName),
       preferredEditor: names(a.links.preferredEditors, empName),

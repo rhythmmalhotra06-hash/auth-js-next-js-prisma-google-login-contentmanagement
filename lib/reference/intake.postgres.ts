@@ -47,6 +47,7 @@ export async function getPgIntakeReference(): Promise<LiveReference> {
     .map((r) => ({
       id: r.airtableId as string,
       name: r.name ?? r.fullName ?? '(unnamed)',
+      fullName: r.fullName,
       category: r.category,
       eventTypeIds: r.eventTypes.map((e) => e.eventType.airtableId).filter((x): x is string => !!x),
       isVideo: r.creativeCategory === 'Creative Video Type',

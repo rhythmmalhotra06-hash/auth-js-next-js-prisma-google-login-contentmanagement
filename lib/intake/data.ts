@@ -14,6 +14,7 @@ export interface Option {
 }
 
 export interface AssetTypeOption extends Option {
+  fullName: string | null; // Airtable "Asset Type (Full title)" — shown in the dropdown to disambiguate same-named types across event contexts
   category: string | null;
   eventTypeIds: string[]; // Asset Type is filtered to those linked to the chosen Event Type
   isVideo: boolean; // Category === "Creative Video Type" — used to restrict the shoot form to video assets
