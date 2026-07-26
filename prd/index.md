@@ -15,6 +15,7 @@
 | [E8.2 · Transcript Ingestion](content-production-management/content-clipping-engine/transcript-ingestion.md) | feature | discovery | 6/7 | 2026-06-26 |
 | [E8.3 · Strategy Viewer](content-production-management/content-clipping-engine/strategy-viewer.md) | feature | discovery | 5/7 | 2026-06-26 |
 | [E8.4 · Clip → Ticket Conversion](content-production-management/content-clipping-engine/clip-ticket-conversion.md) | feature | discovery | 6/7 | 2026-06-26 |
+| [E8.5 · Cover Generator](content-production-management/content-clipping-engine/cover-generator.md) | feature | resolved | 7/7 | 2026-07-24 |
 | [E9 · Portal Feedback / Usability Round 1](content-production-management/portal-feedback-round-1.md) | epic | discovery | 7/7 | 2026-06-29 |
 | [E9.1 · Cut-ready editor brief](content-production-management/portal-feedback-round-1/cut-ready-editor-brief.md) | feature | discovery | 7/7 | 2026-06-29 |
 | [E9.2 · Shoot approvals in Studio](content-production-management/portal-feedback-round-1/studio-shoot-approvals.md) | feature | discovery | 7/7 | 2026-06-29 |
@@ -26,4 +27,4 @@
 | [E9.8 · Multi-asset campaign requests](content-production-management/portal-feedback-round-1/multi-asset-requests.md) | feature | deferred | 4/7 | 2026-06-29 |
 | [E9.9 · Studio bento redesign](content-production-management/portal-feedback-round-1/studio-bento-redesign.md) | feature | discovery | 7/7 | 2026-06-30 |
 
-_Total: 23 documents, 121/162 sections resolved (75%). E9.8 deferred to a later effort._
+_Total: 24 documents, 128/169 sections resolved (76%). E9.8 deferred to a later effort._

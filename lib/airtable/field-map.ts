@@ -406,6 +406,7 @@ export const CLIP_SUGGESTIONS = {
     createTicket: 'fldNHVmcWAMuYVeXb', // "Create Ticket" (checkbox) — tick to convert to a ticket; convert cron unchecks it
     vishenClipId: 'fld4Qcvv1Q2biaJAO', // "Vishen Clip ID" (singleLineText) — recId of the mirrored row in Vishen's Clips table
     appTicketId: 'fldtzqljzMbnmcRCD', // "App Ticket ID" (singleLineText) — ticket id created from this clip (Airtable recId or PG uuid); reconcile key. Do not edit by hand.
+    cover: 'fldKqhUWK7H3XvVnU', // "Cover" (multipleAttachments, app-created 2026-07-25) — finished 1080×1920 clip cover saved from the Cover Generator
   },
   links: {
     mediaSource: 'fldcmDia3CiWEWJkI', // → 📺 Media Sources (parent)

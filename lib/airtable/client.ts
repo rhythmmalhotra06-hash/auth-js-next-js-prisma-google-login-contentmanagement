@@ -112,6 +112,32 @@ export async function createRecords(baseId: string, tableId: string, records: Ne
   return out;
 }
 
+// Attachment uploads use a separate host (content.airtable.com), not the REST API.
+const CONTENT_API = 'https://content.airtable.com/v0';
+
+/**
+ * Upload a binary attachment directly onto a record's attachment field, without
+ * needing a public URL (Airtable's normal attachment write requires one). Uses
+ * the same PAT + `data.records:write` scope as the REST writes. `base64` is the
+ * raw base64 payload (no `data:` prefix). Appends to the field; returns the
+ * updated record. Note: the request is capped at ~5 MB, and base64 inflates size
+ * ~33% — encode covers as JPEG, not PNG, to stay under it.
+ */
+export async function uploadAttachment(
+  baseId: string,
+  recordId: string,
+  fieldIdOrName: string,
+  file: { contentType: string; base64: string; filename: string },
+): Promise<AirtableRecord> {
+  const url = `${CONTENT_API}/${baseId}/${recordId}/${fieldIdOrName}/uploadAttachment`;
+  const json = await request<{ fields: Record<string, unknown> } & AirtableRecord>(url, {
+    method: 'POST',
+    body: JSON.stringify({ contentType: file.contentType, file: file.base64, filename: file.filename }),
+  });
+  await sleep(MIN_INTERVAL_MS);
+  return json;
+}
+
 /** Update records by recId (≤10/request, paced). Returns updated records. */
 export async function updateRecords(baseId: string, tableId: string, records: RecordPatch[]): Promise<AirtableRecord[]> {
   const out: AirtableRecord[] = [];
