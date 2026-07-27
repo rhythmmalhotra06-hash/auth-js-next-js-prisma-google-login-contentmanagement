@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ClipSuggestion } from '@/lib/media/repository';
+import { coverHrefForClip } from '@/lib/cover/clip-cover';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
@@ -23,6 +25,7 @@ export function MediaDetailClient({
   autostart = false,
   reference,
   sourceUrl = null,
+  sourceAuthor = null,
 }: {
   sourceId: string;
   status: string | null;
@@ -32,6 +35,7 @@ export function MediaDetailClient({
   autostart?: boolean;
   reference: IntakeReferenceData;
   sourceUrl?: string | null;
+  sourceAuthor?: string | null;
 }) {
   const router = useRouter();
   const [modalClipId, setModalClipId] = useState<string | null>(null);
@@ -286,16 +290,20 @@ export function MediaDetailClient({
                       {!approved && !dismissed && (
                         <div className="mt-3"><ClipActions clipId={c.id} /></div>
                       )}
-                      {/* Approved → raise the ticket inline (same modal/flow as the Manager Queue). */}
-                      {approved && !c.ticketId && (
-                        <div className="mt-3">
-                          <button type="button" onClick={() => setModalClipId(c.id)} className="btn sm">
-                            Convert to ticket <Icon name="arrow" size={14} />
-                          </button>
+                      {/* Approved → raise the ticket + design the cover inline. */}
+                      {approved && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {!c.ticketId ? (
+                            <button type="button" onClick={() => setModalClipId(c.id)} className="btn sm">
+                              Convert to ticket <Icon name="arrow" size={14} />
+                            </button>
+                          ) : (
+                            <Badge tone="success">Ticket created</Badge>
+                          )}
+                          <Link href={coverHrefForClip(c, sourceAuthor)} className="btn sm">
+                            <Icon name="photo" size={14} /> Make cover
+                          </Link>
                         </div>
-                      )}
-                      {approved && c.ticketId && (
-                        <div className="mt-3"><Badge tone="success">Ticket created</Badge></div>
                       )}
                     </div>
                   )}

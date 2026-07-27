@@ -149,6 +149,8 @@ export function navForRoles(
   // Shoots = pre-production filming queue. Anyone can submit a shoot request, so it's
   // visible to every signed-in role (mirrors "New request" being open to all).
   items.push({ href: '/shoots', label: 'Shoots', icon: 'video', group: 'Library & media' });
+  // Cover Generator = produce a 9×16 clip-cover PNG. Open to every signed-in user.
+  items.push({ href: '/cover-generator', label: 'Cover Generator', icon: 'photo', group: 'Library & media' });
   items.push({ href: '/performance', label: 'Insights', icon: 'chart', group: 'Intelligence' });
   // Asset-type DNA editor (E9.7): admins + managers get the nav entry; a team lead who
   // isn't a manager can still reach it via link (the page authorizes them per asset type).

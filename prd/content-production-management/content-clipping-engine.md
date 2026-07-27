@@ -9,8 +9,9 @@ children:
   - content-production-management/content-clipping-engine/transcript-ingestion.md
   - content-production-management/content-clipping-engine/strategy-viewer.md
   - content-production-management/content-clipping-engine/clip-ticket-conversion.md
+  - content-production-management/content-clipping-engine/cover-generator.md
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-07-24
 resolution: 7/7
 imported-from: "plans/ai-content-clipping-engine.md"
 ---

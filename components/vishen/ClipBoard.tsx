@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { DetailDrawer } from '@/components/ui/DetailDrawer';
 import { ClipActions } from '@/components/vishen/ClipActions';
+import { coverHrefForClip } from '@/lib/cover/clip-cover';
 import type { ClipSuggestion } from '@/lib/media/repository';
 
 type View = 'grid' | 'table';
@@ -118,7 +120,16 @@ export function ClipBoard({ clips, sourceNames }: { clips: ClipSuggestion[]; sou
         onClose={() => setSelected(null)}
         eyebrow={sourceName}
         title={selected?.hookLine || selected?.name || 'Clip'}
-        footer={selected && <ClipActions clipId={selected.id} size="md" onDone={() => setSelected(null)} />}
+        footer={
+          selected && (
+            <div className="flex flex-wrap items-center gap-2">
+              <ClipActions clipId={selected.id} size="md" onDone={() => setSelected(null)} />
+              <Link href={coverHrefForClip(selected)} className="btn sm">
+                <Icon name="photo" size={14} /> Make cover
+              </Link>
+            </div>
+          )
+        }
       >
         {selected && <ClipDetail clip={selected} />}
       </DetailDrawer>

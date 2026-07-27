@@ -30,6 +30,7 @@ async function MediaBody({ source, autostart }: { source: MediaSource; autostart
       autostart={autostart}
       reference={reference}
       sourceUrl={source.sourceUrl}
+      sourceAuthor={source.guestShow}
     />
   );
 }
