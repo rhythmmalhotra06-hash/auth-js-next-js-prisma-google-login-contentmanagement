@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import type { AirtableResult } from '@/lib/airtable/rest';
 import { SOCIAL as S } from '@/lib/airtable/field-map';
 import type { ReelsClip } from '@/lib/clipping/schema';
+import { clipTitle, composeClipNotes } from '@/lib/clipping/clip-brief';
 import type { SocialSuggestion } from '@/lib/social/repository';
 import { getSocialSuggestion } from '@/lib/social/data.postgres';
 
@@ -25,8 +26,8 @@ export async function createSocialSuggestions(
       const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
       const row = await tx.socialPost.create({
         data: {
-          title: c.hookLine,
-          notes: c.rationale ?? '',
+          title: clipTitle(c) || c.hookLine,
+          notes: composeClipNotes(c) || c.rationale || '',
           captions: c.caption,
           status: S.status_.proposal,
           clipSourceUrl: sourceUrl,

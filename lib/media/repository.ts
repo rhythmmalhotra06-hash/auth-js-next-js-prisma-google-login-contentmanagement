@@ -44,6 +44,14 @@ function selectName(v: unknown): string | null {
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : null);
 
+// multipleSelects come back as an array of {id,name} objects (or plain strings).
+function selectNames(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x) => (typeof x === 'string' ? x : x && typeof x === 'object' && 'name' in x ? String((x as { name: unknown }).name) : null))
+    .filter((x): x is string => !!x);
+}
+
 // Airtable link fields come back as an array of recId strings via the REST API
 // (returnFieldsByFieldId=true); tolerate the {id,name} object shape too.
 function linkedIds(v: unknown): string[] {
@@ -296,6 +304,15 @@ export interface ClipSuggestion {
   mediaSourceId: string | null;
   vishenClipId: string | null;
   appTicketId: string | null; // ticket id created from this clip (Airtable recId or PG uuid) — reconcile key
+  // Viral Clip Extractor fields.
+  descriptiveTitle: string | null;
+  viralMechanism: string | null;
+  gateControversy: boolean;
+  gateUncommonKnowledge: boolean;
+  gateHumour: boolean;
+  coldOpen: string | null;
+  verbatimExtract: string | null;
+  editNotes: string | null;
 }
 
 function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
@@ -316,6 +333,14 @@ function mapClip(rec: AirtableRecord<Raw>): ClipSuggestion {
     mediaSourceId: firstLinkedId(f[CL.mediaSource]),
     vishenClipId: str(f[CF.vishenClipId]),
     appTicketId: str(f[CF.appTicketId]),
+    descriptiveTitle: str(f[CF.descriptiveTitle]),
+    viralMechanism: selectName(f[CF.viralMechanism]),
+    gateControversy: selectNames(f[CF.gates]).includes('Controversy'),
+    gateUncommonKnowledge: selectNames(f[CF.gates]).includes('Uncommon Knowledge'),
+    gateHumour: selectNames(f[CF.gates]).includes('Humour'),
+    coldOpen: str(f[CF.coldOpen]),
+    verbatimExtract: str(f[CF.verbatimExtract]),
+    editNotes: str(f[CF.editNotes]),
   };
 }
 
@@ -399,20 +424,34 @@ export async function createClipSuggestions(
   clips: ReelsClip[],
 ): Promise<AirtableResult<{ count: number; ids: string[] }>> {
   const now = new Date().toISOString();
+  const gates = (c: ReelsClip): string[] =>
+    [
+      c.gateControversy && 'Controversy',
+      c.gateUncommonKnowledge && 'Uncommon Knowledge',
+      c.gateHumour && 'Humour',
+    ].filter((x): x is string => !!x);
   const records = clips.map((c, i) => ({
     fields: {
-      [CF.name]: (c.hookLine || `Clip ${i + 1}`).slice(0, 200),
+      // Nuclear Hook Title is the primary label/hook; fall back to the on-screen hook line.
+      [CF.name]: (c.nuclearHookTitle || c.hookLine || `Clip ${i + 1}`).slice(0, 200),
       [CL.mediaSource]: [mediaSourceId],
       [CF.index]: i + 1,
       [CF.addedDate]: now,
       [CF.timestampStart]: c.timestampStart ?? '',
       [CF.timestampEnd]: c.timestampEnd ?? '',
-      [CF.hookLine]: c.hookLine ?? '',
+      [CF.hookLine]: c.nuclearHookTitle || c.hookLine || '',
       [CF.rationale]: c.rationale ?? '',
       [CF.caption]: c.caption ?? '',
       [CF.format]: c.format,
       [CF.viralityScore]: c.viralityScore,
       [CF.status]: C.status_.proposed,
+      // Viral Clip Extractor fields.
+      [CF.descriptiveTitle]: c.descriptiveTitle ?? '',
+      ...(c.viralMechanism ? { [CF.viralMechanism]: c.viralMechanism } : {}),
+      [CF.gates]: gates(c),
+      [CF.coldOpen]: c.coldOpen ?? '',
+      [CF.verbatimExtract]: c.verbatimExtract ?? '',
+      [CF.editNotes]: c.editNotes ?? '',
     },
   }));
   const res = await createRecords(C.baseId, C.tableId, records);

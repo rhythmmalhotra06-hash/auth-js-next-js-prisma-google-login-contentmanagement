@@ -267,6 +267,7 @@ export function MediaDetailClient({
                         {typeof c.viralityScore === 'number' && (
                           <span className="badge b-gold">★ {c.viralityScore}</span>
                         )}
+                        {c.viralMechanism && <Badge tone="brand">{c.viralMechanism}</Badge>}
                         {approved && <Badge tone="success">Approved</Badge>}
                         {dismissed && <Badge tone="neutral">Dismissed</Badge>}
                         <span className="text-xs text-text-subtle">
@@ -280,13 +281,35 @@ export function MediaDetailClient({
                   {/* Body — revealed on click */}
                   {isOpen && (
                     <div className="border-t border-border-muted px-4 py-3">
+                      {(c.gateControversy || c.gateUncommonKnowledge || c.gateHumour) && (
+                        <p className="mb-2 flex flex-wrap gap-1.5">
+                          {([['Controversy', c.gateControversy], ['Uncommon Knowledge', c.gateUncommonKnowledge], ['Humour', c.gateHumour]] as [string, boolean][]).map(([label, on]) => (
+                            <span key={label} className={`rounded-full px-2 py-0.5 text-2xs font-medium ${on ? 'bg-success-soft text-success-content' : 'bg-bg-subtle text-text-subtle line-through'}`}>{label}</span>
+                          ))}
+                        </p>
+                      )}
+                      {c.descriptiveTitle && (
+                        <p className="text-sm text-text-muted"><span className="font-medium text-text">About: </span>{c.descriptiveTitle}</p>
+                      )}
                       {c.rationale && (
-                        <p className="text-sm text-text-muted"><span className="font-medium text-text">Why this clip: </span>{c.rationale}</p>
+                        <p className="mt-2 text-sm text-text-muted"><span className="font-medium text-text">Why this clip: </span>{c.rationale}</p>
+                      )}
+                      {c.coldOpen && (
+                        <p className="mt-2 text-sm text-text-muted"><span className="font-medium text-text">Cold open (first 3s): </span>{c.coldOpen}</p>
                       )}
                       {c.caption && (
                         <p className="mt-2 text-sm italic text-text-muted"><span className="font-medium not-italic text-text">Caption: </span>“{c.caption}”</p>
                       )}
-                      {!c.rationale && !c.caption && <p className="text-sm text-text-subtle">No additional details.</p>}
+                      {c.editNotes && (
+                        <p className="mt-2 text-sm text-text-muted"><span className="font-medium text-text">Edit notes: </span>{c.editNotes}</p>
+                      )}
+                      {c.verbatimExtract && (
+                        <div className="mt-2">
+                          <span className="text-2xs font-semibold uppercase tracking-wide text-text-subtle">Verbatim extract</span>
+                          <p className="mt-1 whitespace-pre-wrap rounded-md bg-bg-subtle p-3 text-sm leading-relaxed text-text">{c.verbatimExtract}</p>
+                        </div>
+                      )}
+                      {!c.rationale && !c.caption && !c.verbatimExtract && <p className="text-sm text-text-subtle">No additional details.</p>}
                       {!approved && !dismissed && (
                         <div className="mt-3"><ClipActions clipId={c.id} /></div>
                       )}

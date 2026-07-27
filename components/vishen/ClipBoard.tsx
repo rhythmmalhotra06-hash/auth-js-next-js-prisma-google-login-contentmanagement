@@ -168,11 +168,13 @@ function ClipSummaryCard({ clip, onOpen }: { clip: ClipSuggestion; onOpen: () =>
         )}
       </div>
       <div className="flex flex-wrap gap-1.5">
+        {clip.viralMechanism && <Badge tone="brand">{clip.viralMechanism}</Badge>}
         {clip.format && <Badge tone="neutral">{clip.format.replace(/_/g, ' ')}</Badge>}
         {(clip.timestampStart || clip.timestampEnd) && (
           <span className="text-2xs tabular-nums text-text-subtle">{clip.timestampStart}{clip.timestampEnd ? `–${clip.timestampEnd}` : ''}</span>
         )}
       </div>
+      <CeoChips clip={clip} />
       {clip.caption && <p className="line-clamp-2 text-sm leading-relaxed text-text-muted">{clip.caption}</p>}
       <span className="text-xs font-semibold text-brand">Open record →</span>
     </button>
@@ -184,20 +186,50 @@ function ClipDetail({ clip }: { clip: ClipSuggestion }) {
     <div className="space-y-5 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         {clip.viralityScore != null && <Badge tone="brand">Virality {clip.viralityScore}/10</Badge>}
+        {clip.viralMechanism && <Badge tone="brand">{clip.viralMechanism}</Badge>}
         {clip.format && <Badge tone="neutral">{clip.format.replace(/_/g, ' ')}</Badge>}
         {(clip.timestampStart || clip.timestampEnd) && (
           <Badge tone="neutral">{clip.timestampStart}{clip.timestampEnd ? `–${clip.timestampEnd}` : ''}</Badge>
         )}
       </div>
-      {clip.rationale && (
-        <Section label="What it presents">{clip.rationale}</Section>
+      <CeoChips clip={clip} />
+      {clip.descriptiveTitle && <Section label="About this clip">{clip.descriptiveTitle}</Section>}
+      {clip.rationale && <Section label="Why this clips">{clip.rationale}</Section>}
+      {clip.coldOpen && <Section label="Cold open (first 3s)">{clip.coldOpen}</Section>}
+      {clip.caption && <Section label="Caption">{clip.caption}</Section>}
+      {clip.hookLine && <Section label="Hook line">{clip.hookLine}</Section>}
+      {clip.editNotes && <Section label="Edit notes">{clip.editNotes}</Section>}
+      {clip.verbatimExtract && (
+        <div>
+          <div className="mb-1 text-2xs font-semibold uppercase tracking-wide text-text-subtle">Verbatim extract</div>
+          <p className="whitespace-pre-wrap rounded-md bg-bg-subtle p-3 leading-relaxed text-text">{clip.verbatimExtract}</p>
+        </div>
       )}
-      {clip.caption && (
-        <Section label="Caption">{clip.caption}</Section>
-      )}
-      {clip.hookLine && (
-        <Section label="Hook line">{clip.hookLine}</Section>
-      )}
+    </div>
+  );
+}
+
+// The virality gates as small pass/fail chips.
+function CeoChips({ clip }: { clip: ClipSuggestion }) {
+  const lenses: [string, boolean][] = [
+    ['Controversy', clip.gateControversy],
+    ['Uncommon Knowledge', clip.gateUncommonKnowledge],
+    ['Humour', clip.gateHumour],
+  ];
+  if (!lenses.some(([, on]) => on)) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {lenses.map(([label, on]) => (
+        <span
+          key={label}
+          className={cn(
+            'rounded-full px-2 py-0.5 text-2xs font-medium',
+            on ? 'bg-success-soft text-success-content' : 'bg-bg-subtle text-text-subtle line-through',
+          )}
+        >
+          {label}
+        </span>
+      ))}
     </div>
   );
 }

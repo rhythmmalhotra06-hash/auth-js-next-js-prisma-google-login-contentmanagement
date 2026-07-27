@@ -129,16 +129,37 @@ function brief(
     hookLine: string | null;
     timestampStart: string | null;
     timestampEnd: string | null;
+    descriptiveTitle?: string | null;
+    viralMechanism?: string | null;
+    gateControversy?: boolean;
+    gateUncommonKnowledge?: boolean;
+    gateHumour?: boolean;
+    coldOpen?: string | null;
+    verbatimExtract?: string | null;
+    editNotes?: string | null;
   },
   verbatim?: { text: string; approximate: boolean } | null,
 ): string {
   const parts: string[] = [];
-  if (c.hookLine) parts.push(`Hook: ${c.hookLine}`);
+  if (c.hookLine) parts.push(`Nuclear hook: ${c.hookLine}`);
+  if (c.descriptiveTitle) parts.push(`Descriptive title: ${c.descriptiveTitle}`);
+  if (c.viralMechanism) parts.push(`Viral mechanism: ${c.viralMechanism}`);
+  const gates = [
+    c.gateControversy && 'Controversy',
+    c.gateUncommonKnowledge && 'Uncommon Knowledge',
+    c.gateHumour && 'Humour',
+  ].filter(Boolean);
+  if (gates.length) parts.push(`Virality gates: ${gates.join(' · ')}`);
   if (c.rationale) parts.push(`Why this clip: ${c.rationale}`);
+  if (c.coldOpen) parts.push(`Cold open (first 3s): ${c.coldOpen}`);
   if (c.caption) parts.push(`Suggested caption: ${c.caption}`);
   if (c.timestampStart || c.timestampEnd) parts.push(`Clip range: ${c.timestampStart ?? '?'}–${c.timestampEnd ?? '?'}`);
+  if (c.editNotes) parts.push(`Edit notes: ${c.editNotes}`);
   // E9.1 — verbatim transcript excerpt so the editor can cut without chasing the source.
-  if (verbatim) {
+  // Prefer the model's word-for-word extract; fall back to the hook-anchored slice.
+  if (c.verbatimExtract?.trim()) {
+    parts.push(`Verbatim (word-for-word):\n${c.verbatimExtract.trim()}`);
+  } else if (verbatim) {
     const label = verbatim.approximate
       ? 'Verbatim (approx — locate the clip range in the full transcript)'
       : 'Verbatim (around the hook)';

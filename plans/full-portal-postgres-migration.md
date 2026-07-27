@@ -1,5 +1,11 @@
 # Migrate the full portal onto Postgres (two-way Airtable sync)
 
+> ✅✅ **CUTOVER COMPLETE IN PROD (2026-07-10).** All 6 `*_BACKEND` flags = `postgres`
+> (reference, shoots, social, vishen-videos, media, tickets). Migrations 0012–0017 applied;
+> PR #60 merged + deployed; metrics on PG groupBy; 0 outbox errors; sync crons green. Revert any
+> domain: `kessel env set <DOMAIN>_BACKEND=airtable` + redeploy. Remaining: enable the CLIPS_SYNC
+> outcome fields in the Airtable sync (clip Tier-2 signal); remove dead `*.airtable.ts` after bake.
+
 ## Context
 
 The team merged Social/Ads/Content and Vishen/Muley set the direction (Jul 1 2026): rebuild the
