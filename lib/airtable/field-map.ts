@@ -396,11 +396,18 @@ export const CLIP_SUGGESTIONS = {
     index: 'fldoDUIlLBSLtR4ZP', // "Index" (number)
     timestampStart: 'fldlDxa8ZEbo8tEYu', // "Timestamp Start"
     timestampEnd: 'fldxBgaSdriwtpFjk', // "Timestamp End"
-    hookLine: 'fldvbSGgjKfZ9U3Oy', // "Hook Line"
+    hookLine: 'fldvbSGgjKfZ9U3Oy', // "Hook Line" — Nuclear Hook Title (≤8 words) on generation
     rationale: 'fldFWsyDDe1UMLySB', // "Rationale" (multilineText)
     caption: 'fldPIon3niXYqMG73', // "Caption" (multilineText)
     format: 'fldUC9mA48dyfoxjr', // "Format" (talking_head | quote_card | broll_overlay)
     viralityScore: 'fldCA8JsTQSvM148U', // "Virality Score" (number, 1–10)
+    // Viral Clip Extractor fields (app-created 2026-07-15).
+    descriptiveTitle: 'flduXEvsmBOV4JkOx', // "Descriptive Title" (singleLineText)
+    viralMechanism: 'fldXg3xjaQmnI7onl', // "Viral Mechanism" (singleSelect — see VIRAL_MECHANISMS)
+    gates: 'flddia08JHB6jUqTF', // "Virality Gates" (multipleSelects: Controversy | Uncommon Knowledge | Humour)
+    coldOpen: 'fldBtBg5lnaogVky1', // "Cold Open" (multilineText) — exact first 3 seconds
+    verbatimExtract: 'fld76sSJl4P7HbH5K', // "Verbatim Extract" (multilineText) — word-for-word source
+    editNotes: 'fldCGMVr8nRbYfm2n', // "Edit Notes" (multilineText) — cut/b-roll/overlay/pacing
     status: 'fldpnlfTD2UwXS8su', // "Status" (Proposed | Approved | Dismissed)
     addedDate: 'fldwmRqAJf2kcUrp3', // "Added Date" (dateTime) — set on create
     createTicket: 'fldNHVmcWAMuYVeXb', // "Create Ticket" (checkbox) — tick to convert to a ticket; convert cron unchecks it
@@ -504,14 +511,19 @@ export const VISHEN_CLIPS = {
     source: 'fldAyfIU17piBfHZQ', // → 🎬 Major Videos (parent), inverse of MAJOR_VIDEOS.links.clips
     editorAssigned: 'fldlpgkvMiXsPoJKD', // "Editor Assigned" → Vishen-base 👥 EMPLOYEES (VISHEN_EMPLOYEES); mirrored from the ticket's assigned creative, matched by Work Email
   },
-  // singleSelect option names. status_ covers every value we write from the ticket-status map.
+  // singleSelect option names — MUST mirror the live field's choices exactly (the API token can't
+  // create options, so an unknown name fails the write). The team owns this field's review workflow;
+  // the app only ever WRITES the early-lifecycle values (todo/inProgress/applyFeedback) — see
+  // APP_MANAGED_VISHEN_STATUSES in vishen-sync.ts. The rest are human-owned and read-only to the app.
   status_: {
     todo: 'Todo',
     inProgress: 'In progress',
-    done: 'Done',
-    review: 'Review',
-    rejected: 'Rejected',
+    reviewMarishaGareth: 'Review - Marisha/Gareth', // human review lane (team-owned)
+    marishaGarethApproved: 'Marisha/Gareth Approved', // human verdict (team-owned)
     applyFeedback: 'Apply Feedback',
+    done: 'Done',
+    onHold: 'On Hold', // human-owned
+    rejected: 'Rejected',
     published: 'Published',
   },
   type_: { reel: 'Reel (Under 3 mins)', shortForm: 'Short Form (Under 7 mins)', youtubeClip: 'Youtube Clip (5 to 20 mins)' },

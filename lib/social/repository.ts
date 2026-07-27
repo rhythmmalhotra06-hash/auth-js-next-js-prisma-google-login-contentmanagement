@@ -18,6 +18,7 @@ import {
   type AirtableResult,
 } from '@/lib/airtable/rest';
 import type { ReelsClip } from '@/lib/clipping/schema';
+import { clipTitle, composeClipNotes } from '@/lib/clipping/clip-brief';
 import { socialIsPostgres } from '@/lib/social/backend';
 import { TICKETS_BACKEND } from '@/lib/tickets/backend';
 
@@ -150,8 +151,8 @@ export async function createSocialSuggestions(
   const records = clips.map((c) => {
     const timecode = [c.timestampStart, c.timestampEnd].filter(Boolean).join('–');
     const fields: Record<string, unknown> = {
-      [SF.title]: c.hookLine,
-      [SF.notes]: c.rationale ?? '',
+      [SF.title]: clipTitle(c) || c.hookLine,
+      [SF.notes]: composeClipNotes(c) || c.rationale || '',
       [SF.captions]: c.caption,
       [SF.status]: S.status_.proposal,
       [SF.clipSourceUrl]: sourceUrl,

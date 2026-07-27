@@ -8,9 +8,22 @@ export const REELS_FORMATS = ['talking_head', 'quote_card', 'broll_overlay'] as 
 export const PLATFORMS = ['youtube', 'spotify', 'instagram', 'linkedin', 'x', 'tiktok'] as const;
 export const TITLE_FORMATS = ['curiosity', 'bold', 'story'] as const;
 
+// Viral Clip Extractor mechanisms — names match the Airtable "Viral Mechanism"
+// singleSelect choices exactly so they persist without typecasting.
+export const VIRAL_MECHANISMS = [
+  'Pattern Interrupt',
+  'Contrarian Claim',
+  'Specific Prediction / Stat',
+  'Identity Challenge',
+  'Emotional Payoff',
+  'Shareable Insight',
+  'Story Hook',
+] as const;
+
 export type ReelsFormat = (typeof REELS_FORMATS)[number];
 export type Platform = (typeof PLATFORMS)[number];
 export type TitleFormat = (typeof TITLE_FORMATS)[number];
+export type ViralMechanism = (typeof VIRAL_MECHANISMS)[number];
 
 export interface EpisodeTitle {
   format: TitleFormat;
@@ -50,6 +63,27 @@ export interface ReelsClip {
   hookLine: string;
   format: ReelsFormat;
   viralityScore: number; // 1–10
+  // ── Viral Clip Extractor fields (optional in TS so existing constructors that
+  // read persisted rows still compile; the JSON schema requires them on fresh
+  // generation so the model always produces them). ────────────────────────────
+  /** ≤8-word punchy, scroll-stopping title. */
+  nuclearHookTitle?: string;
+  /** Longer context-giving title explaining what the clip is about. */
+  descriptiveTitle?: string;
+  /** Primary viral mechanism tag. */
+  viralMechanism?: ViralMechanism;
+  /** Virality gate: challenges conventional wisdom / invites debate. */
+  gateControversy?: boolean;
+  /** Virality gate: a specific insight/fact/framework the audience likely hasn't heard. */
+  gateUncommonKnowledge?: boolean;
+  /** Virality gate: a genuinely funny / absurd / surprising moment. */
+  gateHumour?: boolean;
+  /** Exact opening line/visual for the first 3 seconds. */
+  coldOpen?: string;
+  /** Raw, word-for-word transcript passage for this clip (never paraphrased). */
+  verbatimExtract?: string;
+  /** Specific editing instructions: cut in/out, b-roll, overlays, pacing. */
+  editNotes?: string;
 }
 
 export interface PullQuote {
@@ -170,17 +204,45 @@ export const STRATEGY_SCHEMA = {
     },
     reelsClips: {
       type: 'array',
-      description: '5 to 8 high-performing Instagram Reels moments, grounded in the actual transcript.',
+      description:
+        '5 to 8 high-performing short-form clip moments, grounded in the actual transcript. ' +
+        'Each must hit ≥1 virality gate (Controversy / Uncommon Knowledge / Humour); prefer all three.',
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['timestampStart', 'timestampEnd', 'rationale', 'caption', 'hookLine', 'format', 'viralityScore'],
+        required: [
+          'nuclearHookTitle',
+          'descriptiveTitle',
+          'timestampStart',
+          'timestampEnd',
+          'viralMechanism',
+          'gateControversy',
+          'gateUncommonKnowledge',
+          'gateHumour',
+          'rationale',
+          'coldOpen',
+          'caption',
+          'hookLine',
+          'verbatimExtract',
+          'editNotes',
+          'format',
+          'viralityScore',
+        ],
         properties: {
+          nuclearHookTitle: str('Nuclear Hook Title: max 8 words, punchy, scroll-stopping, provocative (e.g. "Working Hard Is the Dumbest Thing You Can Do in 2026"). Mandatory on every clip.'),
+          descriptiveTitle: str('Longer, context-giving title that explains what the clip is actually about.'),
           timestampStart: str('Clip start, copied from a transcript [M:SS] marker (e.g. 12:30). Use only a timestamp that appears in the transcript — never invent one.'),
           timestampEnd: str('Clip end, copied from a transcript [M:SS] marker (e.g. 13:45). Use only a timestamp that appears in the transcript — never invent one.'),
-          rationale: str('Why this clip works (hook, insight, emotion).'),
-          caption: str('Suggested caption for the reel.'),
-          hookLine: str('A 3-second hook line.'),
+          viralMechanism: { type: 'string', enum: [...VIRAL_MECHANISMS], description: 'The primary viral mechanism this clip uses. Flag Specific Prediction / Stat moments (especially about AI) — they outperform.' },
+          gateControversy: { type: 'boolean', description: 'Virality gate — Controversy: a claim/opinion that challenges conventional wisdom, takes a strong stance, or invites debate.' },
+          gateUncommonKnowledge: { type: 'boolean', description: 'Virality gate — Uncommon Knowledge: a specific insight/fact/framework/story detail the audience is unlikely to have heard, stated with enough specificity to feel like an "unlock".' },
+          gateHumour: { type: 'boolean', description: 'Virality gate — Humour: a genuinely funny, self-deprecating, absurd, or surprising moment worth sharing for entertainment.' },
+          rationale: str('Why This Clips: 2–3 sentences tied to the gate(s) it hits — the hook, the payoff, why someone would comment/share.'),
+          coldOpen: str('Cold Open — the exact opening line or visual moment for the first 3 seconds. The make-or-break hook before the viewer scrolls.'),
+          caption: str('Suggested caption / hook text for the post itself — designed to stop the scroll in feed before the video plays.'),
+          hookLine: str('A short 3-second on-screen hook line (can echo the cold open).'),
+          verbatimExtract: str('Raw, word-for-word transcript text for this clip segment. Full passage — NEVER paraphrase or summarize. Mandatory; this is the source material the editor will use.'),
+          editNotes: str('Specific editing instructions — where to cut in/out, B-roll suggestions, text overlays, pacing notes.'),
           format: { type: 'string', enum: [...REELS_FORMATS] },
           viralityScore: { type: 'integer', description: 'Viral potential from 1 (low) to 10 (high).' },
         },
@@ -258,6 +320,12 @@ export function validateStrategy(value: unknown): { ok: true; strategy: Strategy
   for (const c of s.reelsClips) {
     if (typeof c.viralityScore !== 'number' || Number.isNaN(c.viralityScore)) c.viralityScore = 0;
     c.viralityScore = Math.max(1, Math.min(10, Math.round(c.viralityScore)));
+    // Viral Clip Extractor fields: coerce virality-gate flags to booleans; backfill
+    // titles so downstream (ticket titles, board labels) always has a usable string.
+    c.gateControversy = !!c.gateControversy;
+    c.gateUncommonKnowledge = !!c.gateUncommonKnowledge;
+    c.gateHumour = !!c.gateHumour;
+    if (!c.nuclearHookTitle?.trim()) c.nuclearHookTitle = c.hookLine || c.descriptiveTitle || '';
   }
   if (!Array.isArray(s.episodeTitles) || s.episodeTitles.length === 0) {
     return { ok: false, error: 'No episode titles were generated' };
