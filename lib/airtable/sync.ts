@@ -167,6 +167,8 @@ export function mapAuthor(r: AirtableRecord) {
 export interface SyncReport {
   dryRun: boolean;
   counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number; contractors: number; scoringKnobs: number; clipRules: number; commsCalendars: number };
+  // Rows deactivated because they no longer exist in Airtable (self-heal; see pass 3).
+  deactivated: { employees: number; eventTypes: number; assetTypes: number; contractors: number };
   linkEdges: { eventTypes: number; teamLeads: number; preferredEditors: number; dimensions: number };
   samples: { employee?: string; eventType?: string; assetType?: string };
 }
@@ -204,6 +206,8 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     preferredEditors: assetTypes.reduce((n, a) => n + a.links.preferredEditors.length, 0),
     dimensions: assetTypes.reduce((n, a) => n + a.links.dimensions.length, 0),
   };
+
+  const deactivated = { employees: 0, eventTypes: 0, assetTypes: 0, contractors: 0 };
 
   if (!dryRun) {
     // Lazy import so dry-run never needs a DB connection.
@@ -293,11 +297,33 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     await prisma.assetTypePreferredEditor.createMany({ data: preferredEditorPairs, skipDuplicates: true });
     await prisma.assetTypeDimension.deleteMany({ where: { assetTypeId: { in: atIds } } });
     await prisma.assetTypeDimension.createMany({ data: dimensionPairs, skipDuplicates: true });
+
+    // Pass 3 — self-heal orphans. Rows that no longer exist in Airtable get deactivated
+    // (never hard-deleted: tickets/history FK-reference them). Only tables with an `active`
+    // flag are eligible. GUARD: an empty fetch means the Airtable pull failed/rate-limited,
+    // so we skip that table rather than wipe the whole roster. App-created rows (airtable_id
+    // NULL) are never touched — SQL `NOT IN (...)` excludes NULLs.
+    const deactivateOrphans = async (
+      model: 'employee' | 'eventType' | 'assetType' | 'contractor',
+      fetchedIds: string[],
+    ): Promise<number> => {
+      if (fetchedIds.length === 0) return 0; // never trust an empty pull
+      const res = await (prisma[model] as { updateMany: (a: unknown) => Promise<{ count: number }> }).updateMany({
+        where: { active: true, airtableId: { notIn: fetchedIds } },
+        data: { active: false, syncedAt: new Date() },
+      });
+      return res.count;
+    };
+    deactivated.employees = await deactivateOrphans('employee', employees.map((e) => e.airtableId));
+    deactivated.eventTypes = await deactivateOrphans('eventType', eventTypes.map((e) => e.airtableId));
+    deactivated.assetTypes = await deactivateOrphans('assetType', assetTypes.map((a) => a.airtableId));
+    deactivated.contractors = await deactivateOrphans('contractor', contractors.map((c) => c.airtableId));
   }
 
   return {
     dryRun,
     counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length, officialCalendars: officialCalendars.length, authors: authors.length, contractors: contractors.length, scoringKnobs: scoringKnobs.length, clipRules: clipRules.length, commsCalendars: commsCalendars.length },
+    deactivated,
     linkEdges,
     samples: { employee: employees[0]?.name, eventType: eventTypes[0]?.name, assetType: assetTypes[0]?.name },
   };

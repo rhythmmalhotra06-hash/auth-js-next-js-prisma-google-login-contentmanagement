@@ -15,7 +15,7 @@ name: Airtable reference sync
 # IAP removed 2026-07-03 (service public + co-located with DB). Schedule is live.
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC daily reconcile
+    - cron: '0 * * * *'   # hourly reconcile — mid-day Airtable edits (taxonomy, roster) appear within the hour
   workflow_dispatch:
     inputs:
       dryRun:
