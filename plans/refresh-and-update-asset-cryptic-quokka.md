@@ -282,3 +282,40 @@ No prompt change needed. Items 1, 2, 4 and 5 stand as written.
 **One judgment call to review** (as flagged): the 4 `… - Animated Banner` records and
 `Quest - Bumper` were set to `Creative Video Type` with the rest. If Titus/Moniek want them
 under `Creative Brand Design Type`, it's a one-field edit plus a reconcile — no code impact.
+
+### Part 3 follow-up — items 1, 2, 4, 5 done (commit `9cd0c6c`, deployed)
+
+- **1. HTTP 200 on failure → fixed.** `/api/media/:id/suggest` and `/api/social/suggest` now
+  return **500**. `/api/content-engine/generate` deliberately keeps its 200: it already records
+  the failure in `clip_strategies.status='error'` (a stronger signal than a status code) and its
+  client branches on `strategyId` first, so a 500 would still navigate and buy nothing.
+- **2. Grammar-fallback signal → persisted.** `generateStrategy` now returns
+  `usedGrammarFallback`; the media route writes it to a new **`Grammar Fallback`** checkbox on
+  📺 Media Sources (`fldxR0Fbw17uK4zuY`). Written on every success so a clean re-run clears a
+  stale flag. **If any row is ever ticked, escalate** to splitting `generateStrategy` into two
+  structured calls. This replaces the unreadable `console.warn`.
+- **3. Retracted** — see above, not a real issue.
+- **4. `CLIPS_SYNC` fields → already enabled; the note was wrong.** Verified live: `App Clip ID`
+  on ~100 of 129 mirror rows, plus real `Rating` (2–5), `Released` (VL/MV Insta), `24 Data` view
+  counts and `Feedback` links. The ticket-link reconcile is **not** a no-op, and `clip-learn`'s
+  `{"proposed":0}` means "no new rule worth proposing", not "no data" (a truly empty read would
+  have returned the `note` field instead). Corrected both stale field-map comments.
+- **5. 11 duplicate `* 2` files → deleted** after confirming each was byte-identical to its
+  original. **`Clip Cover Generator/` was deliberately left in place** — it is the real
+  standalone prototype (HTML, team guide, its own CLAUDE.md, source fonts), not a macOS
+  duplication artifact, and only a prose comment in `app/cover-generator/fonts.ts` references it
+  (the fonts themselves are already copied into `app/cover-generator/fonts/`).
+
+### New issue found while verifying — not fixed
+
+`POST /api/social/suggest` with no session returns **HTTP 307**, not a JSON 401. It calls
+`requireSocialAccess()` from [lib/social/guard.ts](lib/social/guard.ts), which is a *page* guard
+that `redirect()`s — the precise anti-pattern [lib/api/guard.ts](lib/api/guard.ts) warns about
+in its own header ("a redirect would be parsed as a successful response by the client"). In
+practice `fetch` follows the redirect to an HTML page, `res.json()` throws, and `SocialLinkForm`
+reports a misleading "Generation failed." instead of "you don't have access". It is also a third
+LLM-spending endpoint whose guard is the wrong shape for an API route.
+
+Left alone deliberately: fixing it changes access-control behaviour, which deserves an explicit
+decision rather than being folded into a monitoring change. Fix would be an API-shaped
+`requireSocialAccessApi()` returning `Response.json({error}, {status: 403})`.
