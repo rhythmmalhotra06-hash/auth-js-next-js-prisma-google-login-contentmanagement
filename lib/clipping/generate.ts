@@ -23,6 +23,44 @@ export interface GenerateResult {
 type AnyParams = Record<string, unknown>;
 
 /**
+ * True for the 400 the API returns when STRATEGY_SCHEMA compiles to a decoding
+ * grammar bigger than structured outputs allows ("The compiled grammar is too
+ * large..."). It is a request-validation failure, so it is fully deterministic —
+ * retrying the same schema always fails, but retrying WITHOUT the schema works.
+ */
+function isGrammarTooLarge(e: unknown): boolean {
+  const err = e as { status?: number; error?: { error?: { message?: string } }; message?: string };
+  if (err?.status !== 400) return false;
+  const raw = err.error?.error?.message ?? err.message ?? '';
+  return /compiled grammar is too large/i.test(raw);
+}
+
+// Fallback-only: describe the contract in the prompt when we can't enforce it via
+// output_config. Derived from STRATEGY_SCHEMA so the two can never drift apart.
+const JSON_SHAPE_INSTRUCTION = `OUTPUT FORMAT — CRITICAL
+Respond with a single JSON object and nothing else: no prose, no explanation, no markdown code fences.
+It must conform exactly to this JSON Schema (every "required" field present, no extra fields):
+
+${JSON.stringify(STRATEGY_SCHEMA)}`;
+
+/**
+ * Parse the model's JSON. Tolerates a ```json fence and surrounding prose, which the
+ * model can add on the unconstrained fallback path (never on the structured path).
+ */
+function parseStrategyJson(text: string): unknown {
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Last resort: take the outermost {...} span.
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start === -1 || end <= start) throw new Error('The model did not return valid JSON.');
+    return JSON.parse(cleaned.slice(start, end + 1));
+  }
+}
+
+/**
  * Phase A — optional unstructured web-search turn. Best-effort: any failure
  * returns an empty research string rather than blocking generation. Kept in a
  * SEPARATE turn from the structured call (web search + output_config must not share a turn).
@@ -80,21 +118,45 @@ export async function generateStrategy(
   const researchSummary = opts.webSearch ? await research(ctx, brandPillars) : '';
   const usedWebSearch = opts.webSearch && researchSummary.length > 0;
 
+  const userMessage = buildUserMessage(transcript, ctx, researchSummary, brandPillars, opts.feedback ?? '');
+
+  // `structured: false` drops output_config and asks for the JSON shape in the prompt
+  // instead — the fallback path when the compiled grammar is over the size cap.
+  const run = (structured: boolean) =>
+    anthropic.messages.stream({
+      model: CLIP_MODEL,
+      max_tokens: 16000,
+      thinking: { type: 'adaptive' },
+      ...(structured
+        ? { output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } } }
+        : {}),
+      system: structured ? systemPrompt : `${systemPrompt}\n\n${JSON_SHAPE_INSTRUCTION}`,
+      messages: [{ role: 'user', content: userMessage }],
+    } as AnyParams as never);
+
   // Wrapped so any Anthropic API failure (usage limit, rate limit, auth, 5xx)
   // surfaces as a clear sentence rather than a raw "400 {...}" SDK error.
   const final = await (async () => {
     try {
-      const stream = anthropic.messages.stream({
-        model: CLIP_MODEL,
-        max_tokens: 16000,
-        thinking: { type: 'adaptive' },
-        output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } },
-        system: systemPrompt,
-        messages: [{ role: 'user', content: buildUserMessage(transcript, ctx, researchSummary, brandPillars, opts.feedback ?? '') }],
-      } as AnyParams as never);
-
-      return await stream.finalMessage();
+      return await run(true).finalMessage();
     } catch (e) {
+      // Structured outputs compile STRATEGY_SCHEMA into a decoding grammar with a size
+      // cap. Over it, the request is rejected before a single token is generated — so
+      // retrying is free and the run still succeeds. validateStrategy is lenient by
+      // design and normalizes whatever comes back. Warn loudly: hitting this means the
+      // schema needs slimming again (see the header comment in schema.ts).
+      if (isGrammarTooLarge(e)) {
+        console.warn(
+          '[clip-gen] STRATEGY_SCHEMA is over the structured-output grammar cap — ' +
+            'retrying unconstrained. Slim the schema; do not leave this in place.',
+        );
+        try {
+          return await run(false).finalMessage();
+        } catch (e2) {
+          const friendly2 = friendlyAnthropicError(e2);
+          throw friendly2 ? new Error(friendly2) : e2;
+        }
+      }
       const friendly = friendlyAnthropicError(e);
       if (friendly) throw new Error(friendly);
       throw e;
@@ -110,7 +172,7 @@ export async function generateStrategy(
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(textBlock.text);
+    parsed = parseStrategyJson(textBlock.text);
   } catch {
     throw new Error('The model did not return valid JSON.');
   }

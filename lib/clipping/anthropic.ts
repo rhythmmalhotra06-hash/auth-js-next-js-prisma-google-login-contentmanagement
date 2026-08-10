@@ -39,6 +39,12 @@ export function friendlyAnthropicError(e: unknown): string | null {
   }
 
   switch (e.status) {
+    case 400:
+      // A malformed request — the editor can't act on it and shouldn't be shown the
+      // raw `400 {"type":"error",...}` SDK blob. Log the detail for us instead; it is
+      // also written to the Media Source's Error column by the route.
+      console.error('[clip-gen] Anthropic rejected the request (400):', raw || e.message);
+      return 'AI generation was rejected by the API — this is a bug on our side, not your video. It has been logged for an admin.';
     case 401:
     case 403:
       return 'AI generation is misconfigured — the API key is missing or invalid. Contact an admin.';

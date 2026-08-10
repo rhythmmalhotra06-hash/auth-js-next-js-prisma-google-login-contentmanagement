@@ -4,7 +4,7 @@
 // generation never breaks when Airtable is unreachable or the table is empty.
 
 import { listClipRules, type ClipRule } from '@/lib/clip-rules/repository';
-import { SYSTEM_PROMPT, DEFAULT_BRAND_PILLARS } from '@/lib/clipping/prompt';
+import { SYSTEM_PROMPT, CLIP_OUTPUT_CONTRACT, DEFAULT_BRAND_PILLARS } from '@/lib/clipping/prompt';
 import { DEFAULT_CLIP_TYPE, scopeAppliesTo, type ClipType } from '@/lib/clipping/clip-types';
 
 export interface ClipEngineConfig {
@@ -33,9 +33,15 @@ function compose(rows: ClipRule[], clipType: ClipType): ClipEngineConfig | null 
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((r) => `- ${r.content!.trim()}`);
 
-  const systemPrompt = rules.length
+  const withRules = rules.length
     ? `${basePrompt}\n\nAdditional rules and learnings (always apply):\n${rules.join('\n')}`
     : basePrompt;
+
+  // The field contract is code-owned and always appended last — it has to track
+  // STRATEGY_SCHEMA, so it must not be editable alongside the strategy text where
+  // it could silently drift from the schema. Editors own the base prompt and the
+  // rules; they do not own the output shape.
+  const systemPrompt = `${withRules}\n\n${CLIP_OUTPUT_CONTRACT}`;
 
   return { systemPrompt, brandPillars: pillars, fromAirtable: true };
 }

@@ -3,6 +3,16 @@
 // (1–10 score, 5–8 clips) are NOT schema-enforced — structured outputs ignore
 // min/max — so they live in field descriptions and are validated in TS after the
 // model responds (see validateStrategy below).
+//
+// KEEP THIS SCHEMA STRUCTURALLY SMALL. Structured outputs compile it into a
+// constrained-decoding grammar with a size cap; exceeding it fails the request
+// outright with "The compiled grammar is too large" (a 400, before any tokens are
+// generated). Adding ~9 properties to the reelsClips item broke every generation
+// surface for two weeks in Jul–Aug 2026. Grammar size scales with STRUCTURE —
+// properties per object, nesting, enum branches — NOT with description length, so
+// verbose descriptions are free but new fields are not. Prefer folding related
+// fields into one (see `gates`) over adding another property, and derive anything
+// downstream needs from what the model returns (see validateStrategy).
 
 export const REELS_FORMATS = ['talking_head', 'quote_card', 'broll_overlay'] as const;
 export const PLATFORMS = ['youtube', 'spotify', 'instagram', 'linkedin', 'x', 'tiktok'] as const;
@@ -20,10 +30,15 @@ export const VIRAL_MECHANISMS = [
   'Story Hook',
 ] as const;
 
+// Virality gates. Names match the Airtable "Virality Gates" multipleSelects choices
+// exactly so the generated array persists without typecasting.
+export const VIRALITY_GATES = ['Controversy', 'Uncommon Knowledge', 'Humour'] as const;
+
 export type ReelsFormat = (typeof REELS_FORMATS)[number];
 export type Platform = (typeof PLATFORMS)[number];
 export type TitleFormat = (typeof TITLE_FORMATS)[number];
 export type ViralMechanism = (typeof VIRAL_MECHANISMS)[number];
+export type ViralityGate = (typeof VIRALITY_GATES)[number];
 
 export interface EpisodeTitle {
   format: TitleFormat;
@@ -60,8 +75,6 @@ export interface ReelsClip {
   timestampEnd: string;
   rationale: string;
   caption: string;
-  hookLine: string;
-  format: ReelsFormat;
   viralityScore: number; // 1–10
   // ── Viral Clip Extractor fields (optional in TS so existing constructors that
   // read persisted rows still compile; the JSON schema requires them on fresh
@@ -72,18 +85,28 @@ export interface ReelsClip {
   descriptiveTitle?: string;
   /** Primary viral mechanism tag. */
   viralMechanism?: ViralMechanism;
-  /** Virality gate: challenges conventional wisdom / invites debate. */
-  gateControversy?: boolean;
-  /** Virality gate: a specific insight/fact/framework the audience likely hasn't heard. */
-  gateUncommonKnowledge?: boolean;
-  /** Virality gate: a genuinely funny / absurd / surprising moment. */
-  gateHumour?: boolean;
+  /** Which virality gates the clip hits — at least one. Maps 1:1 to the Airtable multi-select. */
+  gates?: ViralityGate[];
   /** Exact opening line/visual for the first 3 seconds. */
   coldOpen?: string;
   /** Raw, word-for-word transcript passage for this clip (never paraphrased). */
   verbatimExtract?: string;
   /** Specific editing instructions: cut in/out, b-roll, overlays, pacing. */
   editNotes?: string;
+
+  // ── Derived, never generated. These are NOT in STRATEGY_SCHEMA — asking the model
+  // for them cost 4 properties of grammar budget for no new information. They are
+  // filled in by validateStrategy so every existing consumer keeps working. ─────
+  /** Derived from `gates`. */
+  gateControversy?: boolean;
+  /** Derived from `gates`. */
+  gateUncommonKnowledge?: boolean;
+  /** Derived from `gates`. */
+  gateHumour?: boolean;
+  /** Derived from `nuclearHookTitle` — Airtable already wrote them to the same column. */
+  hookLine: string;
+  /** Defaults to `talking_head`, matching what clip-mirror already assumed. */
+  format: ReelsFormat;
 }
 
 export interface PullQuote {
@@ -216,16 +239,12 @@ export const STRATEGY_SCHEMA = {
           'timestampStart',
           'timestampEnd',
           'viralMechanism',
-          'gateControversy',
-          'gateUncommonKnowledge',
-          'gateHumour',
+          'gates',
           'rationale',
           'coldOpen',
           'caption',
-          'hookLine',
           'verbatimExtract',
           'editNotes',
-          'format',
           'viralityScore',
         ],
         properties: {
@@ -234,17 +253,22 @@ export const STRATEGY_SCHEMA = {
           timestampStart: str('Clip start, copied from a transcript [M:SS] marker (e.g. 12:30). Use only a timestamp that appears in the transcript — never invent one.'),
           timestampEnd: str('Clip end, copied from a transcript [M:SS] marker (e.g. 13:45). Use only a timestamp that appears in the transcript — never invent one.'),
           viralMechanism: { type: 'string', enum: [...VIRAL_MECHANISMS], description: 'The primary viral mechanism this clip uses. Flag Specific Prediction / Stat moments (especially about AI) — they outperform.' },
-          gateControversy: { type: 'boolean', description: 'Virality gate — Controversy: a claim/opinion that challenges conventional wisdom, takes a strong stance, or invites debate.' },
-          gateUncommonKnowledge: { type: 'boolean', description: 'Virality gate — Uncommon Knowledge: a specific insight/fact/framework/story detail the audience is unlikely to have heard, stated with enough specificity to feel like an "unlock".' },
-          gateHumour: { type: 'boolean', description: 'Virality gate — Humour: a genuinely funny, self-deprecating, absurd, or surprising moment worth sharing for entertainment.' },
+          gates: {
+            type: 'array',
+            description:
+              'Every virality gate this clip hits — at least one, and never empty. ' +
+              'Controversy: challenges conventional wisdom, takes a strong stance, or invites debate. ' +
+              'Uncommon Knowledge: a specific insight/fact/framework/story detail the audience is unlikely to have heard, stated with enough specificity to feel like an "unlock". ' +
+              'Humour: a genuinely funny, self-deprecating, absurd, or surprising moment worth sharing for entertainment. ' +
+              'List all that apply — clips hitting all three rank highest.',
+            items: { type: 'string', enum: [...VIRALITY_GATES] },
+          },
           rationale: str('Why This Clips: 2–3 sentences tied to the gate(s) it hits — the hook, the payoff, why someone would comment/share.'),
-          coldOpen: str('Cold Open — the exact opening line or visual moment for the first 3 seconds. The make-or-break hook before the viewer scrolls.'),
+          coldOpen: str('Cold Open — the exact opening line or visual moment for the first 3 seconds. The make-or-break hook before the viewer scrolls. Doubles as the on-screen hook line.'),
           caption: str('Suggested caption / hook text for the post itself — designed to stop the scroll in feed before the video plays.'),
-          hookLine: str('A short 3-second on-screen hook line (can echo the cold open).'),
           verbatimExtract: str('Raw, word-for-word transcript text for this clip segment. Full passage — NEVER paraphrase or summarize. Mandatory; this is the source material the editor will use.'),
-          editNotes: str('Specific editing instructions — where to cut in/out, B-roll suggestions, text overlays, pacing notes.'),
-          format: { type: 'string', enum: [...REELS_FORMATS] },
-          viralityScore: { type: 'integer', description: 'Viral potential from 1 (low) to 10 (high).' },
+          editNotes: str('Specific editing instructions — where to cut in/out, B-roll suggestions, text overlays, pacing notes. Include the recommended treatment (talking head, quote card, or b-roll overlay).'),
+          viralityScore: { type: 'integer', description: 'Viral potential from 1 (low) to 10 (high). Rank by fight-likelihood — how much debate/comments/shares the clip would spark.' },
         },
       },
     },
@@ -320,12 +344,30 @@ export function validateStrategy(value: unknown): { ok: true; strategy: Strategy
   for (const c of s.reelsClips) {
     if (typeof c.viralityScore !== 'number' || Number.isNaN(c.viralityScore)) c.viralityScore = 0;
     c.viralityScore = Math.max(1, Math.min(10, Math.round(c.viralityScore)));
-    // Viral Clip Extractor fields: coerce virality-gate flags to booleans; backfill
-    // titles so downstream (ticket titles, board labels) always has a usable string.
-    c.gateControversy = !!c.gateControversy;
-    c.gateUncommonKnowledge = !!c.gateUncommonKnowledge;
-    c.gateHumour = !!c.gateHumour;
+
+    // Derive the fields we stopped asking the model for, so every consumer
+    // (Airtable writes, ticket briefs, the clip boards) sees the shape it always
+    // has. `gates` is the generated form; the three booleans are the read form.
+    // Tolerate a clip persisted before the schema change, which has the booleans
+    // but no `gates` — fall back to them rather than clearing the gates.
+    const gates = Array.isArray(c.gates)
+      ? c.gates
+      : ([
+          c.gateControversy && 'Controversy',
+          c.gateUncommonKnowledge && 'Uncommon Knowledge',
+          c.gateHumour && 'Humour',
+        ].filter(Boolean) as ViralityGate[]);
+    c.gates = gates;
+    c.gateControversy = gates.includes('Controversy');
+    c.gateUncommonKnowledge = gates.includes('Uncommon Knowledge');
+    c.gateHumour = gates.includes('Humour');
+
+    // Backfill titles so downstream (ticket titles, board labels) always has a usable string.
     if (!c.nuclearHookTitle?.trim()) c.nuclearHookTitle = c.hookLine || c.descriptiveTitle || '';
+    // hookLine is written to Airtable as `nuclearHookTitle || hookLine`, so generating
+    // it separately was redundant; the cold open carries the on-screen hook.
+    if (!c.hookLine?.trim()) c.hookLine = c.nuclearHookTitle || c.coldOpen || '';
+    if (!c.format) c.format = 'talking_head';
   }
   if (!Array.isArray(s.episodeTitles) || s.episodeTitles.length === 0) {
     return { ok: false, error: 'No episode titles were generated' };
