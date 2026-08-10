@@ -33,7 +33,7 @@ Each clip carries exactly these fields:
 - coldOpen — the exact first 3 seconds, written verbatim. This doubles as the on-screen hook line, so it must work as standalone text on screen.
 - caption — the scroll-stopping caption for the post itself.
 - verbatimExtract — the word-for-word transcript passage for the segment. Mandatory; never paraphrase or summarise. This is the editor's source material.
-- editNotes — concrete editing instructions: cut in/out, B-roll, text overlays, pacing, and the recommended treatment (talking head / quote card / b-roll overlay).
+- editNotes — START with the recommended treatment as the first words, exactly one of "Talking head", "Quote card", or "B-roll overlay", followed by a full stop. Then the concrete editing instructions: cut in/out, B-roll, text overlays, pacing. The leading treatment is parsed out of this field, so it must come first even when the instructions later mention a different technique.
 - viralityScore — 1 (low) to 10 (high).
 
 Return your answer strictly in the required JSON structure.`;

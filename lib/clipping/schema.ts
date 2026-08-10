@@ -333,6 +333,28 @@ export const STRATEGY_SCHEMA = {
   },
 } as const;
 
+// `format` is no longer generated (it cost a property of grammar budget for a value
+// the edit notes already state). Recover it from those notes instead of defaulting
+// every clip to talking_head, which made the Format column silently wrong.
+// FIRST MENTION WINS — the contract asks the model to open editNotes with the
+// treatment, and notes routinely reference others later ("B-roll overlay. Open on
+// talking head for the hook, then...") so a plain `includes` would misread them.
+const FORMAT_HINTS: readonly (readonly [ReelsFormat, RegExp])[] = [
+  ['quote_card', /\bquote[\s_-]?card\b/i],
+  ['broll_overlay', /\bb[\s_-]?roll\b/i],
+  ['talking_head', /\btalking[\s_-]?head\b/i],
+] as const;
+
+function inferFormat(editNotes: string | undefined): ReelsFormat {
+  if (!editNotes) return 'talking_head';
+  let best: { format: ReelsFormat; at: number } | null = null;
+  for (const [format, re] of FORMAT_HINTS) {
+    const at = editNotes.search(re);
+    if (at !== -1 && (best === null || at < best.at)) best = { format, at };
+  }
+  return best?.format ?? 'talking_head';
+}
+
 /** Validate the model output shape + the count/range rules the schema can't enforce. */
 export function validateStrategy(value: unknown): { ok: true; strategy: Strategy } | { ok: false; error: string } {
   const s = value as Strategy;
@@ -367,7 +389,7 @@ export function validateStrategy(value: unknown): { ok: true; strategy: Strategy
     // hookLine is written to Airtable as `nuclearHookTitle || hookLine`, so generating
     // it separately was redundant; the cold open carries the on-screen hook.
     if (!c.hookLine?.trim()) c.hookLine = c.nuclearHookTitle || c.coldOpen || '';
-    if (!c.format) c.format = 'talking_head';
+    if (!c.format) c.format = inferFormat(c.editNotes);
   }
   if (!Array.isArray(s.episodeTitles) || s.episodeTitles.length === 0) {
     return { ok: false, error: 'No episode titles were generated' };
