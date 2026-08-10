@@ -16,6 +16,7 @@ import {
 import type { ReelsClip } from '@/lib/clipping/schema';
 import { pushMediaSourceToMajorVideo, pushClipStatusToVishen } from '@/lib/media/vishen-sync';
 import { mediaIsPostgres } from '@/lib/media/backend';
+import { fetchOEmbedTitle } from '@/lib/media/oembed';
 
 // Write-through: after an Airtable Media Source write, upsert the returned record into the PG
 // read-mirror so PG reflects it immediately (MEDIA_BACKEND=postgres). Best-effort — Airtable is SoR.
@@ -201,7 +202,10 @@ export async function createMediaSource(input: CreateMediaSourceInput): Promise<
   };
   if (input.url) fields[MF.sourceUrl] = input.url;
   if (input.downloadUrl) fields[MF.downloadUrl] = input.downloadUrl;
-  if (input.title) fields[MF.title] = input.title;
+  // Callers that have a title pass one (uploader title, Slack link text). A
+  // hand-pasted URL has none, which left the row showing a bare link — look it up.
+  const title = input.title?.trim() || (input.url ? await fetchOEmbedTitle(input.url) : null);
+  if (title) fields[MF.title] = title;
   if (input.guestShow) fields[MF.guestShow] = input.guestShow;
   if (input.audience) fields[MF.audience] = input.audience;
   if (input.transcript) fields[MF.transcript] = input.transcript.slice(0, 95000);
