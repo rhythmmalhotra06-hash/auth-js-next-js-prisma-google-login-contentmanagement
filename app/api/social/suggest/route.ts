@@ -56,7 +56,9 @@ export async function POST(req: Request) {
       guestAudience: audience || undefined,
     };
 
-    const { strategy } = await generateStrategy(transcript, ctx, { webSearch, clipType });
+    const { strategy, usedGrammarFallback } = await generateStrategy(transcript, ctx, { webSearch, clipType });
+    // No Media Source row to flag here, so the log is the only record on this path.
+    if (usedGrammarFallback) console.warn(`[clip-gen] grammar fallback used for social suggest: ${url}`);
 
     // A readable "author — topic" label so all clips from this talk group together
     // (falls back to the user-entered title, then the raw link).
@@ -69,6 +71,9 @@ export async function POST(req: Request) {
   } catch (e) {
     const message =
       e instanceof TranscriptFetchError ? e.message : e instanceof Error ? e.message : 'Generation failed';
-    return Response.json({ ok: false, error: message }, { status: 200 });
+    // 500, not 200 — see the note in app/api/media/[id]/suggest/route.ts. SocialLinkForm reads
+    // the JSON body and branches on `ok`, not on `res.ok`, so the message still renders.
+    console.error(`[clip-gen] social suggest failed for ${url}: ${message}`);
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
 }

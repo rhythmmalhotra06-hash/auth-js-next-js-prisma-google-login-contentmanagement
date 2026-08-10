@@ -16,6 +16,14 @@ export interface GenerateOptions {
 export interface GenerateResult {
   strategy: Strategy;
   usedWebSearch: boolean;
+  /**
+   * True when the structured call was rejected for grammar size and this run fell back
+   * to unconstrained JSON. Callers MUST persist this somewhere durable — a `console.warn`
+   * alone is unreadable after the fact (Cloud Run runtime logs can't be grepped
+   * non-interactively), which is exactly why we couldn't tell whether the 2026-08-10
+   * schema shrink was sufficient. See `Grammar Fallback` on 📺 Media Sources.
+   */
+  usedGrammarFallback: boolean;
 }
 
 // web_search_20260209 / output_config are newer surfaces; cast at the call sites
@@ -134,6 +142,8 @@ export async function generateStrategy(
       messages: [{ role: 'user', content: userMessage }],
     } as AnyParams as never);
 
+  let usedGrammarFallback = false;
+
   // Wrapped so any Anthropic API failure (usage limit, rate limit, auth, 5xx)
   // surfaces as a clear sentence rather than a raw "400 {...}" SDK error.
   const final = await (async () => {
@@ -146,6 +156,7 @@ export async function generateStrategy(
       // design and normalizes whatever comes back. Warn loudly: hitting this means the
       // schema needs slimming again (see the header comment in schema.ts).
       if (isGrammarTooLarge(e)) {
+        usedGrammarFallback = true;
         console.warn(
           '[clip-gen] STRATEGY_SCHEMA is over the structured-output grammar cap — ' +
             'retrying unconstrained. Slim the schema; do not leave this in place.',
@@ -189,5 +200,5 @@ export async function generateStrategy(
     if (corrected) console.log(`[clip-ts] snapped ${corrected} model timestamp(s) to nearest transcript segment`);
   }
 
-  return { strategy: v.strategy, usedWebSearch };
+  return { strategy: v.strategy, usedWebSearch, usedGrammarFallback };
 }

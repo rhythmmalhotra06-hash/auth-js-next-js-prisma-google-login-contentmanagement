@@ -116,7 +116,10 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch, feedback });
+    const { strategy, usedWebSearch, usedGrammarFallback } = await generateStrategy(transcript, ctx, { webSearch, feedback });
+    if (usedGrammarFallback) {
+      console.warn(`[clip-gen] grammar fallback used for content-engine strategy ${strategyRow.id}`);
+    }
 
     await captureClips(strategy, usedWebSearch);
 
@@ -164,6 +167,11 @@ export async function POST(req: Request) {
       try { await updateMediaSource(mediaId, { status: 'Error', error: message }); } catch { /* best-effort */ }
     }
     // 200 with the id so the client can navigate to the detail page and show the error.
+    // Deliberately NOT changed to 500 like the other two generation routes: this path already
+    // records the failure durably and queryably (clip_strategies.status='error' above), which
+    // is a stronger signal than a status code, and ClipEngineForm branches on `strategyId`
+    // first — a 500 would still navigate, so it would buy monitoring nothing here.
+    console.error(`[clip-gen] content-engine generation failed for strategy ${strategyRow.id}: ${message}`);
     return Response.json({ strategyId: strategyRow.id, error: message });
   }
 }

@@ -275,6 +275,12 @@ export const MEDIA_SOURCES = {
     transcript: 'fldlHHuu6RZoIGmIb', // "Transcript" (multilineText) — source transcript the strategy was built from
     strategyJson: 'fldcv4HIUI0HflvRG', // "Strategy JSON" (multilineText) — full 10-section output
     usedWebSearch: 'fldBncwhmhQ7vdSCk', // "Used Web Search" (checkbox)
+    // "Grammar Fallback" (checkbox). Created 2026-08-10. Ticked when STRATEGY_SCHEMA was over
+    // the structured-output grammar cap and generation retried WITHOUT output_config. The clips
+    // are fine, but the schema needs slimming — this is the durable signal that `console.warn`
+    // could not be (Cloud Run runtime logs aren't greppable non-interactively). If any row has
+    // it set, escalate: split generateStrategy into two parallel structured calls.
+    grammarFallback: 'fldxR0Fbw17uK4zuY',
     error: 'fldmk2jHF9n0whzcu', // "Error" (multilineText)
     submittedDate: 'fld0iEsDj4xv2ABpt', // "Submitted Date" (dateTime) — set on create
     clipsAddedDate: 'fldn3QKcQCIiK6nrr', // "Clips Added Date" (dateTime) — set when clips written
@@ -546,16 +552,23 @@ export const VISHEN_EMPLOYEES = {
 // Creative Services base. Carries the live clip signals (Rating, "24 Data", Released, Feedback).
 // The ticket-link reconcile (lib/media/ticket-links.ts) matches a mirror row to an app clip via
 // "App Clip ID" (a synced copy of VISHEN_CLIPS.appClipId = the Clip Suggestion recId) and links
-// it to the Prio ticket. NOTE: "App Clip ID" must be enabled in the Airtable sync's field set —
-// until then appClipIdName won't resolve and the reconcile's Clips (Sync) step is a no-op.
+// it to the Prio ticket.
+//
+// RESOLVED 2026-08-10: "App Clip ID" IS in the sync's field set and resolves — verified live,
+// populated on ~100 of 129 mirror rows. The reconcile's Clips (Sync) step is NOT a no-op. (The
+// previous note here said the opposite and was carried forward as an open action item for a
+// month after it stopped being true.)
 export const CLIPS_SYNC = {
   baseId: BASES.creativeServices,
   tableId: 'tblRXoSfDBFnpYk7G',
   // Matched by field NAME in filterByFormula (Airtable formulas resolve names, not ids), so the
   // reconcile works the moment the field is added to the sync — no field id needed here.
   appClipIdName: 'App Clip ID',
-  // Outcome signals for the clip-learning loop (lib/media/clip-signals.ts). Verified live
-  // 2026-07-10. NOTE these must be enabled in the Airtable sync's field set to carry values.
+  // Outcome signals for the clip-learning loop (lib/media/clip-signals.ts). Re-verified live
+  // 2026-08-10: all five carry real values (Rating 2–5, Released "VL Insta"/"MV Insta",
+  // "24 Data" view counts, Feedback Loom/Docs links), so the weekly clip-learn cron is reading
+  // genuine signal — its {"proposed":0} responses mean "no new rule worth proposing", not
+  // "no data". Do not re-file this as an open Airtable task.
   fields: {
     appClipId: 'fldnKMR6Ddc7yrg1z', // "App Clip ID" (singleLineText) = mirrored Clip Suggestion recId
     rating: 'fldZ2a6sfhmVOAyot', // "Rating" (rating) — performance proxy

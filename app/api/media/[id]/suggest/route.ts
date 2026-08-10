@@ -78,7 +78,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       guestAudience: source.audience ?? undefined,
     };
 
-    const { strategy, usedWebSearch } = await generateStrategy(transcript, ctx, { webSearch, clipType, feedback });
+    const { strategy, usedWebSearch, usedGrammarFallback } = await generateStrategy(transcript, ctx, {
+      webSearch,
+      clipType,
+      feedback,
+    });
 
     const clipRes = await createClipSuggestions(id, strategy.reelsClips);
     if (!clipRes.ok) throw new Error(`Failed to write clips: ${clipRes.error.message}`);
@@ -103,13 +107,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await updateMediaSource(id, {
       status: 'Clips Suggested',
       usedWebSearch,
+      // Always written, not only when true, so a clean re-run clears a stale flag.
+      grammarFallback: usedGrammarFallback,
       clipsAddedDate: new Date().toISOString(),
       transcript: transcript.slice(0, 95000),
       // Airtable long-text caches the full strategy for re-render / provenance.
       strategyJson: JSON.stringify(strategy).slice(0, 95000),
     });
 
-    return Response.json({ ok: true, clips: clipRes.data.count, learning });
+    return Response.json({ ok: true, clips: clipRes.data.count, usedGrammarFallback, learning });
   } catch (e) {
     const message =
       e instanceof TranscriptFetchError
@@ -118,6 +124,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           ? e.message
           : 'Generation failed';
     await updateMediaSource(id, { status: 'Error', error: message });
-    return Response.json({ ok: false, error: message }, { status: 200 });
+    // 500, not 200. The old 200 meant a fully-deterministic failure was invisible to every
+    // HTTP-level signal (Cloud Run error rate, uptime checks, anything watching the logs) —
+    // clip generation was dead for two weeks in Jul 2026 before a human happened to report it.
+    // Safe for the UI: SocialLinkForm/MediaDetailClient/ClipEngineForm all parse the JSON body
+    // and branch on `ok`/`error`, never on `res.ok`, so the message still renders.
+    console.error(`[clip-gen] generation failed for media source ${id}: ${message}`);
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
 }
