@@ -4,6 +4,7 @@ import { rememberFeedbackAsLearning, type RememberResult } from '@/lib/clipping/
 import { fetchYouTubeTranscript, normalizeTranscript, TranscriptFetchError } from '@/lib/clipping/transcript';
 import { DEFAULT_CLIP_TYPE, isClipType, RULE_SCOPE_ALL, type RuleScope } from '@/lib/clipping/clip-types';
 import { auth } from '@/lib/auth';
+import { requireSession } from '@/lib/api/guard';
 
 // Node runtime: Anthropic SDK + youtubei.js need Node; long duration for
 // transcript fetch + web search + 10-section generation.
@@ -18,6 +19,12 @@ const MIN_TRANSCRIPT_CHARS = 50;
  * strategy, writes Clip Suggestion rows + the full strategy JSON back to Airtable.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  // middleware.ts skips /api, so without this the route is world-reachable — and it
+  // spends Anthropic tokens on every call. Only the portal's "Suggest clips" button
+  // calls it, and that carries the session cookie.
+  const denied = await requireSession();
+  if (denied) return denied;
+
   const { id } = await params;
 
   const srcRes = await getMediaSource(id);

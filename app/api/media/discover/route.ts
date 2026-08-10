@@ -1,5 +1,6 @@
 import { recentUploads } from '@/lib/media/youtube';
 import { existingSourceUrls, createMediaSource } from '@/lib/media/repository';
+import { requireDiscoverSecret } from '@/lib/api/guard';
 
 // Node runtime: outbound fetch to the YouTube Data API + Airtable writes.
 export const runtime = 'nodejs';
@@ -16,11 +17,8 @@ export const maxDuration = 120;
  * DISCOVER_SHARED_SECRET.
  */
 export async function POST(req: Request) {
-  const secret = process.env.DISCOVER_SHARED_SECRET;
-  if (secret) {
-    const provided = req.headers.get('x-discover-secret');
-    if (provided !== secret) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = requireDiscoverSecret(req);
+  if (denied) return denied;
 
   const channelId = process.env.VISHEN_YT_CHANNEL_ID;
   if (!channelId) return Response.json({ error: 'VISHEN_YT_CHANNEL_ID is not set.' }, { status: 500 });

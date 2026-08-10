@@ -7,6 +7,7 @@ import { rememberFeedbackAsLearning, type RememberResult } from '@/lib/clipping/
 import { DEFAULT_CLIP_TYPE, isClipType, RULE_SCOPE_ALL, type RuleScope } from '@/lib/clipping/clip-types';
 import { normalizeTranscript } from '@/lib/clipping/transcript';
 import { auth } from '@/lib/auth';
+import { requireSession } from '@/lib/api/guard';
 import { createMediaSource, updateMediaSource, createClipSuggestions } from '@/lib/media/repository';
 import type { Strategy } from '@/lib/clipping/schema';
 
@@ -24,6 +25,12 @@ function clipTitle(c: { hookLine?: string; caption?: string; rationale?: string 
 }
 
 export async function POST(req: Request) {
+  // middleware.ts skips /api, so without this the route is world-reachable — and it
+  // spends Anthropic tokens on every call. Only the Content Engine form calls it,
+  // and that carries the session cookie.
+  const denied = await requireSession();
+  if (denied) return denied;
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();

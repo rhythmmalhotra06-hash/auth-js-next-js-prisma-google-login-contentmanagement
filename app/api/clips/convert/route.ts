@@ -1,4 +1,5 @@
 import { convertCheckedClips } from '@/app/media/actions';
+import { requireDiscoverSecret } from '@/lib/api/guard';
 
 // Node runtime: Airtable reads + writes (and createTicket fan-out).
 export const runtime = 'nodejs';
@@ -17,11 +18,8 @@ export const maxDuration = 120;
  * requester fallback when a source has no Submitted By: DEFAULT_TICKET_REQUESTER_ID.
  */
 export async function POST(req: Request) {
-  const secret = process.env.DISCOVER_SHARED_SECRET;
-  if (secret) {
-    const provided = req.headers.get('x-discover-secret');
-    if (provided !== secret) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = requireDiscoverSecret(req);
+  if (denied) return denied;
 
   const result = await convertCheckedClips();
   const status = result.error ? 502 : 200;

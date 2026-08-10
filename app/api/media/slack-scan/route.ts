@@ -1,5 +1,6 @@
 import { fetchChannelYouTubeLinks } from '@/lib/media/slack';
 import { existingSourceUrls, createMediaSource } from '@/lib/media/repository';
+import { requireDiscoverSecret } from '@/lib/api/guard';
 
 // Node runtime: outbound fetch to Slack + Airtable writes.
 export const runtime = 'nodejs';
@@ -16,11 +17,8 @@ export const maxDuration = 120;
  * channel), SLACK_MEDIA_CHANNEL_ID, DISCOVER_SHARED_SECRET.
  */
 export async function POST(req: Request) {
-  const secret = process.env.DISCOVER_SHARED_SECRET;
-  if (secret) {
-    const provided = req.headers.get('x-discover-secret');
-    if (provided !== secret) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = requireDiscoverSecret(req);
+  if (denied) return denied;
 
   const channelId = process.env.SLACK_MEDIA_CHANNEL_ID;
   if (!process.env.SLACK_BOT_TOKEN || !channelId) {

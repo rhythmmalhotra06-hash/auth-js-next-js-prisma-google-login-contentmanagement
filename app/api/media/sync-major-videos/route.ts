@@ -1,4 +1,5 @@
 import { syncMajorVideos } from '@/lib/media/major-videos';
+import { requireDiscoverSecret } from '@/lib/api/guard';
 
 // Node runtime: outbound Airtable reads (Vishen's base) + writes (Media Sources).
 export const runtime = 'nodejs';
@@ -18,11 +19,8 @@ const DEFAULT_CUTOFF = '2026-06-30';
  * and this shared-secret header is a second gate. Driven by the hourly GitHub Actions cron.
  */
 export async function POST(req: Request) {
-  const secret = process.env.DISCOVER_SHARED_SECRET;
-  if (secret) {
-    const provided = req.headers.get('x-discover-secret');
-    if (provided !== secret) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = requireDiscoverSecret(req);
+  if (denied) return denied;
 
   const cutoff = process.env.MAJOR_VIDEOS_SYNC_AFTER || DEFAULT_CUTOFF;
 
