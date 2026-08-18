@@ -134,7 +134,7 @@ async function run() {
   const raiser = rec.getCellValue(S_LAST_MODIFIED_BY) || rec.getCellValue(S_CREATED_BY);
   const raiserEmail = raiser && raiser.email ? raiser.email : '';
   const raiserName = raiser && raiser.name ? raiser.name : '';
-  console.log('raiser =', raiserName || '(none)', raiserEmail ? `<${raiserEmail}>` : '');
+  console.log('raiser =', raiserName || '(none)', raiserEmail ? '<' + raiserEmail + '>' : '');
 
   let requesterId = null;
   if (raiserEmail) requesterId = await findEmployeeId(raiserEmail);
@@ -145,9 +145,13 @@ async function run() {
   const title = (rec.getCellValueAsString(S_TITLE) || 'Social clip').trim();
   // When the raiser has no 👬 Employees row (contractors, EOR staff) the link field can't be set —
   // keep the attribution in the brief so it isn't lost entirely.
-  const raiserLabel = !requesterId && (raiserName || raiserEmail)
-    ? `Raised by: ${raiserName || raiserEmail}${raiserName && raiserEmail ? ` (${raiserEmail})` : ''}`
-    : '';
+  // Plain concatenation on purpose: Airtable's script parser rejects a nested template
+  // literal (a backtick inside ${...}) with "Unexpected token ')'".
+  let raiserLabel = '';
+  if (!requesterId && (raiserName || raiserEmail)) {
+    raiserLabel = 'Raised by: ' + (raiserName || raiserEmail);
+    if (raiserName && raiserEmail) raiserLabel += ' (' + raiserEmail + ')';
+  }
   const brief = [
     rec.getCellValueAsString(S_NOTES),
     rec.getCellValueAsString(S_CAPTIONS) ? `Caption: ${rec.getCellValueAsString(S_CAPTIONS)}` : '',
