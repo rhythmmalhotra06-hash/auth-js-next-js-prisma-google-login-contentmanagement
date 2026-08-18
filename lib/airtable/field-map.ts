@@ -451,7 +451,7 @@ export const SOCIAL = {
     contentType: 'fld8uZNn5D7jzPc3Z', // "🛎️ Content Type" (singleSelect)
     captions: 'fldCpBMCWeGwmyYpx', // "✍️ Social Media Captions" (richText) — engine caption
     transcript: 'fldyonJXP12e5Sbv8', // "► Transcript" (richText) — source transcript segment
-    raiseRequest: 'fldrNumf2EpoRetuf', // "Raise Request (Creative)" (checkbox) — kept for the team's manual flow; the portal uses Creative Ticket ID below
+    raiseRequest: 'fldrNumf2EpoRetuf', // "Raise Request (Creative)" (checkbox) — the team's manual flow: ticking it fires the live "Social checkbox → Prio ticket" automation (wflhKn1g3jVmS9jtI; script mirrored at scripts/airtable-automations/social-raise-prio-ticket.js). The portal does NOT tick this — it calls createTicket and stamps Creative Ticket ID below, which also makes the automation skip.
     clipSourceUrl: 'fldXi03EEUtKThsBv', // "Clip Source URL" (url) — engine-origin marker + grouping key (app-created 2026-06-30)
     creativeTicketId: 'fldZxIaWrFImce9H9', // "Creative Ticket ID" (singleLineText) — recId of the ticket the portal created in the Creative Services Prio queue (cross-base, so a plain id). Presence ⇒ raised. (app-created 2026-06-30)
     virality: 'fldAXQ9pnLCijAHLQ', // "Clip Virality" (number 1–10) — AI virality score (app-created 2026-07-01)

@@ -8,6 +8,8 @@
 // Services Team/Service Level field (fldHGT2p5SObJEzPh). The automation token can't create select
 // options, so every ticket-create POST failed with INVALID_MULTIPLE_CHOICE_OPTIONS and no ticket
 // was created. Changed to the existing option 'Video Team - Campaign [Events, etc]'.
+//
+// FIX (2026-08-18): Requested By was never set — see the note above S_LAST_MODIFIED_BY below.
 
 const config = input.config();
 const recordId = config.recordId;
@@ -26,7 +28,12 @@ const S_NOTES = 'fldJc3ZNwn42yMW35';        // Notes / Brief
 const S_CAPTIONS = 'fldCpBMCWeGwmyYpx';     // Social Media Captions
 const S_SOURCE_URL = 'fldXi03EEUtKThsBv';   // Clip Source URL
 const S_EVENT_LOOKUP = 'fldkXRTBoribSHwQw'; // Event type (from Official Cal) lookup
-const S_RAISED_BY = 'Raised By';            // Last-modified-by field you added (by name)
+// FIX (2026-08-18): the requester was resolved from a field named 'Raised By', which does not
+// exist on this table — the name probe always failed, so Requested By was silently omitted on
+// every ticket the checkbox raised (Vidura's report). The table already carries both collaborator
+// fields; read them BY ID so no schema change and no name drift is possible.
+const S_LAST_MODIFIED_BY = 'fldl91xQLNJgNOzxV'; // "Last Modified By" — who ticked the box
+const S_CREATED_BY = 'fldOK5B3lze2xQUgW';       // "Created By" — fallback when the above is empty
 const STATUS_RAISED = '2A. Ticket Raised';
 
 // ── Creative Services base — Prio + taxonomy + employees ──
@@ -121,26 +128,31 @@ async function run() {
     if (evMatch) eventRecId = evMatch.id;
   }
 
-  // ── Requested By = the person who checked the box (Raised By → Employee) ──
+  // ── Requested By = the person who checked the box, else whoever created the row ──
+  // Last-modified-by is read before this script's own updateRecordAsync below, so at this point
+  // it is the person whose tick fired the automation.
+  const raiser = rec.getCellValue(S_LAST_MODIFIED_BY) || rec.getCellValue(S_CREATED_BY);
+  const raiserEmail = raiser && raiser.email ? raiser.email : '';
+  const raiserName = raiser && raiser.name ? raiser.name : '';
+  console.log('raiser =', raiserName || '(none)', raiserEmail ? `<${raiserEmail}>` : '');
+
   let requesterId = null;
-  if (social.fields.some((f) => f.name === S_RAISED_BY)) {
-    const raisedBy = rec.getCellValue(S_RAISED_BY);
-    console.log('Raised By cell =', JSON.stringify(raisedBy)); // debug
-    const email = raisedBy && raisedBy.email ? raisedBy.email : '';
-    const name = raisedBy && raisedBy.name ? raisedBy.name : '';
-    if (email) requesterId = await findEmployeeId(email);
-    if (!requesterId && name) requesterId = await findEmployeeByName(name);
-    console.log('resolved requesterId =', requesterId);
-  } else {
-    console.log(`"${S_RAISED_BY}" field missing → add a "Last modified by" field named "${S_RAISED_BY}" to set Requested By`);
-  }
+  if (raiserEmail) requesterId = await findEmployeeId(raiserEmail);
+  if (!requesterId && raiserName) requesterId = await findEmployeeByName(raiserName);
+  console.log('resolved requesterId =', requesterId);
 
   // ── Build the ticket ──
   const title = (rec.getCellValueAsString(S_TITLE) || 'Social clip').trim();
+  // When the raiser has no 👬 Employees row (contractors, EOR staff) the link field can't be set —
+  // keep the attribution in the brief so it isn't lost entirely.
+  const raiserLabel = !requesterId && (raiserName || raiserEmail)
+    ? `Raised by: ${raiserName || raiserEmail}${raiserName && raiserEmail ? ` (${raiserEmail})` : ''}`
+    : '';
   const brief = [
     rec.getCellValueAsString(S_NOTES),
     rec.getCellValueAsString(S_CAPTIONS) ? `Caption: ${rec.getCellValueAsString(S_CAPTIONS)}` : '',
     rec.getCellValueAsString(S_SOURCE_URL) ? `Source: ${rec.getCellValueAsString(S_SOURCE_URL)}` : '',
+    raiserLabel,
   ].filter(Boolean).join('\n\n') || 'Social clip from the content portal.';
 
   const fields = {

@@ -45,7 +45,7 @@ One line, in the `fields` object inside `run()`:
 
 Everything else in the script is correct and unchanged.
 
-## Secondary (non-blocking) issue
+## Secondary issue — RESOLVED 2026-08-18, and it was not optional
 
 The same log also shows:
 
@@ -53,10 +53,13 @@ The same log also shows:
 "Raised By" field missing → add a "Last modified by" field named "Raised By" to set Requested By
 ```
 
-This does **not** block ticket creation — it only means *Requested By* won't be populated on the
-Prio ticket (the code already handles this gracefully and logs `(no requester match)`). If you want
-the requester filled in, add a **Last modified by** field named exactly `Raised By` to the 📣 Social
-table. Optional; do it only if you want requester attribution.
+This section originally called that optional. It wasn't: it meant **every** ticket raised through
+the checkbox landed with an empty *Requested By*, which is what Vidura reported on 2026-08-18.
+
+The advice to add a `Raised By` field was also unnecessary — 📣 Social already carries both
+collaborator fields, just under different names (`fldl91xQLNJgNOzxV` lastModifiedBy,
+`fldOK5B3lze2xQUgW` createdBy). The script now reads them **by ID**, so there is no name to drift.
+Fix + backfill: [plans/vidura-came-up-with-glittery-frog.md](vidura-came-up-with-glittery-frog.md).
 
 ## Verification
 
