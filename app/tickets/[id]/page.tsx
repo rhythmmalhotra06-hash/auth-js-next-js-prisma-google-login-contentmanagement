@@ -5,7 +5,7 @@ import { TicketStatusBadge, PrioStatusBadge } from '@/components/ui/Badge';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { BriefText } from '@/components/ui/BriefText';
 import { Icon } from '@/components/ui/Icon';
-import { getTicketDetail, getActiveEmployees } from '@/lib/tickets/data';
+import { getTicketDetail, getAssignableEmployees } from '@/lib/tickets/data';
 import { StatusUpdater } from '@/components/tickets/StatusUpdater';
 import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
 import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
@@ -27,7 +27,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const t = await getTicketDetail(id);
   if (!t) notFound();
-  const employees = await getActiveEmployees();
+  const employees = await getAssignableEmployees();
 
   return (
     <AppShell title={t.title} subtitle={[t.eventType, t.assetType].filter(Boolean).join(' · ') || undefined}>
@@ -92,7 +92,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <label style={{ marginTop: 12 }}>Priority status <span className="subtle">· manager-owned</span></label>
             <PrioStatusUpdater ticketId={t.id} current={t.prioStatus} />
             <label style={{ marginTop: 12 }}>Assignee</label>
-            <AssigneeUpdater ticketId={t.id} current={t.assigneeId} employees={employees} />
+            <AssigneeUpdater ticketId={t.id} current={t.assigneeId} currentName={t.assignee} employees={employees} />
           </div>
 
           <div className="card pad">

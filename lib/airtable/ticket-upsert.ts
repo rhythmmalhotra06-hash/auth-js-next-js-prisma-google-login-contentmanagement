@@ -76,7 +76,21 @@ function ticketLinks(r: Rec) {
   };
 }
 
-export interface UpsertResult { upserted: number; unresolved: number }
+export interface UpsertResult { upserted: number; unresolved: number; assigneePreserved: number }
+
+/**
+ * Attribution is append-only from the pull's point of view: a pull may SET an assignee but
+ * never CLEAR one. 👬 Employees is synced from HR, so an offboarded person's row is deleted
+ * and every "Assigned Creative" link pointing at it blanks — indistinguishable from a
+ * deliberate un-assign, and far more common. Preserving is the safe side of that ambiguity;
+ * un-assigning is done in the app (`write.postgres.ts`), which clears the column directly.
+ *
+ * Returns the `assigneeId`/`assigneeName` to merge into the UPDATE payload — `{}` when the
+ * incoming record resolves to nobody, so Prisma leaves the existing values untouched.
+ */
+function assigneeUpdate(assigneeId: string | null, assigneeName: string | null) {
+  return assigneeId ? { assigneeId, assigneeName } : {};
+}
 
 /**
  * Upsert the given Prio records into `tickets`, keyed on airtable_id. Idempotent:
@@ -93,12 +107,23 @@ export async function upsertTicketsFromRecords(records: Rec[]): Promise<UpsertRe
     const rows = await (prisma[model] as { findMany: (a: unknown) => Promise<{ id: string; airtableId: string | null }[]> }).findMany({ select: { id: true, airtableId: true } });
     return new Map(rows.filter((x) => x.airtableId).map((x) => [x.airtableId as string, x.id]));
   };
-  const [empMap, evtMap, atMap, ocMap, auMap] = await Promise.all([
+  const [empMap, evtMap, atMap, ocMap, auMap, empNames] = await Promise.all([
     idMap('employee'), idMap('eventType'), idMap('assetType'), idMap('officialCalendar'), idMap('author'),
+    employeeNameMap(),
   ]);
   const first = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).find((x): x is string => !!x) ?? null;
 
+  // Who we already have credited, so we can report how often the pull tried to blank an
+  // assignee (a deleted HR row) instead of silently swallowing it. One query per batch.
+  const existingAssignee = new Map(
+    (await prisma.ticket.findMany({
+      where: { airtableId: { in: records.map((r) => r.id) } },
+      select: { airtableId: true, assigneeId: true },
+    })).map((t) => [t.airtableId as string, t.assigneeId]),
+  );
+
   let unresolved = 0;
+  let assigneePreserved = 0;
 
   // Process in parallel chunks so 10k rows don't run 10k sequential round-trips
   // (which blows the request timeout). CHUNK stays within the pg pool.
@@ -108,17 +133,18 @@ export async function upsertTicketsFromRecords(records: Rec[]): Promise<UpsertRe
     const links = ticketLinks(r);
     const assigneeId = first(links.assignedCreative, empMap) ?? first(links.assignedContractor, empMap);
     if (links.assignedCreative.length && !assigneeId) unresolved++;
+    if (!assigneeId && existingAssignee.get(r.id)) assigneePreserved++;
+    const assigneeName = assigneeId ? empNames.get(assigneeId) ?? null : null;
     const fks = {
       eventTypeId: first(links.eventTypes, evtMap),
       assetTypeId: first(links.assetTypes, atMap),
-      assigneeId,
       requesterId: first(links.requestedBy, empMap),
       officialCalendarId: first(links.officialCalendar, ocMap),
     };
     const t = await prisma.ticket.upsert({
       where: { airtableId: r.id },
-      create: { airtableId: r.id, source: 'airtable', ...s, ...fks },
-      update: { ...s, ...fks, syncedAt: new Date() },
+      create: { airtableId: r.id, source: 'airtable', ...s, ...fks, assigneeId, assigneeName },
+      update: { ...s, ...fks, ...assigneeUpdate(assigneeId, assigneeName), syncedAt: new Date() },
       select: { id: true },
     });
     const authorIds = links.speakers.map((x) => auMap.get(x)).filter((x): x is string => !!x);
@@ -132,7 +158,14 @@ export async function upsertTicketsFromRecords(records: Rec[]): Promise<UpsertRe
     await Promise.all(records.slice(i, i + CHUNK).map(upsertOne));
   }
 
-  return { upserted: records.length, unresolved };
+  return { upserted: records.length, unresolved, assigneePreserved };
+}
+
+/** uuid → employee name, for the `assignee_name` attribution snapshot. */
+async function employeeNameMap(): Promise<Map<string, string>> {
+  const { prisma } = await import('../prisma');
+  const rows = await prisma.employee.findMany({ select: { id: true, name: true } });
+  return new Map(rows.map((e) => [e.id, e.name]));
 }
 
 // Reference airtable_id → uuid maps, built ONCE and reused across backfill pages so a
@@ -143,6 +176,7 @@ export interface TicketRefMaps {
   atMap: Map<string, string>;
   ocMap: Map<string, string>;
   auMap: Map<string, string>;
+  empNames: Map<string, string>; // employee uuid → name, for the assignee_name snapshot
 }
 
 export async function buildTicketRefMaps(): Promise<TicketRefMaps> {
@@ -151,10 +185,11 @@ export async function buildTicketRefMaps(): Promise<TicketRefMaps> {
     const rows = await (prisma[model] as { findMany: (a: unknown) => Promise<{ id: string; airtableId: string | null }[]> }).findMany({ select: { id: true, airtableId: true } });
     return new Map(rows.filter((x) => x.airtableId).map((x) => [x.airtableId as string, x.id]));
   };
-  const [empMap, evtMap, atMap, ocMap, auMap] = await Promise.all([
+  const [empMap, evtMap, atMap, ocMap, auMap, empNames] = await Promise.all([
     idMap('employee'), idMap('eventType'), idMap('assetType'), idMap('officialCalendar'), idMap('author'),
+    employeeNameMap(),
   ]);
-  return { empMap, evtMap, atMap, ocMap, auMap };
+  return { empMap, evtMap, atMap, ocMap, auMap, empNames };
 }
 
 /**
@@ -166,7 +201,7 @@ export async function buildTicketRefMaps(): Promise<TicketRefMaps> {
  */
 export async function insertTicketRecords(records: Rec[], maps: TicketRefMaps): Promise<UpsertResult> {
   const { prisma } = await import('../prisma');
-  const { empMap, evtMap, atMap, ocMap, auMap } = maps;
+  const { empMap, evtMap, atMap, ocMap, auMap, empNames } = maps;
   const first = (ids: string[], m: Map<string, string>) => ids.map((x) => m.get(x)).find((x): x is string => !!x) ?? null;
 
   let unresolved = 0;
@@ -181,6 +216,7 @@ export async function insertTicketRecords(records: Rec[], maps: TicketRefMaps): 
       eventTypeId: first(links.eventTypes, evtMap),
       assetTypeId: first(links.assetTypes, atMap),
       assigneeId,
+      assigneeName: assigneeId ? empNames.get(assigneeId) ?? null : null,
       requesterId: first(links.requestedBy, empMap),
       officialCalendarId: first(links.officialCalendar, ocMap),
     };
@@ -211,5 +247,6 @@ export async function insertTicketRecords(records: Rec[], maps: TicketRefMaps): 
     await prisma.ticketAuthor.createMany({ data: authorPairs.slice(i, i + CHUNK), skipDuplicates: true });
   }
 
-  return { upserted: rows.length, unresolved };
+  // Insert-only, so nothing existing can be blanked — no assignee to preserve.
+  return { upserted: rows.length, unresolved, assigneePreserved: 0 };
 }

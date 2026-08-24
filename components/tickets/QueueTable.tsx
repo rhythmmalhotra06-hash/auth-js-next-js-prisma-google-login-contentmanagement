@@ -12,6 +12,7 @@ import { ColumnsMenu } from '@/components/ui/table/ColumnsMenu';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { StarRating } from '@/components/studio/StarRating';
 import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
+import { AssigneeName } from '@/components/tickets/AssigneeName';
 import { loadMap, riskOf } from '@/lib/tickets/intel';
 import { tierForEvent } from '@/lib/tickets/tiers';
 import type { QueueTicket } from '@/lib/tickets/data';
@@ -206,7 +207,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
           ? <td key={key}><StarRating ticketId={t.id} value={t.queueRank} /> {dueChip(t.dueDate)}</td>
           : <td key={key}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
       case 'assigned':
-        if (t.assignee) return <td key={key}>{t.assignee}</td>;
+        if (t.assignee) return <td key={key}><AssigneeName name={t.assignee} exTeam={t.assigneeExTeam} /></td>;
         return (
           <td key={key}>
             {assignees && assignees.length > 0
@@ -296,7 +297,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
                 <span className="qc-k">Assigned</span>
                 <span className="qc-v">
                   {t.assignee
-                    ? t.assignee
+                    ? <AssigneeName name={t.assignee} exTeam={t.assigneeExTeam} />
                     : assignees && assignees.length > 0
                       ? <span onClick={(e) => e.stopPropagation()}><InlineAssign ticketId={t.id} assignees={assignees} /></span>
                       : <span className="subtle">Unassigned</span>}

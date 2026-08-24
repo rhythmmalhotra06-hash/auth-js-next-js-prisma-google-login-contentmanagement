@@ -22,6 +22,17 @@ async function uuidByAirtableId(model: RefModel, recId: string | null | undefine
   return row?.id ?? null;
 }
 
+/**
+ * Resolve an assignee recId to both the FK and a name snapshot. `assignee_name` is what
+ * keeps attribution readable after 👬 Employees (an HR-synced table) drops the person on
+ * offboarding — see `prisma/migrations/0019_ticket_assignee_name`.
+ */
+async function resolveAssignee(recId: string | null | undefined): Promise<{ assigneeId: string | null; assigneeName: string | null }> {
+  if (!recId) return { assigneeId: null, assigneeName: null };
+  const row = await prisma.employee.findUnique({ where: { airtableId: recId }, select: { id: true, name: true } });
+  return { assigneeId: row?.id ?? null, assigneeName: row?.name ?? null };
+}
+
 export type WriteResult = { ok: true; id: string } | { ok: false; error: string };
 
 /** Delivery-link columns that map 1:1 to Prio fields (editable on the detail form). */
@@ -65,7 +76,11 @@ export async function updateTicket(idOrRec: string, patch: TicketPatch, opts: { 
     if (patch[k as DeliveryKey] !== undefined) data[k] = patch[k as DeliveryKey];
   }
   if (patch.assigneeRecId !== undefined) {
-    data.assigneeId = await uuidByAirtableId('employee', patch.assigneeRecId);
+    // An un-assign from the app IS deliberate (unlike a blanked Airtable link), so it
+    // clears the snapshot too.
+    const { assigneeId, assigneeName } = await resolveAssignee(patch.assigneeRecId);
+    data.assigneeId = assigneeId;
+    data.assigneeName = assigneeName;
   }
 
   const statusChanged = patch.ticketStatus !== undefined && patch.ticketStatus !== current.ticketStatus;
@@ -108,7 +123,7 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
     assetTypeId: await uuidByAirtableId('assetType', input.assetTypeRecId),
     requesterId: await uuidByAirtableId('employee', input.requesterRecId),
     officialCalendarId: input.officialCalendarRecId ? await uuidByAirtableId('officialCalendar', input.officialCalendarRecId) : null,
-    assigneeId: input.assignedCreativeRecId ? await uuidByAirtableId('employee', input.assignedCreativeRecId) : null,
+    ...(await resolveAssignee(input.assignedCreativeRecId)),
   });
   let refs = await resolve();
   if (!refs.eventTypeId || !refs.assetTypeId || !refs.requesterId) {
@@ -155,6 +170,7 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
       requesterId: refs.requesterId,
       officialCalendarId: refs.officialCalendarId,
       assigneeId: refs.assigneeId,
+      assigneeName: refs.assigneeName,
       authors: authorIds.length ? { create: authorIds.map((authorId) => ({ authorId })) } : undefined,
       shoots: shootIds.length ? { create: shootIds.map((shootId) => ({ shootId })) } : undefined,
     },

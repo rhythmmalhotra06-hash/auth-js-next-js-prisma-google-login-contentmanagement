@@ -21,7 +21,9 @@ export function FunnelCapacity({ tickets, cfg }: { tickets: QueueTicket[]; cfg?:
   const active = tickets.filter((t) => !['Done', "Won't Do"].includes(t.ticketStatus ?? ''));
   const byEditor = new Map<string, number>();
   for (const t of active) {
-    if (!t.assignee) continue;
+    // Ex-team members keep their credit on the ticket but have no capacity to plan
+    // against — counting them here would read as load someone can actually work.
+    if (!t.assignee || t.assigneeExTeam) continue;
     const w = cfg ? loadWeightFor(cfg, t.eventType, t.assetType) : 1;
     byEditor.set(t.assignee, (byEditor.get(t.assignee) ?? 0) + w);
   }

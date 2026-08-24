@@ -8,7 +8,7 @@
 import { TICKETS, OFFICIAL_CALENDARS } from '@/lib/airtable/field-map';
 import { listAll, getRecord } from '@/lib/airtable/rest';
 import { nameMap, firstLinkedName, firstLinkedId, resolveLinkedNames } from '@/lib/repositories/reference.repository';
-import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
+import { listActiveEmployeeRecords, listAllEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
 import { dueProximityNorm, campaignProximityNorm, blendQueueScore } from '@/lib/tickets/scoring';
@@ -23,6 +23,8 @@ export interface QueueTicket {
   priorityScore: string | null;
   queueRank: number | null;
   assignee: string | null;
+  /** Always false on this backend — see the note on the mapper below. */
+  assigneeExTeam: boolean;
   ticketStatus: string | null;
   prioStatus: string | null;
   eventType: string | null;
@@ -87,6 +89,10 @@ function mapTicketRow(
     queueRank: num(f[F.queueRank]),
     assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
     assigneeId: firstLinkedId(f[L.assignedCreative]) ?? firstLinkedId(f[L.assignedContractor]),
+    // Reading Airtable directly, there is nothing to mark: when 👬 Employees (an HR-synced
+    // table) drops an offboarded person, the link cell blanks and the name is simply gone.
+    // Only the Postgres backend keeps the `assignee_name` snapshot that survives that.
+    assigneeExTeam: false,
     ticketStatus: str(f[F.ticketStatus]),
     prioStatus: str(f[F.prioStatus]),
     eventType: firstLinkedName(f[L.eventTypes], eventTypes),
@@ -105,6 +111,13 @@ function mapTicketRow(
 export async function getActiveEmployees(): Promise<EmployeeOption[]> {
   const rows = await listActiveEmployeeRecords();
   return rows.map((r) => ({ id: r.id, name: r.name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Current staff first, then ex-team members flagged — so a ticket can still be credited
+ *  to whoever actually did the work. Mirrors the Postgres impl. */
+export async function getAssignableEmployees(): Promise<EmployeeOption[]> {
+  const rows = await listAllEmployeeRecords(); // already active-first, then by name
+  return rows.map((r) => ({ id: r.id, name: r.name, exTeam: !r.active }));
 }
 
 /**
@@ -319,6 +332,7 @@ export interface TicketDetail {
   requesterId: string | null;
   assignee: string | null;
   assigneeId: string | null;
+  assigneeExTeam: boolean;
   officialCalendar: string | null;
   authors: string[];
   events: TicketEventRow[];
@@ -393,6 +407,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     requesterId: firstLinkedId(f[L.requestedBy]),
     assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
     assigneeId: firstLinkedId(f[L.assignedCreative]) ?? firstLinkedId(f[L.assignedContractor]),
+    assigneeExTeam: false, // see mapTicketRow
     officialCalendar: firstLinkedName(f[L.officialCalendar], calendars),
     authors: speakerNames,
     // Audit trail + approval history live in Airtable's record revision history now.

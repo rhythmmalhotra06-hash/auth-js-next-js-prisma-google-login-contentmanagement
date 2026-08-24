@@ -8,7 +8,7 @@
 // rest of the app uses keep working across the Postgres cutover.
 
 import { prisma } from '@/lib/prisma';
-import { listActiveEmployeeRecords } from '@/lib/repositories/employee.repository';
+import { listActiveEmployeeRecords, listAllEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
 import { dueProximityNorm, campaignProximityNorm, blendQueueScore } from '@/lib/tickets/scoring';
@@ -20,6 +20,8 @@ export interface QueueTicket {
   priorityScore: string | null;
   queueRank: number | null;
   assignee: string | null;
+  /** The assignee is no longer on the roster — the credit stands, the person has left. */
+  assigneeExTeam: boolean;
   ticketStatus: string | null;
   prioStatus: string | null;
   eventType: string | null;
@@ -35,7 +37,7 @@ export interface QueueTicket {
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
 }
 
-export interface EmployeeOption { id: string; name: string }
+export interface EmployeeOption { id: string; name: string; exTeam?: boolean }
 
 /** An assignable person — Employee creatives + active Contractor/Freelancers. */
 export interface AssigneeOption { id: string; name: string; group: 'Creatives' | 'Freelancers & contractors' }
@@ -46,7 +48,7 @@ const ACTIVE_STATUSES_EXCLUDED = ['Done', "Won't Do"];
 // The relations every ticket read needs. Person/calendar rows carry airtableId so we
 // can expose recIds to the UI. Asset-type carries the team-lead + dimension lookups.
 const TICKET_INCLUDE = {
-  assignee: { select: { name: true, airtableId: true } },
+  assignee: { select: { name: true, airtableId: true, active: true } },
   requester: { select: { name: true, airtableId: true } },
   eventType: { select: { name: true } },
   assetType: {
@@ -69,7 +71,8 @@ type TicketWithRelations = {
   typeOfRequest: string | null;
   dueDate: Date | null;
   assetFolderLink: string | null;
-  assignee: { name: string; airtableId: string | null } | null;
+  assignee: { name: string; airtableId: string | null; active: boolean } | null;
+  assigneeName: string | null; // attribution snapshot; outlives the FK
   requester: { name: string; airtableId: string | null } | null;
   eventType: { name: string } | null;
   assetType: { name: string } | null;
@@ -83,14 +86,27 @@ const numOf = (v: unknown): number | null => {
 };
 const isoDate = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
 
+/**
+ * Who gets the credit. Prefers the live employee row; falls back to the `assignee_name`
+ * snapshot so a ticket still names its creative even if the FK was lost (see
+ * `prisma/migrations/0019_ticket_assignee_name`). `exTeam` is true once that person is off
+ * the roster — the tag stays, it's just marked.
+ */
+function creditedTo(t: { assignee: { name: string; active: boolean } | null; assigneeName: string | null }): { name: string | null; exTeam: boolean } {
+  if (t.assignee) return { name: t.assignee.name, exTeam: !t.assignee.active };
+  return { name: t.assigneeName, exTeam: !!t.assigneeName };
+}
+
 /** Base QueueTicket (pre-blend); priorityScore filled by the ranking pass. */
 function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number | null; campaignWindow: { start: Date | null; end: Date | null } | null } {
+  const credit = creditedTo(t);
   return {
     id: t.id,
     title: t.title || '(untitled)',
     priorityScore: null,
     queueRank: t.queueRank,
-    assignee: t.assignee?.name ?? null,
+    assignee: credit.name,
+    assigneeExTeam: credit.exTeam,
     ticketStatus: t.ticketStatus,
     prioStatus: t.prioStatus,
     eventType: t.eventType?.name ?? null,
@@ -111,6 +127,16 @@ function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number
 export async function getActiveEmployees(): Promise<EmployeeOption[]> {
   const rows = await listActiveEmployeeRecords();
   return rows.map((r) => ({ id: r.id, name: r.name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * The assignment picker's full roster: current staff first, then ex-team members flagged.
+ * Tickets often need crediting to whoever actually did the work even after they've left,
+ * so the picker offers them — grouped apart, never mixed into the default choices.
+ */
+export async function getAssignableEmployees(): Promise<EmployeeOption[]> {
+  const rows = await listAllEmployeeRecords(); // already active-first, then by name
+  return rows.map((r) => ({ id: r.id, name: r.name, exTeam: !r.active }));
 }
 
 /**
@@ -277,6 +303,8 @@ export interface TicketDetail {
   requesterId: string | null;
   assignee: string | null;
   assigneeId: string | null;
+  /** The credited creative has left — the tag stands, it's just marked. */
+  assigneeExTeam: boolean;
   officialCalendar: string | null;
   authors: string[];
   events: TicketEventRow[];
@@ -292,7 +320,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   const t = await prisma.ticket.findFirst({
     where,
     include: {
-      assignee: { select: { name: true, airtableId: true } },
+      assignee: { select: { name: true, airtableId: true, active: true } },
       requester: { select: { name: true, airtableId: true } },
       eventType: { select: { name: true } },
       assetType: {
@@ -333,6 +361,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
 
   const teamLead = t.assetType?.teamLeads?.map((tl) => tl.employee?.name).filter(Boolean).join(', ') || null;
   const dimensions = t.assetType?.dimensions?.map((d) => d.dimension?.label).filter(Boolean).join(', ') || null;
+  const credit = creditedTo(t);
 
   return {
     id: t.id,
@@ -368,8 +397,9 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     assetType: t.assetType?.name ?? null,
     requester: t.requester?.name ?? null,
     requesterId: t.requester?.airtableId ?? null,
-    assignee: t.assignee?.name ?? null,
+    assignee: credit.name,
     assigneeId: t.assignee?.airtableId ?? null,
+    assigneeExTeam: credit.exTeam,
     officialCalendar: t.officialCalendar?.name ?? null,
     authors: t.authors.map((a) => a.author?.name).filter((n): n is string => !!n),
     events: t.events.map((e) => ({

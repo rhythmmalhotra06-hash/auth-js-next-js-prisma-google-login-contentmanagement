@@ -70,7 +70,7 @@ async function importTicketRecords(records: AirtableRecord[]): Promise<PullStats
     }
   }
 
-  if (toImport.length) await upsertTicketsFromRecords(toImport);
+  const upsert = toImport.length ? await upsertTicketsFromRecords(toImport) : null;
 
   // Provenance events for existing tickets overwritten from Airtable.
   if (provenance.length) {
@@ -83,7 +83,7 @@ async function importTicketRecords(records: AirtableRecord[]): Promise<PullStats
     await prisma.airtableOutbox.createMany({ data: reassert.map((id) => ({ entity: 'ticket', entityId: id, op: 'upsert' })) });
   }
 
-  return { imported: toImport.length, echoSkipped, conflictSkipped };
+  return { imported: toImport.length, echoSkipped, conflictSkipped, assigneePreserved: upsert?.assigneePreserved ?? 0 };
 }
 
 export async function pullTickets(opts: { fullResync?: boolean } = {}): Promise<PullReport> {

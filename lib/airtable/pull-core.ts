@@ -24,7 +24,15 @@
 import { prisma } from '@/lib/prisma';
 import { listAll, type AirtableRecord } from './rest';
 
-export interface PullStats { imported: number; echoSkipped: number; conflictSkipped: number }
+export interface PullStats {
+  imported: number;
+  echoSkipped: number;
+  conflictSkipped: number;
+  /** Tickets whose incoming assignee link was empty while PG still held one — a deleted
+   *  👬 Employees row blanking the Airtable link. We keep our value; this counts how often.
+   *  Tickets-only; other domains omit it. */
+  assigneePreserved?: number;
+}
 export interface PullReport extends PullStats { scanned: number; cursor: string | null }
 
 export interface PullDomain {

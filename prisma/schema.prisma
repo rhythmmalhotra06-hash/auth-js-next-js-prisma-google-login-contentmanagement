@@ -281,6 +281,12 @@ model Ticket {
   requesterId        String? @map("requester_id") @db.Uuid // ← Airtable "Requested By" (drives downstream lookups)
   officialCalendarId String? @map("official_calendar_id") @db.Uuid // ← Airtable "Official Calendar"
 
+  // Attribution snapshot: the assignee's name as it was when the ticket was assigned.
+  // The FK alone can't be trusted to answer "who edited this" — Airtable link cells blank
+  // out when the linked 👬 Employees row is deleted (HR-sync offboarding), and that blank
+  // used to propagate into `assignee_id` on the next reconcile. Read paths fall back here.
+  assigneeName String? @map("assignee_name")
+
   teamServiceLevel String? @map("team_service_level") // ← "Team/Service Level"
   typeOfRequest    String? @map("type_of_request") // ← "Type of Request": Video | Design
   sourceLinks      String? @map("source_links") // ← "Raw File/Source URL/Stage Talk Links"

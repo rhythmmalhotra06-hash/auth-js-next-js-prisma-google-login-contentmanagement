@@ -21,6 +21,7 @@ export type {
 const impl = TICKETS_BACKEND === 'postgres' ? postgres : airtable;
 
 export const getActiveEmployees = impl.getActiveEmployees;
+export const getAssignableEmployees = impl.getAssignableEmployees;
 export const getEligibleAssignees = impl.getEligibleAssignees;
 export const getQueueTickets = impl.getQueueTickets;
 export const getRecentShipped = impl.getRecentShipped;

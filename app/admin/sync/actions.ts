@@ -57,6 +57,7 @@ export async function runPush(): Promise<SyncActionResult> {
 export async function runPull(): Promise<SyncActionResult> {
   return guard(async () => {
     const r = await pullTickets({});
-    return `Pull done — scanned ${r.scanned}, imported ${r.imported}, echo-skipped ${r.echoSkipped}, conflict-skipped ${r.conflictSkipped}`;
+    const preserved = r.assigneePreserved ? `, assignee preserved ${r.assigneePreserved}` : '';
+    return `Pull done — scanned ${r.scanned}, imported ${r.imported}, echo-skipped ${r.echoSkipped}, conflict-skipped ${r.conflictSkipped}${preserved}`;
   });
 }
