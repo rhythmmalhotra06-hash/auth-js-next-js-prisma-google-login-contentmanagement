@@ -760,6 +760,35 @@ model SocialMetric {
 // Small key→value store for sync watermarks (e.g. the ticket inbound-pull cursor:
 // the newest Airtable "Last Modified" time we've imported). Keeps the two-way pull
 // incremental instead of rescanning the whole table each cycle.
+// OAuth credentials for third-party integrations the APP holds on its own behalf (as
+// opposed to a per-user login). One row per provider, e.g. 'hootsuite'.
+//
+// Why the app holds a token at all: the performance loop needs to pull numbers on a
+// schedule, and a Claude/claude.ai connector only works inside a session someone starts.
+// Hootsuite's Perch resource advertises the `offline` scope, so a single human consent
+// yields a refresh token the cron can keep using. See plans/i-got-the-mcp-temporal-summit.md.
+//
+// Secrets are stored SEALED (AES-256-GCM, lib/crypto/secret-box.ts) — never plaintext. The
+// client id/secret come from dynamic client registration, so no one has to hand-register an
+// OAuth app in the provider's console.
+model ExternalCredential {
+  provider         String    @id
+  clientId         String?   @map("client_id")
+  clientSecretEnc  String?   @map("client_secret_enc")
+  accessTokenEnc   String?   @map("access_token_enc")
+  refreshTokenEnc  String?   @map("refresh_token_enc")
+  /** When the ACCESS token expires; the refresh token outlives it. */
+  expiresAt        DateTime? @map("expires_at") @db.Timestamptz
+  scope            String?
+  /** Free-text note for the admin surface, e.g. the last refresh failure. */
+  lastError        String?   @map("last_error")
+  connectedBy      String?   @map("connected_by")
+  connectedAt      DateTime? @map("connected_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("external_credentials")
+}
+
 model SyncState {
   key       String   @id
   value     String
