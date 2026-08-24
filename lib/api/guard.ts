@@ -9,6 +9,8 @@
 // route guards itself"), so *every* route under app/api is public unless it calls one
 // of these. There is no blanket protection to fall back on.
 
+import { timingSafeEqual } from 'node:crypto';
+
 import { auth } from '@/lib/auth';
 
 /**
@@ -42,6 +44,32 @@ export function requireDiscoverSecret(req: Request): Response | null {
     return Response.json({ error: 'Endpoint is not configured.' }, { status: 503 });
   }
   if (req.headers.get('x-discover-secret') !== secret) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return null;
+}
+
+/**
+ * Require the bearer secret used by the scheduled sync/metrics jobs.
+ *
+ * FAIL-CLOSED: an unset SYNC_SECRET denies the request (503) rather than waving it
+ * through. Constant-time compare so the secret can't be probed byte-by-byte.
+ *
+ * This is the shared form of a check that predates it — app/api/sync/* and
+ * app/api/metrics/refresh each inline their own copy. New routes use this one; the
+ * existing ones are a follow-up (a behaviour-preserving swap, kept out of this change).
+ */
+export function requireSyncSecret(req: Request): Response | null {
+  const secret = process.env.SYNC_SECRET;
+  if (!secret) {
+    console.error('[guard] SYNC_SECRET is not set — denying scheduled-job request');
+    return Response.json({ error: 'Endpoint is not configured.' }, { status: 503 });
+  }
+  const header = req.headers.get('authorization') ?? '';
+  const provided = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const a = Buffer.from(provided);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   return null;

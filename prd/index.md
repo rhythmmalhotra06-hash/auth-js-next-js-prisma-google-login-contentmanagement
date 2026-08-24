@@ -9,7 +9,7 @@
 | [E4 · Prioritization & Queue](content-production-management/prioritization-queue.md) | epic | discovery | 2/7 | 2026-06-25 |
 | [E5 · Lifecycle, Views & Approvals](content-production-management/lifecycle-views-approvals.md) | epic | discovery | 2/7 | 2026-06-25 |
 | [E6 · Two-Way Sync (outbound)](content-production-management/two-way-sync.md) | epic | discovery | 2/7 | 2026-06-25 |
-| [E7 · Performance Loop (Phase 2)](content-production-management/performance-loop.md) | epic | discovery | 2/7 | 2026-06-25 |
+| [E7 · Performance Loop](content-production-management/performance-loop.md) | epic | in-progress | 5/7 | 2026-08-20 |
 | [E8 · AI Content Clipping Engine](content-production-management/content-clipping-engine.md) | epic | resolved | 7/7 | 2026-06-26 |
 | [E8.1 · Generation Pipeline](content-production-management/content-clipping-engine/generation-pipeline.md) | feature | discovery | 6/7 | 2026-06-26 |
 | [E8.2 · Transcript Ingestion](content-production-management/content-clipping-engine/transcript-ingestion.md) | feature | discovery | 6/7 | 2026-06-26 |
@@ -26,5 +26,6 @@
 | [E9.7 · Asset-type DNA editor](content-production-management/portal-feedback-round-1/asset-type-dna-editor.md) | feature | discovery | 7/7 | 2026-06-29 |
 | [E9.8 · Multi-asset campaign requests](content-production-management/portal-feedback-round-1/multi-asset-requests.md) | feature | deferred | 4/7 | 2026-06-29 |
 | [E9.9 · Studio bento redesign](content-production-management/portal-feedback-round-1/studio-bento-redesign.md) | feature | discovery | 7/7 | 2026-06-30 |
+| [E10 · Editor Tasks](content-production-management/editor-tasks.md) | epic | discovery | 6/7 | 2026-08-20 |
 
-_Total: 24 documents, 128/169 sections resolved (76%). E9.8 deferred to a later effort._
+_Total: 25 documents, 134/176 sections resolved (76%). E9.8 deferred to a later effort._

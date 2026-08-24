@@ -14,8 +14,9 @@ children:
   - content-production-management/performance-loop.md
   - content-production-management/content-clipping-engine.md
   - content-production-management/portal-feedback-round-1.md
+  - content-production-management/editor-tasks.md
 created: 2026-06-25
-updated: 2026-06-29
+updated: 2026-08-20
 resolution: 5/8
 imported-from: "CLAUDE.md"
 ---
@@ -117,7 +118,7 @@ These are Phase 2 candidates *only if* the manual-assisted queue proves insuffic
 
 **North-star metric: End-to-end throughput.** The system succeeds if real work flows through the entire lifecycle inside the tool — not in Jira, Slack, or hand-kept Airtable.
 
-- **Ship gate (Phase 1 "done"):** ≥1 real content request completes the Phase 1 lifecycle — Requested → Prioritized → Assigned → In Production → In Review → Approved → **Published** — entirely in-tool, with every transition recorded as a `ticket_events` row and no step tracked outside the system. This mirrors the Air 5-day rollout: prove the loop end-to-end before adding automation depth. (Performance Tracked is the final state but is deferred to Phase 2 with the Performance Loop epic — see Epics E7.)
+- **Ship gate (Phase 1 "done"):** ≥1 real content request completes the Phase 1 lifecycle — Requested → Prioritized → Assigned → In Production → In Review → Approved → **Published** — entirely in-tool, with every transition recorded as a `ticket_events` row and no step tracked outside the system. This mirrors the Air 5-day rollout: prove the loop end-to-end before adding automation depth. (Performance Tracked is the final state; since E7 moved into Phase 1 it is now reachable in-tool — see Epics E7.)
 - **30-day target:** ≥10 tickets reach Published in-tool. [UNRESOLVED] The exact number (10 is a proposed placeholder) should be set against the team's real weekly request volume.
 
 **Committed operational criterion: Manager efficiency.**
@@ -161,7 +162,7 @@ Still open under the hybrid:
 
 ## Epics
 
-Phase 1 is six epics (E1–E6). E7 (Performance Loop) is deferred to Phase 2. Each has a child PRD under `content-production-management/`.
+Phase 1 is seven epics (E1–E7 — the Performance Loop was pulled into Phase 1 on 2026-08-20, see below). Each has a child PRD under `content-production-management/`.
 
 | # | Epic | Purpose | Depends on | Phase |
 |---|------|---------|-----------|-------|
@@ -171,8 +172,9 @@ Phase 1 is six epics (E1–E6). E7 (Performance Loop) is deferred to Phase 2. Ea
 | E4 | [Prioritization & Queue](content-production-management/prioritization-queue.md) | `urgency×complexity` scoring per the algorithm spec, drag-to-reorder `queue_rank`, and ~20–30% auto-assignment. | E3 | 1 |
 | E5 | [Lifecycle, Views & Approvals](content-production-management/lifecycle-views-approvals.md) | State machine + `ticket_events` audit, the three role views (5-column header), approvals/decision-locks, asset version-stacking, distribution link. | E3 (E4 parallel) | 1 |
 | E6 | [Two-Way Sync (outbound)](content-production-management/two-way-sync.md) | Push tickets/assets back to Airtable — batched ≤10, 429 backoff. Built last, after reads are stable. | E5 | 1 |
-| E7 | [Performance Loop](content-production-management/performance-loop.md) | Wire `performance` to published assets + the stakeholder performance view. The differentiator. | E5 | **2** |
+| E7 | [Performance Loop](content-production-management/performance-loop.md) | Numbers on every published asset, in `social_metrics` keyed to the published URL. Source: Hootsuite Perch MCP via the claude.ai connector; manual entry through the same path. The differentiator. | E5 | 1 |
 | E8 | [AI Content Clipping Engine](content-production-management/content-clipping-engine.md) | Long-form transcript → 10-section viral strategy via Claude; clips become proposed tickets. | E3 | 1 |
 | E9 | [Portal Feedback / Usability Round 1](content-production-management/portal-feedback-round-1.md) | Jun 29 feedback round: cut-ready editor briefs, shoot approvals in Studio, team/campaign visibility, Slack notifications, revenue/campaign scoring, auto-assign, DNA editor, multi-asset requests. | E3, E4, E5, E8 | 1 |
+| E10 | [Editor Tasks](content-production-management/editor-tasks.md) | Lightweight sub-tasks under Creative Requests — own owner/due/status, two-way synced to a new Airtable table. Manual creation + promote-to-ticket; advisory only. | E5 (E1, E6) | 1 |
 
-**Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6. E7 follows in Phase 2. E8 and E9 extend the Phase-1 surfaces.
+**Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6 → E7. E8, E9 and E10 extend the Phase-1 surfaces.

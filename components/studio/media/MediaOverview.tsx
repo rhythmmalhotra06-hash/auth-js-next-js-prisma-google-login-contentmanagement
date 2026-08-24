@@ -9,20 +9,23 @@ import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import type { VishenVideo } from '@/lib/media/vishen-videos';
+import { summarizeBand, reachOf, formatCount, type SocialMetricRow } from '@/lib/metrics/social-metric-types';
 import type { ShootSignOffItem } from '@/lib/studio/data';
 import { approveShoot, declineShoot } from '@/app/studio/actions';
 import { shortDate } from '@/lib/studio/format';
 import {
   AGENCY_META, producerBucket, needsVishen,
-  STAGE_LABEL, STAGE_TONE, AgencyChip, Stars,
+  STAGE_LABEL, STAGE_TONE, AgencyChip, Stars, Stat,
 } from './shared';
 
 const NEEDS_PREVIEW = 5;
 
-export function MediaOverview({ rows, shoots, clipCount, onOpen, onApprove, onSendBack, onAgencyClick, onGoToClips }: {
+export function MediaOverview({ rows, shoots, clipCount, perf, onOpen, onApprove, onSendBack, onAgencyClick, onGoToClips }: {
   rows: VishenVideo[];
   shoots: ShootSignOffItem[];
   clipCount: number;
+  /** Latest performance row per video id — empty until numbers are logged or pulled. */
+  perf: Record<string, SocialMetricRow>;
   onOpen: (v: VishenVideo) => void;
   onApprove: (v: VishenVideo) => void;
   onSendBack: (v: VishenVideo) => void;
@@ -43,6 +46,28 @@ export function MediaOverview({ rows, shoots, clipCount, onOpen, onApprove, onSe
       .sort((a, b) => (b.liveDate ?? '').localeCompare(a.liveDate ?? '')).slice(0, 6),
     [rows],
   );
+
+  // The performance band, over every published video with a live link (not just the six
+  // cards). `band` is null until at least one number exists, so the section degrades to
+  // the plain proof grid rather than showing a row of zeros.
+  const publishedAll = useMemo(() => rows.filter((v) => v.stage === 'published' && v.publishedLink), [rows]);
+  const band = useMemo(() => {
+    const metricRows = publishedAll.map((v) => perf[v.id]).filter(Boolean) as SocialMetricRow[];
+    if (metricRows.length === 0) return null;
+    return { ...summarizeBand(metricRows), needNumbers: publishedAll.length - metricRows.length };
+  }, [publishedAll, perf]);
+  // Ranked on the same reachOf() figure the total uses, so the headline and the winner
+  // can never disagree about which post did best.
+  const topPerformer = useMemo(() => {
+    if (!band) return null;
+    let best: { v: VishenVideo; n: number } | null = null;
+    for (const v of publishedAll) {
+      const m = perf[v.id];
+      const n = m ? reachOf(m) : null;
+      if (n != null && (!best || n > best.n)) best = { v, n };
+    }
+    return best;
+  }, [band, publishedAll, perf]);
 
   const counts = useMemo(() => ({
     editing: rows.filter((v) => v.stage === 'editing').length,
@@ -170,7 +195,29 @@ export function MediaOverview({ rows, shoots, clipCount, onOpen, onApprove, onSe
 
       {/* Live */}
       <section>
-        <SecHead eyebrow="◆ Live & performing" eyebrowTone="green" title="Recently published" />
+        <SecHead eyebrow="◆ Live & performing" eyebrowTone="green" title="Recently published"
+          hint={band ? `${band.sources.includes('hootsuite:perch') ? 'via Hootsuite' : 'numbers logged by the team'}` : undefined} />
+        {band && (
+          <div className="mb-3.5">
+            <KpiGrid>
+              <Kpi i={0} label={band.primaryLabel} value={formatCount(band.primaryTotal)}
+                sub={`${band.primaryMetric} · ${band.primaryFrom} of ${publishedAll.length} post${publishedAll.length === 1 ? '' : 's'}`} />
+              <Kpi i={1} label="Avg engagement" value={band.avgEngagement != null ? `${band.avgEngagement}%` : '—'}
+                sub={band.avgEngagement != null ? `across ${band.withNumbers} post${band.withNumbers === 1 ? '' : 's'}` : 'not logged yet'} />
+              <Kpi i={2} label="Published" value={publishedAll.length} sub="with a live link" />
+              <Kpi i={3} label="Top performer"
+                value={topPerformer ? formatCount(topPerformer.n) : '—'}
+                sub={topPerformer ? <span className="truncate">{topPerformer.v.name ?? 'Untitled'}</span> : 'needs numbers'} />
+            </KpiGrid>
+            {band.needNumbers > 0 && (
+              <p className="mt-2 text-2xs text-text-subtle">
+                {band.needNumbers === 1
+                  ? '1 live post still needs numbers'
+                  : `${band.needNumbers} live posts still need numbers`} — open one and log them in the drawer.
+              </p>
+            )}
+          </div>
+        )}
         {live.length === 0 ? (
           <Placeholder>Nothing published yet.</Placeholder>
         ) : (
@@ -188,6 +235,7 @@ export function MediaOverview({ rows, shoots, clipCount, onOpen, onApprove, onSe
                     <Stars n={v.rating} />
                     <AgencyChip source={v.source} />
                   </div>
+                  <CardMetrics m={perf[v.id] ?? null} />
                 </div>
               </button>
             ))}
@@ -198,11 +246,21 @@ export function MediaOverview({ rows, shoots, clipCount, onOpen, onApprove, onSe
   );
 }
 
-function Stat({ k, v }: { k: string; v: React.ReactNode }) {
+/** The one line of numbers on a published card — silent when nothing is logged yet. */
+function CardMetrics({ m }: { m: SocialMetricRow | null }) {
+  const primary = m?.impressions ?? m?.views ?? null;
+  if (!m || (primary == null && m.engagementRate == null)) {
+    return <div className="mt-2 border-t border-border-muted pt-2 text-2xs text-text-subtle">No numbers yet</div>;
+  }
   return (
-    <div>
-      <div className="mb-1 text-[9.5px] font-bold uppercase tracking-wide text-text-subtle">{k}</div>
-      <div className="font-display text-lg font-bold leading-none tabular-nums text-text">{v}</div>
+    <div className="mt-2 flex items-center gap-3 border-t border-border-muted pt-2 text-2xs text-text-muted">
+      {primary != null && (
+        <span className="font-semibold tabular-nums text-text">
+          {formatCount(primary)} <span className="font-normal text-text-subtle">{m.impressions != null ? 'impressions' : 'views'}</span>
+        </span>
+      )}
+      {m.engagementRate != null && <span className="tabular-nums">{m.engagementRate}% eng</span>}
+      {m.source === 'manual' && <span className="ml-auto text-text-subtle">✎ logged</span>}
     </div>
   );
 }

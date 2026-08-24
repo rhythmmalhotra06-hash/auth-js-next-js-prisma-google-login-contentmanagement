@@ -714,6 +714,49 @@ model MetricSnapshot {
   @@map("metric_snapshots")
 }
 
+// Per-post social performance — the "performance loop" sink. One row per
+// (source, post, window, day): the numbers a published asset earned.
+//
+// Deliberately NOT `model Performance` (below/above in the asset section): that one is
+// asset-FK'd, EAV-shaped and unused, and the thing we actually have a key for is the
+// PUBLISHED URL, not an Asset row. Keys are tried most-precise first —
+// platformPostId → publishedUrl → an explicit video/ticket id.
+//
+// Every metric is nullable on purpose. Sources disagree about what they can report
+// (Meta deprecated IG `impressions` in Apr 2025, Hootsuite Perch talks impressions,
+// the team logs views by hand), so we store whatever a source gives and let the read
+// side show the best available rather than forcing one vocabulary.
+//
+// Sources: 'manual' (typed in the Studio drawer) | 'hootsuite:perch' (connector pull).
+// See plans/i-got-the-mcp-temporal-summit.md.
+model SocialMetric {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platformPostId   String?  @map("platform_post_id")
+  publishedUrl     String?  @map("published_url") // normalized (no query/fragment/trailing slash)
+  vishenVideoId    String?  @map("vishen_video_id") // VishenVideo.id when resolved (uuid or recId)
+  ticketAirtableId String?  @map("ticket_airtable_id")
+  channel          String?
+  impressions      Int?
+  views            Int?
+  reach            Int?
+  engagements      Int?
+  engagementRate   Decimal? @map("engagement_rate") @db.Decimal(6, 3) // percent, e.g. 5.100
+  clicks           Int?
+  windowDays       Int?     @map("window_days") // 1 = 24h, 30 = last 30d, null = lifetime
+  capturedAt       DateTime @map("captured_at") @db.Timestamptz
+  source           String
+  enteredBy        String?  @map("entered_by") // session email for manual entry
+  raw              Json? // the source payload, for debugging a surprising number
+  dedupeKey        String   @unique @map("dedupe_key")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([publishedUrl, capturedAt], map: "idx_social_metrics_url")
+  @@index([vishenVideoId, capturedAt], map: "idx_social_metrics_video")
+  @@index([ticketAirtableId, capturedAt], map: "idx_social_metrics_ticket")
+  @@map("social_metrics")
+}
+
 // Small key→value store for sync watermarks (e.g. the ticket inbound-pull cursor:
 // the newest Airtable "Last Modified" time we've imported). Keeps the two-way pull
 // incremental instead of rescanning the whole table each cycle.

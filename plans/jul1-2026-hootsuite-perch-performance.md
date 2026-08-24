@@ -1,9 +1,15 @@
 # Hootsuite Perch → the performance loop (Phase 2 of the Vishen view)
 
-> ⚠️ **Source superseded (Jul 1):** the chosen source is now **Postiz (open-source)** —
-> see `plans/jul1-2026-postiz-performance.md`. This doc is kept for the Hootsuite context
-> and the reusable **hybrid attribution** + **IG-first** decisions, which still hold.
-> Also note: Meta deprecated the IG `impressions` metric (2025-04-21) → all sources return **views**.
+> ✅ **Un-superseded, partly (Aug 20 2026):** Hootsuite is the chosen source again — the
+> Perch MCP server is live and probed working (OAuth 2.1 + DCR at `platform.hootsuite.com`,
+> scopes `offline` + `analytics:read`), which clears this doc's "Step 0 — WAITING ON GLEN"
+> block. Postiz (`plans/jul1-2026-postiz-performance.md`) is now the **fallback**, not the
+> choice; its `social_metrics` design was kept almost verbatim.
+> What actually got built, and how it differs (connector-sourced, no app-side OAuth):
+> **`plans/i-got-the-mcp-temporal-summit.md`** — read that first.
+> Still true here: the **hybrid attribution** + **IG-first** decisions, and that Meta
+> deprecated the IG `impressions` metric (2025-04-21) — which is why the shipped schema
+> stores impressions *and* views and labels whichever it counted.
 
 ## Context
 

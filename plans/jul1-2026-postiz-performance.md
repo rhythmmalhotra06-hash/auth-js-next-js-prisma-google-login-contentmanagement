@@ -1,7 +1,14 @@
 # Vishen view + performance loop (Postiz) — build now, one Phase 1
 
-> Supersedes the **source choice** in `plans/jul1-2026-hootsuite-perch-performance.md` (Hootsuite → Postiz)
-> and pulls the performance loop **into the initial build** (no separate deferred Phase 2).
+> ⚠️ **Source choice reverted (Aug 20 2026): Postiz is the FALLBACK, not the source.**
+> Hootsuite's Perch MCP server turned out to be live and usable, and going through it
+> skips the Meta App Review / TikTok audit lead time that was this plan's only real
+> schedule risk. What shipped instead: **`plans/i-got-the-mcp-temporal-summit.md`**.
+> Everything else here still stands and was largely built as specified — the
+> `social_metrics` table (plus impressions/reach/clicks columns), the
+> `POST /api/metrics/social` ingest route, `lib/metrics/social-perf.ts`, and pulling the
+> loop **into Phase 1** because manual and automated entry share one table and one UI.
+> Come back to this doc if Hootsuite entitlement or per-post attribution falls through.
 > The view build itself is scoped in `plans/jul1-2026-vishen-end-to-end-view.md`.
 
 ## Context

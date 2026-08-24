@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { type Tone } from '@/components/ui/Badge';
 import type { VishenVideo, VideoStage } from '@/lib/media/vishen-videos';
+import { formatCount, type SocialMetricRow } from '@/lib/metrics/social-metric-types';
 
 export const AGENCIES = ['Simplex Media', 'Simplex (by Vishen)', 'Talking Heads', 'Two Comma PR'] as const;
 
@@ -83,9 +84,17 @@ const STEPS: { label: string; n: number }[] = [
   { label: 'Filmed', n: 4 }, { label: 'In editing', n: 5 }, { label: 'Published', n: 6 },
 ];
 
+export interface MetricEntry { views?: string; impressions?: string; engagement?: string }
+
 /** The lifecycle timeline + details + 24h-performance panel shown inside the drawer. */
-export function VideoDetail({ v, onRate, onSaveViews }: {
-  v: VishenVideo; onRate: (n: number) => void; onSaveViews: (t: string) => void;
+export function VideoDetail({ v, metric, metricError, onRate, onSaveViews, onSaveMetrics }: {
+  v: VishenVideo;
+  /** Latest stored numbers for this video, if any. */
+  metric: SocialMetricRow | null;
+  metricError: string | null;
+  onRate: (n: number) => void;
+  onSaveViews: (t: string) => void;
+  onSaveMetrics: (input: MetricEntry) => void;
 }) {
   const isPub = v.stage === 'published';
   const cur = isPub ? 6 : v.status ? parseInt(v.status, 10) : 0;
@@ -126,11 +135,13 @@ export function VideoDetail({ v, onRate, onSaveViews }: {
         </dl>
       </div>
 
+      {isPub && <MetricsPanel v={v} metric={metric} error={metricError} onSave={onSaveMetrics} />}
+
       {isPub && (
         <div className="rounded-md border p-4"
           style={{ borderColor: 'color-mix(in srgb, var(--gold) 34%, transparent)', background: 'linear-gradient(180deg, var(--gold-soft), var(--surface) 82%)' }}>
-          <div className="text-2xs font-bold uppercase tracking-wide text-warning-content">◆ 24h performance</div>
-          <p className="mt-1.5 text-xs text-text-muted">Logged by the team at 24h (views + engagement, any format) — Postiz / Hootsuite auto-fill is Phase 2.</p>
+          <div className="text-2xs font-bold uppercase tracking-wide text-warning-content">◆ 24h notes</div>
+          <p className="mt-1.5 text-xs text-text-muted">Anything the numbers above don&apos;t capture — per-channel splits, comments, context. Free text, written straight to Airtable.</p>
           <textarea
             value={views}
             onChange={(e) => setViews(e.target.value)}
@@ -140,11 +151,89 @@ export function VideoDetail({ v, onRate, onSaveViews }: {
           />
           <div className="mt-2 flex items-center gap-2">
             <button type="button" disabled={!dirty} onClick={() => onSaveViews(views.trim())}
-              className="rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright disabled:opacity-40">Save 24h data</button>
+              className="rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright disabled:opacity-40">Save notes</button>
             {!dirty && v.views24h && <span className="text-2xs text-text-subtle">saved</span>}
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The structured half of the performance loop: numbers land in `social_metrics` so the
+ * band can total them, rather than only in a free-text field a human has to read.
+ *
+ * Both count fields are offered because sources disagree — Hootsuite reports
+ * impressions, Instagram now reports views (Meta deprecated IG impressions in Apr 2025).
+ * Fill whichever the platform actually showed you; the band labels what it counted.
+ */
+function MetricsPanel({ v, metric, error, onSave }: {
+  v: VishenVideo; metric: SocialMetricRow | null; error: string | null; onSave: (input: MetricEntry) => void;
+}) {
+  const [views, setViews] = useState(metric?.views != null ? String(metric.views) : '');
+  const [impressions, setImpressions] = useState(metric?.impressions != null ? String(metric.impressions) : '');
+  const [eng, setEng] = useState(metric?.engagementRate != null ? String(metric.engagementRate) : '');
+  const dirty = [views, impressions, eng].some((x) => x.trim() !== '');
+
+  return (
+    <div className="rounded-md border border-border-default bg-surface p-4">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="text-2xs font-bold uppercase tracking-wide text-success-content">◆ Performance</div>
+        {metric && (
+          <span className="text-2xs text-text-subtle">
+            {metric.source === 'manual' ? '✎ logged by the team' : 'via Hootsuite'} · {metric.capturedAt ? new Date(metric.capturedAt).toISOString().slice(0, 10) : ''}
+          </span>
+        )}
+      </div>
+
+      {metric && (
+        <div className="mt-2.5 flex gap-5">
+          <Stat k={metric.impressions != null ? 'Impressions' : 'Views'} v={formatCount(metric.impressions ?? metric.views)} />
+          <Stat k="Engagement" v={metric.engagementRate != null ? `${metric.engagementRate}%` : '—'} />
+          {metric.clicks != null && <Stat k="Clicks" v={formatCount(metric.clicks)} />}
+        </div>
+      )}
+
+      <p className="mt-2.5 text-xs text-text-muted">
+        {metric ? 'Update the numbers' : 'Add the numbers'} — fill whichever the platform reports.
+        Accepts <span className="font-semibold">75.2k</span> or <span className="font-semibold">75200</span>.
+      </p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <NumInput label="Views" value={views} onChange={setViews} placeholder="75.2k" />
+        <NumInput label="Impressions" value={impressions} onChange={setImpressions} placeholder="12.4k" />
+        <NumInput label="Eng %" value={eng} onChange={setEng} placeholder="5.1" />
+      </div>
+      {error && <p className="mt-2 text-2xs text-danger-content">{error}</p>}
+      <button type="button" disabled={!dirty}
+        onClick={() => onSave({ views, impressions, engagement: eng })}
+        className="mt-2.5 rounded-sm bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-bright disabled:opacity-40">
+        Save numbers
+      </button>
+      {!v.publishedLink && <p className="mt-2 text-2xs text-text-subtle">No live link on this record yet, so these numbers can only be matched by hand later.</p>}
+    </div>
+  );
+}
+
+/** A small label-over-number cell. Used by the agency scoreboard and the drawer's
+ *  performance readout, so the two read as the same kind of fact. */
+export function Stat({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1 text-[9.5px] font-bold uppercase tracking-wide text-text-subtle">{k}</div>
+      <div className="font-display text-lg font-bold leading-none tabular-nums text-text">{v}</div>
+    </div>
+  );
+}
+
+function NumInput({ label, value, onChange, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-2xs font-bold uppercase tracking-wide text-text-subtle">{label}</span>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} inputMode="decimal"
+        className="w-full rounded-sm border border-border-strong bg-surface px-2.5 py-1.5 text-[13px] tabular-nums text-text placeholder:text-text-subtle focus-visible:outline-none focus-visible:shadow-[var(--mv-shadow-focus)]" />
+    </label>
   );
 }

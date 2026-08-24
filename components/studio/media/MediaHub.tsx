@@ -8,11 +8,12 @@ import { useState, useTransition } from 'react';
 import { cn } from '@/lib/cn';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { DetailDrawer } from '@/components/ui/DetailDrawer';
-import { approveVideo, sendBackVideo, rateVideo, saveViews24h } from '@/app/studio/media/actions';
+import { approveVideo, sendBackVideo, rateVideo, saveViews24h, saveVideoMetrics } from '@/app/studio/media/actions';
 import { approveClip, dismissClip } from '@/app/vishen/actions';
 import type { VishenVideo } from '@/lib/media/vishen-videos';
 import type { ClipSuggestion } from '@/lib/media/repository';
 import type { ShootSignOffItem } from '@/lib/studio/data';
+import type { SocialMetricRow } from '@/lib/metrics/social-metric-types';
 import { producerBucket, needsVishen, VideoDetail } from './shared';
 import { MediaOverview } from './MediaOverview';
 import { MediaCalendar } from './MediaCalendar';
@@ -28,11 +29,23 @@ const TABS: { key: Tab; label: string; icon: IconName }[] = [
   { key: 'pipeline', label: 'Pipeline', icon: 'chart' },
 ];
 
-export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, shoots, pipelineSlot }: {
+/** Parse a typed count/rate for the optimistic band update; the server re-parses authoritatively. */
+function num(raw: string | undefined): number | null {
+  const s = (raw ?? '').trim().replace(/,|%$/g, '');
+  if (!s) return null;
+  const m = /^(\d+(?:\.\d+)?)\s*([kmb])?$/i.exec(s);
+  if (!m) return null;
+  const mult = { k: 1e3, m: 1e6, b: 1e9 }[(m[2] ?? '').toLowerCase()] ?? 1;
+  return Math.round(parseFloat(m[1]) * mult * 1000) / 1000;
+}
+
+export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, metrics, shoots, pipelineSlot }: {
   videos: VishenVideo[];
   proposedClips: ClipSuggestion[];
   approvedClips: ClipSuggestion[];
   sourceNames: Record<string, string>;
+  /** Latest performance row per video id (empty until numbers are logged/pulled). */
+  metrics: Record<string, SocialMetricRow>;
   shoots: ShootSignOffItem[];
   pipelineSlot: React.ReactNode;
 }) {
@@ -42,7 +55,9 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, sh
   const [proposed, setProposed] = useState<ClipSuggestion[]>(proposedClips);
   const [approved, setApproved] = useState<ClipSuggestion[]>(approvedClips);
   const [selected, setSelected] = useState<VishenVideo | null>(null);
+  const [perf, setPerf] = useState<Record<string, SocialMetricRow>>(metrics);
   const [pending, start] = useTransition();
+  const [metricError, setMetricError] = useState<string | null>(null);
 
   const waitingCount = rows.filter(needsVishen).length;
 
@@ -63,6 +78,29 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, sh
     setRows((rs) => rs.map((v) => (v.id === id ? { ...v, views24h } : v)));
     setSelected((s) => (s && s.id === id ? { ...s, views24h } : s));
     start(async () => { await saveViews24h(id, views24h); });
+  }
+
+  // Structured numbers → social_metrics (and, when the team's free-text note is still
+  // empty, mirrored to Airtable's "24h Data"). Optimistic so the band updates at once.
+  function onSaveMetrics(v: VishenVideo, input: { views?: string; impressions?: string; engagement?: string }) {
+    start(async () => {
+      const res = await saveVideoMetrics(v.id, {
+        publishedLink: v.publishedLink,
+        channel: v.channel,
+        existingText: v.views24h,
+        ...input,
+      });
+      if (!res.ok) { setMetricError(res.error ?? 'Could not save those numbers.'); return; }
+      setMetricError(null);
+      setPerf((m) => ({
+        ...m,
+        [v.id]: {
+          publishedUrl: v.publishedLink, vishenVideoId: v.id, channel: v.channel,
+          impressions: num(input.impressions), views: num(input.views), engagementRate: num(input.engagement),
+          clicks: null, windowDays: 1, capturedAt: new Date(), source: 'manual', enteredBy: null,
+        },
+      }));
+    });
   }
 
   // ── Clip write-backs ──
@@ -101,7 +139,7 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, sh
       </div>
 
       {tab === 'overview' && (
-        <MediaOverview rows={rows} shoots={shoots} clipCount={proposed.length} onOpen={setSelected}
+        <MediaOverview rows={rows} shoots={shoots} clipCount={proposed.length} perf={perf} onOpen={setSelected}
           onApprove={onApprove} onSendBack={onSendBack}
           onAgencyClick={(a) => { setBoardAgency(a); setTab('board'); }}
           onGoToClips={() => setTab('clips')} />
@@ -135,7 +173,9 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, sh
         ) : undefined}
       >
         {selected && (
-          <VideoDetail key={selected.id} v={selected} onRate={(n) => onRate(selected, n)} onSaveViews={(t) => onSaveViews(selected.id, t)} />
+          <VideoDetail key={selected.id} v={selected} metric={perf[selected.id] ?? null} metricError={metricError}
+            onRate={(n) => onRate(selected, n)} onSaveViews={(t) => onSaveViews(selected.id, t)}
+            onSaveMetrics={(input) => onSaveMetrics(selected, input)} />
         )}
       </DetailDrawer>
     </div>

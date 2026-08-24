@@ -88,14 +88,20 @@
   between a request, who edited it, and its appearance on the calendar. This is
   the core visibility gap (Vision's "who edited this?"). (Blinkwork)
 - **Performance feedback loop** — how did the asset perform, tied back to the
-  asset. Deferred decision: whether metrics live on the Prio table or the Asset
-  Library. (Blinkwork — modeled library-side in schema.sql; CONFIRM.)
+  asset. **SETTLED 2026-08-20: neither the Prio table nor the Asset Library — a
+  dedicated `social_metrics` table keyed to the published URL.** The permalink is
+  the only identifier both sides of the join actually have; `model Performance`
+  was asset-FK'd and unused. Source = Hootsuite Perch via the claude.ai MCP
+  connector (Postiz remains the unbuilt fallback); the app stores no Hootsuite
+  credential. Metrics: store all, show the best available and label what was
+  counted — Glen asked for impressions, Meta deprecated IG impressions in Apr
+  2025, so forcing one vocabulary would misreport. See
+  plans/i-got-the-mcp-temporal-summit.md and prd/…/performance-loop.md.
 - **Stakeholder/agency views** showing pre-prod → post-prod in one place.
   (Blinkwork)
 
 ## Open decisions (NOT yet settled — do not guess)
 
 - Exact event-tier ranking for the urgency score. [Moniek]
-- Whether performance metrics live on Prio table vs Asset Library. [team]
 - Brain table names + the stable key to link on. [team]
 - prio_status / ticket_status / shoot-status enum values. [from live schema]

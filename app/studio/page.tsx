@@ -6,6 +6,7 @@ import {
   getPendingShoots, toShootSignOffItem,
 } from '@/lib/studio/data';
 import { listClipsByStatus, listMediaSources } from '@/lib/media/repository';
+import { getLatestMetrics } from '@/lib/metrics/social-perf';
 import { MediaHub } from '@/components/studio/media/MediaHub';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
 import { LaunchesSection } from '@/components/studio/LaunchesSection';
@@ -22,6 +23,10 @@ export default async function StudioPage() {
     listMediaSources(100),
     loadStudio(),
   ]);
+
+  // Per-post performance for the "Live & performing" band. Keyed by video id, resolved
+  // through the published permalink so it works under either videos backend.
+  const metrics = await getLatestMetrics(videos);
 
   const sources = mediaRes.ok ? mediaRes.data : [];
   const sourceNames: Record<string, string> = {};
@@ -82,6 +87,7 @@ export default async function StudioPage() {
           proposedClips={proposedRes.ok ? proposedRes.data : []}
           approvedClips={approvedRes.ok ? approvedRes.data : []}
           sourceNames={sourceNames}
+          metrics={metrics}
           shoots={pendingShoots}
           pipelineSlot={pipelineSlot}
         />
