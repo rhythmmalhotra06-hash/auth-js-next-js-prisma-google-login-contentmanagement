@@ -70,9 +70,9 @@ export async function pullNow(windowDays: number): Promise<HootsuiteActionResult
     const r = await pullPerchMetrics(windowDays);
     const lines = [
       `upserted ${r.upserted} · matched ${r.matched} · unmatched ${r.unmatched} · skipped ${r.skipped}`,
-      `tools seen: ${r.toolsSeen.join(', ') || '(none)'}`,
-      `tools called: ${r.toolsCalled.join(', ') || '(none)'}`,
-      r.toolsWithoutRows.length ? `answered but no rows recognized: ${r.toolsWithoutRows.join(', ')}` : '',
+      `workspaces ${r.workspaces} · providers ${r.providers.join(', ') || '(none)'} · sources ${r.sourcesFound}`,
+      `metrics queried: ${r.metricsQueried.join(', ') || '(none)'}`,
+      r.metricsWithoutRows.length ? `answered but no per-post entry recognized: ${r.metricsWithoutRows.join(', ')}` : '',
       ...r.notes,
       ...r.errors,
     ].filter(Boolean);

@@ -1,50 +1,147 @@
 // Hootsuite Perch → social_metrics. The scheduled half of the performance loop.
 //
-// IMPORTANT — this file is written against an UNVERIFIED tool surface. Perch's tool list
-// sits behind OAuth, so it could not be read before the integration was connected, and
-// Hootsuite publishes no schema. Rather than guess at exact names and then silently return
-// nothing, the code:
-//   - discovers tools at runtime and picks analytics-looking ones by name/description,
-//   - maps results through a TOLERANT extractor that accepts many plausible field spellings,
-//   - keeps the raw payload on every row (`SocialMetric.raw`) so a wrong guess is debuggable
-//     after the fact instead of lost,
-//   - reports what it saw (`toolsSeen`, `sampled`) so the admin page doubles as the
-//     capability spike that was owed.
+// Written against the REAL tool surface, captured in context/hootsuite-perch-capabilities.md
+// (live tools/list, 2026-08-24). Analytics is a five-step discovery pipeline, not a single
+// call:
 //
-// When the real shapes are known, tighten extractRows() — everything else stays.
+//   get_entitled_workspaces → list_providers → search_sources
+//                                            → search_metrics → query_analytics
+//
+// Three things here are load-bearing and easy to get wrong:
+//
+//  1. `get_entitled_workspaces` exists on BOTH the publishing and analytics servers and
+//     returns DIFFERENT shapes ({organizationId,…} vs {tenantId, tenantType, tenantUUID}).
+//     Tools are resolved by name suffix but preferring the `perch-analytics` prefix; take
+//     the publishing one and every later call rejects the scope.
+//  2. Per-post rows come only from metrics whose dataFormat is MULTIPART (paginated
+//     `entries`). TIMESERIES metrics are profile-level totals — useless for attribution.
+//  3. `query_analytics` is a BATCH where individual queries fail independently, so a
+//     partial failure must not sink the whole pull.
+//
+// Response *entry* shapes are still undocumented (the tool schema only references a
+// `layout`), so entries go through a tolerant extractor and every raw entry is stored on
+// the row. The first real pull is therefore self-diagnosing rather than silently empty.
 
-import { connect, type McpTool } from '@/lib/mcp/client';
+import { connect, type McpSession, type McpTool } from '@/lib/mcp/client';
 import { getAccessToken, PERCH_URL } from '@/lib/hootsuite/oauth';
 import { ingestSocialMetrics, type IngestReport } from '@/lib/metrics/social-perf';
 import type { SocialMetricInput } from '@/lib/metrics/social-metric-types';
 
-/** Tools worth calling for per-post numbers, best guess first. */
-const ANALYTICS_HINTS = ['post', 'analytic', 'metric', 'performance', 'insight', 'top'];
+const ANALYTICS_PREFIX = 'perch-analytics';
+/** Cap so one workspace with many profiles can't run the route past its 300s budget. */
+const MAX_METRICS_PER_PROVIDER = 6;
+const ENTRY_PAGE_LIMIT = 100; // the documented maximum
 
-export interface PerchProbe {
-  tools: McpTool[];
-  /** Raw text/JSON returned by each tool we tried, for eyeballing on the admin page. */
-  samples: Array<{ tool: string; args: Record<string, unknown>; ok: boolean; preview: string }>;
+type Json = Record<string, unknown>;
+
+export interface PerchToolset {
+  workspaces: string;
+  providers: string;
+  sources: string;
+  metrics: string;
+  query: string;
 }
 
-/** List every tool Perch exposes. This is the capability spike, run through the app. */
-export async function probeTools(): Promise<{ ok: true; data: McpTool[] } | { ok: false; error: string }> {
-  const token = await getAccessToken();
-  const session = await connect(PERCH_URL, token);
-  if (!session.ok) return { ok: false, error: session.error.message };
-  const tools = await session.data.listTools();
-  if (!tools.ok) return { ok: false, error: tools.error.message };
-  return { ok: true, data: tools.data };
+/**
+ * Find a tool by its bare name, preferring the analytics server when both servers expose
+ * it. Matching on suffix keeps this working if Hootsuite renames the prefixes.
+ */
+function resolveTool(tools: McpTool[], bare: string): string | null {
+  const matches = tools.filter((t) => t.name === bare || t.name.endsWith(`_${bare}`));
+  if (matches.length === 0) return null;
+  return (matches.find((t) => t.name.includes(ANALYTICS_PREFIX)) ?? matches[0]).name;
 }
 
-/** Call one tool by name with arbitrary args — the admin "try it" affordance. */
-export async function callTool(name: string, args: Record<string, unknown>): Promise<{ ok: true; text: string; json: unknown } | { ok: false; error: string }> {
-  const token = await getAccessToken();
-  const session = await connect(PERCH_URL, token);
-  if (!session.ok) return { ok: false, error: session.error.message };
-  const res = await session.data.callTool(name, args);
-  if (!res.ok) return { ok: false, error: res.error.message };
-  return { ok: true, text: res.data.text, json: res.data.json };
+export function resolveToolset(tools: McpTool[]): { ok: true; data: PerchToolset } | { ok: false; missing: string[] } {
+  const wanted = {
+    workspaces: 'get_entitled_workspaces',
+    providers: 'list_providers',
+    sources: 'search_sources',
+    metrics: 'search_metrics',
+    query: 'query_analytics',
+  } as const;
+  const out: Partial<PerchToolset> = {};
+  const missing: string[] = [];
+  for (const [key, bare] of Object.entries(wanted) as [keyof PerchToolset, string][]) {
+    const found = resolveTool(tools, bare);
+    if (found) out[key] = found;
+    else missing.push(bare);
+  }
+  return missing.length ? { ok: false, missing } : { ok: true, data: out as PerchToolset };
+}
+
+/** Every object anywhere in a payload that carries all of `keys`. Response envelopes are
+ *  undocumented, so we locate the interesting objects instead of assuming a path. */
+function deepFind(payload: unknown, keys: string[], depth = 0): Json[] {
+  if (depth > 8 || payload === null || typeof payload !== 'object') return [];
+  if (Array.isArray(payload)) return payload.flatMap((p) => deepFind(p, keys, depth + 1));
+  const o = payload as Json;
+  const hit = keys.every((k) => o[k] !== undefined && o[k] !== null);
+  const nested = Object.values(o).flatMap((v) => deepFind(v, keys, depth + 1));
+  return hit ? [o, ...nested] : nested;
+}
+
+function uniqueBy<T>(rows: T[], key: (r: T) => string): T[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    const k = key(r);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+export interface Workspace { tenantId: string; tenantType: string; tenantUUID: string }
+export interface Provider { dataService: string; dataType: string }
+export interface Metric { id: string; provider: Provider; label: string; dataFormat: string }
+
+/** Workspaces, from the ANALYTICS server's shape (tenant*, not organizationId). */
+export function parseWorkspaces(payload: unknown): Workspace[] {
+  const found = deepFind(payload, ['tenantId', 'tenantType', 'tenantUUID']);
+  return uniqueBy(
+    found.map((o) => ({ tenantId: String(o.tenantId), tenantType: String(o.tenantType), tenantUUID: String(o.tenantUUID) })),
+    (w) => w.tenantUUID,
+  );
+}
+
+export function parseProviders(payload: unknown): Provider[] {
+  const found = deepFind(payload, ['dataService', 'dataType']);
+  return uniqueBy(
+    found.map((o) => ({ dataService: String(o.dataService), dataType: String(o.dataType) })),
+    (p) => `${p.dataService}:${p.dataType}`,
+  );
+}
+
+/** Source ids for a provider. `search_sources` groups by provider, but we call it per
+ *  provider so anything returned belongs to that provider. */
+export function parseSourceIds(payload: unknown): string[] {
+  const withLabel = deepFind(payload, ['id', 'label']);
+  const withName = deepFind(payload, ['id', 'name']);
+  const ids = [...withLabel, ...withName].map((o) => String(o.id));
+  return [...new Set(ids)];
+}
+
+/**
+ * Metrics from a discovery response. Keeps MULTIPART first — those are the paginated
+ * per-post entries, the only shape that supports attribution.
+ */
+export function parseMetrics(payload: unknown, provider: Provider): Metric[] {
+  const found = deepFind(payload, ['identifier']);
+  const metrics: Metric[] = [];
+  for (const o of found) {
+    const ident = o.identifier as Json | undefined;
+    if (!ident || typeof ident.id !== 'string') continue;
+    const p = (ident.provider as Provider | undefined) ?? provider;
+    metrics.push({
+      id: ident.id,
+      provider: { dataService: String(p.dataService), dataType: String(p.dataType) },
+      label: typeof o.label === 'string' ? o.label : ident.id,
+      dataFormat: typeof o.dataFormat === 'string' ? o.dataFormat : 'UNKNOWN',
+    });
+  }
+  const unique = uniqueBy(metrics, (m) => `${m.provider.dataService}:${m.provider.dataType}:${m.id}`);
+  const rank = (m: Metric) => (m.dataFormat === 'MULTIPART' ? 0 : m.dataFormat === 'TIMESERIES' ? 2 : 3);
+  return unique.sort((a, b) => rank(a) - rank(b));
 }
 
 const num = (v: unknown): number | null => {
@@ -56,61 +153,56 @@ const num = (v: unknown): number | null => {
   return null;
 };
 
-/** First present value among several candidate keys, case-insensitively. */
-function pick(o: Record<string, unknown>, keys: string[]): unknown {
-  const lower = new Map(Object.keys(o).map((k) => [k.toLowerCase().replace(/[_\s-]/g, ''), k]));
+/** First present value among candidate keys, ignoring case/underscores/spaces. */
+function pick(o: Json, keys: string[]): unknown {
+  const norm = (s: string) => s.toLowerCase().replace(/[_\s-]/g, '');
+  const index = new Map(Object.keys(o).map((k) => [norm(k), k]));
   for (const k of keys) {
-    const hit = lower.get(k.toLowerCase().replace(/[_\s-]/g, ''));
+    const hit = index.get(norm(k));
     if (hit !== undefined && o[hit] !== null && o[hit] !== undefined) return o[hit];
   }
   return undefined;
 }
 
-/** Walk a JSON payload and return every object that looks like a per-post metric row. */
-function findRowObjects(payload: unknown, depth = 0): Record<string, unknown>[] {
-  if (depth > 6 || payload === null || typeof payload !== 'object') return [];
-  if (Array.isArray(payload)) return payload.flatMap((p) => findRowObjects(p, depth + 1));
-
-  const o = payload as Record<string, unknown>;
-  const hasKey = pick(o, ['permalink', 'postUrl', 'url', 'link', 'postId', 'id', 'messageId']) !== undefined;
-  const hasMetric = ['impressions', 'views', 'reach', 'engagementRate', 'engagement', 'clicks']
-    .some((m) => pick(o, [m]) !== undefined);
-  if (hasKey && hasMetric) return [o];
-
-  // Otherwise recurse into nested containers (data/results/posts/items/…).
-  return Object.values(o).flatMap((v) => findRowObjects(v, depth + 1));
-}
+const URL_KEYS = ['permalink', 'permalinkUrl', 'postUrl', 'url', 'link', 'shareUrl', 'contentUrl', 'postLink'];
+const ID_KEYS = ['platformPostId', 'postId', 'messageId', 'socialPostId', 'contentId', 'externalId', 'id'];
 
 /**
- * Turn a tool payload into ingest rows. Tolerant by design — see the file header.
- * `engagementRate` is normalized to a percent: a source reporting 0.051 becomes 5.1.
+ * Turn MULTIPART entries into ingest rows. Tolerant on field names because entry shapes
+ * are undocumented; the raw entry is retained on every row so a mis-guess is fixable
+ * after the fact instead of lost.
  */
-export function extractRows(payload: unknown, windowDays: number | null): SocialMetricInput[] {
-  return findRowObjects(payload).flatMap((o) => {
-    const url = pick(o, ['permalink', 'postUrl', 'url', 'link', 'shareUrl']);
-    const id = pick(o, ['postId', 'platformPostId', 'messageId', 'socialPostId', 'id']);
-    if (typeof url !== 'string' && (id === undefined || id === null)) return [];
+export function extractRows(payload: unknown, windowDays: number | null, channel: string | null): SocialMetricInput[] {
+  // An entry is an object carrying at least one identifier and at least one metric value.
+  const candidates = deepFind(payload, []).filter((o) => {
+    const hasKey = pick(o, URL_KEYS) !== undefined || pick(o, ID_KEYS) !== undefined;
+    const hasMetric = ['impressions', 'views', 'reach', 'engagementRate', 'engagements', 'engagement', 'clicks']
+      .some((m) => pick(o, [m]) !== undefined);
+    return hasKey && hasMetric;
+  });
 
-    let rate = num(pick(o, ['engagementRate', 'engagement_rate', 'engagementPct', 'engagementPercent']));
+  const rows: SocialMetricInput[] = [];
+  for (const o of candidates) {
+    const url = pick(o, URL_KEYS);
+    const id = pick(o, ID_KEYS);
+
+    let rate = num(pick(o, ['engagementRate', 'engagementPct', 'engagementPercent']));
     if (rate !== null && rate > 0 && rate <= 1) rate = Math.round(rate * 100 * 1000) / 1000; // fraction → percent
     const engagements = num(pick(o, ['engagements', 'engagement', 'totalEngagements', 'interactions']));
     const impressions = num(pick(o, ['impressions', 'impressionCount']));
     const views = num(pick(o, ['views', 'videoViews', 'viewCount', 'plays']));
 
-    // Derive the rate when the source gives the parts but not the ratio.
     const denom = impressions ?? views;
     if (rate === null && engagements !== null && denom && denom > 0) {
       rate = Math.round((engagements / denom) * 100 * 1000) / 1000;
     }
 
-    const row: SocialMetricInput = {
+    const entryChannel = pick(o, ['channel', 'network', 'networkType', 'platform', 'socialNetwork', 'profileType']);
+    rows.push({
       source: 'hootsuite:perch',
       publishedUrl: typeof url === 'string' ? url : null,
-      platformPostId: id === undefined || id === null ? null : String(id),
-      channel: (() => {
-        const c = pick(o, ['channel', 'network', 'platform', 'socialNetwork', 'profileType']);
-        return typeof c === 'string' ? c : null;
-      })(),
+      platformPostId: id === undefined ? null : String(id),
+      channel: typeof entryChannel === 'string' ? entryChannel : channel,
       impressions,
       views,
       reach: num(pick(o, ['reach', 'uniqueReach'])),
@@ -119,83 +211,153 @@ export function extractRows(payload: unknown, windowDays: number | null): Social
       clicks: num(pick(o, ['clicks', 'linkClicks', 'postClicks'])),
       windowDays,
       raw: o,
-    };
-    return [row];
-  });
+    });
+  }
+  // The same post can appear under several metrics; ingest dedupes on the stored key, but
+  // collapsing here keeps the upsert count honest.
+  return uniqueBy(rows, (r) => `${r.platformPostId ?? ''}|${r.publishedUrl ?? ''}`);
+}
+
+async function callJson(session: McpSession, tool: string, args: Json): Promise<{ ok: true; json: unknown; text: string } | { ok: false; error: string }> {
+  const res = await session.callTool(tool, args);
+  if (!res.ok) return { ok: false, error: res.error.message };
+  return { ok: true, json: res.data.json ?? res.data.text, text: res.data.text };
 }
 
 export interface PullReport extends IngestReport {
   toolsSeen: string[];
-  toolsCalled: string[];
-  /** Tools that answered but yielded no recognizable rows — the signal that extractRows
-   *  needs tightening against the real shape rather than that performance was zero. */
-  toolsWithoutRows: string[];
+  workspaces: number;
+  providers: string[];
+  sourcesFound: number;
+  metricsQueried: string[];
+  /** Metrics that answered but yielded no recognizable per-post entry — the signal that
+   *  extractRows needs the real field names, NOT that performance was zero. */
+  metricsWithoutRows: string[];
   notes: string[];
 }
 
+function emptyReport(): IngestReport {
+  return { upserted: 0, matched: 0, unmatched: 0, skipped: 0, writeErrors: 0, errors: [] };
+}
+
+/** List every tool Perch exposes (both servers). Powers the admin inspector. */
+export async function probeTools(): Promise<{ ok: true; data: McpTool[] } | { ok: false; error: string }> {
+  const session = await connect(PERCH_URL, await getAccessToken());
+  if (!session.ok) return { ok: false, error: session.error.message };
+  const tools = await session.data.listTools();
+  if (!tools.ok) return { ok: false, error: tools.error.message };
+  return { ok: true, data: tools.data };
+}
+
+/** Call one tool with arbitrary args — the admin "try it" affordance. */
+export async function callTool(name: string, args: Json): Promise<{ ok: true; text: string; json: unknown } | { ok: false; error: string }> {
+  const session = await connect(PERCH_URL, await getAccessToken());
+  if (!session.ok) return { ok: false, error: session.error.message };
+  const res = await session.data.callTool(name, args);
+  if (!res.ok) return { ok: false, error: res.error.message };
+  return { ok: true, text: res.data.text, json: res.data.json };
+}
+
 /**
- * Discover Perch's analytics tools, call the plausible ones for the given window, and
- * ingest whatever comes back. Safe to run repeatedly — ingest is idempotent per
- * (source, post, window, day).
+ * Walk the whole pipeline and ingest per-post numbers.
+ *
+ * Pulls across EVERY entitled workspace and source deliberately: the grant is read-only
+ * analytics and we want all of Mindvalley's profiles, so there is no scope to choose. If
+ * that ever needs narrowing, persist a selection rather than guessing one here.
  */
 export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
-  const empty: IngestReport = { upserted: 0, matched: 0, unmatched: 0, skipped: 0, writeErrors: 0, errors: [] };
   const notes: string[] = [];
+  const errors: string[] = [];
+  const base = { toolsSeen: [] as string[], workspaces: 0, providers: [] as string[], sourcesFound: 0, metricsQueried: [] as string[], metricsWithoutRows: [] as string[], notes };
 
-  const token = await getAccessToken();
-  const session = await connect(PERCH_URL, token);
-  if (!session.ok) {
-    return { ...empty, errors: [session.error.message], toolsSeen: [], toolsCalled: [], toolsWithoutRows: [], notes };
-  }
+  const session = await connect(PERCH_URL, await getAccessToken());
+  if (!session.ok) return { ...emptyReport(), ...base, errors: [session.error.message] };
+
   const listed = await session.data.listTools();
-  if (!listed.ok) {
-    return { ...empty, errors: [listed.error.message], toolsSeen: [], toolsCalled: [], toolsWithoutRows: [], notes };
-  }
+  if (!listed.ok) return { ...emptyReport(), ...base, errors: [listed.error.message] };
+  base.toolsSeen = listed.data.map((t) => t.name);
 
-  const toolsSeen = listed.data.map((t) => t.name);
-  const candidates = listed.data.filter((t) => {
-    const hay = `${t.name} ${t.description ?? ''}`.toLowerCase();
-    return ANALYTICS_HINTS.some((h) => hay.includes(h));
-  });
-  if (candidates.length === 0) {
-    notes.push(`No analytics-looking tool among: ${toolsSeen.join(', ') || '(none)'}`);
-    return { ...empty, toolsSeen, toolsCalled: [], toolsWithoutRows: [], notes };
+  const toolset = resolveToolset(listed.data);
+  if (!toolset.ok) {
+    return { ...emptyReport(), ...base, errors: [`Perch is missing expected analytics tools: ${toolset.missing.join(', ')}`] };
+  }
+  const T = toolset.data;
+
+  const wsRes = await callJson(session.data, T.workspaces, {});
+  if (!wsRes.ok) return { ...emptyReport(), ...base, errors: [wsRes.error] };
+  const workspaces = parseWorkspaces(wsRes.json);
+  base.workspaces = workspaces.length;
+  if (workspaces.length === 0) {
+    notes.push(`${T.workspaces} returned no workspace with tenantId/tenantType/tenantUUID. First 300 chars: ${wsRes.text.slice(0, 300)}`);
+    return { ...emptyReport(), ...base, errors };
   }
 
   const since = new Date(Date.now() - windowDays * 86400_000).toISOString().slice(0, 10);
   const until = new Date().toISOString().slice(0, 10);
-  // Spray the common date-arg spellings; a server ignores what it doesn't know, and
-  // guessing wrong here costs one rejected call rather than silently empty results.
-  const args: Record<string, unknown> = {
-    startDate: since, endDate: until, start_date: since, end_date: until,
-    from: since, to: until, days: windowDays, period: `${windowDays}d`,
-  };
-
   const rows: SocialMetricInput[] = [];
-  const toolsCalled: string[] = [];
-  const toolsWithoutRows: string[] = [];
-  const errors: string[] = [];
 
-  for (const tool of candidates) {
-    toolsCalled.push(tool.name);
-    const res = await session.data.callTool(tool.name, args);
-    if (!res.ok) {
-      errors.push(`${tool.name}: ${res.error.message}`);
+  for (const workspaceScope of workspaces) {
+    const provRes = await callJson(session.data, T.providers, { workspaceScope });
+    if (!provRes.ok) { errors.push(`${T.providers}: ${provRes.error}`); continue; }
+    const providers = parseProviders(provRes.json);
+    if (providers.length === 0) {
+      notes.push(`No providers in workspace ${workspaceScope.tenantId}. First 200 chars: ${provRes.text.slice(0, 200)}`);
       continue;
     }
-    const found = extractRows(res.data.json ?? res.data.text, windowDays);
-    if (found.length === 0) {
-      toolsWithoutRows.push(tool.name);
-      notes.push(`${tool.name} answered but no per-post rows were recognized; first 200 chars: ${res.data.text.slice(0, 200)}`);
-      continue;
+
+    for (const provider of providers) {
+      const label = `${provider.dataService}/${provider.dataType}`;
+      if (!base.providers.includes(label)) base.providers.push(label);
+
+      const srcRes = await callJson(session.data, T.sources, { workspaceScope, providers: [provider] });
+      if (!srcRes.ok) { errors.push(`${T.sources} (${label}): ${srcRes.error}`); continue; }
+      const sourceIds = parseSourceIds(srcRes.json);
+      base.sourcesFound += sourceIds.length;
+      if (sourceIds.length === 0) {
+        notes.push(`No sources for ${label}. First 200 chars: ${srcRes.text.slice(0, 200)}`);
+        continue;
+      }
+
+      // Discovery: ask for post-level metrics, then keep MULTIPART (per-post entries) first.
+      const metRes = await callJson(session.data, T.metrics, { workspaceScope, queries: [{ providers: [provider], query: 'post' }] });
+      if (!metRes.ok) { errors.push(`${T.metrics} (${label}): ${metRes.error}`); continue; }
+      const all = parseMetrics(metRes.json, provider);
+      const multipart = all.filter((m) => m.dataFormat === 'MULTIPART');
+      const chosen = (multipart.length ? multipart : all).slice(0, MAX_METRICS_PER_PROVIDER);
+      if (chosen.length === 0) {
+        notes.push(`No metrics discovered for ${label}. First 200 chars: ${metRes.text.slice(0, 200)}`);
+        continue;
+      }
+      if (multipart.length === 0) {
+        notes.push(`${label}: no MULTIPART (per-post) metric found; falling back to ${chosen.map((m) => `${m.label}[${m.dataFormat}]`).join(', ')} — these are likely profile-level, so per-post attribution may not be possible for this provider.`);
+      }
+
+      for (const metric of chosen) {
+        const name = `${label}:${metric.label}`;
+        base.metricsQueried.push(name);
+        const qRes = await callJson(session.data, T.query, {
+          queries: [{
+            metricId: { id: metric.id, provider: metric.provider },
+            sourceIds,
+            timeRange: { since, until },
+            ...(metric.dataFormat === 'MULTIPART' ? { limit: ENTRY_PAGE_LIMIT } : {}),
+          }],
+        });
+        if (!qRes.ok) { errors.push(`${T.query} (${name}): ${qRes.error}`); continue; }
+
+        const found = extractRows(qRes.json, windowDays, provider.dataService);
+        if (found.length === 0) {
+          base.metricsWithoutRows.push(name);
+          notes.push(`${name} answered but no per-post entry was recognized. First 300 chars: ${qRes.text.slice(0, 300)}`);
+          continue;
+        }
+        rows.push(...found);
+      }
     }
-    rows.push(...found);
   }
 
-  if (rows.length === 0) {
-    return { ...empty, errors, toolsSeen, toolsCalled, toolsWithoutRows, notes };
-  }
+  if (rows.length === 0) return { ...emptyReport(), ...base, errors };
 
   const report = await ingestSocialMetrics(rows);
-  return { ...report, errors: [...errors, ...report.errors], toolsSeen, toolsCalled, toolsWithoutRows, notes };
+  return { ...report, ...base, errors: [...errors, ...report.errors] };
 }
