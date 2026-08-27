@@ -6,7 +6,6 @@ import {
   updateGlobalValue, updateEventTypeScoring, updateAssetTypeScoring, updateCapacity,
   type EventTypeField, type AssetTypeField,
 } from '@/lib/scoring-config/repository';
-import { recomputeAllScores } from '@/lib/tickets/score-service';
 
 export interface ActionResult {
   ok: boolean;
@@ -80,15 +79,9 @@ export async function setCapacity(group: 'Creatives' | 'Freelancers & contractor
   return { ok: true };
 }
 
-/** Recompute persisted priority scores after weight changes. */
-export async function recomputeScores(): Promise<ActionResult & { count?: number }> {
-  const g = await guard();
-  if ('error' in g) return { ok: false, error: g.error };
-  try {
-    const count = await recomputeAllScores();
-    revalidate();
-    return { ok: true, count };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Recompute failed.' };
-  }
-}
+// NOTE: there is deliberately no "recompute scores" action. `tickets.priority_score`
+// mirrors the Airtable SCORE formula (written by every pull, ~5 min) — see the E9.5
+// as-built note. The app's contribution is the deadline/campaign blend, computed on
+// read in `rankTickets`. A recompute used to overwrite SCORE with the app-side formula
+// and was silently reverted by the next pull, so weight edits now take effect
+// immediately without one.

@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  setGlobalValue, setEventTypeValue, setAssetTypeValue, setCapacity, recomputeScores,
+  setGlobalValue, setEventTypeValue, setAssetTypeValue, setCapacity,
   type ActionResult,
 } from '@/app/settings/scoring/actions';
 
@@ -176,31 +176,6 @@ function CapacitySection({ people, defaultCapacity, canEdit }: { people: PersonR
   );
 }
 
-function RecomputeButton({ canEdit }: { canEdit: boolean }) {
-  const router = useRouter();
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [pending, start] = useTransition();
-  if (!canEdit) return null;
-  return (
-    <div className="mt-4 flex items-center gap-2 border-t border-border-default pt-4">
-      <button
-        onClick={() => start(async () => {
-          setMsg(null);
-          const res = await recomputeScores();
-          setMsg(res.ok ? { ok: true, text: `Recomputed ${res.count ?? 0} tickets.` } : { ok: false, text: res.error ?? 'Failed.' });
-          if (res.ok) router.refresh();
-        })}
-        disabled={pending}
-        className="rounded-sm bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-bright disabled:opacity-50"
-      >
-        {pending ? 'Recomputing…' : 'Recompute scores now'}
-      </button>
-      <span className="text-xs text-text-muted">Priority weights only take effect on saved scores after a recompute.</span>
-      <Msg msg={msg} />
-    </div>
-  );
-}
-
 export function ScoringConfigEditor({ globals, eventTypes, assetTypes, people, defaultCapacity, canEdit }: ScoringConfigEditorProps) {
   const byGroup = useMemo(() => ({
     capacity: globals.filter((g) => g.group === 'Capacity'),
@@ -249,12 +224,10 @@ export function ScoringConfigEditor({ globals, eventTypes, assetTypes, people, d
 
       <GlobalSection
         title="Priority weights"
-        hint="urgency = w_due·dueProximity + w_event·eventTier · complexity = w_effort·effort + w_variants·variants + w_shoot·shoot · score = urgency + leadtime·complexity."
+        hint="Queue order = the Airtable SCORE (revenue + importance + complexity) plus w_due·dueProximity and w_campaign·campaignProximity. Edits apply to the live queue immediately — no recompute needed."
         rows={byGroup.priority}
         canEdit={canEdit}
-      >
-        <RecomputeButton canEdit={canEdit} />
-      </GlobalSection>
+      />
 
       <GlobalSection
         title="Thresholds & risk windows"

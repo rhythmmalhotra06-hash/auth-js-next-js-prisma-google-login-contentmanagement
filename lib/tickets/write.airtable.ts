@@ -10,6 +10,15 @@ import {
   TICKET_LINK as L,
 } from '@/lib/repositories/ticket.repository';
 import type { TicketPatch, WriteResult, CreateTicketRowInput } from './write.postgres';
+import { TICKETS } from '@/lib/airtable/field-map';
+
+const CERTAINTY = TICKETS.certainty_;
+
+/** App key ("fixed") → Airtable select label ("Fixed launch"). Unknown/blank → null. */
+function certaintyLabel(v: string | null | undefined): string | null {
+  if (!v) return null;
+  return CERTAINTY[v as keyof typeof CERTAINTY] ?? null;
+}
 
 const DELIVERY: [keyof TicketPatch, string][] = [
   ['assetFolderLink', F.assetFolderLink],
@@ -30,6 +39,9 @@ export async function updateTicket(recId: string, patch: TicketPatch, _opts: { n
   if (patch.prioStatus !== undefined) fields[F.prioStatus] = patch.prioStatus;
   if (patch.notes !== undefined) fields[F.notes] = patch.notes;
   if (patch.queueRank !== undefined) fields[F.queueRank] = patch.queueRank;
+  // Stored lowercase app-side, human label in Airtable. An unrecognised value writes
+  // null (clears the cell) rather than 400ing the request on an unknown select option.
+  if (patch.dateCertainty !== undefined) fields[F.dateCertainty] = certaintyLabel(patch.dateCertainty);
   if (patch.assetReadyNotified !== undefined) fields[F.assetReadyNotified] = patch.assetReadyNotified;
   if (patch.assigneeRecId !== undefined) fields[L.assignedCreative] = patch.assigneeRecId ? [patch.assigneeRecId] : [];
   for (const [k, fid] of DELIVERY) {
@@ -47,6 +59,7 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
     creativeBrief: input.creativeBrief,
     cta: input.cta ?? null,
     dueDate: input.dueDate,
+    dateCertainty: certaintyLabel(input.dateCertainty),
     typeOfRequest: input.typeOfRequest,
     teamServiceLevel: input.teamServiceLevel,
     notes: input.notes ?? null,

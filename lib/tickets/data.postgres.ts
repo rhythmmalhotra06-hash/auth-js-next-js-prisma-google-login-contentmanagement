@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { listActiveEmployeeRecords, listAllEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
-import { dueProximityNorm, campaignProximityNorm, blendQueueScore } from '@/lib/tickets/scoring';
+import { dueProximityNorm, campaignProximityNorm, blendQueueScore, explainQueueScore, scoreNormFor, asDateCertainty, type ScoreRange } from '@/lib/tickets/scoring';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 
 export interface QueueTicket {
@@ -32,6 +32,10 @@ export interface QueueTicket {
   officialCalendarId: string | null;
   typeOfRequest: string | null;
   dueDate: string | null;
+  /** 'fixed' | 'target' | 'evergreen' — whether the due date can move. Null on legacy rows. */
+  dateCertainty: string | null;
+  /** Why this ticket ranks where it does, in plain language. Filled by the ranking pass. */
+  scoreWhy?: string;
   folderUrl: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
@@ -70,6 +74,7 @@ type TicketWithRelations = {
   prioStatus: string | null;
   typeOfRequest: string | null;
   dueDate: Date | null;
+  dateCertainty: string | null;
   assetFolderLink: string | null;
   assignee: { name: string; airtableId: string | null; active: boolean } | null;
   assigneeName: string | null; // attribution snapshot; outlives the FK
@@ -117,6 +122,7 @@ function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number
     officialCalendarId: t.officialCalendar?.airtableId ?? null,
     typeOfRequest: t.typeOfRequest,
     dueDate: isoDate(t.dueDate),
+    dateCertainty: asDateCertainty(t.dateCertainty),
     folderUrl: t.assetFolderLink,
     rawScore: numOf(t.priorityScore),
     campaignWindow: t.officialCalendar ? { start: t.officialCalendar.startDate, end: t.officialCalendar.endDate } : null,
@@ -157,29 +163,53 @@ export async function getEligibleAssignees(): Promise<AssigneeOption[]> {
   return [...creatives.sort(byName), ...freelancers.sort(byName)];
 }
 
+// Global min/max of the Airtable SCORE mirror, so a ticket's displayed priority is the
+// same number on every surface (see scoreNormFor). Cached like the scoring config —
+// the range only moves when SCORE inputs change, which a 5-minute lag covers fine.
+const SCORE_RANGE_TTL_MS = 5 * 60_000;
+let scoreRangeCache: { at: number; range: ScoreRange } | null = null;
+let scoreRangeInFlight: Promise<ScoreRange> | null = null;
+
+async function getScoreRange(): Promise<ScoreRange> {
+  if (scoreRangeCache && Date.now() - scoreRangeCache.at < SCORE_RANGE_TTL_MS) return scoreRangeCache.range;
+  if (scoreRangeInFlight) return scoreRangeInFlight;
+  scoreRangeInFlight = (async () => {
+    try {
+      const agg = await prisma.ticket.aggregate({ _min: { priorityScore: true }, _max: { priorityScore: true } });
+      const range = { min: numOf(agg._min.priorityScore) ?? 0, max: numOf(agg._max.priorityScore) ?? 0 };
+      scoreRangeCache = { at: Date.now(), range };
+      return range;
+    } catch {
+      // Never let a ranking read fail on this — a degenerate range just means the
+      // deadline + campaign terms decide the order on their own.
+      return { min: 0, max: 0 };
+    } finally {
+      scoreRangeInFlight = null;
+    }
+  })();
+  return scoreRangeInFlight;
+}
+
 /**
- * Rank + shape a set of ticket rows into QueueTickets. E9.5 blend: min-max normalize
- * the Airtable SCORE base across the loaded set, layer app-side deadline + campaign
- * urgency, and display the blended 0–100. Manual queue_rank still wins the order.
+ * Rank + shape a set of ticket rows into QueueTickets. E9.5 blend: normalize the
+ * Airtable SCORE base against the global score range, layer app-side deadline +
+ * campaign urgency, and display the blended 0–100. Manual queue_rank still wins.
  */
 async function rankTickets(rows: TicketWithRelations[]): Promise<QueueTicket[]> {
-  const cfg = await getScoringConfig();
+  const [cfg, range] = await Promise.all([getScoringConfig(), getScoreRange()]);
   const base = rows.map(toQueueTicket);
 
   const now = new Date();
   const win = cfg.dueProximityWindowDays;
-  const nums = base.map((r) => r.rawScore ?? 0);
-  const min = nums.length ? Math.min(...nums) : 0;
-  const max = nums.length ? Math.max(...nums) : 0;
-  const span = max - min;
   const blendMax = 1 + cfg.weights.due + cfg.weights.campaign;
 
   const ranked = base.map((r) => {
-    const scoreNorm = span > 0 ? ((r.rawScore ?? 0) - min) / span : 0.5;
+    const scoreNorm = scoreNormFor(r.rawScore, range);
     const dueNorm = dueProximityNorm(r.dueDate ? new Date(r.dueDate) : null, now, win);
     const campaignNorm = r.campaignWindow ? campaignProximityNorm(r.campaignWindow.start, r.campaignWindow.end, now, win) : 0;
-    const blended = blendQueueScore({ scoreNorm, dueNorm, campaignNorm }, cfg);
-    return { row: r, blended };
+    const parts = { scoreNorm, dueNorm, campaignNorm, dateCertainty: r.dateCertainty, dueDate: r.dueDate };
+    const blended = blendQueueScore(parts, cfg);
+    return { row: r, blended, why: explainQueueScore(parts, cfg) };
   });
 
   ranked.sort((a, b) => {
@@ -190,9 +220,9 @@ async function rankTickets(rows: TicketWithRelations[]): Promise<QueueTicket[]> 
     return b.blended - a.blended;
   });
 
-  return ranked.map(({ row, blended }) => {
+  return ranked.map(({ row, blended, why }) => {
     const { rawScore: _s, campaignWindow: _w, ...rest } = row;
-    return { ...rest, priorityScore: String(Math.round((blended / blendMax) * 100)) };
+    return { ...rest, priorityScore: String(Math.round((blended / blendMax) * 100)), scoreWhy: why };
   });
 }
 

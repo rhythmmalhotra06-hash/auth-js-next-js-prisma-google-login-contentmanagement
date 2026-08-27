@@ -11,7 +11,7 @@ import { nameMap, firstLinkedName, firstLinkedId, resolveLinkedNames } from '@/l
 import { listActiveEmployeeRecords, listAllEmployeeRecords } from '@/lib/repositories/employee.repository';
 import { listActiveContractorRecords } from '@/lib/repositories/contractor.repository';
 import { cleanBrief } from '@/lib/tickets/brief';
-import { dueProximityNorm, campaignProximityNorm, blendQueueScore } from '@/lib/tickets/scoring';
+import { dueProximityNorm, campaignProximityNorm, blendQueueScore, explainQueueScore, scoreNormFor, asDateCertainty, type ScoreRange } from '@/lib/tickets/scoring';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
 
 const F = TICKETS.fields;
@@ -35,6 +35,10 @@ export interface QueueTicket {
   officialCalendarId: string | null;
   typeOfRequest: string | null;
   dueDate: string | null;
+  /** 'fixed' | 'target' | 'evergreen' — whether the due date can move. Null on legacy rows. */
+  dateCertainty: string | null;
+  /** Why this ticket ranks where it does, in plain language. Filled by the ranking pass. */
+  scoreWhy?: string;
   folderUrl: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
@@ -70,7 +74,7 @@ const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't
 // history), so never scan it — read only the newest few (getRecentShipped).
 const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;
 
-const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate, F.assetFolderLink,
+const QUEUE_FIELDS = [F.name, F.score, F.queueRank, F.ticketStatus, F.prioStatus, F.typeOfRequest, F.dueDate, F.dateCertainty, F.assetFolderLink,
   L.assignedCreative, L.assignedContractor, L.requestedBy, L.eventTypes, L.assetTypes, L.officialCalendar];
 
 // Maps a raw Prio Requests record to a QueueTicket (+ assigneeId for filtering).
@@ -103,6 +107,7 @@ function mapTicketRow(
     officialCalendarId: firstLinkedId(f[L.officialCalendar]),
     typeOfRequest: str(f[F.typeOfRequest]),
     dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
+    dateCertainty: asDateCertainty(str(f[F.dateCertainty])),
     folderUrl: str(f[F.assetFolderLink]),
   };
 }
@@ -175,19 +180,25 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
   }
   const now = new Date();
   const win = cfg.dueProximityWindowDays;
+  // Dormant fallback path (prod runs TICKETS_BACKEND=postgres). Unlike the Postgres
+  // path this can only see the rows it fetched, so the range is per-set and a ticket's
+  // displayed 0–100 may differ between surfaces. Kept as-is deliberately: fixing it
+  // here would mean a second full-table Airtable read on every queue load.
   const nums = rows.map((r) => Number(r.priorityScore) || 0);
-  const min = nums.length ? Math.min(...nums) : 0;
-  const max = nums.length ? Math.max(...nums) : 0;
-  const span = max - min;
+  const range: ScoreRange = {
+    min: nums.length ? Math.min(...nums) : 0,
+    max: nums.length ? Math.max(...nums) : 0,
+  };
   const blendMax = 1 + cfg.weights.due + cfg.weights.campaign; // for 0–100 display scaling
 
   const ranked = rows.map((r) => {
-    const scoreNorm = span > 0 ? ((Number(r.priorityScore) || 0) - min) / span : 0.5;
+    const scoreNorm = scoreNormFor(Number(r.priorityScore) || 0, range);
     const dueNorm = dueProximityNorm(r.dueDate ? new Date(r.dueDate) : null, now, win);
     const w = r.officialCalendarId ? calWin.get(r.officialCalendarId) : undefined;
     const campaignNorm = w ? campaignProximityNorm(w.start, w.end, now, win) : 0;
-    const blended = blendQueueScore({ scoreNorm, dueNorm, campaignNorm }, cfg);
-    return { row: r, blended };
+    const parts = { scoreNorm, dueNorm, campaignNorm, dateCertainty: r.dateCertainty, dueDate: r.dueDate };
+    const blended = blendQueueScore(parts, cfg);
+    return { row: r, blended, why: explainQueueScore(parts, cfg) };
   });
 
   // queue_rank (manual) overrides the blended score; unranked fall back to blended desc.
@@ -199,9 +210,9 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
     return b.blended - a.blended;
   });
 
-  return ranked.map(({ row, blended }) => {
+  return ranked.map(({ row, blended, why }) => {
     const { assigneeId: _drop, ...rest } = row;
-    return { ...rest, priorityScore: String(Math.round((blended / blendMax) * 100)) };
+    return { ...rest, priorityScore: String(Math.round((blended / blendMax) * 100)), scoreWhy: why };
   });
 }
 

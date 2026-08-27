@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { PRIO_STATUSES, TICKET_STATUSES } from '@/lib/tickets/constants';
+import { PRIO_STATUSES, TICKET_STATUSES, QUEUE_RANK_MAX } from '@/lib/tickets/constants';
 import { getTicketDetail } from '@/lib/tickets/data';
 import { updateTicket } from '@/lib/tickets/write';
 import { getShoot, updateShoot, SHOOT_STATUS } from '@/lib/shoots/repository';
@@ -122,9 +122,9 @@ export async function declineShoot(shootId: string, note?: string): Promise<Acti
   return { ok: true };
 }
 
-/** Set the 2-way-synced manual priority rank (1–5 stars → "Priority ranking (Manual)"). */
+/** Set the 2-way-synced manual priority rank (stars → "Priority ranking (Manual)"). */
 export async function setPriorityRank(ticketId: string, rank: number): Promise<ActionResult> {
-  if (!Number.isInteger(rank) || rank < 1 || rank > 5) return { ok: false, error: 'Rank must be 1–5' };
+  if (!Number.isInteger(rank) || rank < 1 || rank > QUEUE_RANK_MAX) return { ok: false, error: `Rank must be 1–${QUEUE_RANK_MAX}` };
   const res = await updateTicket(ticketId, { queueRank: rank });
   if (!res.ok) return { ok: false, error: res.error };
   revalidateStudio();

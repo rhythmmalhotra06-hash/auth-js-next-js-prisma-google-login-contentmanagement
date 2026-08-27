@@ -223,6 +223,9 @@ export async function convertClipsToTickets(input: ConvertClipsInput): Promise<C
       authorIds: [],
       creativeBrief: brief(c, verbatim),
       dueDate: input.dueDate,
+      // Clip/organic work carries no external launch commitment — the date is real
+      // intent but movable, so it ranks as a target, not a fixed launch.
+      dateCertainty: 'target',
       sourceLinks: sourceLinks || undefined,
       downloadLink: src?.downloadUrl ?? undefined,
     });

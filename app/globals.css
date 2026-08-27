@@ -940,6 +940,10 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 .st-starbtn.on{color:var(--gold);}
 .st-starbtns:hover .st-starbtn{color:var(--gold);}
 .st-starbtn:hover ~ .st-starbtn{color:var(--border-strong);}
+/* Table density: the rating runs to 10 (matching the Airtable field), which at full size
+   would overrun the Priority cell and crowd out the due chip beside it. */
+.st-starbtns.compact{gap:0;}
+.st-starbtns.compact .st-starbtn{font-size:12px;padding:0;}
 
 /* status dots */
 .st-dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;}

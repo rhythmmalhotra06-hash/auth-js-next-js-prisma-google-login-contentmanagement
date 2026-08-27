@@ -74,6 +74,9 @@ export async function raiseSocialRequestAction(id: string, input: RaiseSocialInp
     authorIds: [],
     creativeBrief: brief,
     dueDate: input.dueDate,
+    // Clip/organic work carries no external launch commitment — the date is real
+    // intent but movable, so it ranks as a target, not a fixed launch.
+    dateCertainty: 'target',
     sourceLinks: s.clipSourceUrl ?? undefined,
   });
   if (!res.ok || !res.ticketId) return { ok: false, error: res.error ?? 'Failed to create the ticket.' };

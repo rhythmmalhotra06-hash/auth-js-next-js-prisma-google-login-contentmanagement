@@ -4,13 +4,22 @@
 //   • name  (fld59SWr…) and score (fldjY4Vf…) are FORMULA fields — writing them
 //     400s the whole batch.
 //
-// queueRank IS pushed: in this app it's Vishen's 1–5 manual priority RATING (not a
-// positional 1…N order), so it fits the "Priority ranking (Manual)" rating field and
-// is genuinely two-way (set in the portal → mirrored to Airtable). Guarded to 1–5.
+// queueRank IS pushed: in this app it's a manual priority RATING (not a positional
+// 1…N order), so it fits the "Priority ranking (Manual)" rating field and is genuinely
+// two-way (set in the portal → mirrored to Airtable). Guarded to 1…QUEUE_RANK_MAX.
 //
 // Link fields are written as arrays of the linked reference rows' Airtable recIds.
 
 import { TICKETS } from './field-map';
+import { QUEUE_RANK_MAX } from '@/lib/tickets/constants';
+
+const CERTAINTY = TICKETS.certainty_;
+
+/** App key ("fixed") → the Airtable select label ("Fixed launch"). Unknown → null. */
+function certaintyLabel(v: string | null): string | null {
+  if (!v) return null;
+  return CERTAINTY[v as keyof typeof CERTAINTY] ?? null;
+}
 
 /** Ticket + its reference rows' Airtable recIds, as loaded by the drainer. */
 export interface TicketForPush {
@@ -43,6 +52,7 @@ export interface TicketForPush {
   authorAirtableIds: string[];
   shootAirtableIds: string[];
   queueRank: number | null;
+  dateCertainty: string | null;
 }
 
 const isoDate = (d: Date | null | undefined): string | null =>
@@ -90,6 +100,9 @@ export function ticketToAirtableFields(t: TicketForPush): Record<string, unknown
   set(f.ticketStatus, t.ticketStatus);
   set(f.typeOfRequest, t.typeOfRequest);
   set(f.teamServiceLevel, t.teamServiceLevel);
+  // Stored lowercase app-side; Airtable holds the human label. An unrecognised value is
+  // dropped rather than sent, so it can never 400 the batch on an unknown select option.
+  set(f.dateCertainty, certaintyLabel(t.dateCertainty));
 
   // Link fields: arrays of reference recIds. Only set when we have the recId, so
   // an un-mirrored reference never blanks an existing Airtable link.
@@ -101,9 +114,9 @@ export function ticketToAirtableFields(t: TicketForPush): Record<string, unknown
   if (t.authorAirtableIds.length) fields[l.speakers] = t.authorAirtableIds;
   if (t.shootAirtableIds.length) fields[l.shoots] = t.shootAirtableIds;
 
-  // 1–5 manual priority rating (fits the Airtable rating field). Guarded so an
-  // out-of-range value can never 400 the batch.
-  if (t.queueRank != null && t.queueRank >= 1 && t.queueRank <= 5) fields[f.queueRank] = t.queueRank;
+  // Manual priority rating. The Airtable rating field is configured max 10, so the app
+  // accepts the same range; the guard only stops an out-of-range value 400ing the batch.
+  if (t.queueRank != null && t.queueRank >= 1 && t.queueRank <= QUEUE_RANK_MAX) fields[f.queueRank] = t.queueRank;
 
   return fields;
 }

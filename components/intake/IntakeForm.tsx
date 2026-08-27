@@ -5,6 +5,7 @@ import type { IntakeReferenceData } from '@/lib/intake/data';
 import { createTicket } from '@/app/intake/actions';
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect';
 import { Icon } from '@/components/ui/Icon';
+import { cn } from '@/lib/cn';
 
 function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -20,6 +21,46 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
 
 const inputCls =
   'w-full rounded-sm border border-border-default px-3 py-2 text-sm text-text outline-none focus-visible:border-brand focus-visible:shadow-[var(--mv-shadow-focus)]';
+
+// The three answers to "can this date move?". The descriptions are the point of the
+// control: without them people read the labels as urgency levels and pick "Fixed launch"
+// for everything, which is the behaviour this field exists to stop.
+const CERTAINTY_OPTIONS = [
+  { value: 'fixed', label: 'Fixed launch', desc: 'Committed externally. This date cannot move.' },
+  { value: 'target', label: 'Target date', desc: 'We want it by then. It can move if it has to.' },
+  { value: 'evergreen', label: 'Evergreen', desc: 'No real deadline. Ship it when there is room.' },
+] as const;
+
+function CertaintyChoice({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Date certainty" className="grid gap-2 sm:grid-cols-3">
+      {CERTAINTY_OPTIONS.map((o) => {
+        const on = value === o.value;
+        return (
+          <label
+            key={o.value}
+            className={cn(
+              'flex cursor-pointer flex-col gap-1 rounded-sm border p-3 transition-colors',
+              'focus-within:border-brand focus-within:shadow-[var(--mv-shadow-focus)]',
+              on ? 'border-brand-border bg-brand-soft' : 'border-border-default bg-surface hover:border-border-strong',
+            )}
+          >
+            <input
+              type="radio"
+              name="dateCertainty"
+              className="sr-only"
+              value={o.value}
+              checked={on}
+              onChange={() => onChange(o.value)}
+            />
+            <span className={cn('text-sm font-medium', on ? 'text-brand-content' : 'text-text')}>{o.label}</span>
+            <span className="text-xs text-text-muted">{o.desc}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
@@ -46,6 +87,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
   const [creativeBrief, setCreativeBrief] = useState('');
   const [cta, setCta] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [dateCertainty, setDateCertainty] = useState('');
   const [sourceLinks, setSourceLinks] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -101,7 +143,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
     setResult(null);
     const res = await createTicket({
       requesterId, title, teamServiceLevel, typeOfRequest, eventTypeId, assetTypeId,
-      officialCalendarId, authorIds, shootIds, creativeBrief, cta, dueDate, sourceLinks, notes,
+      officialCalendarId, authorIds, shootIds, creativeBrief, cta, dueDate, dateCertainty, sourceLinks, notes,
     });
     setSubmitting(false);
     if (res.ok) {
@@ -109,7 +151,7 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
       // reset
       setRequesterId(''); setTitle(''); setTeamServiceLevel(''); setTypeOfRequest('');
       setEventTypeId(''); setAssetTypeId(''); setOfficialCalendarId(''); setAuthorIds([]); setShootIds([]);
-      setCreativeBrief(''); setCta(''); setDueDate(''); setSourceLinks(''); setNotes('');
+      setCreativeBrief(''); setCta(''); setDueDate(''); setDateCertainty(''); setSourceLinks(''); setNotes('');
     } else {
       setResult({ ok: false, message: res.error ?? 'Something went wrong' });
     }
@@ -230,9 +272,12 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
         </Field>
       </Section>
 
-      <Section title="Scheduling & Priority" subtitle="Set the deadline. Priority and assignee are handled by the backend.">
+      <Section title="Scheduling & Priority" subtitle="Set the deadline and say whether it can move. Priority and assignee are handled by the backend.">
         <Field label="Due date" required>
           <input type="date" className={inputCls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+        </Field>
+        <Field label="Can this date move?" required hint="This is what orders the queue. A fixed launch outranks a target; an evergreen item waits for capacity.">
+          <CertaintyChoice value={dateCertainty} onChange={setDateCertainty} />
         </Field>
       </Section>
 

@@ -56,11 +56,17 @@ const uniq = (rows: QueueTicket[], key: Dim) =>
 const TICKET_ORDER = ['Backlog', 'To Do', 'In Progress', 'In Revision', 'Review', 'Approved', 'Shipping', 'Done', "Won't Do"];
 const orderIdx = (s: string) => { const i = TICKET_ORDER.indexOf(s); return i === -1 ? TICKET_ORDER.length : i; };
 const lower = (v: string | null) => (v ?? '').toLowerCase();
-const priorityVal = (t: QueueTicket) => Number(t.queueRank ?? t.priorityScore ?? 0);
+// Priority is two different scales in one column: a manual 1-N star rank (1 = most
+// important) and a 0-100 blended score. Sorting them on one raw axis interleaved them,
+// so a high-scoring unranked ticket jumped above a 1-star one. Mirror the server order
+// instead: ranked tickets form a band above every scored ticket, best rank first.
+const RANKED_BAND = 1000;
+const priorityVal = (t: QueueTicket) =>
+  t.queueRank != null ? RANKED_BAND - t.queueRank : Number(t.priorityScore ?? 0);
 
 const COLUMNS: ColumnDef<QueueTicket>[] = [
   { key: 'title', label: 'Title', locked: true, sortable: true, width: 300, sortAccessor: (t) => lower(t.title) },
-  { key: 'priority', label: 'Priority', locked: true, sortable: true, numeric: true, width: 120, sortAccessor: priorityVal },
+  { key: 'priority', label: 'Priority', locked: true, sortable: true, numeric: true, width: 190, sortAccessor: priorityVal },
   { key: 'assigned', label: 'Assigned', locked: true, sortable: true, width: 150, sortAccessor: (t) => lower(t.assignee) },
   { key: 'ticketStatus', label: 'Ticket status', locked: true, sortable: true, width: 130, sortAccessor: (t) => orderIdx(t.ticketStatus ?? '') },
   { key: 'prioStatus', label: 'Priority status', locked: true, sortable: true, width: 150, sortAccessor: (t) => lower(t.prioStatus) },
@@ -70,6 +76,7 @@ const COLUMNS: ColumnDef<QueueTicket>[] = [
   { key: 'requester', label: 'Requester', sortable: true, width: 150, sortAccessor: (t) => lower(t.requester) },
   { key: 'campaign', label: 'Campaign', sortable: true, width: 160, sortAccessor: (t) => lower(t.officialCalendar) },
   { key: 'typeOfRequest', label: 'Request type', sortable: true, width: 150, sortAccessor: (t) => lower(t.typeOfRequest) },
+  { key: 'dateCertainty', label: 'Date certainty', sortable: true, width: 140, sortAccessor: (t) => lower(t.dateCertainty) },
 ];
 
 // Unassigned rows in the manager view show a gold "Assign" pill (gold = attention);
@@ -91,13 +98,35 @@ function InlineAssign({ ticketId, assignees }: { ticketId: string; assignees: { 
   );
 }
 
-function dueChip(due: string | null) {
+const CERTAINTY_SHORT: Record<string, string> = { fixed: 'Fixed launch', target: 'Target date', evergreen: 'Evergreen' };
+
+const CERTAINTY_LABEL: Record<string, string> = {
+  fixed: 'Fixed launch — this date cannot move',
+  target: 'Target date — it can move if it has to',
+  evergreen: 'Evergreen — no real deadline',
+};
+
+/**
+ * The deadline chip, told whether the deadline is real.
+ *
+ * An evergreen request shows how long it has been waiting, never "due 2d" — rendering a
+ * countdown for a date nobody committed to is exactly what made every row look urgent.
+ * A fixed launch is pinned, so a committed date is legible at a glance rather than
+ * indistinguishable from a wish.
+ */
+function dueChip(due: string | null, certainty?: string | null) {
   if (!due) return null;
   const d = Math.ceil((new Date(due).getTime() - Date.now()) / 86400000);
   if (Number.isNaN(d)) return null;
-  if (d < 0) return <span className="due far">overdue</span>;
+  const title = certainty ? CERTAINTY_LABEL[certainty] : undefined;
+
+  if (certainty === 'evergreen') {
+    return <span className="due far" title={title}>evergreen</span>;
+  }
+  const pin = certainty === 'fixed' ? <Icon name="pin" size={10} /> : null;
+  if (d < 0) return <span className="due far" title={title}>{pin} overdue</span>;
   const cls = d <= 2 ? 'soon' : d <= 6 ? 'mid' : 'far';
-  return <span className={`due ${cls}`}>due {d}d</span>;
+  return <span className={`due ${cls}`} title={title}>{pin} due {d}d</span>;
 }
 
 export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue', scoringConfig, editableRank = false, showRank = false, assignees, initialFilters, stageFilter }: { tickets: QueueTicket[]; basePath?: string; storageKey?: string; scoringConfig?: ScoringConfig; editableRank?: boolean; showRank?: boolean; assignees?: { id: string; name: string }[]; initialFilters?: Partial<Record<Dim, string>>; stageFilter?: StageKey }) {
@@ -204,8 +233,17 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         );
       case 'priority':
         return editableRank
-          ? <td key={key}><StarRating ticketId={t.id} value={t.queueRank} /> {dueChip(t.dueDate)}</td>
-          : <td key={key}><span className="score">{t.queueRank ?? t.priorityScore ?? '—'}</span> {dueChip(t.dueDate)}</td>;
+          ? <td key={key}><StarRating ticketId={t.id} value={t.queueRank} compact /> {dueChip(t.dueDate, t.dateCertainty)}</td>
+          : (
+            <td key={key}>
+              {/* The tooltip is why the number is arguable instead of mysterious. A manual
+                  star rank overrides the computed order, so say so rather than showing a
+                  reason that no longer applies. */}
+              <span className="score" title={t.queueRank != null ? 'Set manually — overrides the computed order' : t.scoreWhy}>
+                {t.queueRank ?? t.priorityScore ?? '—'}
+              </span> {dueChip(t.dueDate, t.dateCertainty)}
+            </td>
+          );
       case 'assigned':
         if (t.assignee) return <td key={key}><AssigneeName name={t.assignee} exTeam={t.assigneeExTeam} /></td>;
         return (
@@ -225,6 +263,8 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
         return <td key={key}>{t.assetType ?? <span className="subtle">—</span>}</td>;
       case 'dueDate':
         return <td key={key}>{t.dueDate ?? <span className="subtle">—</span>}</td>;
+      case 'dateCertainty':
+        return <td key={key}>{t.dateCertainty ? CERTAINTY_SHORT[t.dateCertainty] ?? t.dateCertainty : <span className="subtle">—</span>}</td>;
       case 'requester':
         return <td key={key}>{t.requester ?? <span className="subtle">—</span>}</td>;
       case 'campaign':
@@ -285,7 +325,7 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
                     <Icon name="clock" size={11} /> {r.level === 'high' ? 'at risk' : 'watch'}
                   </span>
                 )}
-                {dueChip(t.dueDate)}
+                {dueChip(t.dueDate, t.dateCertainty)}
               </div>
               <div className="qc-fields">
                 <span className="qc-k">Priority</span>

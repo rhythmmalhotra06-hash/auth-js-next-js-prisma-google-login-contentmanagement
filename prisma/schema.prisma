@@ -275,6 +275,13 @@ model Ticket {
   audience      String? // 'cold' | 'warm'
   dueDate       DateTime? @map("due_date") @db.Date
 
+  // Is the due date real? 'fixed' (externally committed, cannot move) | 'target' (we want
+  // it by then) | 'evergreen' (no real deadline). Damps the deadline term in the queue
+  // blend — see certaintyFactor() in lib/tickets/scoring.ts. Without this a star rating is
+  // decoration: an item rated 2 that launches Monday still gets done before a 5 that never
+  // truly ships. Null (legacy rows) is treated as 'target'.
+  dateCertainty String? @map("date_certainty")
+
   eventTypeId        String? @map("event_type_id") @db.Uuid
   assetTypeId        String? @map("asset_type_id") @db.Uuid
   assigneeId         String? @map("assignee_id") @db.Uuid // ← Airtable "Assigned Creative"

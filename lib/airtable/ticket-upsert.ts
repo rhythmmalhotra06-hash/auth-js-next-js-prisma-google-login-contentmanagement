@@ -7,9 +7,20 @@
 // author join. Reference sync MUST have run first so the link targets exist.
 
 import { TICKETS } from './field-map';
+import { asDateCertainty } from '@/lib/tickets/scoring';
 
 const T = TICKETS.fields;
 const TL = TICKETS.links;
+const CERTAINTY = TICKETS.certainty_;
+
+// Airtable label ("Fixed launch") → the app's stored key ("fixed"). Unknown or blank
+// labels stay null, which the scorer reads as 'target'.
+function certaintyVal(v: unknown): string | null {
+  const label = typeof v === 'string' ? v.trim() : null;
+  if (!label) return null;
+  const hit = (Object.keys(CERTAINTY) as (keyof typeof CERTAINTY)[]).find((k) => CERTAINTY[k] === label);
+  return hit ?? asDateCertainty(label);
+}
 
 type Rec = { id: string; fields: Record<string, unknown> };
 
@@ -42,6 +53,7 @@ function ticketScalars(r: Rec) {
     creativeBrief: str(f[T.creativeBrief]),
     cta: str(f[T.cta]),
     dueDate: dateVal(f[T.dueDate]),
+    dateCertainty: certaintyVal(f[T.dateCertainty]),
     prioStatus: str(f[T.prioStatus]),
     ticketStatus: str(f[T.ticketStatus]),
     queueRank: numVal(f[T.queueRank]),
