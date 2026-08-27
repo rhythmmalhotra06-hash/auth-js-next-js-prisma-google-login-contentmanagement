@@ -1,8 +1,14 @@
 # Pulling performance numbers from Hootsuite Perch
 
-How live social numbers get into the portal today. The app holds no Hootsuite
-credential — the **claude.ai Perch connector** is the source, this runbook is the pipe,
-and `POST /api/metrics/social` is the door. Nothing here needs a deploy to change.
+How live social numbers get into the portal.
+
+**The normal path is automatic** and needs nothing from this document: an admin connects
+Hootsuite once at **`/admin/hootsuite`**, and `.github/workflows/perch-metrics.yml` pulls
+nightly into `social_metrics`. The app holds its own grant (see `lib/hootsuite/oauth.ts`).
+
+This runbook covers the **manual/connector pull** — still useful for a one-off backfill, for
+pulling a window the cron doesn't cover, or when the app-held grant is broken and you need
+numbers today. It posts to the same door, `POST /api/metrics/social`.
 
 Decision and rationale: `plans/i-got-the-mcp-temporal-summit.md`.
 
@@ -10,9 +16,11 @@ Decision and rationale: `plans/i-got-the-mcp-temporal-summit.md`.
 
 ## One-time setup
 
-1. **Authorize the connector.** claude.ai → Settings → Connectors → add a custom
-   connector with URL `https://mcp.hootsuite.com/perch`. Sign in to the Hootsuite
-   workspace when prompted; authorization is one-time and survives sessions.
+1. **Authorize the connector.** For the automated path you want `/admin/hootsuite` →
+   **Connect Hootsuite** instead of this step. For a connector-driven pull: claude.ai →
+   Settings → Connectors → add a custom connector with URL
+   `https://mcp.hootsuite.com/perch`. Sign in to the Hootsuite workspace when prompted;
+   authorization is one-time and survives sessions.
    - The server is a standard remote MCP: OAuth 2.1 + dynamic client registration at
      `https://platform.hootsuite.com`, scopes `offline` + `analytics:read`.
    - Perch is a **paid** Hootsuite product. If authorization returns an entitlement
@@ -106,15 +114,18 @@ because both silently corrupt matching:
   `youtube.com/watch?v=...` onto the single key `youtube.com/watch`, i.e. one key for the
   entire channel. Tracking params (`t`, `si`, `feature`, `utm_*`, `igshid`) are still dropped.
 
-## What this deliberately does not do
+## Relationship to the automated pull
 
-There is **no cron and no stored Hootsuite token.** The pull is a human-initiated
-session, so numbers are as fresh as the last run.
+Superseded as the primary path — the cron and the app-held token now exist (shipped
+2026-08-24): an admin-only connect route doing DCR + PKCE with the refresh token sealed at
+rest, plus `.github/workflows/perch-metrics.yml` → `POST /api/metrics/perch-pull` nightly at
+03:30 UTC over a 1-day and a 30-day window. `/admin/hootsuite` also has a **Pull metrics
+now** button that runs exactly what the cron runs.
 
-Automating it later is additive, not a rewrite: `offline` is a supported scope, so an
-admin-only connect route (DCR + PKCE, refresh token encrypted at rest) plus a
-`perch-metrics.yml` GitHub Actions schedule hitting the same endpoint is all that's
-missing. The sink, matching, dedupe, and UI are already built and source-agnostic.
+A connector pull as described above remains valid and safe alongside it: both write through
+`ingestSocialMetrics` with `source: 'hootsuite:perch'`, and dedupe is keyed by
+(source, post, window, captured day) — so a manual pull for a window the cron already
+covered updates those rows rather than duplicating them.
 
 ## Manual entry (the fallback that always works)
 
