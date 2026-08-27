@@ -1,0 +1,48 @@
+name: Social performance digest
+
+# Weekly Slack digest of published performance: what won, which way reach is moving, and
+# what fell below each account's own baseline. Composed from the same data the Performance
+# page renders, so the two can't disagree.
+#
+#   POST /api/metrics/social-digest        — Bearer-gated (SYNC_SECRET)
+#   POST /api/metrics/social-digest?dryRun=1  — compose without posting
+#
+# Runs after Monday's Perch pull so the numbers are fresh. A week with no stored metrics
+# posts nothing rather than a "nothing to report" message — that's how digests get muted.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # 04:00 UTC Monday, after the 03:30 daily Perch pull
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: 'Compose without posting to Slack'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: social-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post the weekly social digest
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+          DRY: ${{ github.event.inputs.dryRun }}
+        run: |
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "::error::SYNC_SECRET is not set in repo secrets"; exit 1
+          fi
+          q=""
+          if [ "$DRY" = "true" ]; then q="?dryRun=1"; fi
+          echo "→ POST $APP_URL/api/metrics/social-digest$q"
+          code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -X POST "$APP_URL/api/metrics/social-digest$q" \
+            -H "Authorization: Bearer $SYNC_SECRET")
+          echo "HTTP $code"; cat /tmp/resp.json; echo
+          if [ "$code" != "200" ]; then echo "::error::social-digest returned HTTP $code"; exit 1; fi

@@ -5,7 +5,9 @@ import { Icon } from '@/components/ui/Icon';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getAdminAccess } from '@/lib/admin/access';
 import { getAccountPerformance } from '@/lib/metrics/social-perf';
+import { getQueueTickets, getRecentShipped } from '@/lib/tickets/data';
 import { SocialAccountPanel } from '@/components/performance/SocialAccountPanel';
+import type { TicketOption } from '@/components/performance/PostRowActions';
 
 // Performance — THE NUMBERS. How published work actually landed: reach and engagement per
 // post, one board per connected account, pulled nightly from Hootsuite Perch.
@@ -39,9 +41,16 @@ async function Numbers({ isAdmin }: { isAdmin: boolean }) {
     );
   }
 
+  // Ticket options for "attach to ticket" — active work plus recent ships, since a
+  // published post is usually attached AFTER its ticket was completed.
+  const [active, shipped] = await Promise.all([getQueueTickets(), getRecentShipped(60)]);
+  const tickets: TicketOption[] = [...active, ...shipped]
+    .filter((t, i, a) => a.findIndex((x) => x.id === t.id) === i)
+    .map((t) => ({ id: t.id, label: t.assignee ? `${t.title} — ${t.assignee}` : t.title }));
+
   return (
     <>
-      <SocialAccountPanel data={social} />
+      <SocialAccountPanel data={social} tickets={tickets} />
       <p className="t-meta">
         Capacity, throughput and at-risk work live on{' '}
         <Link href="/performance/capacity">Capacity &amp; risk</Link>.

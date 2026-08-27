@@ -77,6 +77,50 @@ async function resolveVideosByUrl(urls: string[]): Promise<Map<string, string>> 
   return out;
 }
 
+/** Stable key for "the same post", regardless of which window or day a row came from. */
+function linkKey(platformPostId: string | null, publishedUrl: string | null): string {
+  return platformPostId ?? publishedUrl ?? '';
+}
+
+/**
+ * Carry forward any attribution a human (or an earlier match) already established for
+ * these posts.
+ *
+ * Without this, attaching a post to a ticket lasts until the next nightly pull: rows are
+ * keyed by captured DAY, so tomorrow writes a fresh row with an empty link and the manual
+ * work silently evaporates. Inheriting means each attachment is made once and sticks — and
+ * it's what turns manual attaching into a matcher that improves over time.
+ */
+async function inheritLinks(
+  prepared: Array<{ platformPostId: string | null; publishedUrl: string | null }>,
+): Promise<Map<string, { vishenVideoId: string | null; ticketAirtableId: string | null }>> {
+  const out = new Map<string, { vishenVideoId: string | null; ticketAirtableId: string | null }>();
+  const ids = prepared.map((p) => p.platformPostId).filter((x): x is string => !!x);
+  const urls = prepared.map((p) => p.publishedUrl).filter((x): x is string => !!x);
+  if (ids.length === 0 && urls.length === 0) return out;
+  try {
+    const rows = await prisma.socialMetric.findMany({
+      where: {
+        AND: [
+          { OR: [{ platformPostId: { in: ids } }, { publishedUrl: { in: urls } }] },
+          { OR: [{ vishenVideoId: { not: null } }, { ticketAirtableId: { not: null } }] },
+        ],
+      },
+      orderBy: { capturedAt: 'desc' },
+      select: { platformPostId: true, publishedUrl: true, vishenVideoId: true, ticketAirtableId: true },
+    });
+    for (const r of rows) {
+      // Newest first, so the first hit per key wins and a later re-attach beats an older one.
+      for (const key of [linkKey(r.platformPostId, r.publishedUrl), r.publishedUrl ?? '']) {
+        if (key && !out.has(key)) out.set(key, { vishenVideoId: r.vishenVideoId, ticketAirtableId: r.ticketAirtableId });
+      }
+    }
+  } catch {
+    // No history to inherit is not an error — the batch just lands unattributed.
+  }
+  return out;
+}
+
 /**
  * Store a batch of metric rows. Idempotent per (source, post, window, day).
  *
@@ -128,10 +172,13 @@ export async function ingestSocialMetrics(rows: SocialMetricInput[]): Promise<In
 
   const needsResolving = [...new Set(prepared.filter((p) => !p.vishenVideoId && p.publishedUrl).map((p) => p.publishedUrl!))];
   const byUrl = await resolveVideosByUrl(needsResolving);
+  const inherited = await inheritLinks(prepared);
 
   for (const p of prepared) {
-    const vishenVideoId = p.vishenVideoId ?? (p.publishedUrl ? byUrl.get(p.publishedUrl) ?? null : null);
-    const data = { ...p, vishenVideoId };
+    const prior = inherited.get(linkKey(p.platformPostId, p.publishedUrl));
+    const vishenVideoId = p.vishenVideoId ?? (p.publishedUrl ? byUrl.get(p.publishedUrl) ?? null : null) ?? prior?.vishenVideoId ?? null;
+    const ticketAirtableId = p.ticketAirtableId ?? prior?.ticketAirtableId ?? null;
+    const data = { ...p, vishenVideoId, ticketAirtableId };
     const dedupeKey = dedupeKeyFor(data);
     try {
       await prisma.socialMetric.upsert({
@@ -208,6 +255,13 @@ export async function getLatestMetrics(
 
 export interface SocialPostRow {
   key: string;
+  platformPostId: string | null;
+  /** Ticket this post has been attached to, if a human linked it. */
+  ticketAirtableId: string | null;
+  /** Reach as a multiple of this account's median post. The comparison is the insight —
+   *  a raw number tells you nothing about whether it did well. Null when there's no
+   *  baseline yet or the post reports no reach. */
+  vsMedian: number | null;
   /** Full clickable URL. Stored `publishedUrl` is normalized (no scheme), so the raw
    *  payload's own link is preferred and the scheme re-added as a fallback. */
   url: string | null;
@@ -229,6 +283,15 @@ export interface AccountBoard {
   reach: number;
   avgEngagement: number | null;
   top: SocialPostRow[];
+  /** The baseline every post is judged against. */
+  medianReach: number | null;
+  /** Reach per ISO week, oldest first — the sparkline series. */
+  weekly: { week: string; reach: number; posts: number }[];
+  /** Last 7 days vs the 7 before, as a percentage change. Null when either side is empty,
+   *  because "+∞%" from a zero base is noise, not news. */
+  trendPct: number | null;
+  /** Posts below half the median — the ones worth asking about. */
+  underperformers: SocialPostRow[];
 }
 
 export interface AccountPerformance {
@@ -240,6 +303,21 @@ export interface AccountPerformance {
   /** Rows tied to a portal record. Zero is expected while the reported account and our
    *  records cover different channels — surfaced so it reads as a known gap, not a bug. */
   attributed: number;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
+/** Monday-anchored ISO date for the week a timestamp falls in. */
+function weekKey(iso: string): string {
+  const d = new Date(iso);
+  const day = (d.getUTCDay() + 6) % 7; // Mon=0
+  d.setUTCDate(d.getUTCDate() - day);
+  return d.toISOString().slice(0, 10);
 }
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
@@ -270,8 +348,9 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
       orderBy: { capturedAt: 'desc' },
       take: opts?.scanCap ?? 1000,
       select: {
-        platformPostId: true, publishedUrl: true, vishenVideoId: true, impressions: true, views: true,
-        reach: true, engagements: true, engagementRate: true, capturedAt: true, source: true, raw: true,
+        platformPostId: true, publishedUrl: true, vishenVideoId: true, ticketAirtableId: true,
+        impressions: true, views: true, reach: true, engagements: true, engagementRate: true,
+        capturedAt: true, source: true, raw: true,
       },
     });
   } catch {
@@ -304,6 +383,9 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     const account = meta.account ?? 'Unattributed account';
     const row: SocialPostRow = {
       key,
+      platformPostId: r.platformPostId,
+      ticketAirtableId: r.ticketAirtableId,
+      vsMedian: null, // filled once the account's baseline is known
       url: meta.link ?? (r.publishedUrl ? `https://${r.publishedUrl}` : null),
       caption: meta.caption,
       account: meta.account,
@@ -316,9 +398,47 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     (perAccount.get(account) ?? perAccount.set(account, []).get(account)!).push(row);
   }
 
+  const now = Date.now();
+  const WEEK = 7 * 86400_000;
+
   const boards: AccountBoard[] = [...perAccount.entries()]
     .map(([account, rows]) => {
       const rated = rows.filter((x) => x.engagementRate !== null);
+      const reaches = rows.map((x) => x.reach).filter((n): n is number => n != null);
+      const medianReach = median(reaches);
+
+      // Every post gets its multiple of the baseline. This is the point of the page:
+      // "158k" means nothing alone, "3.1x your median" is a decision.
+      for (const x of rows) {
+        x.vsMedian = medianReach && medianReach > 0 && x.reach != null
+          ? Math.round((x.reach / medianReach) * 10) / 10
+          : null;
+      }
+
+      const buckets = new Map<string, { reach: number; posts: number }>();
+      for (const x of rows) {
+        if (!x.postedAt) continue;
+        const k = weekKey(x.postedAt);
+        const b = buckets.get(k) ?? { reach: 0, posts: 0 };
+        b.reach += x.reach ?? 0;
+        b.posts++;
+        buckets.set(k, b);
+      }
+      const weekly = [...buckets.entries()]
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+        .slice(-8) // ~2 months reads as a direction without becoming a chart
+        .map(([week, b]) => ({ week, reach: b.reach, posts: b.posts }));
+
+      const at = (x: SocialPostRow) => (x.postedAt ? new Date(x.postedAt).getTime() : null);
+      const sumBetween = (from: number, to: number) =>
+        rows.reduce((n, x) => { const t = at(x); return t !== null && t >= from && t < to ? n + (x.reach ?? 0) : n; }, 0);
+      const recent = sumBetween(now - WEEK, now + WEEK);
+      const prior = sumBetween(now - 2 * WEEK, now - WEEK);
+
+      const ranked = rows
+        .filter((x) => x.reach !== null || x.engagementRate !== null)
+        .sort((x, y) => (y.reach ?? 0) - (x.reach ?? 0) || (y.engagementRate ?? 0) - (x.engagementRate ?? 0));
+
       return {
         account,
         posts: rows.length,
@@ -326,10 +446,14 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
         avgEngagement: rated.length
           ? Math.round((rated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / rated.length) * 100) / 100
           : null,
-        top: rows
-          .filter((x) => x.reach !== null || x.engagementRate !== null)
-          .sort((x, y) => (y.reach ?? 0) - (x.reach ?? 0) || (y.engagementRate ?? 0) - (x.engagementRate ?? 0))
-          .slice(0, limit),
+        medianReach,
+        weekly,
+        // Guard the zero base: a jump from nothing isn't +infinity%, it's no signal.
+        trendPct: prior > 0 && recent > 0 ? Math.round(((recent - prior) / prior) * 100) : null,
+        top: ranked.slice(0, limit),
+        underperformers: medianReach
+          ? ranked.filter((x) => x.reach != null && x.reach < medianReach * 0.5).slice(-3).reverse()
+          : [],
       };
     })
     .sort((a, b) => b.reach - a.reach);

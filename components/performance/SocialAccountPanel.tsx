@@ -1,7 +1,9 @@
 import { Icon } from '@/components/ui/Icon';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
+import { Sparkline } from '@/components/ui/Sparkline';
 import { formatCount } from '@/lib/metrics/social-metric-types';
-import type { AccountBoard, AccountPerformance } from '@/lib/metrics/social-perf';
+import type { AccountBoard, AccountPerformance, SocialPostRow } from '@/lib/metrics/social-perf';
+import { PostRowActions, type TicketOption } from '@/components/performance/PostRowActions';
 
 // Social performance, one board per account.
 //
@@ -20,7 +22,21 @@ function trim(caption: string | null, max = 96): string {
   return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
 }
 
-function TopPosts({ board }: { board: AccountBoard }) {
+/**
+ * How a post did relative to its account's own median. This is the difference between
+ * reporting and insight: "158k" is a number, "3.1x median" is a judgement you can act on.
+ */
+function VsMedian({ x }: { x: number | null }) {
+  if (x === null) return <span className="subtle">—</span>;
+  const tone = x >= 2 ? 'var(--green)' : x >= 1 ? 'var(--text-muted)' : 'var(--gold-content)';
+  return (
+    <span className="tabular-nums" style={{ color: tone, fontWeight: x >= 2 ? 700 : 500 }}>
+      {x}×{x >= 2 ? ' ▲' : x < 0.5 ? ' ▼' : ''}
+    </span>
+  );
+}
+
+function TopPosts({ board, tickets }: { board: AccountBoard; tickets: TicketOption[] }) {
   if (board.top.length === 0) {
     return <div className="empty">No numbers reported for this account yet.</div>;
   }
@@ -32,9 +48,11 @@ function TopPosts({ board }: { board: AccountBoard }) {
             <tr>
               <th>Post</th>
               <th style={{ width: 110 }}>Reach</th>
+              <th style={{ width: 96 }}>vs median</th>
               <th style={{ width: 110 }}>Engagement</th>
               <th style={{ width: 90 }}>Posted</th>
-              <th style={{ width: 56 }} />
+              <th style={{ width: 260 }}>Actions</th>
+              <th style={{ width: 44 }} />
             </tr>
           </thead>
           <tbody>
@@ -42,10 +60,12 @@ function TopPosts({ board }: { board: AccountBoard }) {
               <tr key={p.key}>
                 <td><div className="t-title">{trim(p.caption)}</div></td>
                 <td className="tabular-nums">{formatCount(p.reach)}</td>
+                <td><VsMedian x={p.vsMedian} /></td>
                 <td className="tabular-nums">
                   {p.engagementRate !== null ? `${p.engagementRate}%` : <span className="subtle">—</span>}
                 </td>
                 <td>{shortDate(p.postedAt)}</td>
+                <td><PostRowActions post={p} tickets={tickets} /></td>
                 <td>
                   {p.url
                     ? <a href={p.url} target="_blank" rel="noopener" style={{ textDecoration: 'none' }} aria-label="Open post"><Icon name="arrow" size={14} /></a>
@@ -61,25 +81,70 @@ function TopPosts({ board }: { board: AccountBoard }) {
 }
 
 /** A single account's board: its own totals, then its own best posts. */
-export function AccountBoardSection({ board }: { board: AccountBoard }) {
+export function AccountBoardSection({ board, tickets }: { board: AccountBoard; tickets: TicketOption[] }) {
   const best = board.top[0] ?? null;
+  const series = board.weekly.map((w) => w.reach);
+  const trend = board.trendPct;
+
   return (
     <>
       <div className="sec-head">
         <h3>@{board.account}</h3>
-        <span className="hint">{board.posts} post{board.posts === 1 ? '' : 's'} · by reach</span>
+        <span className="hint">
+          {board.posts} post{board.posts === 1 ? '' : 's'}
+          {trend !== null && ` · ${trend >= 0 ? '+' : ''}${trend}% reach vs the week before`}
+        </span>
       </div>
       <KpiGrid>
         <Kpi i={0} label="Total reach" value={formatCount(board.reach)} sub={`${board.posts} post${board.posts === 1 ? '' : 's'}`} />
-        <Kpi i={1} label="Avg engagement" value={board.avgEngagement !== null ? `${board.avgEngagement}%` : '—'} sub={board.avgEngagement !== null ? 'across reported posts' : 'not reported'} />
-        <Kpi i={2} label="Top post" value={best ? formatCount(best.reach) : '—'} sub={best && best.engagementRate !== null ? `${best.engagementRate}% engagement` : 'no numbers yet'} />
+        <Kpi i={1} label="Typical post" value={formatCount(board.medianReach)} sub="median reach · the baseline" />
+        <Kpi i={2} label="Avg engagement" value={board.avgEngagement !== null ? `${board.avgEngagement}%` : '—'} sub={board.avgEngagement !== null ? 'across reported posts' : 'not reported'} />
+        <Kpi i={3}
+          tone={trend !== null && trend < 0 ? 'alert' : undefined}
+          label="Last 7 days"
+          value={trend !== null ? `${trend >= 0 ? '+' : ''}${trend}%` : '—'}
+          sub={trend !== null ? 'reach vs prior 7 days' : 'not enough history'} />
       </KpiGrid>
-      <TopPosts board={board} />
+
+      {series.length >= 2 && (
+        <div className="card pad" style={{ marginBottom: 18 }}>
+          <div className="t-meta" style={{ marginBottom: 6 }}>Weekly reach · last {series.length} weeks</div>
+          <Sparkline series={series} w={520} h={54} />
+        </div>
+      )}
+
+      <TopPosts board={board} tickets={tickets} />
+
+      {board.underperformers.length > 0 && (
+        <>
+          <div className="sec-head">
+            <h4 style={{ margin: 0, fontSize: 14 }}>Below half the baseline</h4>
+            <span className="hint">worth asking why</span>
+          </div>
+          <div className="tw" style={{ marginBottom: 18 }}>
+            <div className="tscroll">
+              <table className="list">
+                <thead><tr><th>Post</th><th style={{ width: 110 }}>Reach</th><th style={{ width: 96 }}>vs median</th><th style={{ width: 90 }}>Posted</th></tr></thead>
+                <tbody>
+                  {board.underperformers.map((p: SocialPostRow) => (
+                    <tr key={p.key}>
+                      <td><div className="t-title">{trim(p.caption)}</div></td>
+                      <td className="tabular-nums">{formatCount(p.reach)}</td>
+                      <td><VsMedian x={p.vsMedian} /></td>
+                      <td>{shortDate(p.postedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
 
-export function SocialAccountPanel({ data }: { data: AccountPerformance }) {
+export function SocialAccountPanel({ data, tickets }: { data: AccountPerformance; tickets: TicketOption[] }) {
   if (data.posts === 0) return null;
   const multi = data.boards.length > 1;
 
@@ -110,7 +175,7 @@ export function SocialAccountPanel({ data }: { data: AccountPerformance }) {
         </div>
       )}
 
-      {data.boards.map((board) => <AccountBoardSection key={board.account} board={board} />)}
+      {data.boards.map((board) => <AccountBoardSection key={board.account} board={board} tickets={tickets} />)}
 
       {data.attributed === 0 && (
         <p className="t-meta" style={{ marginBottom: 18 }}>
