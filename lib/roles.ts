@@ -151,7 +151,11 @@ export function navForRoles(
   items.push({ href: '/shoots', label: 'Shoots', icon: 'video', group: 'Library & media' });
   // Cover Generator = produce a 9×16 clip-cover PNG. Open to every signed-in user.
   items.push({ href: '/cover-generator', label: 'Cover Generator', icon: 'photo', group: 'Library & media' });
-  items.push({ href: '/performance', label: 'Insights', icon: 'chart', group: 'Intelligence' });
+  // Two surfaces, deliberately separate: "Performance" answers how published work landed,
+  // "Capacity & risk" answers whether the studio can take more on. They were one page and
+  // competed for the same screen.
+  items.push({ href: '/performance', label: 'Performance', icon: 'chart', group: 'Intelligence' });
+  items.push({ href: '/performance/capacity', label: 'Capacity & risk', icon: 'sliders', group: 'Intelligence' });
   // Asset-type DNA editor (E9.7): admins + managers get the nav entry; a team lead who
   // isn't a manager can still reach it via link (the page authorizes them per asset type).
   if (mgr) items.push({ href: '/settings/asset-types', label: 'Asset types & DNA', icon: 'sliders', group: 'Admin' });

@@ -1,168 +1,62 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
-import { Kpi, KpiGrid } from '@/components/ui/Kpi';
-import { FunnelCapacity } from '@/components/ui/FunnelCapacity';
-import { TierBadge } from '@/components/ui/TierBadge';
 import { Icon } from '@/components/ui/Icon';
-import { InsightCard } from '@/components/ui/InsightCard';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
-import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
-import { getTicketMetrics, asOf } from '@/lib/metrics/snapshot';
+import { getAdminAccess } from '@/lib/admin/access';
 import { getAccountPerformance } from '@/lib/metrics/social-perf';
 import { SocialAccountPanel } from '@/components/performance/SocialAccountPanel';
-import { loadMap, riskOf, dueDays } from '@/lib/tickets/intel';
-import { getScoringConfig, capacityFor, type ScoringConfig } from '@/lib/scoring-config/repository';
-import { getAdminAccess } from '@/lib/admin/access';
-import { getEmployeeForSession } from '@/lib/employee';
-import { effectiveRoles } from '@/lib/roles';
+
+// Performance — THE NUMBERS. How published work actually landed: reach and engagement per
+// post, one board per connected account, pulled nightly from Hootsuite Perch.
+//
+// Split from capacity/throughput (now /performance/capacity) because they answer different
+// questions for different people: this page is "how did it do", that page is "can we take
+// more work". They were fighting for the same screen.
 
 export const dynamic = 'force-dynamic';
 
-const IN_PROD = ['In Progress', 'In Revision', 'Review', 'Approved', 'Shipping'];
+async function Numbers({ isAdmin }: { isAdmin: boolean }) {
+  const social = await getAccountPerformance({ limit: 10 });
 
-function RiskList({ tickets, cfg }: { tickets: QueueTicket[]; cfg?: ScoringConfig }) {
-  const load = loadMap(tickets, cfg);
-  const risky = tickets
-    .map((t) => ({ t, r: riskOf(t, load, cfg) }))
-    .filter((x) => x.r.level)
-    .sort((a, b) => (b.r.level === 'high' ? 1 : 0) - (a.r.level === 'high' ? 1 : 0));
-  if (!risky.length) return <div className="empty">Nothing at risk — everything is tracking to its due date.</div>;
-  return (
-    <div className="stack">
-      {risky.map(({ t, r }) => (
-        <Link key={t.id} href={`/tickets/${t.id}`} className="card pad" style={{ display: 'flex', gap: 12, alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ fontSize: 13.5 }}>{t.title}</b>
-            <div className="t-meta"><span className={`risk ${r.level}`}><Icon name="clock" size={11} /> {r.level === 'high' ? 'at risk' : 'watch'}</span> <span>{r.why.join(' · ')}</span></div>
-          </div>
-          <Icon name="arrow" size={16} />
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-// Manager / admin → operational insights.
-async function ManagerInsights() {
-  // Active (628) + capped recent ships + the nightly all-time snapshot — never scan
-  // the ~9k Done history.
-  const [active, recentShipped, metrics, cfg, social] = await Promise.all([getQueueTickets(), getRecentShipped(12), getTicketMetrics(), getScoringConfig(), getAccountPerformance({ limit: 5 })]);
-  const load = loadMap(active, cfg);
-  const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
-  const unassigned = active.filter((t) => !t.assignee).length;
-  const atRisk = active.filter((t) => riskOf(t, load, cfg).level).length;
-  const eds = [...load.keys()];
-  // Utilization = total weighted load ÷ total editor capacity (per-person caps respected).
-  const totalCap = eds.reduce((a, n) => a + capacityFor(cfg, n), 0);
-  const util = totalCap > 0 ? Math.round((eds.reduce((a, n) => a + (load.get(n) ?? 0), 0) / totalCap) * 100) : 0;
-  return (
-    <>
-      <KpiGrid>
-        <Kpi label="Shipped" value={metrics ? metrics.shipped.toLocaleString() : '—'} sub={metrics ? `all-time · ${asOf(metrics.computedAt)}` : 'awaiting first sync'} i={0} />
-        <Kpi label="In production" value={inProd} sub="moving now" i={1} />
-        <Kpi tone="alert" icon={<Icon name="user" size={13} />} label="Unassigned" value={unassigned} sub="need an editor" i={2} />
-        <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="At risk" value={atRisk} sub="likely to slip" i={3} />
-        <Kpi label="Team utilization" value={`${util}%`} sub="of capacity" i={4} />
-      </KpiGrid>
-      <FunnelCapacity tickets={[...active, ...recentShipped]} cfg={cfg} />
-      <div className="sec-head"><h3>At-risk work</h3><span className="hint"><Icon name="sparkle" size={12} /> flagged by the brain</span></div>
-      <RiskList tickets={active} cfg={cfg} />
-      <SocialAccountPanel data={social} />
-    </>
-  );
-}
-
-// Editor / designer → personal insights.
-async function EditorInsights() {
-  const me = await getEmployeeForSession();
-  // Active assigned only — a per-editor lifetime "completed" count would need a full
-  // scan of the ~9k Done set (link fields can't be filtered server-side by recId).
-  const [active, cfg] = await Promise.all([
-    me ? getQueueTickets({ assigneeId: me.id }) : Promise.resolve([] as QueueTicket[]),
-    getScoringConfig(),
-  ]);
-  const myCap = capacityFor(cfg, me?.name ?? null);
-  const load = loadMap(active, cfg);
-  const dueSoon = active.filter((t) => { const d = dueDays(t.dueDate); return d != null && d >= 0 && d <= 3; }).length;
-  const atRisk = active.filter((t) => riskOf(t, load, cfg).level).length;
-  const inReview = active.filter((t) => ['Review', 'Approved'].includes(t.ticketStatus ?? '')).length;
-  return (
-    <>
-      <KpiGrid>
-        <Kpi label="Active tickets" value={active.length} sub={`of ${Math.round(myCap * 10) / 10} capacity`} i={0} />
-        <Kpi tone="danger" icon={<Icon name="clock" size={13} />} label="Due ≤ 3 days" value={dueSoon} sub="tighten up" i={1} />
-        <Kpi tone="alert" label="At risk" value={atRisk} sub="need attention" i={2} />
-        <Kpi label="In review" value={inReview} sub="awaiting sign-off" i={3} />
-      </KpiGrid>
-      <div className="sec-head"><h3>Your work at risk</h3><span className="hint">sorted by urgency</span></div>
-      <RiskList tickets={active} cfg={cfg} />
-    </>
-  );
-}
-
-// Founder / stakeholder → performance (deferred until a metrics source is wired).
-async function PerformanceInsights() {
-  const [active, published, metrics, social] = await Promise.all([getQueueTickets(), getRecentShipped(10), getTicketMetrics(), getAccountPerformance({ limit: 10 })]);
-  const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
-  return (
-    <>
-      {social.posts === 0 && (
+  if (social.posts === 0) {
+    return (
+      <>
         <div className="banner future" style={{ marginBottom: 16 }}>
           <Icon name="chart" size={18} />
-          <div><b>No performance numbers yet.</b> Connect Hootsuite at <Link href="/admin/hootsuite">/admin/hootsuite</Link> and the nightly pull fills this in. Until then, here’s production throughput.</div>
-        </div>
-      )}
-      <SocialAccountPanel data={social} />
-      <KpiGrid>
-        <Kpi label="Shipped" value={metrics ? metrics.shipped.toLocaleString() : '—'} sub={metrics ? `all-time · ${asOf(metrics.computedAt)}` : 'awaiting first sync'} i={0} />
-        <Kpi label="In production" value={inProd} sub="moving now" i={1} />
-      </KpiGrid>
-      {social.posts === 0 && (
-        <>
-          <div className="sec-head"><h3>What’s working</h3><span className="hint"><Icon name="sparkle" size={12} /> propose-only · human approves</span></div>
-          <div className="stack" style={{ marginBottom: 18 }}>
-            <InsightCard
-              tone="warn"
-              icon="chart"
-              title="No performance signal connected yet"
-              detail="Numbers surface here once Hootsuite is connected and a nightly pull has run. Until then this stays empty rather than guessing."
-            />
+          <div>
+            <b>No published numbers yet.</b>{' '}
+            {isAdmin
+              ? <>Connect Hootsuite at <Link href="/admin/hootsuite">/admin/hootsuite</Link> — after that the nightly pull fills this page on its own.</>
+              : <>An admin needs to connect Hootsuite. Once that&apos;s done the numbers arrive nightly.</>}
           </div>
-        </>
-      )}
-      <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
-      <div className="tw"><div className="tscroll"><table className="list">
-        <thead><tr><th>Title</th><th>Made by</th></tr></thead>
-        <tbody>
-          {published.length === 0 && <tr><td colSpan={2} className="empty">Nothing shipped yet.</td></tr>}
-          {published.slice(0, 10).map((t) => (
-            <tr key={t.id}>
-              <td><Link href={`/tickets/${t.id}`} style={{ textDecoration: 'none', color: 'inherit' }}><div className="t-title">{t.title}</div><div className="t-meta"><TierBadge event={t.eventType} /></div></Link></td>
-              <td style={{ width: 200 }}>{t.assignee ?? <span className="subtle">—</span>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table></div></div>
+        </div>
+        <p className="t-meta">
+          Looking for throughput, capacity or at-risk work? That&apos;s on{' '}
+          <Link href="/performance/capacity">Capacity &amp; risk</Link>.
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SocialAccountPanel data={social} />
+      <p className="t-meta">
+        Capacity, throughput and at-risk work live on{' '}
+        <Link href="/performance/capacity">Capacity &amp; risk</Link>.
+      </p>
     </>
   );
 }
 
-export default async function InsightsPage() {
-  const { roles, isAdmin } = await getAdminAccess();
-  const r = effectiveRoles(roles);
-  const mgr = isAdmin || r.includes('Manager') || r.includes('Approver');
-  const editor = !mgr && (r.includes('Editor') || r.includes('Designer'));
-
-  const { title, sub, body, kpis } = mgr
-    ? { title: 'Team insights', sub: 'Throughput, capacity and risk across the studio.', body: <ManagerInsights />, kpis: 5 }
-    : editor
-      ? { title: 'Your insights', sub: 'What’s on you, what’s slipping, and how much you’ve shipped.', body: <EditorInsights />, kpis: 4 }
-      : { title: 'Performance insights', sub: 'How content is landing — propose-only, human approves.', body: <PerformanceInsights />, kpis: 2 };
-
+export default async function PerformancePage() {
+  const { isAdmin } = await getAdminAccess();
   return (
-    <AppShell title={title} subtitle={sub}>
-      <Suspense fallback={<QueueSkeleton kpis={kpis} />}>{body}</Suspense>
+    <AppShell title="Performance" subtitle="How published work landed — reach and engagement per post, by account">
+      <Suspense fallback={<QueueSkeleton kpis={3} />}>
+        <Numbers isAdmin={isAdmin} />
+      </Suspense>
     </AppShell>
   );
 }

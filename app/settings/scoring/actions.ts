@@ -21,6 +21,7 @@ async function guard(): Promise<{ email: string | null } | { error: string }> {
 function revalidate() {
   revalidatePath('/settings/scoring');
   revalidatePath('/performance');
+  revalidatePath('/performance/capacity'); // capacity KPIs moved to their own page
 }
 
 /** A blank/invalid number clears the override (revert to default); used by per-type & capacity edits. */

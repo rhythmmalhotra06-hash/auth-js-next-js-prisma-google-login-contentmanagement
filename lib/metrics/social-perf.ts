@@ -221,17 +221,21 @@ export interface SocialPostRow {
   source: string;
 }
 
-export interface AccountSummary {
+/** One account's board: its totals plus its own best posts. Every connected account gets
+ *  one, so adding a profile in Hootsuite adds a board here with no code change. */
+export interface AccountBoard {
   account: string;
   posts: number;
   reach: number;
   avgEngagement: number | null;
+  top: SocialPostRow[];
 }
 
 export interface AccountPerformance {
-  accounts: AccountSummary[];
-  top: SocialPostRow[];
+  boards: AccountBoard[];
   posts: number;
+  reach: number;
+  avgEngagement: number | null;
   latestCapture: string | null;
   /** Rows tied to a portal record. Zero is expected while the reported account and our
    *  records cover different channels — surfaced so it reads as a known gap, not a bug. */
@@ -259,7 +263,7 @@ function fromRaw(raw: unknown): { caption: string | null; account: string | null
  */
 export async function getAccountPerformance(opts?: { limit?: number; scanCap?: number }): Promise<AccountPerformance> {
   const limit = opts?.limit ?? 10;
-  const empty: AccountPerformance = { accounts: [], top: [], posts: 0, latestCapture: null, attributed: 0 };
+  const empty: AccountPerformance = { boards: [], posts: 0, reach: 0, avgEngagement: null, latestCapture: null, attributed: 0 };
   let rows;
   try {
     rows = await prisma.socialMetric.findMany({
@@ -283,22 +287,22 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     byPost.set(key, r);
   }
 
-  const posts: SocialPostRow[] = [];
-  const accounts = new Map<string, { posts: number; reach: number; rateSum: number; rated: number }>();
+  const perAccount = new Map<string, SocialPostRow[]>();
   let attributed = 0;
 
   for (const [key, r] of byPost) {
     const meta = fromRaw(r.raw);
+    const rate = r.engagementRate === null ? null : Number(r.engagementRate);
     const reach = reachOf({
       publishedUrl: r.publishedUrl, vishenVideoId: r.vishenVideoId, channel: null,
       impressions: r.impressions, views: r.views, reach: r.reach, engagements: r.engagements,
-      engagementRate: r.engagementRate === null ? null : Number(r.engagementRate),
-      clicks: null, windowDays: null, capturedAt: r.capturedAt, source: r.source, enteredBy: null,
+      engagementRate: rate, clicks: null, windowDays: null, capturedAt: r.capturedAt,
+      source: r.source, enteredBy: null,
     });
-    const rate = r.engagementRate === null ? null : Number(r.engagementRate);
     if (r.vishenVideoId) attributed++;
 
-    posts.push({
+    const account = meta.account ?? 'Unattributed account';
+    const row: SocialPostRow = {
       key,
       url: meta.link ?? (r.publishedUrl ? `https://${r.publishedUrl}` : null),
       caption: meta.caption,
@@ -308,25 +312,36 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
       engagementRate: rate,
       postedAt: meta.postedAt,
       source: r.source,
-    });
-
-    const name = meta.account ?? 'Unattributed account';
-    const a = accounts.get(name) ?? { posts: 0, reach: 0, rateSum: 0, rated: 0 };
-    a.posts++;
-    a.reach += reach ?? 0;
-    if (rate !== null) { a.rateSum += rate; a.rated++; }
-    accounts.set(name, a);
+    };
+    (perAccount.get(account) ?? perAccount.set(account, []).get(account)!).push(row);
   }
 
+  const boards: AccountBoard[] = [...perAccount.entries()]
+    .map(([account, rows]) => {
+      const rated = rows.filter((x) => x.engagementRate !== null);
+      return {
+        account,
+        posts: rows.length,
+        reach: rows.reduce((n, x) => n + (x.reach ?? 0), 0),
+        avgEngagement: rated.length
+          ? Math.round((rated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / rated.length) * 100) / 100
+          : null,
+        top: rows
+          .filter((x) => x.reach !== null || x.engagementRate !== null)
+          .sort((x, y) => (y.reach ?? 0) - (x.reach ?? 0) || (y.engagementRate ?? 0) - (x.engagementRate ?? 0))
+          .slice(0, limit),
+      };
+    })
+    .sort((a, b) => b.reach - a.reach);
+
+  const allRated = [...perAccount.values()].flat().filter((x) => x.engagementRate !== null);
   return {
-    accounts: [...accounts.entries()]
-      .map(([account, a]) => ({ account, posts: a.posts, reach: a.reach, avgEngagement: a.rated ? Math.round((a.rateSum / a.rated) * 100) / 100 : null }))
-      .sort((x, y) => y.reach - x.reach),
-    top: posts
-      .filter((p) => p.reach !== null || p.engagementRate !== null)
-      .sort((x, y) => (y.reach ?? 0) - (x.reach ?? 0) || (y.engagementRate ?? 0) - (x.engagementRate ?? 0))
-      .slice(0, limit),
+    boards,
     posts: byPost.size,
+    reach: boards.reduce((n, b) => n + b.reach, 0),
+    avgEngagement: allRated.length
+      ? Math.round((allRated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / allRated.length) * 100) / 100
+      : null,
     latestCapture: rows[0]?.capturedAt.toISOString() ?? null,
     attributed,
   };

@@ -530,3 +530,56 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
   const report = await ingestSocialMetrics(rows);
   return { ...report, ...base, errors: [...errors, ...report.errors] };
 }
+
+/**
+ * Every workspace → provider → source the current grant can actually see, with names.
+ *
+ * Exists because "the profile is synced in Hootsuite" and "this grant can read its
+ * analytics" are different facts, and a pull that quietly covers one account looks
+ * identical to one that covers them all. This answers which is happening.
+ */
+export async function discoverAccounts(): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const session = await connect(PERCH_URL, await getAccessToken());
+  if (!session.ok) return { ok: false, error: session.error.message };
+  const listed = await session.data.listTools();
+  if (!listed.ok) return { ok: false, error: listed.error.message };
+  const toolset = resolveToolset(listed.data);
+  if (!toolset.ok) return { ok: false, error: `Missing analytics tools: ${toolset.missing.join(', ')}` };
+  const T = toolset.data;
+
+  const wsRes = await callJson(session.data, T.workspaces, {});
+  if (!wsRes.ok) return { ok: false, error: wsRes.error };
+  const workspaces = parseWorkspaces(wsRes.json);
+  if (workspaces.length === 0) return { ok: false, error: `No workspaces. Raw: ${wsRes.text.slice(0, 500)}` };
+
+  const lines: string[] = [];
+  for (const workspaceScope of workspaces) {
+    lines.push(`WORKSPACE ${workspaceScope.tenantId} (${workspaceScope.tenantType})`);
+    const provRes = await callJson(session.data, T.providers, { workspaceScope });
+    if (!provRes.ok) { lines.push(`  ! ${provRes.error}`); continue; }
+    const providers = parseProviders(provRes.json);
+    if (providers.length === 0) { lines.push('  (no providers)'); continue; }
+
+    const srcRes = await callJson(session.data, T.sources, { workspaceScope, providers });
+    if (!srcRes.ok) { lines.push(`  ! ${srcRes.error}`); continue; }
+
+    // Print the raw source objects: the label/name is the whole point here, and guessing
+    // which field carries it is what we are trying to stop doing.
+    const groups = deepFind(srcRes.json, ['provider', 'sources']);
+    let anySource = false;
+    for (const g of groups) {
+      const p = g.provider as Provider | undefined;
+      const sources = Array.isArray(g.sources) ? g.sources : [];
+      if (sources.length === 0) continue;
+      anySource = true;
+      lines.push(`  ${p?.dataService}/${p?.dataType}:`);
+      for (const src of sources) {
+        const o = (src ?? {}) as Json;
+        const name = o.label ?? o.name ?? o.username ?? o.handle ?? '(unnamed)';
+        lines.push(`    · ${String(name)}  [id ${String(o.id ?? '?')}]`);
+      }
+    }
+    if (!anySource) lines.push('  (no connected sources this grant can read)');
+  }
+  return { ok: true, text: lines.join('\n') };
+}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { cn } from '@/lib/cn';
-import { inspectTools, tryTool, pullNow, disconnectHootsuite, type HootsuiteActionResult } from '@/app/admin/hootsuite/actions';
+import { inspectTools, tryTool, pullNow, disconnectHootsuite, listAccounts, type HootsuiteActionResult } from '@/app/admin/hootsuite/actions';
 
 // Admin controls for the Hootsuite Perch integration: inspect what the connector exposes,
 // try a single tool, run the nightly pull on demand, disconnect.
@@ -58,6 +58,11 @@ export function HootsuiteControls({ connected }: { connected: boolean }) {
       <div className="card pad">
         <div className="text-2xs font-bold uppercase tracking-wide text-text-subtle">Actions</div>
         <div className="mt-3 flex flex-wrap items-end gap-2">
+          <button type="button" disabled={pending} onClick={() => run('accounts', listAccounts)}
+            className="rounded-sm border border-border-strong bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-bg-subtle disabled:opacity-50">
+            {busy('accounts') ? 'Checking…' : 'Which accounts can we read?'}
+          </button>
+
           <button type="button" disabled={pending} onClick={() => run('inspect', inspectTools)}
             className="rounded-sm border border-border-strong bg-surface px-3 py-2 text-xs font-semibold text-text hover:bg-bg-subtle disabled:opacity-50">
             {busy('inspect') ? 'Inspecting…' : 'Inspect available tools'}

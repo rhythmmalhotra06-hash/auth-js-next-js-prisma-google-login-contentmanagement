@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getAdminAccess } from '@/lib/admin/access';
 import { disconnect } from '@/lib/hootsuite/oauth';
-import { probeTools, callTool, pullPerchMetrics } from '@/lib/hootsuite/perch';
+import { probeTools, callTool, pullPerchMetrics, discoverAccounts } from '@/lib/hootsuite/perch';
 
 // Admin controls for the Hootsuite integration. Same convention as app/admin/sync/actions.ts:
 // admin-gated, and NEVER throwing — a rejected server action reaches the browser as an
@@ -41,6 +41,26 @@ export async function inspectTools(): Promise<HootsuiteActionResult> {
       ok: true,
       message: `Perch exposes ${res.data.length} tool${res.data.length === 1 ? '' : 's'}.`,
       detail: res.data.map((t) => `• ${t.name}\n  ${t.description ?? '(no description)'}\n  args: ${JSON.stringify(t.inputSchema ?? {})}`).join('\n\n'),
+    };
+  });
+}
+
+/**
+ * List every account this grant can read analytics for. "Synced in Hootsuite" and
+ * "readable by this grant" are different things, and a pull covering one account looks the
+ * same as one covering all of them — this tells them apart.
+ */
+export async function listAccounts(): Promise<HootsuiteActionResult> {
+  return guard(async () => {
+    const res = await discoverAccounts();
+    if (!res.ok) return { ok: false, message: res.error };
+    const accounts = (res.text.match(/^ {4}· /gm) ?? []).length;
+    return {
+      ok: accounts > 0,
+      message: accounts > 0
+        ? `${accounts} account${accounts === 1 ? '' : 's'} readable by this grant.`
+        : 'No readable accounts — the authorizing user may lack analytics access to the profiles.',
+      detail: res.text,
     };
   });
 }

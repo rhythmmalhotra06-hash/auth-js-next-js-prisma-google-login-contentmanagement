@@ -10,7 +10,8 @@ const NOTE: Record<string, string> = {
   '/editor': 'Your queue — the top item is up next; open the brief, then upload the asset.',
   '/stakeholder': 'Read-only “Shares” — who made each asset and where it shipped. No paid seat.',
   '/media': 'Clip engine — long-form talks become a ranked clip strategy you convert into tickets.',
-  '/performance': 'Insights — role-aware. Live performance metrics arrive in a later phase.',
+  '/performance': 'Performance — reach and engagement per published post, one board per connected account, pulled nightly from Hootsuite.',
+  '/performance/capacity': 'Capacity & risk — throughput, team utilization and work likely to slip.',
   '/settings/clip-rules': 'Tune how clips are generated — base prompt, brand pillars, rules.',
   '/settings/team': 'Admin — assign app roles to people.',
 };
