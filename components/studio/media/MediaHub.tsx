@@ -96,7 +96,8 @@ export function MediaHub({ videos, proposedClips, approvedClips, sourceNames, me
         ...m,
         [v.id]: {
           publishedUrl: v.publishedLink, vishenVideoId: v.id, channel: v.channel,
-          impressions: num(input.impressions), views: num(input.views), engagementRate: num(input.engagement),
+          impressions: num(input.impressions), views: num(input.views), reach: null, engagements: null,
+          engagementRate: num(input.engagement),
           clicks: null, windowDays: 1, capturedAt: new Date(), source: 'manual', enteredBy: null,
         },
       }));

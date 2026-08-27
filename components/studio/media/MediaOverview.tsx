@@ -248,7 +248,7 @@ export function MediaOverview({ rows, shoots, clipCount, perf, onOpen, onApprove
 
 /** The one line of numbers on a published card — silent when nothing is logged yet. */
 function CardMetrics({ m }: { m: SocialMetricRow | null }) {
-  const primary = m?.impressions ?? m?.views ?? null;
+  const primary = m?.impressions ?? m?.views ?? m?.reach ?? null;
   if (!m || (primary == null && m.engagementRate == null)) {
     return <div className="mt-2 border-t border-border-muted pt-2 text-2xs text-text-subtle">No numbers yet</div>;
   }
@@ -256,7 +256,7 @@ function CardMetrics({ m }: { m: SocialMetricRow | null }) {
     <div className="mt-2 flex items-center gap-3 border-t border-border-muted pt-2 text-2xs text-text-muted">
       {primary != null && (
         <span className="font-semibold tabular-nums text-text">
-          {formatCount(primary)} <span className="font-normal text-text-subtle">{m.impressions != null ? 'impressions' : 'views'}</span>
+          {formatCount(primary)} <span className="font-normal text-text-subtle">{m.impressions != null ? 'impressions' : m.views != null ? 'views' : 'reach'}</span>
         </span>
       )}
       {m.engagementRate != null && <span className="tabular-nums">{m.engagementRate}% eng</span>}

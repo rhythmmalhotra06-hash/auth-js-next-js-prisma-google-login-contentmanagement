@@ -182,7 +182,8 @@ export async function getLatestMetrics(
       orderBy: { capturedAt: 'asc' }, // ascending so the last write per key wins below
       select: {
         publishedUrl: true, vishenVideoId: true, channel: true, impressions: true, views: true,
-        engagementRate: true, clicks: true, windowDays: true, capturedAt: true, source: true, enteredBy: true,
+        reach: true, engagements: true, engagementRate: true, clicks: true, windowDays: true,
+        capturedAt: true, source: true, enteredBy: true,
       },
     }).then((rs) => rs.map((r) => ({ ...r, engagementRate: r.engagementRate === null ? null : Number(r.engagementRate) })));
   } catch {

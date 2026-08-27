@@ -39,6 +39,10 @@ export interface SocialMetricRow {
   channel: string | null;
   impressions: number | null;
   views: number | null;
+  /** Unique accounts reached. The only volume metric Hootsuite Perch actually returned on
+   *  the first live pull, so the band must be able to fall back to it. */
+  reach: number | null;
+  engagements: number | null;
   engagementRate: number | null;
   clicks: number | null;
   windowDays: number | null;
@@ -123,7 +127,7 @@ export interface MetricBand {
   primaryLabel: string;
   primaryTotal: number;
   /** What the total is actually made of, for an honest subtitle. */
-  primaryMetric: 'views' | 'impressions' | 'views + impressions';
+  primaryMetric: string;
   avgEngagement: number | null;
   /** Rows carrying numbers. */
   withNumbers: number;
@@ -144,7 +148,15 @@ export interface MetricBand {
  * names the mix in its subtitle instead of hiding it.
  */
 export function reachOf(r: SocialMetricRow): number | null {
-  return r.views ?? r.impressions ?? null;
+  return r.views ?? r.impressions ?? r.reach ?? null;
+}
+
+/** Which field reachOf() actually used for this row — so the band can disclose the mix. */
+function reachSourceOf(r: SocialMetricRow): 'views' | 'impressions' | 'reach' | null {
+  if (r.views != null) return 'views';
+  if (r.impressions != null) return 'impressions';
+  if (r.reach != null) return 'reach';
+  return null;
 }
 
 /**
@@ -154,13 +166,16 @@ export function reachOf(r: SocialMetricRow): number | null {
  */
 export function summarizeBand(rows: SocialMetricRow[]): MetricBand {
   const contributing = rows.filter((r) => reachOf(r) != null);
-  const usedViews = contributing.some((r) => r.views != null);
-  const usedImpressions = contributing.some((r) => r.views == null && r.impressions != null);
+  // Name every field the total is drawn from, in a stable order. Perch's first live pull
+  // returned reach only — with views/impressions the sole options the band read
+  // "Total reach 0" over 92 good rows, which is worse than showing nothing.
+  const used = (['views', 'impressions', 'reach'] as const)
+    .filter((f) => contributing.some((r) => reachSourceOf(r) === f));
   const primaryTotal = contributing.reduce((s, r) => s + (reachOf(r) ?? 0), 0);
   const rated = rows.filter((r) => r.engagementRate != null);
   return {
     primaryLabel: 'Total reach',
-    primaryMetric: usedViews && usedImpressions ? 'views + impressions' : usedImpressions ? 'impressions' : 'views',
+    primaryMetric: used.length ? used.join(' + ') : 'views',
     primaryTotal,
     primaryFrom: contributing.length,
     avgEngagement: rated.length
