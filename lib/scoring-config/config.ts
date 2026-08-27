@@ -11,6 +11,12 @@ export interface ScoringConfig {
   redPct: number;
   riskCapacityDays: number;
   dueProximityWindowDays: number;
+  /**
+   * How much a ticket's deadline counts, by whether the date is real. Multiplies the
+   * due-proximity term only — a fixed launch gets the full deadline push, an evergreen
+   * item barely any, so it can't crowd out committed work just by having a date typed in.
+   */
+  certaintyFactor: { fixed: number; target: number; evergreen: number };
   /** editor / contractor name → capacity (only names with an explicit override) */
   capacityByName: Record<string, number>;
   /** event type name → ticket load weight (only types with an explicit weight) */
@@ -36,6 +42,9 @@ export const DEFAULTS = {
   dueProximityWindowDays: 30,
   loadWeight: 1, // capacity cost of a ticket whose type has no weight set
   effortNorm: 0.5, // priority effort for an asset type with none set
+  certaintyFactor: { fixed: 1, target: 0.6, evergreen: 0.15 },
+  /** Legacy tickets (and anything left blank) rank as if the date is a target. */
+  certaintyFallback: 'target',
 } as const;
 
 export function emptyConfig(): ScoringConfig {
@@ -47,6 +56,7 @@ export function emptyConfig(): ScoringConfig {
     redPct: DEFAULTS.redPct,
     riskCapacityDays: DEFAULTS.riskCapacityDays,
     dueProximityWindowDays: DEFAULTS.dueProximityWindowDays,
+    certaintyFactor: { ...DEFAULTS.certaintyFactor },
     capacityByName: {},
     loadWeightByEventType: {},
     loadWeightByAssetType: {},

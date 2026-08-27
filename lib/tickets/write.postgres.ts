@@ -9,6 +9,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { syncReference } from '@/lib/airtable/sync';
+import { asDateCertainty } from '@/lib/tickets/scoring';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -45,6 +46,7 @@ export interface TicketPatch {
   assigneeRecId?: string | null; // Airtable Employees recId; null clears
   notes?: string;
   queueRank?: number;
+  dateCertainty?: string | null; // 'fixed' | 'target' | 'evergreen'; null clears
   assetReadyNotified?: boolean;
   // delivery links
   assetFolderLink?: string;
@@ -71,6 +73,7 @@ export async function updateTicket(idOrRec: string, patch: TicketPatch, opts: { 
   if (patch.prioStatus !== undefined) data.prioStatus = patch.prioStatus;
   if (patch.notes !== undefined) data.notes = patch.notes;
   if (patch.queueRank !== undefined) data.queueRank = patch.queueRank;
+  if (patch.dateCertainty !== undefined) data.dateCertainty = asDateCertainty(patch.dateCertainty);
   if (patch.assetReadyNotified !== undefined) data.assetReadyNotified = patch.assetReadyNotified;
   for (const k of DELIVERY_KEYS) {
     if (patch[k as DeliveryKey] !== undefined) data[k] = patch[k as DeliveryKey];
@@ -100,6 +103,7 @@ export interface CreateTicketRowInput {
   creativeBrief: string;
   cta?: string | null;
   dueDate: string; // YYYY-MM-DD
+  dateCertainty?: string | null; // 'fixed' | 'target' | 'evergreen'
   typeOfRequest: string;
   teamServiceLevel: string;
   notes?: string | null;
@@ -157,6 +161,7 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
       creativeBrief: input.creativeBrief,
       cta: input.cta ?? null,
       dueDate: new Date(input.dueDate),
+      dateCertainty: asDateCertainty(input.dateCertainty),
       typeOfRequest: input.typeOfRequest,
       teamServiceLevel: input.teamServiceLevel,
       prioStatus: 'New Request',

@@ -29,9 +29,10 @@ export const TICKETS = {
     creativeBrief: 'fld5INJXFHCliBAKY', // "Creative Brief" (richText)
     cta: 'fldRUl1jsQefaUz4q', // "Call to action"
     dueDate: 'fldMbzZSolbVNAhGX', // "Due date"
+    dateCertainty: 'fldq4jzPRveK5KkJz', // "Date Certainty" (singleSelect) — can the due date move? (app-created 2026-08-27)
     prioStatus: 'fldFH3scvUfjnOwhg', // "Prio. Status" (singleSelect)
     ticketStatus: 'fldanOtkhcohQbnK1', // "Ticket Status" (singleSelect)
-    queueRank: 'fldaG3TQINrA1c9X0', // "Priority ranking (Manual)" (rating)
+    queueRank: 'fldaG3TQINrA1c9X0', // "Priority ranking (Manual)" (rating, star, max 10)
     assetReadyNotified: 'fld1STKbdnsSc4ovK', // "Asset Ready Notified" (checkbox) — E9.4 dedupe; app-managed
     publishedAt: 'fldq55IEq3aZMDwRn', // "📅 Published Date"
     typeOfRequest: 'fldlfaGYlYlTxNy1s', // "Type of Request" (Video | Design)
@@ -56,6 +57,9 @@ export const TICKETS = {
     workingFiles: 'fldaOh1PVfKxz5FNR', // "Working Files" (singleLineText)
     downloadLink: 'fldrwGSNIJ3pAsO20', // "Download link" (url) — editor download (e.g. Dropbox), distinct from source URL (E9.1)
   },
+  // "Date Certainty" option labels. The app stores the lowercase key; Airtable holds the
+  // human label, so both directions go through this map rather than guessing at casing.
+  certainty_: { fixed: 'Fixed launch', target: 'Target date', evergreen: 'Evergreen' },
   links: {
     eventTypes: 'fldKGGZMuyqnF7gP8', // → 🧩 Event Type
     assetTypes: 'fldPgIBDJCuJng7K1', // → 🛎️ Asset Type

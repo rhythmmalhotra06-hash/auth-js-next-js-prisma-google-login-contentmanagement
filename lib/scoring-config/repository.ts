@@ -37,8 +37,10 @@ const G = {
   amber_pct: 'amberPct', red_pct: 'redPct',
   risk_capacity_days: 'riskCapacityDays',
   due_proximity_window_days: 'dueProximityWindowDays',
+  certainty_fixed: 'fixed', certainty_target: 'target', certainty_evergreen: 'evergreen',
 } as const;
 const WEIGHT_KEYS = new Set(['due', 'event', 'effort', 'variants', 'shoot', 'campaign']);
+const CERTAINTY_KEYS = new Set(['fixed', 'target', 'evergreen']);
 
 // Apply one global knob (Scoring Config key→value) onto the config object. Shared by
 // the Airtable and Postgres readers so the key→target mapping lives in one place.
@@ -47,6 +49,7 @@ function applyGlobalKnob(cfg: ScoringConfig, key: string | null, val: number | n
   const target = (G as Record<string, string>)[key];
   if (!target) return;
   if (WEIGHT_KEYS.has(target)) cfg.weights[target as keyof typeof cfg.weights] = val;
+  else if (CERTAINTY_KEYS.has(target)) cfg.certaintyFactor[target as keyof typeof cfg.certaintyFactor] = val;
   else (cfg as unknown as Record<string, number>)[target] = val;
 }
 

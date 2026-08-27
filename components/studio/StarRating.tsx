@@ -3,9 +3,15 @@
 import { useState, useTransition } from 'react';
 import { cn } from '@/lib/cn';
 import { setPriorityRank } from '@/app/studio/actions';
+import { QUEUE_RANK_MAX } from '@/lib/tickets/constants';
 
-/** Editable 1–5 priority rank — writes the 2-way-synced "Priority ranking (Manual)" field. */
-export function StarRating({ ticketId, value }: { ticketId: string; value: number | null }) {
+const STARS = Array.from({ length: QUEUE_RANK_MAX }, (_, i) => i + 1);
+
+/** Editable priority rank — writes the 2-way-synced "Priority ranking (Manual)" field.
+ *  Star count tracks the Airtable rating field's max so every value it can hold is
+ *  settable here; previously the control stopped at 5 and silently could not express
+ *  (or write back) a 6–10 set in Airtable. */
+export function StarRating({ ticketId, value, compact = false }: { ticketId: string; value: number | null; compact?: boolean }) {
   const [rank, setRank] = useState(value ?? 0);
   const [pending, start] = useTransition();
 
@@ -22,9 +28,9 @@ export function StarRating({ ticketId, value }: { ticketId: string; value: numbe
   }
 
   return (
-    <span className="st-starbtns" role="group" aria-label={`Priority rank ${rank} of 5`}
+    <span className={cn('st-starbtns', compact && 'compact')} role="group" aria-label={`Priority rank ${rank} of ${QUEUE_RANK_MAX}`}
       style={pending ? { opacity: 0.6 } : undefined}>
-      {[1, 2, 3, 4, 5].map((n) => (
+      {STARS.map((n) => (
         <button key={n} type="button" className={cn('st-starbtn', n <= rank && 'on')}
           onClick={(e) => set(e, n)} aria-label={`Set priority rank to ${n}`} aria-pressed={n <= rank}>
           ★

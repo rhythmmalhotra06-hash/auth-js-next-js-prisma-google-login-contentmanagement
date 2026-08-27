@@ -1,0 +1,25 @@
+-- Date reality on every request.
+--
+-- The queue ranks on a 1–5 manual star rating blended with the Airtable SCORE formula.
+-- Neither knows whether a due date is real, which is why the rating doesn't change what
+-- anyone actually does. From the Aug 26 acq/web prioritisation review (Fariz Salleh):
+--
+--   "Ten stars doesn't make a difference to me. Guilds might be two stars but I still
+--    have to launch it next week, so I do it regardless."
+--
+-- The missing dimension was never priority — it was whether the date can move. Some work
+-- is genuinely evergreen (mv.com) and gets pushed for no reason; some has a real launch.
+-- Nothing distinguished them, so everything read as urgent.
+--
+--   'fixed'     — externally committed, cannot move
+--   'target'    — we want it by then, it can move
+--   'evergreen' — no real deadline
+--
+-- Consumed by certaintyFactor() in lib/tickets/scoring.ts, which damps the deadline term
+-- of the queue blend. NULL is treated as 'target' so existing tickets keep their current
+-- ordering rather than all jumping to the top or sinking to the bottom on deploy.
+--
+-- Deliberately TEXT, not an enum: this schema has no enums, and the matching Airtable
+-- "Date Certainty" single-select is the human-editable source for the same values.
+
+ALTER TABLE "tickets" ADD COLUMN "date_certainty" TEXT;

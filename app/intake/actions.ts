@@ -3,6 +3,7 @@
 import { createTicketRow } from '@/lib/tickets/write';
 import { resolveAutoAssignee } from '@/lib/tickets/auto-assign';
 import { notifyAssignment } from '@/lib/notify/triggers';
+import { asDateCertainty } from '@/lib/tickets/scoring';
 
 export interface CreateTicketInput {
   requesterId: string; // Airtable recId (Employees)
@@ -17,6 +18,7 @@ export interface CreateTicketInput {
   creativeBrief: string;
   cta?: string;
   dueDate: string; // ISO date
+  dateCertainty: string; // 'fixed' | 'target' | 'evergreen' — can the due date move?
   sourceLinks?: string;
   downloadLink?: string; // editor download link (e.g. Dropbox) — E9.1
   notes?: string;
@@ -39,6 +41,9 @@ const REQUIRED: [keyof CreateTicketInput, string][] = [
   // Official Calendar is optional.
   ['creativeBrief', 'Creative Brief'],
   ['dueDate', 'Due date'],
+  // Required on purpose: a due date with no certainty behind it is what made the
+  // priority ranking meaningless — everything read as urgent. Asking costs one click.
+  ['dateCertainty', 'Date certainty'],
 ];
 
 // Airtable-direct: write the new request straight to the Prio Requests table. The
@@ -59,6 +64,10 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
   if (Number.isNaN(due.getTime())) {
     return { ok: false, error: 'Invalid due date' };
   }
+  const certainty = asDateCertainty(input.dateCertainty);
+  if (!certainty) {
+    return { ok: false, error: 'Pick whether the due date is fixed, a target, or evergreen' };
+  }
 
   // E9.6: auto-assign the sole preferred editor for this asset type (else leave for
   // the manager). Failure to resolve must never block ticket creation.
@@ -74,6 +83,7 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     creativeBrief: input.creativeBrief.trim(),
     cta: input.cta?.trim() || null,
     dueDate: input.dueDate.slice(0, 10),
+    dateCertainty: certainty,
     typeOfRequest: input.typeOfRequest,
     teamServiceLevel: input.teamServiceLevel,
     notes: input.notes?.trim() || null,

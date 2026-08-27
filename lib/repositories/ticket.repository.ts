@@ -66,6 +66,7 @@ export interface CreateTicketFields {
   creativeBrief: string;
   cta?: string | null;
   dueDate: string; // YYYY-MM-DD
+  dateCertainty?: string | null; // Airtable select label, e.g. "Fixed launch"
   typeOfRequest: string;
   teamServiceLevel: string;
   notes?: string | null;
@@ -97,6 +98,7 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
     [L.requestedBy]: [input.requesterRecId],
   };
   if (input.assignedCreativeRecId) fields[L.assignedCreative] = [input.assignedCreativeRecId];
+  if (input.dateCertainty) fields[F.dateCertainty] = input.dateCertainty;
   if (input.cta) fields[F.cta] = input.cta;
   // "Raw File/URL Links" is a URL-typed field; only write a real URL there, otherwise
   // fold the free text into notes so a non-URL value can't make Airtable reject the create.

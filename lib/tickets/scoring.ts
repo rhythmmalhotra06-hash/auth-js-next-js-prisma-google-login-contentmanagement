@@ -63,16 +63,105 @@ export function campaignProximityNorm(
 }
 
 /**
+ * Normalize a raw Airtable SCORE into 0–1 against a **stable** range.
+ *
+ * The range must NOT be derived from whatever subset a page happens to load. Doing
+ * that made one ticket show a different 0–100 on /manager than on /studio/ranking,
+ * because each page normalized against its own set — fatal for a number people are
+ * meant to argue over in a prioritisation meeting. Callers pass a range computed
+ * across all tickets, not across the rows they're rendering.
+ *
+ * A degenerate range (no tickets, or every ticket on the same score) yields 0.5 so
+ * the deadline + campaign terms alone decide the order.
+ */
+export interface ScoreRange {
+  min: number;
+  max: number;
+}
+
+export function scoreNormFor(rawScore: number | null, range: ScoreRange): number {
+  const span = range.max - range.min;
+  if (!(span > 0)) return 0.5;
+  return Math.max(0, Math.min(1, ((rawScore ?? range.min) - range.min) / span));
+}
+
+export type DateCertainty = 'fixed' | 'target' | 'evergreen';
+
+const CERTAINTIES: readonly DateCertainty[] = ['fixed', 'target', 'evergreen'];
+
+/** Narrow a stored string (or an Airtable select label) to a known certainty. */
+export function asDateCertainty(v: string | null | undefined): DateCertainty | null {
+  if (!v) return null;
+  const k = v.trim().toLowerCase();
+  const hit = CERTAINTIES.find((c) => k === c || k.startsWith(c));
+  return hit ?? null;
+}
+
+/**
+ * How much this ticket's deadline should count, 0–1.
+ *
+ * A due date only deserves full weight when it can't move. Without this, typing any
+ * date into an evergreen request buys it the same urgency as a committed launch —
+ * which is exactly why a star rating changed nothing about what got worked on.
+ * Unset (legacy rows) falls back to 'target', so nothing re-ranks sharply on deploy.
+ */
+export function certaintyFactor(certainty: string | null | undefined, cfg?: ScoringConfig): number {
+  const f = cfg?.certaintyFactor ?? DEFAULTS.certaintyFactor;
+  const key = asDateCertainty(certainty) ?? DEFAULTS.certaintyFallback;
+  return f[key];
+}
+
+/**
  * Blend the (normalized) Airtable SCORE base with app-side deadline + campaign
  * urgency for the live queue order (E9.5). Additive so an imminent deadline lifts
  * an item without letting a trivial-but-urgent task bury a high-revenue one.
+ *
+ * The deadline term is scaled by date certainty; the campaign term is not, because
+ * it already derives from a real Official Calendar window rather than a typed-in date.
  */
+/**
+ * Plain-language reason a ticket sits where it does, for the Priority cell's tooltip.
+ *
+ * A rank nobody can interrogate gets argued with instead of used — much of the Aug 26
+ * review was people unable to see why their work sat below someone else's. Ordered by
+ * what actually moved the number most, so the first clause is the real reason.
+ */
+export function explainQueueScore(
+  parts: { scoreNorm: number; dueNorm: number; campaignNorm: number; dateCertainty?: string | null; dueDate?: Date | string | null },
+  cfg?: ScoringConfig,
+): string {
+  const w = cfg?.weights ?? WEIGHTS;
+  const cf = certaintyFactor(parts.dateCertainty, cfg);
+  const key = asDateCertainty(parts.dateCertainty) ?? DEFAULTS.certaintyFallback;
+  const bits: { weight: number; text: string }[] = [];
+
+  bits.push({ weight: parts.scoreNorm, text: `base score ${Math.round(parts.scoreNorm * 100)}/100` });
+
+  if (parts.dueNorm > 0) {
+    const days = parts.dueDate ? Math.ceil((new Date(parts.dueDate).getTime() - Date.now()) / 86_400_000) : null;
+    const when = days == null ? 'deadline' : days < 0 ? `${Math.abs(days)}d overdue` : `due in ${days}d`;
+    const label = key === 'fixed' ? `fixed launch, ${when}`
+      : key === 'evergreen' ? `${when} but evergreen — barely counted`
+      : `${when} (target date)`;
+    bits.push({ weight: w.due * parts.dueNorm * cf, text: label });
+  }
+  if (parts.campaignNorm > 0) {
+    bits.push({
+      weight: w.campaign * parts.campaignNorm,
+      text: parts.campaignNorm >= 1 ? 'campaign window open' : 'campaign window approaching',
+    });
+  }
+
+  return bits.sort((a, b) => b.weight - a.weight).map((b) => b.text).join(' · ');
+}
+
 export function blendQueueScore(
-  parts: { scoreNorm: number; dueNorm: number; campaignNorm: number },
+  parts: { scoreNorm: number; dueNorm: number; campaignNorm: number; dateCertainty?: string | null },
   cfg?: ScoringConfig,
 ): number {
   const w = cfg?.weights ?? WEIGHTS;
-  return parts.scoreNorm + w.due * parts.dueNorm + w.campaign * parts.campaignNorm;
+  const due = w.due * parts.dueNorm * certaintyFactor(parts.dateCertainty, cfg);
+  return parts.scoreNorm + due + w.campaign * parts.campaignNorm;
 }
 
 export interface ScoreInputs {

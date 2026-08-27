@@ -53,6 +53,7 @@ type TicketPushRow = {
   creativeBrief: string | null;
   cta: string | null;
   dueDate: Date | null;
+  dateCertainty: string | null;
   prioStatus: string | null;
   ticketStatus: string | null;
   typeOfRequest: string | null;
@@ -84,6 +85,7 @@ function toTicketPush(t: TicketPushRow): TicketForPush {
     creativeBrief: t.creativeBrief,
     cta: t.cta,
     dueDate: t.dueDate,
+    dateCertainty: t.dateCertainty,
     prioStatus: t.prioStatus,
     ticketStatus: t.ticketStatus,
     typeOfRequest: t.typeOfRequest,
