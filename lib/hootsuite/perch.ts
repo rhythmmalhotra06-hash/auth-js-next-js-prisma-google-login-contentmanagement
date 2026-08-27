@@ -18,9 +18,21 @@
 //  3. `query_analytics` is a BATCH where individual queries fail independently, so a
 //     partial failure must not sink the whole pull.
 //
-// Response *entry* shapes are still undocumented (the tool schema only references a
-// `layout`), so entries go through a tolerant extractor and every raw entry is stored on
-// the row. The first real pull is therefore self-diagnosing rather than silently empty.
+// The real entry shape, from a live pull on 2026-08-26:
+//
+//   { results: [ { metric: { id: 'top_posts', provider: {...} },
+//                  entries: [ { unique_id: '<sourceId>_<postId>',
+//                               source_id: '<sourceId>',
+//                               timestamp: '2026-08-26T23:01:38Z',
+//                               details: { content: { body: '…' }, auto_tags: [] } } ] } ] }
+//
+// Two consequences that cost a whole pull to learn:
+//  - The identifier sits on the ENTRY while the numbers sit nested inside `details`, so an
+//    extractor requiring both on one object matches nothing. Metrics are collected from the
+//    entry's whole subtree, keyed off the entry's own identifier.
+//  - Hootsuite 429s quickly. `search_sources` and `search_metrics` both accept arrays, so
+//    all providers go in ONE call each instead of one call per provider. Pacing alone was
+//    not enough; reducing call count is what actually fixes it.
 
 import { connect, type McpSession, type McpTool } from '@/lib/mcp/client';
 import { getAccessToken, PERCH_URL } from '@/lib/hootsuite/oauth';
@@ -31,6 +43,9 @@ const ANALYTICS_PREFIX = 'perch-analytics';
 /** Cap so one workspace with many profiles can't run the route past its 300s budget. */
 const MAX_METRICS_PER_PROVIDER = 6;
 const ENTRY_PAGE_LIMIT = 100; // the documented maximum
+/** Diagnostic preview length. Long enough to show a whole entry — a 300-char preview hid
+ *  the nested `details` shape and cost an entire pull to discover. */
+const PREVIEW_CHARS = 2500;
 
 type Json = Record<string, unknown>;
 
@@ -112,13 +127,26 @@ export function parseProviders(payload: unknown): Provider[] {
   );
 }
 
-/** Source ids for a provider. `search_sources` groups by provider, but we call it per
- *  provider so anything returned belongs to that provider. */
-export function parseSourceIds(payload: unknown): string[] {
-  const withLabel = deepFind(payload, ['id', 'label']);
-  const withName = deepFind(payload, ['id', 'name']);
-  const ids = [...withLabel, ...withName].map((o) => String(o.id));
-  return [...new Set(ids)];
+/**
+ * Source ids grouped by provider. The real envelope is
+ * `[{ provider: {...}, sources: [...] }, …]` (confirmed live 2026-08-26, including empty
+ * `sources` arrays for providers with no connected profile), so all providers can be
+ * requested in ONE call and the results split here.
+ */
+export function parseSourcesByProvider(payload: unknown): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const group of deepFind(payload, ['provider', 'sources'])) {
+    const p = group.provider as Provider | undefined;
+    if (!p?.dataService) continue;
+    const key = `${p.dataService}:${p.dataType}`;
+    const sources = Array.isArray(group.sources) ? group.sources : [];
+    const ids = sources
+      .filter((x): x is Json => x !== null && typeof x === 'object')
+      .map((x) => (x.id === undefined ? null : String(x.id)))
+      .filter((x): x is string => !!x);
+    out.set(key, [...new Set([...(out.get(key) ?? []), ...ids])]);
+  }
+  return out;
 }
 
 /**
@@ -165,57 +193,181 @@ function pick(o: Json, keys: string[]): unknown {
 }
 
 const URL_KEYS = ['permalink', 'permalinkUrl', 'postUrl', 'url', 'link', 'shareUrl', 'contentUrl', 'postLink'];
-const ID_KEYS = ['platformPostId', 'postId', 'messageId', 'socialPostId', 'contentId', 'externalId', 'id'];
+// `unique_id` is Perch's real per-post key ("<sourceId>_<postId>") and is stable, so it
+// leads. The rest are fallbacks for providers that shape entries differently.
+const ID_KEYS = ['unique_id', 'platformPostId', 'postId', 'messageId', 'socialPostId', 'contentId', 'externalId', 'id'];
+const METRIC_KEYS = ['impressions', 'impressionCount', 'views', 'videoViews', 'viewCount', 'plays',
+  'reach', 'uniqueReach', 'engagements', 'engagement', 'totalEngagements', 'interactions',
+  'engagementRate', 'engagementPct', 'engagementPercent', 'clicks', 'linkClicks', 'postClicks'];
+
+/** Perch metric id → the column a bare `value` on its entries belongs in. */
+const METRIC_ID_FIELD: Array<[RegExp, 'impressions' | 'views' | 'reach' | 'engagements' | 'clicks' | 'engagementRate']> = [
+  [/impression/i, 'impressions'],
+  [/(^|_)views?(_|$)|video_view|play/i, 'views'],
+  [/reach/i, 'reach'],
+  [/engagement_rate|eng_rate/i, 'engagementRate'],
+  [/engagement/i, 'engagements'],
+  [/click/i, 'clicks'],
+];
+
+/** Flatten an entry subtree into leaf key→value pairs, so `details.metrics.impressions`
+ *  is found as readily as a top-level `impressions`. Later duplicates lose to earlier
+ *  (shallower) ones, which keeps a top-level value authoritative. */
+function flattenLeaves(value: unknown, out: Json = {}, depth = 0): Json {
+  if (depth > 6 || value === null || typeof value !== 'object') return out;
+  if (Array.isArray(value)) {
+    for (const v of value) flattenLeaves(v, out, depth + 1);
+    return out;
+  }
+  for (const [k, v] of Object.entries(value as Json)) {
+    if (v !== null && typeof v === 'object') flattenLeaves(v, out, depth + 1);
+    else if (!(k in out)) out[k] = v;
+  }
+  return out;
+}
+
+/** The first plausible post permalink anywhere in an entry. */
+function findPermalink(entry: unknown, depth = 0): string | null {
+  if (depth > 6 || entry === null || typeof entry !== 'object') return null;
+  if (Array.isArray(entry)) {
+    for (const v of entry) { const hit = findPermalink(v, depth + 1); if (hit) return hit; }
+    return null;
+  }
+  for (const [k, v] of Object.entries(entry as Json)) {
+    if (typeof v === 'string' && /^https?:\/\//i.test(v)) {
+      const keyed = URL_KEYS.some((u) => k.toLowerCase().replace(/[_\s-]/g, '').includes(u.toLowerCase()));
+      // Only accept a bare URL that actually looks like a post, so a thumbnail/CDN link
+      // never becomes the join key.
+      if (keyed || /instagram\.com|youtube\.com|youtu\.be|linkedin\.com|facebook\.com|tiktok\.com|threads\.net|pinterest\./i.test(v)) {
+        if (!/\.(jpg|jpeg|png|gif|webp|mp4|mov)(\?|$)/i.test(v)) return v;
+      }
+    }
+    if (v !== null && typeof v === 'object') { const hit = findPermalink(v, depth + 1); if (hit) return hit; }
+  }
+  return null;
+}
+
+export interface ExtractResult {
+  rows: SocialMetricInput[];
+  /** Metric ids whose entries carried a value we could not confidently name. Reported,
+   *  never guessed into a column. */
+  unmappedMetricIds: string[];
+}
+
+/** One `results[]` group: the metric it answers for plus its per-post entries. */
+export interface EntryGroup { metricId: string; entries: Json[] }
 
 /**
- * Turn MULTIPART entries into ingest rows. Tolerant on field names because entry shapes
- * are undocumented; the raw entry is retained on every row so a mis-guess is fixable
- * after the fact instead of lost.
+ * Pull `results[].entries[]` out of a query_analytics response. Falls back to a deep scan
+ * for anything carrying `entries` so a slightly different envelope still works.
  */
-export function extractRows(payload: unknown, windowDays: number | null, channel: string | null): SocialMetricInput[] {
-  // An entry is an object carrying at least one identifier and at least one metric value.
-  const candidates = deepFind(payload, []).filter((o) => {
-    const hasKey = pick(o, URL_KEYS) !== undefined || pick(o, ID_KEYS) !== undefined;
-    const hasMetric = ['impressions', 'views', 'reach', 'engagementRate', 'engagements', 'engagement', 'clicks']
-      .some((m) => pick(o, [m]) !== undefined);
-    return hasKey && hasMetric;
-  });
-
-  const rows: SocialMetricInput[] = [];
-  for (const o of candidates) {
-    const url = pick(o, URL_KEYS);
-    const id = pick(o, ID_KEYS);
-
-    let rate = num(pick(o, ['engagementRate', 'engagementPct', 'engagementPercent']));
-    if (rate !== null && rate > 0 && rate <= 1) rate = Math.round(rate * 100 * 1000) / 1000; // fraction → percent
-    const engagements = num(pick(o, ['engagements', 'engagement', 'totalEngagements', 'interactions']));
-    const impressions = num(pick(o, ['impressions', 'impressionCount']));
-    const views = num(pick(o, ['views', 'videoViews', 'viewCount', 'plays']));
-
-    const denom = impressions ?? views;
-    if (rate === null && engagements !== null && denom && denom > 0) {
-      rate = Math.round((engagements / denom) * 100 * 1000) / 1000;
-    }
-
-    const entryChannel = pick(o, ['channel', 'network', 'networkType', 'platform', 'socialNetwork', 'profileType']);
-    rows.push({
-      source: 'hootsuite:perch',
-      publishedUrl: typeof url === 'string' ? url : null,
-      platformPostId: id === undefined ? null : String(id),
-      channel: typeof entryChannel === 'string' ? entryChannel : channel,
-      impressions,
-      views,
-      reach: num(pick(o, ['reach', 'uniqueReach'])),
-      engagements,
-      engagementRate: rate,
-      clicks: num(pick(o, ['clicks', 'linkClicks', 'postClicks'])),
-      windowDays,
-      raw: o,
+export function parseEntryGroups(payload: unknown): EntryGroup[] {
+  const holders = deepFind(payload, ['entries']);
+  const groups: EntryGroup[] = [];
+  for (const h of holders) {
+    const entries = h.entries;
+    if (!Array.isArray(entries) || entries.length === 0) continue;
+    const metric = h.metric as Json | undefined;
+    groups.push({
+      metricId: typeof metric?.id === 'string' ? metric.id : 'unknown',
+      entries: entries.filter((e): e is Json => e !== null && typeof e === 'object' && !Array.isArray(e)),
     });
   }
-  // The same post can appear under several metrics; ingest dedupes on the stored key, but
-  // collapsing here keeps the upsert count honest.
-  return uniqueBy(rows, (r) => `${r.platformPostId ?? ''}|${r.publishedUrl ?? ''}`);
+  return groups;
+}
+
+/**
+ * Turn Perch entries into ingest rows.
+ *
+ * The identifier lives on the entry (`unique_id`) while the numbers live nested under
+ * `details`, so the entry's whole subtree is flattened and searched. A metric whose entries
+ * carry a bare `value` is mapped by the METRIC_ID_FIELD table, since the response says which
+ * metric it is answering for rather than naming the field.
+ */
+export function extractRows(payload: unknown, windowDays: number | null, channel: string | null): ExtractResult {
+  const rows: SocialMetricInput[] = [];
+  const unmapped = new Set<string>();
+
+  for (const group of parseEntryGroups(payload)) {
+    const mapped = METRIC_ID_FIELD.find(([re]) => re.test(group.metricId))?.[1] ?? null;
+
+    for (const entry of group.entries) {
+      const flat = flattenLeaves(entry);
+      const id = pick(entry, ID_KEYS) ?? pick(flat, ID_KEYS);
+      const url = findPermalink(entry);
+      if (id === undefined && !url) continue; // nothing to key on — skip rather than orphan
+
+      let rate = num(pick(flat, ['engagementRate', 'engagementPct', 'engagementPercent', 'engagement_rate']));
+      if (rate !== null && rate > 0 && rate <= 1) rate = Math.round(rate * 100 * 1000) / 1000; // fraction → percent
+      let engagements = num(pick(flat, ['engagements', 'engagement', 'totalEngagements', 'interactions']));
+      let impressions = num(pick(flat, ['impressions', 'impressionCount']));
+      let views = num(pick(flat, ['views', 'videoViews', 'viewCount', 'plays']));
+      let reach = num(pick(flat, ['reach', 'uniqueReach']));
+      let clicks = num(pick(flat, ['clicks', 'linkClicks', 'postClicks']));
+
+      // A metric answering with a bare `value` tells us the field via the metric id.
+      const bare = num(pick(flat, ['value', 'total', 'count']));
+      if (bare !== null && mapped) {
+        if (mapped === 'impressions' && impressions === null) impressions = bare;
+        else if (mapped === 'views' && views === null) views = bare;
+        else if (mapped === 'reach' && reach === null) reach = bare;
+        else if (mapped === 'clicks' && clicks === null) clicks = bare;
+        else if (mapped === 'engagements' && engagements === null) engagements = bare;
+        else if (mapped === 'engagementRate' && rate === null) rate = bare > 0 && bare <= 1 ? Math.round(bare * 100 * 1000) / 1000 : bare;
+      }
+
+      const denom = impressions ?? views;
+      if (rate === null && engagements !== null && denom && denom > 0) {
+        rate = Math.round((engagements / denom) * 100 * 1000) / 1000;
+      }
+
+      const hasAny = [impressions, views, reach, engagements, rate, clicks].some((v) => v !== null);
+      if (!hasAny) {
+        // A number we can't name is worse than no number — putting it in the wrong column
+        // would quietly misreport performance. So don't guess; report the metric id so the
+        // mapping can be added deliberately.
+        if (bare !== null && !mapped) unmapped.add(group.metricId);
+        continue;
+      }
+
+      const entryChannel = pick(flat, ['channel', 'network', 'networkType', 'platform', 'socialNetwork', 'profileType']);
+      rows.push({
+        source: 'hootsuite:perch',
+        publishedUrl: url,
+        platformPostId: id === undefined ? null : String(id),
+        channel: typeof entryChannel === 'string' ? entryChannel : channel,
+        impressions,
+        views,
+        reach,
+        engagements,
+        engagementRate: rate,
+        clicks,
+        windowDays,
+        raw: entry,
+      });
+    }
+  }
+
+  // The same post appears under several metrics (one call per metric), each carrying a
+  // different number. Merge them into one row instead of letting the last write win.
+  const merged = new Map<string, SocialMetricInput>();
+  for (const r of rows) {
+    const key = `${r.platformPostId ?? ''}|${r.publishedUrl ?? ''}`;
+    const prev = merged.get(key);
+    if (!prev) { merged.set(key, r); continue; }
+    merged.set(key, {
+      ...prev,
+      impressions: prev.impressions ?? r.impressions,
+      views: prev.views ?? r.views,
+      reach: prev.reach ?? r.reach,
+      engagements: prev.engagements ?? r.engagements,
+      engagementRate: prev.engagementRate ?? r.engagementRate,
+      clicks: prev.clicks ?? r.clicks,
+      publishedUrl: prev.publishedUrl ?? r.publishedUrl,
+      channel: prev.channel ?? r.channel,
+    });
+  }
+  return { rows: [...merged.values()], unmappedMetricIds: [...unmapped] };
 }
 
 async function callJson(session: McpSession, tool: string, args: Json): Promise<{ ok: true; json: unknown; text: string } | { ok: false; error: string }> {
@@ -233,6 +385,9 @@ export interface PullReport extends IngestReport {
   /** Metrics that answered but yielded no recognizable per-post entry — the signal that
    *  extractRows needs the real field names, NOT that performance was zero. */
   metricsWithoutRows: string[];
+  /** Metric ids returning a value we deliberately refused to guess a column for. Each one
+   *  is a line to add to METRIC_ID_FIELD. */
+  unmappedMetricIds: string[];
   notes: string[];
 }
 
@@ -268,7 +423,7 @@ export async function callTool(name: string, args: Json): Promise<{ ok: true; te
 export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
   const notes: string[] = [];
   const errors: string[] = [];
-  const base = { toolsSeen: [] as string[], workspaces: 0, providers: [] as string[], sourcesFound: 0, metricsQueried: [] as string[], metricsWithoutRows: [] as string[], notes };
+  const base = { toolsSeen: [] as string[], workspaces: 0, providers: [] as string[], sourcesFound: 0, metricsQueried: [] as string[], metricsWithoutRows: [] as string[], unmappedMetricIds: [] as string[], notes };
 
   const session = await connect(PERCH_URL, await getAccessToken());
   if (!session.ok) return { ...emptyReport(), ...base, errors: [session.error.message] };
@@ -304,24 +459,34 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
       notes.push(`No providers in workspace ${workspaceScope.tenantId}. First 200 chars: ${provRes.text.slice(0, 200)}`);
       continue;
     }
-
-    for (const provider of providers) {
-      const label = `${provider.dataService}/${provider.dataType}`;
+    for (const p of providers) {
+      const label = `${p.dataService}/${p.dataType}`;
       if (!base.providers.includes(label)) base.providers.push(label);
+    }
 
-      const srcRes = await callJson(session.data, T.sources, { workspaceScope, providers: [provider] });
-      if (!srcRes.ok) { errors.push(`${T.sources} (${label}): ${srcRes.error}`); continue; }
-      const sourceIds = parseSourceIds(srcRes.json);
-      base.sourcesFound += sourceIds.length;
-      if (sourceIds.length === 0) {
-        notes.push(`No sources for ${label}. First 200 chars: ${srcRes.text.slice(0, 200)}`);
-        continue;
-      }
+    // ONE call for every provider's sources, and ONE for every provider's metrics. Doing
+    // this per provider is what triggered Hootsuite's 429s; both tools take arrays.
+    const srcRes = await callJson(session.data, T.sources, { workspaceScope, providers });
+    if (!srcRes.ok) { errors.push(`${T.sources}: ${srcRes.error}`); continue; }
+    const sourcesByProvider = parseSourcesByProvider(srcRes.json);
+    const withSources = providers.filter((p) => (sourcesByProvider.get(`${p.dataService}:${p.dataType}`) ?? []).length > 0);
+    base.sourcesFound += [...sourcesByProvider.values()].reduce((n, ids) => n + ids.length, 0);
+    if (withSources.length === 0) {
+      notes.push(`No connected sources in workspace ${workspaceScope.tenantId}. First 200 chars: ${srcRes.text.slice(0, 200)}`);
+      continue;
+    }
 
-      // Discovery: ask for post-level metrics, then keep MULTIPART (per-post entries) first.
-      const metRes = await callJson(session.data, T.metrics, { workspaceScope, queries: [{ providers: [provider], query: 'post' }] });
-      if (!metRes.ok) { errors.push(`${T.metrics} (${label}): ${metRes.error}`); continue; }
-      const all = parseMetrics(metRes.json, provider);
+    const metRes = await callJson(session.data, T.metrics, {
+      workspaceScope,
+      queries: withSources.map((p) => ({ providers: [p], query: 'post' })),
+    });
+    if (!metRes.ok) { errors.push(`${T.metrics}: ${metRes.error}`); continue; }
+
+    for (const provider of withSources) {
+      const label = `${provider.dataService}/${provider.dataType}`;
+      const sourceIds = sourcesByProvider.get(`${provider.dataService}:${provider.dataType}`) ?? [];
+      const all = parseMetrics(metRes.json, provider)
+        .filter((m) => m.provider.dataService === provider.dataService && m.provider.dataType === provider.dataType);
       const multipart = all.filter((m) => m.dataFormat === 'MULTIPART');
       const chosen = (multipart.length ? multipart : all).slice(0, MAX_METRICS_PER_PROVIDER);
       if (chosen.length === 0) {
@@ -332,27 +497,31 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
         notes.push(`${label}: no MULTIPART (per-post) metric found; falling back to ${chosen.map((m) => `${m.label}[${m.dataFormat}]`).join(', ')} — these are likely profile-level, so per-post attribution may not be possible for this provider.`);
       }
 
-      for (const metric of chosen) {
-        const name = `${label}:${metric.label}`;
-        base.metricsQueried.push(name);
-        const qRes = await callJson(session.data, T.query, {
-          queries: [{
-            metricId: { id: metric.id, provider: metric.provider },
-            sourceIds,
-            timeRange: { since, until },
-            ...(metric.dataFormat === 'MULTIPART' ? { limit: ENTRY_PAGE_LIMIT } : {}),
-          }],
-        });
-        if (!qRes.ok) { errors.push(`${T.query} (${name}): ${qRes.error}`); continue; }
+      // One batched query_analytics for all of this provider's metrics. Entries fail
+      // per-query upstream, so a bad metric costs its own result, not the batch.
+      const qRes = await callJson(session.data, T.query, {
+        queries: chosen.map((metric) => ({
+          metricId: { id: metric.id, provider: metric.provider },
+          sourceIds,
+          timeRange: { since, until },
+          ...(metric.dataFormat === 'MULTIPART' ? { limit: ENTRY_PAGE_LIMIT } : {}),
+        })),
+      });
+      for (const metric of chosen) base.metricsQueried.push(`${label}:${metric.label}`);
+      if (!qRes.ok) { errors.push(`${T.query} (${label}): ${qRes.error}`); continue; }
 
-        const found = extractRows(qRes.json, windowDays, provider.dataService);
-        if (found.length === 0) {
-          base.metricsWithoutRows.push(name);
-          notes.push(`${name} answered but no per-post entry was recognized. First 300 chars: ${qRes.text.slice(0, 300)}`);
-          continue;
-        }
-        rows.push(...found);
+      const found = extractRows(qRes.json, windowDays, provider.dataService);
+      if (found.unmappedMetricIds.length) {
+        base.unmappedMetricIds.push(...found.unmappedMetricIds.filter((m) => !base.unmappedMetricIds.includes(m)));
       }
+      if (found.rows.length === 0) {
+        base.metricsWithoutRows.push(label);
+        // A generous slice: the entry shape is the thing we are still learning, and a
+        // 300-char preview already cost one whole pull to discover it was too short.
+        notes.push(`${label} answered but no per-post row was built. Raw: ${qRes.text.slice(0, PREVIEW_CHARS)}`);
+        continue;
+      }
+      rows.push(...found.rows);
     }
   }
 

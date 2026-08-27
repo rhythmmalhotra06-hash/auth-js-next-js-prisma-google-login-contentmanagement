@@ -6,11 +6,14 @@
 // methods, and the SDK brings a transport/auth stack we'd be fighting (we hold our own
 // OAuth token from lib/hootsuite/oauth.ts and just need it on the wire).
 //
-// Two protocol details that bite if missed:
+// Three protocol details that bite if missed:
 //  1. `Accept` MUST list both application/json and text/event-stream. A compliant server
 //     may answer either, and some answer SSE even for a plain request/response.
 //  2. The server may hand back an `Mcp-Session-Id` on initialize; every later request in
 //     that session has to echo it, or the server treats the call as sessionless and errors.
+//  3. Servers rate-limit. Hootsuite returned 429s once a pull made more than a handful of
+//     calls in quick succession, so requests are paced and 429/503 is retried with backoff
+//     (honouring Retry-After). Callers should ALSO batch — see lib/hootsuite/perch.ts.
 
 export interface McpTool {
   name: string;
@@ -22,6 +25,11 @@ export type McpResult<T> = { ok: true; data: T } | { ok: false; error: { message
 
 const PROTOCOL_VERSION = '2025-06-18';
 const CLIENT_INFO = { name: 'mindvalley-content-portal', version: '1.0.0' };
+/** Minimum gap between requests on one session — cheap insurance against 429s. */
+const MIN_INTERVAL_MS = 350;
+const MAX_RETRIES = 4;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface RpcEnvelope {
   jsonrpc: '2.0';
@@ -60,11 +68,19 @@ function parseBody(contentType: string, raw: string): RpcEnvelope | null {
 export class McpSession {
   private sessionId: string | null = null;
   private nextId = 1;
+  private lastRequestAt = 0;
 
   constructor(
     private readonly url: string,
     private readonly accessToken: string,
   ) {}
+
+  /** Keep a floor between requests. Serialized because rpc() is always awaited. */
+  private async pace(): Promise<void> {
+    const wait = this.lastRequestAt + MIN_INTERVAL_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    this.lastRequestAt = Date.now();
+  }
 
   private async rpc(method: string, params?: unknown, notify = false): Promise<McpResult<unknown>> {
     const body: Record<string, unknown> = { jsonrpc: '2.0', method };
@@ -79,24 +95,38 @@ export class McpSession {
     };
     if (this.sessionId) headers['Mcp-Session-Id'] = this.sessionId;
 
-    let res: Response;
-    try {
-      res = await fetch(this.url, { method: 'POST', headers, body: JSON.stringify(body) });
-    } catch (err) {
-      return { ok: false, error: { message: `Could not reach ${this.url}: ${err instanceof Error ? err.message : String(err)}` } };
+    let res: Response | null = null;
+    let raw = '';
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      await this.pace();
+      try {
+        res = await fetch(this.url, { method: 'POST', headers, body: JSON.stringify(body) });
+      } catch (err) {
+        return { ok: false, error: { message: `Could not reach ${this.url}: ${err instanceof Error ? err.message : String(err)}` } };
+      }
+
+      const sid = res.headers.get('mcp-session-id');
+      if (sid) this.sessionId = sid;
+
+      if (notify) return { ok: true, data: null }; // notifications get no reply body
+
+      raw = await res.text();
+      // Retry only what retrying can fix: throttling and transient upstream faults. A 401
+      // or 4xx is a standing condition, so returning immediately keeps the real message.
+      const retryable = res.status === 429 || res.status === 503 || res.status === 502;
+      if (!retryable || attempt === MAX_RETRIES) break;
+      const after = Number(res.headers.get('retry-after'));
+      const backoff = Number.isFinite(after) && after > 0 ? after * 1000 : 2 ** attempt * 1000;
+      await sleep(Math.min(backoff, 15_000));
     }
 
-    const sid = res.headers.get('mcp-session-id');
-    if (sid) this.sessionId = sid;
-
-    if (notify) return { ok: true, data: null }; // notifications get no reply body
-
-    const raw = await res.text();
+    if (!res) return { ok: false, error: { message: `${method}: no response` } };
     if (!res.ok) {
       // 401 here means the token is bad/expired or the account lacks the product; the
       // caller turns that into a "reconnect Hootsuite" prompt rather than a retry loop.
       const detail = raw.slice(0, 300) || res.statusText;
-      return { ok: false, error: { message: `${method} failed (HTTP ${res.status}): ${detail}`, status: res.status } };
+      const hint = res.status === 429 ? ' (still throttled after retries — reduce the number of calls, not just the pace)' : '';
+      return { ok: false, error: { message: `${method} failed (HTTP ${res.status})${hint}: ${detail}`, status: res.status } };
     }
 
     const env = parseBody(res.headers.get('content-type') ?? '', raw);

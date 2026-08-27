@@ -73,6 +73,7 @@ export async function pullNow(windowDays: number): Promise<HootsuiteActionResult
       `workspaces ${r.workspaces} · providers ${r.providers.join(', ') || '(none)'} · sources ${r.sourcesFound}`,
       `metrics queried: ${r.metricsQueried.join(', ') || '(none)'}`,
       r.metricsWithoutRows.length ? `answered but no per-post entry recognized: ${r.metricsWithoutRows.join(', ')}` : '',
+      r.unmappedMetricIds.length ? `metric ids returning an unnamed value (need a mapping, not a guess): ${r.unmappedMetricIds.join(', ')}` : '',
       ...r.notes,
       ...r.errors,
     ].filter(Boolean);
