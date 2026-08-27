@@ -262,6 +262,13 @@ export interface SocialPostRow {
    *  a raw number tells you nothing about whether it did well. Null when there's no
    *  baseline yet or the post reports no reach. */
   vsMedian: number | null;
+  /** Percentile rank of this post's reach within its account, 0–100.
+   *
+   *  Carried alongside vsMedian because reach here is wildly skewed (p50 2.7k, p75 20k,
+   *  max 172k — two content classes in one account), which makes a multiple read as
+   *  "62× typical" and look broken even when it's arithmetically right. A percentile is
+   *  robust to that: "top 3%" means the same thing whatever the distribution. */
+  percentile: number | null;
   /** Full clickable URL. Stored `publishedUrl` is normalized (no scheme), so the raw
    *  payload's own link is preferred and the scheme re-added as a fallback. */
   url: string | null;
@@ -386,6 +393,7 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
       platformPostId: r.platformPostId,
       ticketAirtableId: r.ticketAirtableId,
       vsMedian: null, // filled once the account's baseline is known
+      percentile: null,
       url: meta.link ?? (r.publishedUrl ? `https://${r.publishedUrl}` : null),
       caption: meta.caption,
       account: meta.account,
@@ -407,11 +415,16 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
       const reaches = rows.map((x) => x.reach).filter((n): n is number => n != null);
       const medianReach = median(reaches);
 
-      // Every post gets its multiple of the baseline. This is the point of the page:
-      // "158k" means nothing alone, "3.1x your median" is a decision.
+      // Every post gets its multiple of the baseline AND its percentile. The point of the
+      // page is comparison — "158k" means nothing alone. Both are kept because the
+      // multiple is intuitive when the spread is tight and misleading when it isn't.
+      const ascending = [...reaches].sort((a, b) => a - b);
       for (const x of rows) {
         x.vsMedian = medianReach && medianReach > 0 && x.reach != null
           ? Math.round((x.reach / medianReach) * 10) / 10
+          : null;
+        x.percentile = x.reach != null && ascending.length > 1
+          ? Math.round((ascending.filter((n) => n <= x.reach!).length / ascending.length) * 100)
           : null;
       }
 
@@ -432,7 +445,7 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
       const at = (x: SocialPostRow) => (x.postedAt ? new Date(x.postedAt).getTime() : null);
       const sumBetween = (from: number, to: number) =>
         rows.reduce((n, x) => { const t = at(x); return t !== null && t >= from && t < to ? n + (x.reach ?? 0) : n; }, 0);
-      const recent = sumBetween(now - WEEK, now + WEEK);
+      const recent = sumBetween(now - WEEK, now + 1); // +1ms so a post from this instant counts
       const prior = sumBetween(now - 2 * WEEK, now - WEEK);
 
       const ranked = rows
@@ -451,8 +464,14 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
         // Guard the zero base: a jump from nothing isn't +infinity%, it's no signal.
         trendPct: prior > 0 && recent > 0 ? Math.round(((recent - prior) / prior) * 100) : null,
         top: ranked.slice(0, limit),
+        // Prefer captioned posts: "(no caption)" three times over is not an actionable
+        // list, and 53 of 92 posts here carry no caption text at all.
         underperformers: medianReach
-          ? ranked.filter((x) => x.reach != null && x.reach < medianReach * 0.5).slice(-3).reverse()
+          ? (() => {
+              const below = ranked.filter((x) => x.reach != null && x.reach < medianReach * 0.5);
+              const captioned = below.filter((x) => x.caption);
+              return (captioned.length ? captioned : below).slice(-3).reverse();
+            })()
           : [],
       };
     })

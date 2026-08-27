@@ -9,19 +9,23 @@
 
 import { postToChannel, contentReadyChannel } from '@/lib/notify/slack';
 import { getAccountPerformance, type AccountBoard } from '@/lib/metrics/social-perf';
-import { formatCount } from '@/lib/metrics/social-metric-types';
+import { formatCount, formatPct } from '@/lib/metrics/social-metric-types';
 
 const MAX_WINNERS = 3;
 
-function line(caption: string | null, max = 70): string {
-  const flat = (caption ?? 'Untitled post').replace(/\s+/g, ' ').trim();
-  return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
+/** A post's label. Many posts here carry no caption text at all, so fall back to the link
+ *  rather than printing "Untitled post" repeatedly. */
+function label(caption: string | null, url: string | null, max = 70): string {
+  const flat = (caption ?? '').replace(/\s+/g, ' ').trim();
+  if (!flat) return url ? `<${url}|(no caption — open post)>` : '(no caption)';
+  const text = flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
+  return url ? `${text} <${url}|open>` : text;
 }
 
 function boardSection(board: AccountBoard): string {
   const out: string[] = [];
   const trend = board.trendPct !== null
-    ? ` · ${board.trendPct >= 0 ? '↑' : '↓'} ${Math.abs(board.trendPct)}% vs the week before`
+    ? ` · ${board.trendPct === 0 ? 'flat' : `${board.trendPct > 0 ? '↑' : '↓'} ${Math.abs(board.trendPct)}%`} vs the week before`
     : '';
   out.push(`*@${board.account}* — ${formatCount(board.reach)} reach across ${board.posts} post${board.posts === 1 ? '' : 's'}${trend}`);
   if (board.medianReach) out.push(`Typical post: ${formatCount(board.medianReach)} reach`);
@@ -30,17 +34,18 @@ function boardSection(board: AccountBoard): string {
   if (winners.length) {
     out.push('*What won*');
     for (const p of winners) {
-      const multiple = p.vsMedian !== null ? ` (${p.vsMedian}× typical)` : '';
-      const eng = p.engagementRate !== null ? `, ${p.engagementRate}% eng` : '';
-      const link = p.url ? ` <${p.url}|open>` : '';
-      out.push(`• ${formatCount(p.reach)}${multiple}${eng} — ${line(p.caption)}${link}`);
+      // Percentile leads, not the multiple: reach here spans 1k–172k, so "62× typical"
+      // reads as a bug while "top 2%" reads as a fact.
+      const rank = p.percentile !== null ? ` (top ${Math.max(1, 100 - p.percentile)}%)` : '';
+      const eng = p.engagementRate !== null ? `, ${formatPct(p.engagementRate)} eng` : '';
+      out.push(`• ${formatCount(p.reach)}${rank}${eng} — ${label(p.caption, p.url)}`);
     }
   }
 
   if (board.underperformers.length) {
     out.push('*Below half the baseline*');
     for (const p of board.underperformers) {
-      out.push(`• ${formatCount(p.reach)} — ${line(p.caption)}`);
+      out.push(`• ${formatCount(p.reach)} — ${label(p.caption, p.url)}`);
     }
   }
   return out.join('\n');

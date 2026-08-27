@@ -193,3 +193,15 @@ export function formatCount(n: number | null | undefined): string {
   if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k`;
   return String(n);
 }
+
+/** Engagement rate for display. Perch reports 3 decimals (7.854%); nobody needs that. */
+export function formatPct(n: number | null | undefined): string {
+  return n == null ? '—' : `${Math.round(n * 10) / 10}%`;
+}
+
+/** Signed change for a KPI, saying "flat" instead of an unhelpful "+0%". */
+export function formatDelta(pct: number | null | undefined): string {
+  if (pct == null) return '—';
+  if (pct === 0) return 'flat';
+  return `${pct > 0 ? '+' : ''}${pct}%`;
+}

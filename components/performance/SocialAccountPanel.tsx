@@ -1,7 +1,7 @@
 import { Icon } from '@/components/ui/Icon';
 import { Kpi, KpiGrid } from '@/components/ui/Kpi';
 import { Sparkline } from '@/components/ui/Sparkline';
-import { formatCount } from '@/lib/metrics/social-metric-types';
+import { formatCount, formatPct, formatDelta } from '@/lib/metrics/social-metric-types';
 import type { AccountBoard, AccountPerformance, SocialPostRow } from '@/lib/metrics/social-perf';
 import { PostRowActions, type TicketOption } from '@/components/performance/PostRowActions';
 
@@ -17,8 +17,10 @@ const shortDate = (iso: string | null): string =>
 
 /** One tidy line of caption — bodies arrive with newlines and long hashtag tails. */
 function trim(caption: string | null, max = 96): string {
-  if (!caption) return 'Untitled post';
-  const flat = caption.replace(/\s+/g, ' ').trim();
+  const flat = (caption ?? '').replace(/\s+/g, ' ').trim();
+  // Many posts carry no caption text (53 of 92 on the first real pull), so say so plainly
+  // rather than inventing a title.
+  if (!flat) return '(no caption)';
   return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
 }
 
@@ -49,6 +51,7 @@ function TopPosts({ board, tickets }: { board: AccountBoard; tickets: TicketOpti
               <th>Post</th>
               <th style={{ width: 110 }}>Reach</th>
               <th style={{ width: 96 }}>vs median</th>
+              <th style={{ width: 84 }}>Rank</th>
               <th style={{ width: 110 }}>Engagement</th>
               <th style={{ width: 90 }}>Posted</th>
               <th style={{ width: 260 }}>Actions</th>
@@ -62,8 +65,9 @@ function TopPosts({ board, tickets }: { board: AccountBoard; tickets: TicketOpti
                 <td className="tabular-nums">{formatCount(p.reach)}</td>
                 <td><VsMedian x={p.vsMedian} /></td>
                 <td className="tabular-nums">
-                  {p.engagementRate !== null ? `${p.engagementRate}%` : <span className="subtle">—</span>}
+                  {p.percentile !== null ? `top ${Math.max(1, 100 - p.percentile)}%` : <span className="subtle">—</span>}
                 </td>
+                <td className="tabular-nums">{formatPct(p.engagementRate)}</td>
                 <td>{shortDate(p.postedAt)}</td>
                 <td><PostRowActions post={p} tickets={tickets} /></td>
                 <td>
@@ -92,17 +96,17 @@ export function AccountBoardSection({ board, tickets }: { board: AccountBoard; t
         <h3>@{board.account}</h3>
         <span className="hint">
           {board.posts} post{board.posts === 1 ? '' : 's'}
-          {trend !== null && ` · ${trend >= 0 ? '+' : ''}${trend}% reach vs the week before`}
+          {trend !== null && ` · ${formatDelta(trend)} reach vs the week before`}
         </span>
       </div>
       <KpiGrid>
         <Kpi i={0} label="Total reach" value={formatCount(board.reach)} sub={`${board.posts} post${board.posts === 1 ? '' : 's'}`} />
         <Kpi i={1} label="Typical post" value={formatCount(board.medianReach)} sub="median reach · the baseline" />
-        <Kpi i={2} label="Avg engagement" value={board.avgEngagement !== null ? `${board.avgEngagement}%` : '—'} sub={board.avgEngagement !== null ? 'across reported posts' : 'not reported'} />
+        <Kpi i={2} label="Avg engagement" value={formatPct(board.avgEngagement)} sub={board.avgEngagement !== null ? 'across reported posts' : 'not reported'} />
         <Kpi i={3}
           tone={trend !== null && trend < 0 ? 'alert' : undefined}
           label="Last 7 days"
-          value={trend !== null ? `${trend >= 0 ? '+' : ''}${trend}%` : '—'}
+          value={formatDelta(trend)}
           sub={trend !== null ? 'reach vs prior 7 days' : 'not enough history'} />
       </KpiGrid>
 
@@ -160,7 +164,7 @@ export function SocialAccountPanel({ data, tickets }: { data: AccountPerformance
           </div>
           <KpiGrid>
             <Kpi i={0} label="Total reach" value={formatCount(data.reach)} sub={`${data.posts} posts · ${data.boards.length} accounts`} />
-            <Kpi i={1} label="Avg engagement" value={data.avgEngagement !== null ? `${data.avgEngagement}%` : '—'} sub="across all reported posts" />
+            <Kpi i={1} label="Avg engagement" value={formatPct(data.avgEngagement)} sub="across all reported posts" />
             <Kpi i={2} label="Best account" value={data.boards[0] ? formatCount(data.boards[0].reach) : '—'} sub={data.boards[0] ? `@${data.boards[0].account}` : '—'} />
           </KpiGrid>
         </>
