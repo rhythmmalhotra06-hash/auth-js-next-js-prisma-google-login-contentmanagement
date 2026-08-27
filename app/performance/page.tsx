@@ -9,6 +9,8 @@ import { InsightCard } from '@/components/ui/InsightCard';
 import { QueueSkeleton } from '@/components/ui/Skeletons';
 import { getQueueTickets, getRecentShipped, type QueueTicket } from '@/lib/tickets/data';
 import { getTicketMetrics, asOf } from '@/lib/metrics/snapshot';
+import { getAccountPerformance } from '@/lib/metrics/social-perf';
+import { SocialAccountPanel } from '@/components/performance/SocialAccountPanel';
 import { loadMap, riskOf, dueDays } from '@/lib/tickets/intel';
 import { getScoringConfig, capacityFor, type ScoringConfig } from '@/lib/scoring-config/repository';
 import { getAdminAccess } from '@/lib/admin/access';
@@ -45,7 +47,7 @@ function RiskList({ tickets, cfg }: { tickets: QueueTicket[]; cfg?: ScoringConfi
 async function ManagerInsights() {
   // Active (628) + capped recent ships + the nightly all-time snapshot — never scan
   // the ~9k Done history.
-  const [active, recentShipped, metrics, cfg] = await Promise.all([getQueueTickets(), getRecentShipped(12), getTicketMetrics(), getScoringConfig()]);
+  const [active, recentShipped, metrics, cfg, social] = await Promise.all([getQueueTickets(), getRecentShipped(12), getTicketMetrics(), getScoringConfig(), getAccountPerformance({ limit: 5 })]);
   const load = loadMap(active, cfg);
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
   const unassigned = active.filter((t) => !t.assignee).length;
@@ -66,6 +68,7 @@ async function ManagerInsights() {
       <FunnelCapacity tickets={[...active, ...recentShipped]} cfg={cfg} />
       <div className="sec-head"><h3>At-risk work</h3><span className="hint"><Icon name="sparkle" size={12} /> flagged by the brain</span></div>
       <RiskList tickets={active} cfg={cfg} />
+      <SocialAccountPanel data={social} />
     </>
   );
 }
@@ -100,27 +103,34 @@ async function EditorInsights() {
 
 // Founder / stakeholder → performance (deferred until a metrics source is wired).
 async function PerformanceInsights() {
-  const [active, published, metrics] = await Promise.all([getQueueTickets(), getRecentShipped(10), getTicketMetrics()]);
+  const [active, published, metrics, social] = await Promise.all([getQueueTickets(), getRecentShipped(10), getTicketMetrics(), getAccountPerformance({ limit: 10 })]);
   const inProd = active.filter((t) => IN_PROD.includes(t.ticketStatus ?? '')).length;
   return (
     <>
-      <div className="banner future" style={{ marginBottom: 16 }}>
-        <Icon name="chart" size={18} />
-        <div><b>Performance tracking arrives in a later phase.</b> Once published assets carry distribution links and Clarisights / Amplitude are connected, CTR, ROAS and views will surface here per asset. For now, here’s production throughput.</div>
-      </div>
+      {social.posts === 0 && (
+        <div className="banner future" style={{ marginBottom: 16 }}>
+          <Icon name="chart" size={18} />
+          <div><b>No performance numbers yet.</b> Connect Hootsuite at <Link href="/admin/hootsuite">/admin/hootsuite</Link> and the nightly pull fills this in. Until then, here’s production throughput.</div>
+        </div>
+      )}
+      <SocialAccountPanel data={social} />
       <KpiGrid>
         <Kpi label="Shipped" value={metrics ? metrics.shipped.toLocaleString() : '—'} sub={metrics ? `all-time · ${asOf(metrics.computedAt)}` : 'awaiting first sync'} i={0} />
         <Kpi label="In production" value={inProd} sub="moving now" i={1} />
       </KpiGrid>
-      <div className="sec-head"><h3>What’s working</h3><span className="hint"><Icon name="sparkle" size={12} /> propose-only · human approves</span></div>
-      <div className="stack" style={{ marginBottom: 18 }}>
-        <InsightCard
-          tone="warn"
-          icon="chart"
-          title="No performance signal connected yet"
-          detail="CTR, ROAS and views surface here per asset once published work carries a distribution link and a metrics source (Clarisights / Amplitude) is wired. Until then this stays empty rather than guessing."
-        />
-      </div>
+      {social.posts === 0 && (
+        <>
+          <div className="sec-head"><h3>What’s working</h3><span className="hint"><Icon name="sparkle" size={12} /> propose-only · human approves</span></div>
+          <div className="stack" style={{ marginBottom: 18 }}>
+            <InsightCard
+              tone="warn"
+              icon="chart"
+              title="No performance signal connected yet"
+              detail="Numbers surface here once Hootsuite is connected and a nightly pull has run. Until then this stays empty rather than guessing."
+            />
+          </div>
+        </>
+      )}
       <div className="sec-head"><h3>Recently shipped</h3><span className="hint">who made it</span></div>
       <div className="tw"><div className="tscroll"><table className="list">
         <thead><tr><th>Title</th><th>Made by</th></tr></thead>
