@@ -12,7 +12,7 @@
 // let summarize() pick the best available label instead of forcing one vocabulary.
 
 import { prisma } from '@/lib/prisma';
-import { normalizeUrl, reachOf, type SocialMetricInput, type SocialMetricRow } from '@/lib/metrics/social-metric-types';
+import { normalizeUrl, reachOf, isPostPermalink, type PostKind, type SocialMetricInput, type SocialMetricRow } from '@/lib/metrics/social-metric-types';
 
 // Re-exported so server callers have one import site; client components must import
 // from social-metric-types directly (this module reaches for prisma).
@@ -269,6 +269,10 @@ export interface SocialPostRow {
    *  "62× typical" and look broken even when it's arithmetically right. A percentile is
    *  robust to that: "top 3%" means the same thing whatever the distribution. */
   percentile: number | null;
+  /** 'story' when the entry has no shareable permalink — Instagram Stories come back with
+   *  a CDN media file instead. Baselines are computed WITHIN a kind, because a story
+   *  reaching 1k and a reel reaching 150k are not the same event. */
+  kind: PostKind;
   /** Full clickable URL. Stored `publishedUrl` is normalized (no scheme), so the raw
    *  payload's own link is preferred and the scheme re-added as a fallback. */
   url: string | null;
@@ -297,8 +301,10 @@ export interface AccountBoard {
   /** Last 7 days vs the 7 before, as a percentage change. Null when either side is empty,
    *  because "+∞%" from a zero base is noise, not news. */
   trendPct: number | null;
-  /** Posts below half the median — the ones worth asking about. */
+  /** Real posts below half their own kind's median — the ones worth asking about. */
   underperformers: SocialPostRow[];
+  /** How the account's rows split by kind, so a reader knows what's in the baseline. */
+  kinds: { post: number; story: number };
 }
 
 export interface AccountPerformance {
@@ -334,10 +340,13 @@ function fromRaw(raw: unknown): { caption: string | null; account: string | null
   const details = (r.details ?? {}) as Record<string, unknown>;
   const content = (details.content ?? {}) as Record<string, unknown>;
   const source = (details.source ?? {}) as Record<string, unknown>;
+  // Only surface a link we'd be willing to show a human: Perch returns a CDN media file
+  // as `source_link` for stories, and a 600-character cdninstagram URL is not a post link.
+  const rawLink = str(details.source_link);
   return {
     caption: str(content.body) ?? str(content.title) ?? null,
     account: str(source.name),
-    link: str(details.source_link),
+    link: isPostPermalink(rawLink) ? rawLink : null,
     postedAt: str(r.timestamp),
   };
 }
@@ -388,13 +397,15 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     if (r.vishenVideoId) attributed++;
 
     const account = meta.account ?? 'Unattributed account';
+    const url = meta.link ?? (isPostPermalink(r.publishedUrl ? `https://${r.publishedUrl}` : null) ? `https://${r.publishedUrl}` : null);
     const row: SocialPostRow = {
       key,
+      kind: url ? 'post' : 'story',
       platformPostId: r.platformPostId,
       ticketAirtableId: r.ticketAirtableId,
       vsMedian: null, // filled once the account's baseline is known
       percentile: null,
-      url: meta.link ?? (r.publishedUrl ? `https://${r.publishedUrl}` : null),
+      url,
       caption: meta.caption,
       account: meta.account,
       reach,
@@ -413,18 +424,30 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     .map(([account, rows]) => {
       const rated = rows.filter((x) => x.engagementRate !== null);
       const reaches = rows.map((x) => x.reach).filter((n): n is number => n != null);
-      const medianReach = median(reaches);
+      // Headline baseline covers posts only when there are any: stories dominate by count
+      // (53 of 92 on the first pull) and drag the "typical post" down to story numbers.
+      const postReaches = rows.filter((x) => x.kind === 'post').map((x) => x.reach).filter((n): n is number => n != null);
+      const medianReach = median(postReaches.length ? postReaches : reaches);
 
       // Every post gets its multiple of the baseline AND its percentile. The point of the
       // page is comparison — "158k" means nothing alone. Both are kept because the
       // multiple is intuitive when the spread is tight and misleading when it isn't.
-      const ascending = [...reaches].sort((a, b) => a - b);
+      // Compare like with like: each kind gets its own baseline and its own percentile.
+      const byKind = new Map<PostKind, number[]>();
       for (const x of rows) {
-        x.vsMedian = medianReach && medianReach > 0 && x.reach != null
-          ? Math.round((x.reach / medianReach) * 10) / 10
+        if (x.reach == null) continue;
+        (byKind.get(x.kind) ?? byKind.set(x.kind, []).get(x.kind)!).push(x.reach);
+      }
+      for (const arr of byKind.values()) arr.sort((a, b) => a - b);
+
+      for (const x of rows) {
+        const peers = byKind.get(x.kind) ?? [];
+        const kindMedian = median(peers);
+        x.vsMedian = kindMedian && kindMedian > 0 && x.reach != null
+          ? Math.round((x.reach / kindMedian) * 10) / 10
           : null;
-        x.percentile = x.reach != null && ascending.length > 1
-          ? Math.round((ascending.filter((n) => n <= x.reach!).length / ascending.length) * 100)
+        x.percentile = x.reach != null && peers.length > 1
+          ? Math.round((peers.filter((n) => n <= x.reach!).length / peers.length) * 100)
           : null;
       }
 
@@ -460,19 +483,23 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
           ? Math.round((rated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / rated.length) * 100) / 100
           : null,
         medianReach,
+        kinds: {
+          post: rows.filter((x) => x.kind === 'post').length,
+          story: rows.filter((x) => x.kind === 'story').length,
+        },
         weekly,
         // Guard the zero base: a jump from nothing isn't +infinity%, it's no signal.
         trendPct: prior > 0 && recent > 0 ? Math.round(((recent - prior) / prior) * 100) : null,
         top: ranked.slice(0, limit),
         // Prefer captioned posts: "(no caption)" three times over is not an actionable
         // list, and 53 of 92 posts here carry no caption text at all.
-        underperformers: medianReach
-          ? (() => {
-              const below = ranked.filter((x) => x.reach != null && x.reach < medianReach * 0.5);
-              const captioned = below.filter((x) => x.caption);
-              return (captioned.length ? captioned : below).slice(-3).reverse();
-            })()
-          : [],
+        // Judged against their OWN kind's baseline (vsMedian already is), and restricted to
+        // real posts: a story under-reaching a story is not news, and its CDN link isn't
+        // something anyone can open meaningfully.
+        underperformers: ranked
+          .filter((x) => x.kind === 'post' && x.vsMedian !== null && x.vsMedian < 0.5)
+          .slice(-3)
+          .reverse(),
       };
     })
     .sort((a, b) => b.reach - a.reach);

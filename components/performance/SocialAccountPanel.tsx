@@ -61,7 +61,10 @@ function TopPosts({ board, tickets }: { board: AccountBoard; tickets: TicketOpti
           <tbody>
             {board.top.map((p) => (
               <tr key={p.key}>
-                <td><div className="t-title">{trim(p.caption)}</div></td>
+                <td>
+                  <div className="t-title">{trim(p.caption)}</div>
+                  {p.kind === 'story' && <div className="t-meta">story</div>}
+                </td>
                 <td className="tabular-nums">{formatCount(p.reach)}</td>
                 <td><VsMedian x={p.vsMedian} /></td>
                 <td className="tabular-nums">
@@ -101,7 +104,8 @@ export function AccountBoardSection({ board, tickets }: { board: AccountBoard; t
       </div>
       <KpiGrid>
         <Kpi i={0} label="Total reach" value={formatCount(board.reach)} sub={`${board.posts} post${board.posts === 1 ? '' : 's'}`} />
-        <Kpi i={1} label="Typical post" value={formatCount(board.medianReach)} sub="median reach · the baseline" />
+        <Kpi i={1} label="Typical post" value={formatCount(board.medianReach)}
+          sub={board.kinds.story > 0 ? `median of ${board.kinds.post} posts · ${board.kinds.story} stories judged separately` : 'median reach · the baseline'} />
         <Kpi i={2} label="Avg engagement" value={formatPct(board.avgEngagement)} sub={board.avgEngagement !== null ? 'across reported posts' : 'not reported'} />
         <Kpi i={3}
           tone={trend !== null && trend < 0 ? 'alert' : undefined}

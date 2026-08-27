@@ -205,3 +205,32 @@ export function formatDelta(pct: number | null | undefined): string {
   if (pct === 0) return 'flat';
   return `${pct > 0 ? '+' : ''}${pct}%`;
 }
+
+/**
+ * Is this a real, shareable post permalink — as opposed to a CDN media file?
+ *
+ * Needed because Perch hands back a `source_link` for every entry, but for Instagram
+ * STORIES that link is the story's media file on cdninstagram.com (note: contains the
+ * substring "instagram.com", so a naive host check passes it). Putting those in a Slack
+ * digest produced 600-character CDN URLs where a post link should be.
+ */
+export function isPostPermalink(url: string | null | undefined): boolean {
+  const u = (url ?? '').trim();
+  if (!/^https?:\/\//i.test(u)) return false;
+  let host: string;
+  let path: string;
+  try {
+    const parsed = new URL(u);
+    host = parsed.hostname.toLowerCase();
+    path = parsed.pathname;
+  } catch {
+    return false;
+  }
+  if (/(^|\.)cdninstagram\.com$|(^|\.)fbcdn\.net$|(^|\.)akamaihd\.net$/.test(host)) return false;
+  if (/\.(jpg|jpeg|png|gif|webp|mp4|mov|m3u8)$/i.test(path)) return false;
+  return true;
+}
+
+/** What kind of thing a metric row describes. Stories reach a fraction of what a reel does
+ *  and vanish in 24h, so comparing the two against one baseline misreports both. */
+export type PostKind = 'post' | 'story';

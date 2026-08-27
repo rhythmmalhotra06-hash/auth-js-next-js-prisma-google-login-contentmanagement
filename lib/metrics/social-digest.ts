@@ -28,7 +28,12 @@ function boardSection(board: AccountBoard): string {
     ? ` · ${board.trendPct === 0 ? 'flat' : `${board.trendPct > 0 ? '↑' : '↓'} ${Math.abs(board.trendPct)}%`} vs the week before`
     : '';
   out.push(`*@${board.account}* — ${formatCount(board.reach)} reach across ${board.posts} post${board.posts === 1 ? '' : 's'}${trend}`);
-  if (board.medianReach) out.push(`Typical post: ${formatCount(board.medianReach)} reach`);
+  if (board.medianReach) {
+    const split = board.kinds.story > 0
+      ? ` (median of ${board.kinds.post} posts; ${board.kinds.story} stories are judged against each other)`
+      : '';
+    out.push(`Typical post: ${formatCount(board.medianReach)} reach${split}`);
+  }
 
   const winners = board.top.slice(0, MAX_WINNERS);
   if (winners.length) {
@@ -38,7 +43,8 @@ function boardSection(board: AccountBoard): string {
       // reads as a bug while "top 2%" reads as a fact.
       const rank = p.percentile !== null ? ` (top ${Math.max(1, 100 - p.percentile)}%)` : '';
       const eng = p.engagementRate !== null ? `, ${formatPct(p.engagementRate)} eng` : '';
-      out.push(`• ${formatCount(p.reach)}${rank}${eng} — ${label(p.caption, p.url)}`);
+      const kind = p.kind === 'story' ? ' [story]' : '';
+      out.push(`• ${formatCount(p.reach)}${rank}${eng}${kind} — ${label(p.caption, p.url)}`);
     }
   }
 
