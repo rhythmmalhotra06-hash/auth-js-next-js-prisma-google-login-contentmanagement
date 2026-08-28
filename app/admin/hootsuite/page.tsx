@@ -80,6 +80,7 @@ export default async function HootsuitePage({ searchParams }: { searchParams: Pr
             <li>· The nightly job is <code>.github/workflows/perch-metrics.yml</code> → <code>POST /api/metrics/perch-pull</code>. Pulls are idempotent, so re-running is safe.</li>
             <li>· Numbers land in <code>social_metrics</code> and surface in Studio&apos;s &ldquo;Live &amp; performing&rdquo; band. Manual entry writes the same table.</li>
             <li>· A post is matched to your records by its <b>published URL</b>. Unmatched rows are still stored and counted, so a drifted link is visible rather than lost.</li>
+            <li>· <b>The connection sees exactly what the person who pressed Connect sees.</b> If a profile is missing, it&apos;s a Hootsuite permission on that account, not a bug here — check with &ldquo;Which accounts can we read?&rdquo;, then either grant that user analytics access to the profile or reconnect as someone who already has it.</li>
           </ul>
         </div>
       </div>
