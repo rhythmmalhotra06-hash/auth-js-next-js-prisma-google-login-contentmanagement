@@ -35,15 +35,11 @@ export interface TicketForPush {
   teamServiceLevel: string | null;
   notes: string | null;
   sourceLinks: string | null;
-  downloadLink: string | null;
   assetFolderLink: string | null;
   workingFiles: string | null;
   final16x9: string | null;
-  folder16x9: string | null;
   final9x16: string | null;
-  folder9x16: string | null;
   final4x5: string | null;
-  folder4x5: string | null;
   eventTypeAirtableId: string | null;
   assetTypeAirtableId: string | null;
   assigneeAirtableId: string | null;
@@ -81,7 +77,6 @@ export function ticketToAirtableFields(t: TicketForPush): Record<string, unknown
   set(f.cta, t.cta);
   set(f.notes, t.notes);
   setUrl(f.rawFileUrl, t.sourceLinks);
-  setUrl(f.downloadLink, t.downloadLink);
   if (t.dueDate) fields[f.dueDate] = isoDate(t.dueDate);
   if (t.publishedAt) fields[f.publishedAt] = isoDate(t.publishedAt);
 
@@ -91,9 +86,9 @@ export function ticketToAirtableFields(t: TicketForPush): Record<string, unknown
   set(f.final16x9, t.final16x9);
   set(f.final9x16, t.final9x16);
   set(f.final4x5, t.final4x5);
-  setUrl(f.folder16x9, t.folder16x9);
-  setUrl(f.folder9x16, t.folder9x16);
-  setUrl(f.folder4x5, t.folder4x5);
+  // folder16x9 / folder9x16 / folder4x5 / downloadLink are NOT pushed: the team deleted those
+  // Airtable fields (2026-08-28) and writing an unknown field id fails the entire ticket push,
+  // not just that value. They remain app-local columns. See field-map.ts.
 
   // singleSelect fields — values are reconciled (2026-06-25) to match existing options.
   set(f.prioStatus, t.prioStatus);

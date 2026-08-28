@@ -60,15 +60,11 @@ type TicketPushRow = {
   teamServiceLevel: string | null;
   notes: string | null;
   sourceLinks: string | null;
-  downloadLink: string | null;
   assetFolderLink: string | null;
   workingFiles: string | null;
   final16x9: string | null;
-  folder16x9: string | null;
   final9x16: string | null;
-  folder9x16: string | null;
   final4x5: string | null;
-  folder4x5: string | null;
   assignee: { airtableId: string | null } | null;
   requester: { airtableId: string | null } | null;
   eventType: { airtableId: string | null } | null;
@@ -92,15 +88,11 @@ function toTicketPush(t: TicketPushRow): TicketForPush {
     teamServiceLevel: t.teamServiceLevel,
     notes: t.notes,
     sourceLinks: t.sourceLinks,
-    downloadLink: t.downloadLink,
     assetFolderLink: t.assetFolderLink,
     workingFiles: t.workingFiles,
     final16x9: t.final16x9,
-    folder16x9: t.folder16x9,
     final9x16: t.final9x16,
-    folder9x16: t.folder9x16,
     final4x5: t.final4x5,
-    folder4x5: t.folder4x5,
     eventTypeAirtableId: t.eventType?.airtableId ?? null,
     assetTypeAirtableId: t.assetType?.airtableId ?? null,
     assigneeAirtableId: t.assignee?.airtableId ?? null,

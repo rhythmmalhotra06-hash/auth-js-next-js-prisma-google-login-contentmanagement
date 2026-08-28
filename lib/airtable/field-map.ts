@@ -50,12 +50,28 @@ export const TICKETS = {
     final16x9: 'fldM3UIYvwgSEiICF', // "16x9 Final Link" (singleLineText)
     final9x16: 'fldExLdKe6qiJvtph', // "9x16 Final Link" (singleLineText)
     final4x5: 'fld4BuuOm2rnWYoIR', // "4x5 Final Link" (singleLineText)
-    folder16x9: 'fldvdw7SU93YLeruF', // "16x9 Folder" (url)
-    folder9x16: 'fldbTDEvPGjOjzUaW', // "9x16 Folder" (url)
-    folder4x5: 'fldI88FUBPH8yzijN', // "4x5 Folder" (url)
-    assetFolderLink: 'fldRQRCJXQ6U4SKLq', // "Asset Folder Link" (singleLineText)
-    workingFiles: 'fldaOh1PVfKxz5FNR', // "Working Files" (singleLineText)
-    downloadLink: 'fldrwGSNIJ3pAsO20', // "Download link" (url) — editor download (e.g. Dropbox), distinct from source URL (E9.1)
+    // NOTE: these two now carry DIFFERENT names in Airtable than the app calls them — the team
+    // restructured delivery links (audited 2026-08-28). Field IDs mean data still flows to the
+    // same physical columns, but the meaning has drifted:
+    //   assetFolderLink -> live name "Feedback Link"            (recent values are Dropbox Replay
+    //                                                            review links, not delivery folders)
+    //   workingFiles    -> live name "Final Output Folder Link" (7,266 populated — this now looks
+    //                                                            like the real delivery folder)
+    // maybeNotifyAssetReady keys off assetFolderLink, so it may now be firing on a review link.
+    // Left as-is pending Titus's confirmation of intent.
+    assetFolderLink: 'fldRQRCJXQ6U4SKLq', // live: "Feedback Link"
+    workingFiles: 'fldaOh1PVfKxz5FNR', // live: "Final Output Folder Link"
+    //
+    // DELETED FROM AIRTABLE (confirmed absent base-wide 2026-08-28, deliberate restructure):
+    //   folder16x9   fldvdw7SU93YLeruF  "16x9 Folder"
+    //   folder9x16   fldbTDEvPGjOjzUaW  "9x16 Folder"
+    //   folder4x5    fldI88FUBPH8yzijN  "4x5 Folder"
+    //   downloadLink fldrwGSNIJ3pAsO20  "Download link" (E9.1)
+    // Writing any of them returned UNKNOWN_FIELD_NAME and failed the WHOLE ticket push — five
+    // tickets sat permanently stuck at max attempts. Reading them was worse but quieter: a
+    // missing field reads undefined -> null, so every inbound pull blanked the Postgres copy.
+    // The Postgres columns and the app UI stay (the data is real and editors read it in the
+    // portal); they are simply app-local now and no longer round-trip.
   },
   // "Date Certainty" option labels. The app stores the lowercase key; Airtable holds the
   // human label, so both directions go through this map rather than guessing at casing.

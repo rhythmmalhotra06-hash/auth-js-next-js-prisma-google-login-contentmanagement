@@ -61,17 +61,16 @@ function ticketScalars(r: Rec) {
     typeOfRequest: str(f[T.typeOfRequest]),
     teamServiceLevel: str(f[T.teamServiceLevel]),
     sourceLinks: str(f[T.rawFileUrl]),
-    downloadLink: str(f[T.downloadLink]),
     notes: str(f[T.notes]),
     projectProgram: str(f[T.projectProgram]),
+    // Deliberately absent: folder16x9/9x16/4x5 and downloadLink. Those Airtable fields were
+    // deleted (2026-08-28), and reading a missing field yields undefined -> null, which the
+    // upsert then wrote over the real Postgres value. Omitting them leaves the columns alone.
     assetFolderLink: str(f[T.assetFolderLink]),
     workingFiles: str(f[T.workingFiles]),
     final16x9: str(f[T.final16x9]),
-    folder16x9: str(f[T.folder16x9]),
     final9x16: str(f[T.final9x16]),
-    folder9x16: str(f[T.folder9x16]),
     final4x5: str(f[T.final4x5]),
-    folder4x5: str(f[T.folder4x5]),
   };
 }
 

@@ -20,15 +20,14 @@ function certaintyLabel(v: string | null | undefined): string | null {
   return CERTAINTY[v as keyof typeof CERTAINTY] ?? null;
 }
 
+// folder16x9/9x16/4x5 and downloadLink are absent: deleted in Airtable (2026-08-28). They stay
+// as app-local Postgres columns; see lib/airtable/field-map.ts.
 const DELIVERY: [keyof TicketPatch, string][] = [
   ['assetFolderLink', F.assetFolderLink],
   ['workingFiles', F.workingFiles],
   ['final16x9', F.final16x9],
-  ['folder16x9', F.folder16x9],
   ['final9x16', F.final9x16],
-  ['folder9x16', F.folder9x16],
   ['final4x5', F.final4x5],
-  ['folder4x5', F.folder4x5],
 ];
 
 // `_opts` is accepted for signature parity with the Postgres impl (note/actor feed a
@@ -64,7 +63,6 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
     teamServiceLevel: input.teamServiceLevel,
     notes: input.notes ?? null,
     sourceLinks: input.sourceLinks ?? null,
-    downloadLink: input.downloadLink ?? null,
     eventTypeRecId: input.eventTypeRecId,
     assetTypeRecId: input.assetTypeRecId,
     requesterRecId: input.requesterRecId,
