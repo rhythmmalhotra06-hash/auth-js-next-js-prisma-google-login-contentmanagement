@@ -71,7 +71,9 @@ export interface CreateTicketFields {
   teamServiceLevel: string;
   notes?: string | null;
   sourceLinks?: string | null;
-  downloadLink?: string | null; // editor download link (e.g. Dropbox) — E9.1
+  downloadLink?: string | null; // E9.1 — accepted for signature parity, but NOT written to
+  // Airtable: the "Download link" field was deleted (2026-08-28). The Postgres path still
+  // stores it, so the editor still sees it in the portal.
   eventTypeRecId: string;
   assetTypeRecId: string;
   requesterRecId: string;
@@ -108,7 +110,6 @@ export async function createTicket(input: CreateTicketFields): Promise<AirtableR
     else notes = notes ? `${notes}\n\nSource/links: ${input.sourceLinks.trim()}` : `Source/links: ${input.sourceLinks.trim()}`;
   }
   if (notes) fields[F.notes] = notes;
-  if (input.downloadLink && /^https?:\/\//i.test(input.downloadLink)) fields[F.downloadLink] = input.downloadLink;
   if (input.officialCalendarRecId) fields[L.officialCalendar] = [input.officialCalendarRecId];
   if (input.authorRecIds?.length) fields[L.speakers] = input.authorRecIds;
   if (input.shootRecIds?.length) fields[L.shoots] = input.shootRecIds;
