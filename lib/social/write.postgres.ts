@@ -9,6 +9,7 @@ import type { ReelsClip } from '@/lib/clipping/schema';
 import { clipTitle, composeClipNotes } from '@/lib/clipping/clip-brief';
 import type { SocialSuggestion } from '@/lib/social/repository';
 import { getSocialSuggestion } from '@/lib/social/data.postgres';
+import { scheduleOutboxDrain } from '@/lib/airtable/drain-after';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -44,6 +45,7 @@ export async function createSocialSuggestions(
     }
     return out;
   });
+  scheduleOutboxDrain(); // push now; the cron schedule is unreliable (see drain-after.ts)
   return { ok: true, data: { count: ids.length, ids } };
 }
 
@@ -55,6 +57,7 @@ async function patchSocial(idOrRec: string, data: Record<string, unknown>): Prom
     prisma.socialPost.update({ where: { id: current.id }, data }),
     prisma.airtableOutbox.create({ data: { entity: 'social', entityId: current.id, op: 'upsert' } }),
   ]);
+  scheduleOutboxDrain(); // push now; the cron schedule is unreliable (see drain-after.ts)
   return getSocialSuggestion(current.id);
 }
 

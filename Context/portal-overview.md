@@ -21,7 +21,7 @@
 
 ### Sync model (Airtable ↔ Postgres)
 - **Reference data** (employees, dimensions, event types, asset types, DNA, calendars, authors): **one-way Airtable → PG**, read-only in the app. Daily cron.
-- **Tickets:** **two-way PG ↔ Airtable.** Outbound via a **transactional outbox** drainer (every write enqueues a row in-transaction; a drainer pushes to Airtable, with echo-suppression via `airtablePushedAt`). Inbound via a **cursor/watermark pull** with last-writer-wins conflict resolution. Runs every 5 min via GitHub Actions cron (push → pull → link-tickets, in that order).
+- **Tickets:** **two-way PG ↔ Airtable.** Outbound via a **transactional outbox** drainer (every write enqueues a row in-transaction; a drainer pushes to Airtable, with echo-suppression via `airtablePushedAt`). Inbound via a **cursor/watermark pull** with last-writer-wins conflict resolution. Scheduled via GitHub Actions cron (push → pull → link-tickets, in that order) — the schedule *says* every 5 min but GitHub throttles it to roughly **3–11 hours** in practice (measured 2026-08-28). Outbound no longer waits for it: every app write drains its own outbox immediately via `lib/airtable/drain-after.ts`. Inbound (Airtable → Portal) is still only as fresh as the last cron run.
 - **`TICKETS_BACKEND` flag:** the PG-as-system-of-record path is fully built and flips instantly/reversibly between `airtable` (legacy direct) and `postgres` (SoR). The write dispatcher keeps all action files unchanged either way.
 - **Media/clips:** discovery pulls from Airtable / Slack / Vishen's "Major Videos"; clips↔tickets bridged on demand.
 - Everything is **poll-based** (no inbound Airtable webhooks — blocked by past IAP setup).
