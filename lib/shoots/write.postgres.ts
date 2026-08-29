@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma';
 import type { AirtableResult } from '@/lib/airtable/rest';
 import { SHOOT_STATUS, type ShootRow, type CreateShootInput, type ShootPatch } from '@/lib/shoots/constants';
 import { getShoot } from '@/lib/shoots/data.postgres';
+import { scheduleOutboxDrain } from '@/lib/airtable/drain-after';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -36,6 +37,7 @@ export async function createShoot(input: CreateShootInput): Promise<AirtableResu
     await tx.airtableOutbox.create({ data: { entity: 'shoot', entityId: s.id, op: 'upsert' } });
     return s;
   });
+  scheduleOutboxDrain(); // push now; the cron schedule is unreliable (see drain-after.ts)
   return getShoot(created.id);
 }
 
@@ -64,5 +66,6 @@ export async function updateShoot(idOrRec: string, patch: ShootPatch): Promise<A
     prisma.shoot.update({ where: { id: current.id }, data }),
     prisma.airtableOutbox.create({ data: { entity: 'shoot', entityId: current.id, op: 'upsert' } }),
   ]);
+  scheduleOutboxDrain(); // push now; the cron schedule is unreliable (see drain-after.ts)
   return getShoot(current.id);
 }

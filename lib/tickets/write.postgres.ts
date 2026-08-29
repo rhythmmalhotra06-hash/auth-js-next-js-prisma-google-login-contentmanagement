@@ -10,6 +10,7 @@
 import { prisma } from '@/lib/prisma';
 import { syncReference } from '@/lib/airtable/sync';
 import { asDateCertainty } from '@/lib/tickets/scoring';
+import { scheduleOutboxDrain } from '@/lib/airtable/drain-after';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -95,6 +96,9 @@ export async function updateTicket(idOrRec: string, patch: TicketPatch, opts: { 
       : []),
     prisma.airtableOutbox.create({ data: { entity: 'ticket', entityId: current.id, op: 'upsert' } }),
   ]);
+  // Push now rather than waiting on the cron — see lib/airtable/drain-after.ts for why the
+  // "every 5 minutes" schedule cannot be relied on.
+  scheduleOutboxDrain();
   return { ok: true, id: current.id };
 }
 
@@ -186,5 +190,8 @@ export async function createTicketRow(input: CreateTicketRowInput): Promise<Writ
     prisma.airtableOutbox.create({ data: { entity: 'ticket', entityId: created.id, op: 'upsert' } }),
   ]);
 
+  // A new ticket is the case that matters most: until it reaches Airtable it has no recId, so
+  // nothing else in the team's workflow can reference it.
+  scheduleOutboxDrain();
   return { ok: true, id: created.id };
 }

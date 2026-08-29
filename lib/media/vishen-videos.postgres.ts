@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import type { AirtableResult } from '@/lib/airtable/rest';
 import { type VishenVideo, stageOf, deriveChannel } from '@/lib/media/vishen-videos';
+import { scheduleOutboxDrain } from '@/lib/airtable/drain-after';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -82,5 +83,6 @@ export async function updateVishenVideo(
     prisma.airtableOutbox.create({ data: { entity: 'vishenVideo', entityId: current.id, op: 'upsert' } }),
   ]);
   const updated = await prisma.vishenVideo.findUnique({ where: { id: current.id }, select: SELECT });
+  scheduleOutboxDrain(); // push now; the cron schedule is unreliable (see drain-after.ts)
   return { ok: true, data: toVideo(updated as Row) };
 }

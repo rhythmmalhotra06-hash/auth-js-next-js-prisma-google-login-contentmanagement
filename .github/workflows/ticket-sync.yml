@@ -21,7 +21,12 @@ name: Ticket two-way sync
 # public access on). A plain bearer curl reaches the routes — schedule is live.
 on:
   schedule:
-    - cron: '*/5 * * * *' # every 5 minutes (GitHub's floor)
+    # NOT every 5 minutes in practice. GitHub throttles scheduled workflows hard on this repo —
+    # observed runs 2026-08-26..28 were 3 to 11 HOURS apart, not 5 minutes. Kept because it is
+    # still the inbound (Airtable -> Postgres) path and something is better than nothing, but the
+    # app no longer depends on it for outbound: writes now drain their own outbox immediately
+    # (lib/airtable/drain-after.ts). Treat this as a slow backstop, not a heartbeat.
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
 
 # Don't let a slow run overlap the next tick.
