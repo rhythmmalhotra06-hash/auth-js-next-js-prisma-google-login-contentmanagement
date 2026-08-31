@@ -36,8 +36,8 @@
 
 import { connect, type McpSession, type McpTool } from '@/lib/mcp/client';
 import { getAccessToken, PERCH_URL } from '@/lib/hootsuite/oauth';
-import { ingestSocialMetrics, type IngestReport } from '@/lib/metrics/social-perf';
-import type { SocialMetricInput } from '@/lib/metrics/social-metric-types';
+import { ingestSocialMetrics, rollupAccounts, fromRaw, type IngestReport, type SocialPostRow, type AccountPerformance } from '@/lib/metrics/social-perf';
+import { reachOf, isPostPermalink, type SocialMetricInput, type SocialMetricRow } from '@/lib/metrics/social-metric-types';
 
 const ANALYTICS_PREFIX = 'perch-analytics';
 /** Cap so one workspace with many profiles can't run the route past its 300s budget. */
@@ -414,41 +414,38 @@ export async function callTool(name: string, args: Json): Promise<{ ok: true; te
 }
 
 /**
- * Walk the whole pipeline and ingest per-post numbers.
- *
- * Pulls across EVERY entitled workspace and source deliberately: the grant is read-only
- * analytics and we want all of Mindvalley's profiles, so there is no scope to choose. If
- * that ever needs narrowing, persist a selection rather than guessing one here.
+ * The whole discovery + query pipeline for one [since, until] range, shared by the
+ * scheduled cron pull (pullPerchMetrics) and the live custom-range fetch
+ * (fetchPerchMetricsRange). Returns extracted rows only — neither caller's storage
+ * decision (upsert vs. discard) belongs in here.
  */
-export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
+async function collectPerchRows(since: string, until: string, windowDaysLabel: number | null): Promise<{ rows: SocialMetricInput[]; base: Omit<PullReport, keyof IngestReport>; errors: string[] }> {
   const notes: string[] = [];
   const errors: string[] = [];
   const base = { toolsSeen: [] as string[], workspaces: 0, providers: [] as string[], sourcesFound: 0, metricsQueried: [] as string[], metricsWithoutRows: [] as string[], unmappedMetricIds: [] as string[], notes };
 
   const session = await connect(PERCH_URL, await getAccessToken());
-  if (!session.ok) return { ...emptyReport(), ...base, errors: [session.error.message] };
+  if (!session.ok) return { rows: [], base, errors: [session.error.message] };
 
   const listed = await session.data.listTools();
-  if (!listed.ok) return { ...emptyReport(), ...base, errors: [listed.error.message] };
+  if (!listed.ok) return { rows: [], base, errors: [listed.error.message] };
   base.toolsSeen = listed.data.map((t) => t.name);
 
   const toolset = resolveToolset(listed.data);
   if (!toolset.ok) {
-    return { ...emptyReport(), ...base, errors: [`Perch is missing expected analytics tools: ${toolset.missing.join(', ')}`] };
+    return { rows: [], base, errors: [`Perch is missing expected analytics tools: ${toolset.missing.join(', ')}`] };
   }
   const T = toolset.data;
 
   const wsRes = await callJson(session.data, T.workspaces, {});
-  if (!wsRes.ok) return { ...emptyReport(), ...base, errors: [wsRes.error] };
+  if (!wsRes.ok) return { rows: [], base, errors: [wsRes.error] };
   const workspaces = parseWorkspaces(wsRes.json);
   base.workspaces = workspaces.length;
   if (workspaces.length === 0) {
     notes.push(`${T.workspaces} returned no workspace with tenantId/tenantType/tenantUUID. First 300 chars: ${wsRes.text.slice(0, 300)}`);
-    return { ...emptyReport(), ...base, errors };
+    return { rows: [], base, errors };
   }
 
-  const since = new Date(Date.now() - windowDays * 86400_000).toISOString().slice(0, 10);
-  const until = new Date().toISOString().slice(0, 10);
   const rows: SocialMetricInput[] = [];
 
   for (const workspaceScope of workspaces) {
@@ -510,7 +507,7 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
       for (const metric of chosen) base.metricsQueried.push(`${label}:${metric.label}`);
       if (!qRes.ok) { errors.push(`${T.query} (${label}): ${qRes.error}`); continue; }
 
-      const found = extractRows(qRes.json, windowDays, provider.dataService);
+      const found = extractRows(qRes.json, windowDaysLabel, provider.dataService);
       if (found.unmappedMetricIds.length) {
         base.unmappedMetricIds.push(...found.unmappedMetricIds.filter((m) => !base.unmappedMetricIds.includes(m)));
       }
@@ -525,10 +522,120 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
     }
   }
 
-  if (rows.length === 0) return { ...emptyReport(), ...base, errors };
+  return { rows, base, errors };
+}
 
-  const report = await ingestSocialMetrics(rows);
-  return { ...report, ...base, errors: [...errors, ...report.errors] };
+/**
+ * Walk the whole pipeline and ingest per-post numbers.
+ *
+ * Pulls across EVERY entitled workspace and source deliberately: the grant is read-only
+ * analytics and we want all of Mindvalley's profiles, so there is no scope to choose. If
+ * that ever needs narrowing, persist a selection rather than guessing one here.
+ */
+export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
+  const since = new Date(Date.now() - windowDays * 86400_000).toISOString().slice(0, 10);
+  const until = new Date().toISOString().slice(0, 10);
+  const fetched = await collectPerchRows(since, until, windowDays);
+  if (fetched.rows.length === 0) return { ...emptyReport(), ...fetched.base, errors: fetched.errors };
+
+  const report = await ingestSocialMetrics(fetched.rows);
+  return { ...report, ...fetched.base, errors: [...fetched.errors, ...report.errors] };
+}
+
+/**
+ * Live, on-demand pull for an arbitrary [since, until] date range (YYYY-MM-DD) — the
+ * Performance page's custom date filter. Unlike pullPerchMetrics(), nothing here is
+ * persisted to `social_metrics`.
+ *
+ * Why not just store it under a windowDays label: rows are deduped/upserted by
+ * (source, post, windowDays, captured day) — see dedupeKeyFor() in social-perf.ts. An
+ * arbitrary historical range (say, last month's 8-day launch window) has no honest
+ * windowDays bucket, and reusing "7" or "30" for it would silently overwrite that day's
+ * STANDING 7- or 30-day-ending-today row — the one the Wednesday/Monday Slack digests and
+ * the default Performance page read. So a custom range is fetched fresh every time and
+ * handed straight back to render; it costs a live Hootsuite call (~10-15s, and that
+ * pipeline is known to rate-limit under repeated hits), which is why callers must gate who
+ * can trigger this rather than exposing it to every viewer.
+ */
+export async function fetchPerchMetricsRange(since: string, until: string): Promise<{ rows: SocialMetricInput[]; errors: string[]; notes: string[] }> {
+  const fetched = await collectPerchRows(since, until, null);
+  return { rows: fetched.rows, errors: fetched.errors, notes: fetched.base.notes };
+}
+
+/**
+ * Live, on-demand rollup for an arbitrary [since, until] date range — the Performance
+ * page's custom filter. Unlike getAccountPerformance() (in social-perf.ts), this queries
+ * Hootsuite Perch directly rather than reading the nightly cache (Perch's own windows
+ * are fixed at 1/7/30 days ending today; an arbitrary range has no cached bucket to
+ * read), and rolls the result up with the exact same rollupAccounts() math.
+ *
+ * Nothing here is persisted to `social_metrics` — see fetchPerchMetricsRange()'s doc
+ * above for why a custom range must never be written under a windowDays label. That also
+ * means no ticket-attribution (`attributed` is always 0): attaching a post to a ticket is
+ * a write-side concern of the ingested/cached rows, not this ephemeral view.
+ *
+ * Callers MUST gate access before calling this — it spends a live Hootsuite API call
+ * every time, and that pipeline is known to 429 under repeated hits.
+ */
+export async function getAccountPerformanceForRange(since: string, until: string, opts?: { limit?: number }): Promise<AccountPerformance> {
+  const limit = opts?.limit ?? 10;
+  const empty: AccountPerformance = { boards: [], posts: 0, reach: 0, avgEngagement: null, latestCapture: null, attributed: 0 };
+
+  const { rows, errors } = await fetchPerchMetricsRange(since, until);
+  if (rows.length === 0) {
+    if (errors.length) throw new Error(errors[0]);
+    return empty;
+  }
+
+  // A live pull can still see the same post from more than one provider/metric hit —
+  // collapse the same way the cached path collapses repeat captures.
+  const byPost = new Map<string, SocialMetricInput>();
+  for (const r of rows) {
+    const key = r.platformPostId ?? r.publishedUrl ?? '';
+    if (!key || byPost.has(key)) continue;
+    byPost.set(key, r);
+  }
+
+  const perAccount = new Map<string, SocialPostRow[]>();
+  for (const [key, r] of byPost) {
+    const meta = fromRaw(r.raw);
+    const reach = reachOf({ views: r.views ?? null, impressions: r.impressions ?? null, reach: r.reach ?? null } as SocialMetricRow);
+    // Rows here come straight off extractRows() and still carry their scheme
+    // (normalizeUrl only runs at ingest time), unlike the cached path's stored rows.
+    const rawUrl = r.publishedUrl ?? null;
+    const url = meta.link ?? (isPostPermalink(rawUrl) ? rawUrl : null);
+    const account = meta.account ?? 'Unattributed account';
+    const row: SocialPostRow = {
+      key,
+      kind: url ? 'post' : 'story',
+      platformPostId: r.platformPostId ?? null,
+      ticketAirtableId: null,
+      vsMedian: null,
+      percentile: null,
+      url,
+      caption: meta.caption,
+      account: meta.account,
+      reach,
+      engagements: r.engagements ?? null,
+      engagementRate: r.engagementRate ?? null,
+      postedAt: meta.postedAt,
+      source: r.source,
+    };
+    (perAccount.get(account) ?? perAccount.set(account, []).get(account)!).push(row);
+  }
+
+  const boards = rollupAccounts(perAccount, limit);
+  const allRated = [...perAccount.values()].flat().filter((x) => x.engagementRate !== null);
+  return {
+    boards,
+    posts: byPost.size,
+    reach: boards.reduce((n, b) => n + b.reach, 0),
+    avgEngagement: allRated.length
+      ? Math.round((allRated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / allRated.length) * 100) / 100
+      : null,
+    latestCapture: new Date().toISOString(),
+    attributed: 0,
+  };
 }
 
 /**
