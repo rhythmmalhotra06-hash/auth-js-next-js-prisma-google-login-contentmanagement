@@ -13,6 +13,7 @@ import { listActiveContractorRecords } from '@/lib/repositories/contractor.repos
 import { cleanBrief } from '@/lib/tickets/brief';
 import { dueProximityNorm, campaignProximityNorm, blendQueueScore, explainQueueScore, scoreNormFor, asDateCertainty, type ScoreRange } from '@/lib/tickets/scoring';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
+import { toTimelineRow, type TicketTimelineRow } from '@/lib/tickets/timeline';
 
 export interface QueueTicket {
   id: string;
@@ -36,6 +37,10 @@ export interface QueueTicket {
   dateCertainty: string | null;
   /** Why this ticket ranks where it does, in plain language. Filled by the ranking pass. */
   scoreWhy?: string;
+  /** Typical edit effort for this ticket's asset type, in hours (E11.A). Null when unset. */
+  assetHours: number | null;
+  /** Raised against a date the asset type's hours say isn't achievable (E11.A). */
+  underQuoted: boolean;
   folderUrl: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
@@ -58,6 +63,7 @@ const TICKET_INCLUDE = {
   assetType: {
     select: {
       name: true,
+      hours: true,
       teamLeads: { select: { employee: { select: { name: true } } } },
       dimensions: { select: { dimension: { select: { label: true } } } },
     },
@@ -75,12 +81,13 @@ type TicketWithRelations = {
   typeOfRequest: string | null;
   dueDate: Date | null;
   dateCertainty: string | null;
+  underQuoted: boolean;
   assetFolderLink: string | null;
   assignee: { name: string; airtableId: string | null; active: boolean } | null;
   assigneeName: string | null; // attribution snapshot; outlives the FK
   requester: { name: string; airtableId: string | null } | null;
   eventType: { name: string } | null;
-  assetType: { name: string } | null;
+  assetType: { name: string; hours: number | null } | null;
   officialCalendar: { name: string; airtableId: string | null; startDate: Date | null; endDate: Date | null } | null;
 };
 
@@ -123,6 +130,8 @@ function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number
     typeOfRequest: t.typeOfRequest,
     dueDate: isoDate(t.dueDate),
     dateCertainty: asDateCertainty(t.dateCertainty),
+    assetHours: t.assetType?.hours ?? null,
+    underQuoted: t.underQuoted,
     folderUrl: t.assetFolderLink,
     rawScore: numOf(t.priorityScore),
     campaignWindow: t.officialCalendar ? { start: t.officialCalendar.startDate, end: t.officialCalendar.endDate } : null,
@@ -301,6 +310,7 @@ export interface AssetRow { id: string; kind: string; fileUrl: string | null; di
 export interface TicketDetail {
   id: string;
   title: string;
+  createdAt: string;
   creativeBrief: string | null;
   cta: string | null;
   dueDate: string | null;
@@ -312,6 +322,11 @@ export interface TicketDetail {
   project: string | null;
   dimensions: string | null;
   teamLead: string | null;
+  /** Typical edit effort for this ticket's asset type, in hours (E11.A). Never a delivery date. */
+  assetHours: number | null;
+  /** Raised against a date the asset type's hours say isn't achievable (E11.A). */
+  underQuoted: boolean;
+  underQuotedNote: string | null;
   queueRank: number | null;
   folderUrl: string | null;
   sourceLinks: string | null;
@@ -356,6 +371,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
       assetType: {
         select: {
           name: true,
+          hours: true,
           teamLeads: { select: { employee: { select: { name: true } } } },
           dimensions: { select: { dimension: { select: { label: true } } } },
         },
@@ -396,6 +412,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   return {
     id: t.id,
     title: t.title || '(untitled)',
+    createdAt,
     creativeBrief: cleanBrief(t.creativeBrief),
     cta: t.cta,
     dueDate: isoDate(t.dueDate),
@@ -417,6 +434,9 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     project: t.projectProgram,
     dimensions,
     teamLead,
+    assetHours: t.assetType?.hours ?? null,
+    underQuoted: t.underQuoted,
+    underQuotedNote: t.underQuotedNote,
     queueRank: t.queueRank,
     folderUrl: t.assetFolderLink,
     sourceLinks: t.sourceLinks,
@@ -440,4 +460,60 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     })),
     assets,
   };
+}
+
+// Recently-completed tickets counted toward the timeline averages — capped the same way
+// getRecentShipped() is, so this never scans the ~9k Done history.
+const RECENT_COMPLETED_LIMIT = 150;
+
+const TIMELINE_INCLUDE = {
+  eventType: { select: { name: true } },
+  events: { orderBy: { createdAt: 'asc' as const }, include: { actor: { select: { name: true } } } },
+};
+
+type TicketWithTimelineRelations = {
+  id: string;
+  title: string;
+  ticketStatus: string | null;
+  createdAt: Date;
+  eventType: { name: string } | null;
+  events: { toState: string; createdAt: Date; note: string | null; actor: { name: string } | null }[];
+};
+
+function toTicketTimelineRow(t: TicketWithTimelineRelations): TicketTimelineRow | null {
+  return toTimelineRow({
+    id: t.id,
+    title: t.title || '(untitled)',
+    eventType: t.eventType?.name ?? null,
+    ticketStatus: t.ticketStatus,
+    createdAt: t.createdAt.toISOString(),
+    events: t.events.map((e) => ({
+      id: '', fromState: null, toState: e.toState, actor: e.actor?.name ?? null, note: e.note, createdAt: e.createdAt.toISOString(),
+    })),
+  });
+}
+
+/**
+ * Production-timeline rows for /studio/timeline — every in-flight ticket (bounded, it's
+ * the live queue) plus a capped slice of recently-created completed tickets, so the
+ * bottleneck ranking and stage averages can be computed without ever scanning the full
+ * Done history. Optionally scoped to one event type (e.g. "Masterclass").
+ */
+export async function getTicketTimelines(opts: { eventType?: string } = {}): Promise<TicketTimelineRow[]> {
+  const eventTypeWhere = opts.eventType ? { eventType: { name: opts.eventType } } : {};
+  const [active, recentCompleted] = await Promise.all([
+    prisma.ticket.findMany({
+      where: { ...eventTypeWhere, ticketStatus: { notIn: ['Done', 'Shipping', "Won't Do"] } },
+      include: TIMELINE_INCLUDE,
+    }),
+    prisma.ticket.findMany({
+      where: { ...eventTypeWhere, ticketStatus: { in: ['Done', 'Shipping'] } },
+      orderBy: { createdAt: 'desc' },
+      take: RECENT_COMPLETED_LIMIT,
+      include: TIMELINE_INCLUDE,
+    }),
+  ]);
+  return [...active, ...recentCompleted]
+    .map((t) => toTicketTimelineRow(t as unknown as TicketWithTimelineRelations))
+    .filter((r): r is TicketTimelineRow => r !== null);
 }

@@ -51,6 +51,7 @@ export default async function StudioPage() {
         <div className="sec-head">
           <div><span className="eyebrow">⛓ The engine</span><h3>Your pipeline, stage by stage</h3></div>
           <span className="hint">click a stage to open its grid</span>
+          <Link href="/studio/timeline" className="st-seeall">See where time is going →</Link>
         </div>
         <PipelineFunnel stages={funnelStages} />
       </section>

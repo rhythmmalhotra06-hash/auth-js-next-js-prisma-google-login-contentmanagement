@@ -17,6 +17,7 @@ export type {
   AssetRow,
   TicketDetail,
 } from './data.postgres';
+export type { TicketTimelineRow } from './timeline';
 
 const impl = TICKETS_BACKEND === 'postgres' ? postgres : airtable;
 
@@ -28,3 +29,4 @@ export const getRecentShipped = impl.getRecentShipped;
 export const getMyRequests = impl.getMyRequests;
 export const getRequestsForScope = impl.getRequestsForScope;
 export const getTicketDetail = impl.getTicketDetail;
+export const getTicketTimelines = impl.getTicketTimelines;

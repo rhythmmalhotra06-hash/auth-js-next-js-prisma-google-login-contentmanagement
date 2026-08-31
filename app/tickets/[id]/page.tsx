@@ -11,6 +11,7 @@ import { PrioStatusUpdater } from '@/components/tickets/PrioStatusUpdater';
 import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 import { AssetPanel } from '@/components/tickets/AssetPanel';
 import { ApprovalRows } from '@/components/tickets/ApprovalRows';
+import { StageHistory } from '@/components/tickets/StageHistory';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,10 +102,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           </div>
 
           <div className="card pad">
-            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 8 }}>Lifecycle</div>
-            <p className="muted" style={{ fontSize: 12.5, margin: 0 }}>
-              Change history is tracked in the Airtable record revision history. Approvals run through Ticket Status (Review → Approved / In Revision).
-            </p>
+            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Lifecycle</div>
+            <StageHistory createdAt={t.createdAt} events={t.events} />
           </div>
         </div>
       </div>
