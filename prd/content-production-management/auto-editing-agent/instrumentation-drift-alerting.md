@@ -89,7 +89,8 @@ Success Criteria, not a separate bar.
 owner during the pilot. Now that ownership hands to Titus post-launch, is the escalation path
 still Rhythm (pilot) → Gareth, then Titus (post-launch) → Gareth? Or does Titus's own escalation
 go elsewhere (e.g. back to Rhythm, or to Vishen directly given it's his channels at risk)? Not
-re-confirmed since the 2026-08-31 ownership decision.
+re-confirmed since the 2026-08-31 ownership decision. **Reviewed 2026-08-31: deliberately left
+open** — to be raised with Titus/Gareth directly, not guessed at here.
 
 ## Open Questions
 

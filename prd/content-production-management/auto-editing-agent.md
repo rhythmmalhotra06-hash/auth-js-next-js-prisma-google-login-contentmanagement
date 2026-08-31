@@ -76,6 +76,8 @@ Vishen-owned channels while the original requester just skims their own lower-ri
 matters for the Purpose claim above: if the reviewer is always the original editor, the "1–2 hours
 collapses to near-zero" framing partly trades editing time for review time rather than eliminating
 it, especially on the high-risk tier's full scrub. Needs a direct answer, not an inference.
+**Reviewed 2026-08-31: deliberately left open**, not overlooked — genuinely undecided pending
+E12.3's pilot asset-type selection, which may make the reviewer role obvious per type.
 
 **Founder (Vishen).** As the founder, my channels carry the highest brand risk, so I want the
 agent barred from serving my channels until it's proven — clear a ~70% first-pass acceptance bar
@@ -86,7 +88,8 @@ stabilizes past the pilot. **Post-launch, ownership hands to Titus** (confirmed 
 supersedes the original "hand off to a creative lead later" placeholder). [UNRESOLVED] The
 original drift-alert escalation path (owner has 24h, else escalate to Gareth) predates this
 handoff — once Titus owns it, does drift still escalate to Gareth, or to someone else? Not yet
-re-confirmed.
+re-confirmed. **Reviewed 2026-08-31: deliberately left open** — to be raised with Titus/Gareth
+directly before it matters in practice, not guessed at here.
 
 **Pilot selectors (Gareth, Titus).** As the people running the DNA audit, we pick which 2–3 asset
 types the agent builds against first — the set should span the risk spectrum, including at least
