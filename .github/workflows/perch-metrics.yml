@@ -7,9 +7,8 @@ name: Hootsuite Perch metrics
 #   POST /api/metrics/perch-pull?windowDays=30   — Bearer-gated (SYNC_SECRET)
 #
 # Idempotent: rows are keyed by (source, post, window, captured day), so re-running
-# updates in place rather than duplicating. Three windows are pulled — a 1-day one to
-# catch the 24h numbers the team cares about, a 7-day one for the Wednesday weekly
-# digest, and a 30-day one for the standing totals / Monday digest.
+# updates in place rather than duplicating. Two windows are pulled — a 1-day one to catch
+# the 24h numbers the team cares about, and a 30-day one for the standing totals.
 #
 # Requires the integration to be connected once by an admin at /admin/hootsuite (that's
 # where the OAuth grant and its refresh token come from). A 503 means it isn't connected
@@ -24,7 +23,7 @@ on:
   workflow_dispatch:
     inputs:
       windowDays:
-        description: 'Single window to pull (days). Leave blank for the usual 1 + 7 + 30.'
+        description: 'Single window to pull (days). Leave blank for the usual 1 + 30.'
         required: false
         default: ''
 
@@ -46,7 +45,7 @@ jobs:
             echo "::error::SYNC_SECRET is not set in repo secrets"; exit 1
           fi
 
-          windows="1 7 30"
+          windows="1 30"
           if [ -n "$SINGLE" ]; then windows="$SINGLE"; fi
 
           failed=0

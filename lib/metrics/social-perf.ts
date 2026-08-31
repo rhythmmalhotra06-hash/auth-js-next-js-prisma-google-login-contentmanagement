@@ -335,7 +335,7 @@ function weekKey(iso: string): string {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
-export function fromRaw(raw: unknown): { caption: string | null; account: string | null; link: string | null; postedAt: string | null } {
+function fromRaw(raw: unknown): { caption: string | null; account: string | null; link: string | null; postedAt: string | null } {
   const r = (raw ?? {}) as Record<string, unknown>;
   const details = (r.details ?? {}) as Record<string, unknown>;
   const content = (details.content ?? {}) as Record<string, unknown>;
@@ -354,18 +354,13 @@ export function fromRaw(raw: unknown): { caption: string | null; account: string
 /**
  * Per-account rollup plus the best-performing posts, ranked by reachOf(). Collapses the
  * per-window rows a post accumulates down to its newest capture, so one post counts once.
- *
- * `windowDays`, when given, restricts to rows Perch reported over that window (1 = 24h,
- * 7 = last week, 30 = last month) so the numbers are that window's totals, not a mix.
- * Omit it to keep the old behaviour: newest capture wins regardless of window.
  */
-export async function getAccountPerformance(opts?: { limit?: number; scanCap?: number; windowDays?: number }): Promise<AccountPerformance> {
+export async function getAccountPerformance(opts?: { limit?: number; scanCap?: number }): Promise<AccountPerformance> {
   const limit = opts?.limit ?? 10;
   const empty: AccountPerformance = { boards: [], posts: 0, reach: 0, avgEngagement: null, latestCapture: null, attributed: 0 };
   let rows;
   try {
     rows = await prisma.socialMetric.findMany({
-      where: opts?.windowDays != null ? { windowDays: opts.windowDays } : undefined,
       orderBy: { capturedAt: 'desc' },
       take: opts?.scanCap ?? 1000,
       select: {
@@ -422,32 +417,10 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     (perAccount.get(account) ?? perAccount.set(account, []).get(account)!).push(row);
   }
 
-  const boards = rollupAccounts(perAccount, limit);
-
-  const allRated = [...perAccount.values()].flat().filter((x) => x.engagementRate !== null);
-  return {
-    boards,
-    posts: byPost.size,
-    reach: boards.reduce((n, b) => n + b.reach, 0),
-    avgEngagement: allRated.length
-      ? Math.round((allRated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / allRated.length) * 100) / 100
-      : null,
-    latestCapture: rows[0]?.capturedAt.toISOString() ?? null,
-    attributed,
-  };
-}
-
-/**
- * The per-account math shared by every read path (cached `windowDays` reads and the live
- * custom-range pull alike): baseline, percentile, weekly buckets, trend, top posts,
- * underperformers. Pulled out of getAccountPerformance() so a fresh (unpersisted) row set
- * from a live Perch query rolls up exactly the same way a cached one does.
- */
-export function rollupAccounts(perAccount: Map<string, SocialPostRow[]>, limit: number): AccountBoard[] {
   const now = Date.now();
   const WEEK = 7 * 86400_000;
 
-  return [...perAccount.entries()]
+  const boards: AccountBoard[] = [...perAccount.entries()]
     .map(([account, rows]) => {
       const rated = rows.filter((x) => x.engagementRate !== null);
       const reaches = rows.map((x) => x.reach).filter((n): n is number => n != null);
@@ -530,10 +503,16 @@ export function rollupAccounts(perAccount: Map<string, SocialPostRow[]>, limit: 
       };
     })
     .sort((a, b) => b.reach - a.reach);
-}
 
-// getAccountPerformanceForRange() (the live custom-range rollup) lives in
-// lib/hootsuite/perch.ts, not here — it needs fetchPerchMetricsRange(), and this module
-// already sits on perch.ts's import side (perch.ts imports ingestSocialMetrics from
-// here) for the scheduled pull. Keeping the dependency one-directional avoids a circular
-// import between the two files.
+  const allRated = [...perAccount.values()].flat().filter((x) => x.engagementRate !== null);
+  return {
+    boards,
+    posts: byPost.size,
+    reach: boards.reduce((n, b) => n + b.reach, 0),
+    avgEngagement: allRated.length
+      ? Math.round((allRated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / allRated.length) * 100) / 100
+      : null,
+    latestCapture: rows[0]?.capturedAt.toISOString() ?? null,
+    attributed,
+  };
+}

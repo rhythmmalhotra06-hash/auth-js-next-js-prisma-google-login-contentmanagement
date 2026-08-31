@@ -7,7 +7,6 @@ import { BriefText } from '@/components/ui/BriefText';
 import { Icon } from '@/components/ui/Icon';
 import { getTicketDetail } from '@/lib/tickets/data';
 import { getEmployeeForSession } from '@/lib/employee';
-import { StageHistory } from '@/components/tickets/StageHistory';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,13 +45,6 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
               <div className="k">Creative brief</div>
               <div className="v"><BriefText text={t.creativeBrief} /></div>
             </div>
-            {t.underQuoted && (
-              // Recorded at intake (E11.A). Shown to the requester too — they asked for it, and
-              // seeing it here is how the expectation gets reset before the deadline, not after.
-              <div className="rounded-sm bg-warning-soft px-3 py-2 text-sm text-text">
-                <b>Raised on a tight timeline.</b> {t.underQuotedNote}
-              </div>
-            )}
             <div className="grid2">
               <Field label="Event type" value={t.eventType} />
               <Field label="Asset type" value={t.assetType} />
@@ -65,7 +57,6 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
               <Field label="Assigned creative" value={t.assignee} />
               <Field label="Type of request" value={t.typeOfRequest} />
               <Field label="Due date" value={t.dueDate} />
-              <Field label="Typical effort" value={t.assetHours != null ? `${t.assetHours}h of editing` : null} />
               <Field label="Call to action" value={t.cta} />
               <Field label="Official calendar" value={t.officialCalendar} />
               <Field label="Speakers / authors" value={t.authors.join(', ')} />
@@ -91,10 +82,6 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
               </div>
               <div><div className="subtle" style={{ fontSize: 11.5, marginBottom: 4 }}>Assigned to</div><span>{t.assignee || <span className="subtle">unassigned</span>}</span></div>
             </div>
-          </div>
-          <div className="card pad">
-            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Lifecycle</div>
-            <StageHistory createdAt={t.createdAt} events={t.events} />
           </div>
           <div className="card pad">
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 8 }}>About this view</div>

@@ -13,7 +13,6 @@ import { listActiveContractorRecords } from '@/lib/repositories/contractor.repos
 import { cleanBrief } from '@/lib/tickets/brief';
 import { dueProximityNorm, campaignProximityNorm, blendQueueScore, explainQueueScore, scoreNormFor, asDateCertainty, type ScoreRange } from '@/lib/tickets/scoring';
 import { getScoringConfig } from '@/lib/scoring-config/repository';
-import type { TicketTimelineRow } from '@/lib/tickets/timeline';
 
 const F = TICKETS.fields;
 const L = TICKETS.links;
@@ -40,10 +39,6 @@ export interface QueueTicket {
   dateCertainty: string | null;
   /** Why this ticket ranks where it does, in plain language. Filled by the ranking pass. */
   scoreWhy?: string;
-  /** Typical edit effort for this ticket's asset type, in hours (E11.A). Null when unset. */
-  assetHours: number | null;
-  /** Raised against a date the asset type's hours say isn't achievable (E11.A). */
-  underQuoted: boolean;
   folderUrl: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
@@ -113,9 +108,6 @@ function mapTicketRow(
     typeOfRequest: str(f[F.typeOfRequest]),
     dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
     dateCertainty: asDateCertainty(str(f[F.dateCertainty])),
-    // Both are Postgres-only concepts (E11.A) — this dormant backend can't source them.
-    assetHours: null,
-    underQuoted: false,
     folderUrl: str(f[F.assetFolderLink]),
   };
 }
@@ -318,7 +310,6 @@ export interface AssetRow { id: string; kind: string; fileUrl: string | null; di
 export interface TicketDetail {
   id: string;
   title: string;
-  createdAt: string;
   creativeBrief: string | null;
   cta: string | null;
   dueDate: string | null;
@@ -330,10 +321,6 @@ export interface TicketDetail {
   project: string | null;
   dimensions: string | null;
   teamLead: string | null;
-  /** Postgres-only concepts (E11.A) — this dormant backend can't source them. */
-  assetHours: number | null;
-  underQuoted: boolean;
-  underQuotedNote: string | null;
   queueRank: number | null;
   folderUrl: string | null;
   sourceLinks: string | null;
@@ -399,7 +386,6 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
   return {
     id: res.data.id,
     title: str(f[F.name]) ?? '(untitled)',
-    createdAt: res.data.createdTime,
     creativeBrief: cleanBrief(str(f[F.creativeBrief])),
     cta: str(f[F.cta]),
     dueDate: typeof f[F.dueDate] === 'string' ? (f[F.dueDate] as string) : null,
@@ -422,9 +408,6 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     project: str(f[F.projectProgram]),
     dimensions: resolveLinkedNames(f[F.dimensionsLookup], dimensionsMap) ?? arr(f[F.dimensionsLookup]),
     teamLead: resolveLinkedNames(f[F.teamLeadLookup], employees) ?? arr(f[F.teamLeadLookup]),
-    assetHours: null,
-    underQuoted: false,
-    underQuotedNote: null,
     queueRank: num(f[F.queueRank]),
     folderUrl: str(f[F.assetFolderLink]),
     sourceLinks: str(f[F.rawFileUrl]),
@@ -445,11 +428,4 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     approvals: [],
     assets,
   };
-}
-
-// Dormant backend: no per-ticket event history to source a timeline from (see the
-// "events: []" note above) — the studio timeline view only has anything to show once
-// TICKETS_BACKEND is 'postgres'.
-export async function getTicketTimelines(): Promise<TicketTimelineRow[]> {
-  return [];
 }

@@ -109,7 +109,7 @@ export function AccountBoardSection({ board, tickets }: { board: AccountBoard; t
         <Kpi i={2} label="Avg engagement" value={formatPct(board.avgEngagement)} sub={board.avgEngagement !== null ? 'across reported posts' : 'not reported'} />
         <Kpi i={3}
           tone={trend !== null && trend < 0 ? 'alert' : undefined}
-          label="7-day trend"
+          label="Last 7 days"
           value={formatDelta(trend)}
           sub={trend !== null ? 'reach vs prior 7 days' : 'not enough history'} />
       </KpiGrid>
