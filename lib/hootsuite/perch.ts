@@ -414,41 +414,38 @@ export async function callTool(name: string, args: Json): Promise<{ ok: true; te
 }
 
 /**
- * Walk the whole pipeline and ingest per-post numbers.
- *
- * Pulls across EVERY entitled workspace and source deliberately: the grant is read-only
- * analytics and we want all of Mindvalley's profiles, so there is no scope to choose. If
- * that ever needs narrowing, persist a selection rather than guessing one here.
+ * The whole discovery + query pipeline for one [since, until] range, shared by the
+ * scheduled cron pull (pullPerchMetrics) and the live custom-range fetch
+ * (fetchPerchMetricsRange). Returns extracted rows only — neither caller's storage
+ * decision (upsert vs. discard) belongs in here.
  */
-export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
+async function collectPerchRows(since: string, until: string, windowDaysLabel: number | null): Promise<{ rows: SocialMetricInput[]; base: Omit<PullReport, keyof IngestReport>; errors: string[] }> {
   const notes: string[] = [];
   const errors: string[] = [];
   const base = { toolsSeen: [] as string[], workspaces: 0, providers: [] as string[], sourcesFound: 0, metricsQueried: [] as string[], metricsWithoutRows: [] as string[], unmappedMetricIds: [] as string[], notes };
 
   const session = await connect(PERCH_URL, await getAccessToken());
-  if (!session.ok) return { ...emptyReport(), ...base, errors: [session.error.message] };
+  if (!session.ok) return { rows: [], base, errors: [session.error.message] };
 
   const listed = await session.data.listTools();
-  if (!listed.ok) return { ...emptyReport(), ...base, errors: [listed.error.message] };
+  if (!listed.ok) return { rows: [], base, errors: [listed.error.message] };
   base.toolsSeen = listed.data.map((t) => t.name);
 
   const toolset = resolveToolset(listed.data);
   if (!toolset.ok) {
-    return { ...emptyReport(), ...base, errors: [`Perch is missing expected analytics tools: ${toolset.missing.join(', ')}`] };
+    return { rows: [], base, errors: [`Perch is missing expected analytics tools: ${toolset.missing.join(', ')}`] };
   }
   const T = toolset.data;
 
   const wsRes = await callJson(session.data, T.workspaces, {});
-  if (!wsRes.ok) return { ...emptyReport(), ...base, errors: [wsRes.error] };
+  if (!wsRes.ok) return { rows: [], base, errors: [wsRes.error] };
   const workspaces = parseWorkspaces(wsRes.json);
   base.workspaces = workspaces.length;
   if (workspaces.length === 0) {
     notes.push(`${T.workspaces} returned no workspace with tenantId/tenantType/tenantUUID. First 300 chars: ${wsRes.text.slice(0, 300)}`);
-    return { ...emptyReport(), ...base, errors };
+    return { rows: [], base, errors };
   }
 
-  const since = new Date(Date.now() - windowDays * 86400_000).toISOString().slice(0, 10);
-  const until = new Date().toISOString().slice(0, 10);
   const rows: SocialMetricInput[] = [];
 
   for (const workspaceScope of workspaces) {
@@ -510,7 +507,7 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
       for (const metric of chosen) base.metricsQueried.push(`${label}:${metric.label}`);
       if (!qRes.ok) { errors.push(`${T.query} (${label}): ${qRes.error}`); continue; }
 
-      const found = extractRows(qRes.json, windowDays, provider.dataService);
+      const found = extractRows(qRes.json, windowDaysLabel, provider.dataService);
       if (found.unmappedMetricIds.length) {
         base.unmappedMetricIds.push(...found.unmappedMetricIds.filter((m) => !base.unmappedMetricIds.includes(m)));
       }
@@ -525,10 +522,44 @@ export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
     }
   }
 
-  if (rows.length === 0) return { ...emptyReport(), ...base, errors };
+  return { rows, base, errors };
+}
 
-  const report = await ingestSocialMetrics(rows);
-  return { ...report, ...base, errors: [...errors, ...report.errors] };
+/**
+ * Walk the whole pipeline and ingest per-post numbers.
+ *
+ * Pulls across EVERY entitled workspace and source deliberately: the grant is read-only
+ * analytics and we want all of Mindvalley's profiles, so there is no scope to choose. If
+ * that ever needs narrowing, persist a selection rather than guessing one here.
+ */
+export async function pullPerchMetrics(windowDays = 30): Promise<PullReport> {
+  const since = new Date(Date.now() - windowDays * 86400_000).toISOString().slice(0, 10);
+  const until = new Date().toISOString().slice(0, 10);
+  const fetched = await collectPerchRows(since, until, windowDays);
+  if (fetched.rows.length === 0) return { ...emptyReport(), ...fetched.base, errors: fetched.errors };
+
+  const report = await ingestSocialMetrics(fetched.rows);
+  return { ...report, ...fetched.base, errors: [...fetched.errors, ...report.errors] };
+}
+
+/**
+ * Live, on-demand pull for an arbitrary [since, until] date range (YYYY-MM-DD) — the
+ * Performance page's custom date filter. Unlike pullPerchMetrics(), nothing here is
+ * persisted to `social_metrics`.
+ *
+ * Why not just store it under a windowDays label: rows are deduped/upserted by
+ * (source, post, windowDays, captured day) — see dedupeKeyFor() in social-perf.ts. An
+ * arbitrary historical range (say, last month's 8-day launch window) has no honest
+ * windowDays bucket, and reusing "7" or "30" for it would silently overwrite that day's
+ * STANDING 7- or 30-day-ending-today row — the one the Wednesday/Monday Slack digests and
+ * the default Performance page read. So a custom range is fetched fresh every time and
+ * handed straight back to render; it costs a live Hootsuite call (~10-15s, and that
+ * pipeline is known to rate-limit under repeated hits), which is why callers must gate who
+ * can trigger this rather than exposing it to every viewer.
+ */
+export async function fetchPerchMetricsRange(since: string, until: string): Promise<{ rows: SocialMetricInput[]; errors: string[]; notes: string[] }> {
+  const fetched = await collectPerchRows(since, until, null);
+  return { rows: fetched.rows, errors: fetched.errors, notes: fetched.base.notes };
 }
 
 /**

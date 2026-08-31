@@ -335,7 +335,7 @@ function weekKey(iso: string): string {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
-function fromRaw(raw: unknown): { caption: string | null; account: string | null; link: string | null; postedAt: string | null } {
+export function fromRaw(raw: unknown): { caption: string | null; account: string | null; link: string | null; postedAt: string | null } {
   const r = (raw ?? {}) as Record<string, unknown>;
   const details = (r.details ?? {}) as Record<string, unknown>;
   const content = (details.content ?? {}) as Record<string, unknown>;
@@ -422,10 +422,32 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     (perAccount.get(account) ?? perAccount.set(account, []).get(account)!).push(row);
   }
 
+  const boards = rollupAccounts(perAccount, limit);
+
+  const allRated = [...perAccount.values()].flat().filter((x) => x.engagementRate !== null);
+  return {
+    boards,
+    posts: byPost.size,
+    reach: boards.reduce((n, b) => n + b.reach, 0),
+    avgEngagement: allRated.length
+      ? Math.round((allRated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / allRated.length) * 100) / 100
+      : null,
+    latestCapture: rows[0]?.capturedAt.toISOString() ?? null,
+    attributed,
+  };
+}
+
+/**
+ * The per-account math shared by every read path (cached `windowDays` reads and the live
+ * custom-range pull alike): baseline, percentile, weekly buckets, trend, top posts,
+ * underperformers. Pulled out of getAccountPerformance() so a fresh (unpersisted) row set
+ * from a live Perch query rolls up exactly the same way a cached one does.
+ */
+export function rollupAccounts(perAccount: Map<string, SocialPostRow[]>, limit: number): AccountBoard[] {
   const now = Date.now();
   const WEEK = 7 * 86400_000;
 
-  const boards: AccountBoard[] = [...perAccount.entries()]
+  return [...perAccount.entries()]
     .map(([account, rows]) => {
       const rated = rows.filter((x) => x.engagementRate !== null);
       const reaches = rows.map((x) => x.reach).filter((n): n is number => n != null);
@@ -508,7 +530,71 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
       };
     })
     .sort((a, b) => b.reach - a.reach);
+}
 
+/**
+ * Live, on-demand rollup for an arbitrary [since, until] date range — the Performance
+ * page's custom filter. Unlike getAccountPerformance(), this queries Hootsuite Perch
+ * directly rather than reading the nightly cache (Perch's own windows are fixed at
+ * 1/7/30 days ending today; an arbitrary range has no cached bucket to read).
+ *
+ * Nothing here is persisted to `social_metrics` — see fetchPerchMetricsRange()'s doc for
+ * why a custom range must never be written under a windowDays label. That also means no
+ * ticket-attribution (`attributed` is always 0): attaching a post to a ticket is a
+ * write-side concern of the ingested/cached rows, not this ephemeral view.
+ *
+ * Callers MUST gate access before calling this — it spends a live Hootsuite API call
+ * every time, and that pipeline is known to 429 under repeated hits (see perch.ts).
+ */
+export async function getAccountPerformanceForRange(since: string, until: string, opts?: { limit?: number }): Promise<AccountPerformance> {
+  const limit = opts?.limit ?? 10;
+  const empty: AccountPerformance = { boards: [], posts: 0, reach: 0, avgEngagement: null, latestCapture: null, attributed: 0 };
+
+  const { fetchPerchMetricsRange } = await import('@/lib/hootsuite/perch');
+  const { rows, errors } = await fetchPerchMetricsRange(since, until);
+  if (rows.length === 0) {
+    if (errors.length) throw new Error(errors[0]);
+    return empty;
+  }
+
+  // A live pull can still see the same post from more than one provider/metric hit —
+  // collapse the same way the cached path collapses repeat captures.
+  const byPost = new Map<string, SocialMetricInput>();
+  for (const r of rows) {
+    const key = r.platformPostId ?? r.publishedUrl ?? '';
+    if (!key || byPost.has(key)) continue;
+    byPost.set(key, r);
+  }
+
+  const perAccount = new Map<string, SocialPostRow[]>();
+  for (const [key, r] of byPost) {
+    const meta = fromRaw(r.raw);
+    const reach = reachOf({ views: r.views ?? null, impressions: r.impressions ?? null, reach: r.reach ?? null } as SocialMetricRow);
+    // Rows here come straight off extractRows() and still carry their scheme
+    // (normalizeUrl only runs at ingest time), unlike the cached path's stored rows.
+    const rawUrl = r.publishedUrl ?? null;
+    const url = meta.link ?? (isPostPermalink(rawUrl) ? rawUrl : null);
+    const account = meta.account ?? 'Unattributed account';
+    const row: SocialPostRow = {
+      key,
+      kind: url ? 'post' : 'story',
+      platformPostId: r.platformPostId ?? null,
+      ticketAirtableId: null,
+      vsMedian: null,
+      percentile: null,
+      url,
+      caption: meta.caption,
+      account: meta.account,
+      reach,
+      engagements: r.engagements ?? null,
+      engagementRate: r.engagementRate ?? null,
+      postedAt: meta.postedAt,
+      source: r.source,
+    };
+    (perAccount.get(account) ?? perAccount.set(account, []).get(account)!).push(row);
+  }
+
+  const boards = rollupAccounts(perAccount, limit);
   const allRated = [...perAccount.values()].flat().filter((x) => x.engagementRate !== null);
   return {
     boards,
@@ -517,7 +603,7 @@ export async function getAccountPerformance(opts?: { limit?: number; scanCap?: n
     avgEngagement: allRated.length
       ? Math.round((allRated.reduce((n, x) => n + (x.engagementRate ?? 0), 0) / allRated.length) * 100) / 100
       : null,
-    latestCapture: rows[0]?.capturedAt.toISOString() ?? null,
-    attributed,
+    latestCapture: new Date().toISOString(),
+    attributed: 0,
   };
 }
