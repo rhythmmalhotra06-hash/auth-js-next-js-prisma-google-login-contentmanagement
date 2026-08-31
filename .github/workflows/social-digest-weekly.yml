@@ -1,0 +1,50 @@
+name: Social performance digest (7-day)
+
+# Wednesday Slack digest of the last 7 days — same composition as the Monday 30-day
+# digest (social-digest.yml), just windowDays=7 so the numbers are a week's worth
+# instead of a month's. Requires perch-metrics.yml to have pulled the 7-day window
+# (it does, daily).
+#
+#   POST /api/metrics/social-digest?windowDays=7           — Bearer-gated (SYNC_SECRET)
+#   POST /api/metrics/social-digest?windowDays=7&dryRun=1   — compose without posting
+#
+# Runs after Wednesday's Perch pull so the numbers are fresh. A week with no stored
+# metrics posts nothing rather than a "nothing to report" message — that's how digests
+# get muted.
+
+on:
+  schedule:
+    - cron: '0 4 * * 3' # 04:00 UTC Wednesday, after the 03:30 daily Perch pull
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: 'Compose without posting to Slack'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: social-digest-weekly
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post the 7-day social digest
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+          DRY: ${{ github.event.inputs.dryRun }}
+        run: |
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "::error::SYNC_SECRET is not set in repo secrets"; exit 1
+          fi
+          q="?windowDays=7"
+          if [ "$DRY" = "true" ]; then q="${q}&dryRun=1"; fi
+          echo "→ POST $APP_URL/api/metrics/social-digest$q"
+          code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -X POST "$APP_URL/api/metrics/social-digest$q" \
+            -H "Authorization: Bearer $SYNC_SECRET")
+          echo "HTTP $code"; cat /tmp/resp.json; echo
+          if [ "$code" != "200" ]; then echo "::error::social-digest (7-day) returned HTTP $code"; exit 1; fi

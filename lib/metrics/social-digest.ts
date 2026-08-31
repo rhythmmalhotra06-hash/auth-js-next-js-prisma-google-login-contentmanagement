@@ -69,18 +69,24 @@ export interface DigestResult {
 /**
  * Build and (unless `dryRun`) post the digest. Returns the composed text either way, so a
  * scheduled run can be inspected without spamming the channel.
+ *
+ * `windowDays` picks which Perch-reported window to summarize (default 30, matching the
+ * original Monday digest); the 7-day Wednesday digest passes 7. Perch must have actually
+ * pulled that window (see perch-metrics.yml) or this reports "no metrics stored yet".
  */
-export async function sendSocialDigest(opts?: { dryRun?: boolean; channel?: string }): Promise<DigestResult> {
-  const data = await getAccountPerformance({ limit: MAX_WINNERS });
+export async function sendSocialDigest(opts?: { dryRun?: boolean; channel?: string; windowDays?: number }): Promise<DigestResult> {
+  const windowDays = opts?.windowDays ?? 30;
+  const data = await getAccountPerformance({ limit: MAX_WINNERS, windowDays });
 
   if (data.posts === 0) {
     // Silence beats a weekly "nothing to report" — that's how a digest gets muted.
     return { sent: false, reason: 'no metrics stored yet', accounts: 0, posts: 0, preview: '' };
   }
 
+  const headline = `*Social performance — last ${windowDays} day${windowDays === 1 ? '' : 's'}*`;
   const header = data.boards.length > 1
-    ? `*Social performance — last 30 days*\n${formatCount(data.reach)} reach across ${data.posts} posts on ${data.boards.length} accounts.`
-    : '*Social performance — last 30 days*';
+    ? `${headline}\n${formatCount(data.reach)} reach across ${data.posts} posts on ${data.boards.length} accounts.`
+    : headline;
 
   const text = [
     header,

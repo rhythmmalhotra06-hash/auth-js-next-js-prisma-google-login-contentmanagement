@@ -354,13 +354,18 @@ function fromRaw(raw: unknown): { caption: string | null; account: string | null
 /**
  * Per-account rollup plus the best-performing posts, ranked by reachOf(). Collapses the
  * per-window rows a post accumulates down to its newest capture, so one post counts once.
+ *
+ * `windowDays`, when given, restricts to rows Perch reported over that window (1 = 24h,
+ * 7 = last week, 30 = last month) so the numbers are that window's totals, not a mix.
+ * Omit it to keep the old behaviour: newest capture wins regardless of window.
  */
-export async function getAccountPerformance(opts?: { limit?: number; scanCap?: number }): Promise<AccountPerformance> {
+export async function getAccountPerformance(opts?: { limit?: number; scanCap?: number; windowDays?: number }): Promise<AccountPerformance> {
   const limit = opts?.limit ?? 10;
   const empty: AccountPerformance = { boards: [], posts: 0, reach: 0, avgEngagement: null, latestCapture: null, attributed: 0 };
   let rows;
   try {
     rows = await prisma.socialMetric.findMany({
+      where: opts?.windowDays != null ? { windowDays: opts.windowDays } : undefined,
       orderBy: { capturedAt: 'desc' },
       take: opts?.scanCap ?? 1000,
       select: {
