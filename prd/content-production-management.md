@@ -15,8 +15,10 @@ children:
   - content-production-management/content-clipping-engine.md
   - content-production-management/portal-feedback-round-1.md
   - content-production-management/editor-tasks.md
+  - content-production-management/prioritisation-content-engine.md
+  - content-production-management/auto-editing-agent.md
 created: 2026-06-25
-updated: 2026-08-20
+updated: 2026-08-27
 resolution: 5/8
 imported-from: "CLAUDE.md"
 ---
@@ -176,5 +178,6 @@ Phase 1 is seven epics (E1–E7 — the Performance Loop was pulled into Phase 1
 | E8 | [AI Content Clipping Engine](content-production-management/content-clipping-engine.md) | Long-form transcript → 10-section viral strategy via Claude; clips become proposed tickets. | E3 | 1 |
 | E9 | [Portal Feedback / Usability Round 1](content-production-management/portal-feedback-round-1.md) | Jun 29 feedback round: cut-ready editor briefs, shoot approvals in Studio, team/campaign visibility, Slack notifications, revenue/campaign scoring, auto-assign, DNA editor, multi-asset requests. | E3, E4, E5, E8 | 1 |
 | E10 | [Editor Tasks](content-production-management/editor-tasks.md) | Lightweight sub-tasks under Creative Requests — own owner/due/status, two-way synced to a new Airtable table. Manual creation + promote-to-ticket; advisory only. | E5 (E1, E6) | 1 |
+| E12 | [Transcript-Based Auto-Editing Agent](content-production-management/auto-editing-agent.md) | Claude-driven execution agent inside Premiere — turns an approved E8 clip suggestion into a finished, on-brand vertical cut. Propose-only; gated to Vishen-owned channels at a 70% first-pass-acceptance bar. | E8 | 1 |
 
 **Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6 → E7. E8, E9 and E10 extend the Phase-1 surfaces.

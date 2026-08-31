@@ -27,5 +27,14 @@
 | [E9.8 · Multi-asset campaign requests](content-production-management/portal-feedback-round-1/multi-asset-requests.md) | feature | deferred | 4/7 | 2026-06-29 |
 | [E9.9 · Studio bento redesign](content-production-management/portal-feedback-round-1/studio-bento-redesign.md) | feature | discovery | 7/7 | 2026-06-30 |
 | [E10 · Editor Tasks](content-production-management/editor-tasks.md) | epic | discovery | 6/7 | 2026-08-20 |
+| [E11 · Prioritisation & the Content Engine](content-production-management/prioritisation-content-engine.md) | epic | resolved | 7/7 | 2026-08-29 |
+| [E11.A · Asset-type economics](content-production-management/prioritisation-content-engine/asset-type-economics.md) | feature | resolved | 7/7 | 2026-08-27 |
+| [E12 · Transcript-Based Auto-Editing Agent](content-production-management/auto-editing-agent.md) | epic | discovery | 6/7 | 2026-08-31 |
+| [E12.1 · EDL Brain Service](content-production-management/auto-editing-agent/edl-brain-service.md) | feature | discovery | 5/7 | 2026-08-31 |
+| [E12.2 · UXP Executor](content-production-management/auto-editing-agent/uxp-executor.md) | feature | discovery | 5/7 | 2026-08-31 |
+| [E12.3 · DNA Records & Pilot Selection](content-production-management/auto-editing-agent/dna-pilot-selection.md) | feature | discovery | 6/7 | 2026-08-31 |
+| [E12.4 · Instrumentation & Drift Alerting](content-production-management/auto-editing-agent/instrumentation-drift-alerting.md) | feature | discovery | 6/7 | 2026-08-31 |
+| [E12.5 · Portal Integration](content-production-management/auto-editing-agent/portal-integration.md) | feature | deferred | 3/7 | 2026-08-31 |
+| └ [Technical Design](content-production-management/auto-editing-agent/technical-design.md) | technical-design | resolved | — | 2026-08-31 |
 
-_Total: 25 documents, 134/176 sections resolved (76%). E9.8 deferred to a later effort._
+_Total: 34 documents, 175/232 sections resolved (75%). E9.8 superseded by E11.C (campaign requests)._
