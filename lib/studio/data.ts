@@ -167,9 +167,11 @@ export type Bucket = 'ship' | 'rev' | 'prod' | 'todo';
 
 /** Map a ticket's status into one of the four launch-meter buckets. */
 export function statusBucket(status: string | null): Bucket {
-  if (status === 'Done' || status === 'Shipping') return 'ship';
-  if (status === 'Review' || status === 'In Revision' || status === 'Approved') return 'rev';
-  if (status === 'In Progress') return 'prod';
+  // Published means live on the destination channel — more terminal than Done/Shipping,
+  // not a synonym of either, but still the same "shipped" bucket here (2026-09-01).
+  if (status === 'Done' || status === 'Shipping' || status === 'Published') return 'ship';
+  if (status === 'Review' || status === 'Feedback Given' || status === 'In Revision' || status === 'Approved') return 'rev';
+  if (status === 'In Progress' || status === 'Final Pass') return 'prod';
   return 'todo'; // Backlog, To Do, Request on Hold, or unset
 }
 

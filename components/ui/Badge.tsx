@@ -29,12 +29,15 @@ const TICKET_STATUS_TONE: Record<string, Tone> = {
   'Backlog': 'neutral',
   'To Do': 'info',
   'In Progress': 'info',
+  'Final Pass': 'info',
   'Review': 'warning',
+  'Feedback Given': 'warning',
   'In Revision': 'warning',
   'Approved': 'success',
   'Done': 'success',
   "Won't Do": 'danger',
   'Shipping': 'success',
+  'Published': 'success',
   'Request on Hold': 'neutral',
 };
 

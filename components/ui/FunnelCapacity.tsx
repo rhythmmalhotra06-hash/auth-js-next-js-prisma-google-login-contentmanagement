@@ -12,13 +12,16 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 export function FunnelCapacity({ tickets, cfg }: { tickets: QueueTicket[]; cfg?: ScoringConfig }) {
   const stages = [
     { n: 'Requested', c: 'var(--blue)', f: (t: QueueTicket) => ['Backlog', 'To Do', 'Request on Hold'].includes(t.ticketStatus ?? '') },
-    { n: 'In production', c: 'var(--amber)', f: (t: QueueTicket) => ['In Progress', 'In Revision'].includes(t.ticketStatus ?? '') },
-    { n: 'In review', c: 'var(--brand)', f: (t: QueueTicket) => ['Review', 'Approved'].includes(t.ticketStatus ?? '') },
-    { n: 'Published', c: 'var(--green)', f: (t: QueueTicket) => ['Done', 'Shipping'].includes(t.ticketStatus ?? '') },
+    { n: 'In production', c: 'var(--amber)', f: (t: QueueTicket) => ['In Progress', 'Final Pass', 'In Revision'].includes(t.ticketStatus ?? '') },
+    { n: 'In review', c: 'var(--brand)', f: (t: QueueTicket) => ['Review', 'Feedback Given', 'Approved'].includes(t.ticketStatus ?? '') },
+    // Published means live on the destination channel — more terminal than Done/Shipping,
+    // not a synonym of either, but still the same funnel-stage bucket (2026-09-01).
+    { n: 'Published', c: 'var(--green)', f: (t: QueueTicket) => ['Done', 'Shipping', 'Published'].includes(t.ticketStatus ?? '') },
   ].map((s) => ({ ...s, ct: tickets.filter(s.f).length }));
   const mx = Math.max(...stages.map((s) => s.ct), 1);
 
-  const active = tickets.filter((t) => !['Done', "Won't Do"].includes(t.ticketStatus ?? ''));
+  // Published tickets are fully terminal (live on the channel) — no editor capacity left to plan against.
+  const active = tickets.filter((t) => !['Done', "Won't Do", 'Published'].includes(t.ticketStatus ?? ''));
   const byEditor = new Map<string, number>();
   for (const t of active) {
     // Ex-team members keep their credit on the ticket but have no capacity to plan

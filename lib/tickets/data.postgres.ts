@@ -48,7 +48,9 @@ export interface EmployeeOption { id: string; name: string; exTeam?: boolean }
 export interface AssigneeOption { id: string; name: string; group: 'Creatives' | 'Freelancers & contractors' }
 
 // Active = everything except terminal states (matches the queue's domain, not a perf hack).
-const ACTIVE_STATUSES_EXCLUDED = ['Done', "Won't Do"];
+// Published means live on the destination channel (Instagram etc.) — more terminal than
+// Done/Shipping, not a synonym of either (2026-09-01).
+const ACTIVE_STATUSES_EXCLUDED = ['Done', "Won't Do", 'Published'];
 
 // The relations every ticket read needs. Person/calendar rows carry airtableId so we
 // can expose recIds to the UI. Asset-type carries the team-lead + dimension lookups.
@@ -486,11 +488,11 @@ export async function getTicketTimelines(opts: { eventType?: string } = {}): Pro
   const eventTypeWhere = opts.eventType ? { eventType: { name: opts.eventType } } : {};
   const [active, recentCompleted] = await Promise.all([
     prisma.ticket.findMany({
-      where: { ...eventTypeWhere, ticketStatus: { notIn: ['Done', 'Shipping', "Won't Do"] } },
+      where: { ...eventTypeWhere, ticketStatus: { notIn: ['Done', 'Shipping', 'Published', "Won't Do"] } },
       include: TIMELINE_INCLUDE,
     }),
     prisma.ticket.findMany({
-      where: { ...eventTypeWhere, ticketStatus: { in: ['Done', 'Shipping'] } },
+      where: { ...eventTypeWhere, ticketStatus: { in: ['Done', 'Shipping', 'Published'] } },
       orderBy: { createdAt: 'desc' },
       take: RECENT_COMPLETED_LIMIT,
       include: TIMELINE_INCLUDE,

@@ -318,7 +318,7 @@ model Ticket {
 
   // Two status axes (live values from reconciliation 2026-06-25):
   prioStatus   String? @map("prio_status") // New Request | To be reviewed by Vishen | In Queue | Pending Information/Brief Not Clear | Rejected - No need to work | Assigned
-  ticketStatus String? @map("ticket_status") // Backlog | To Do | In Progress | Review | In Revision | Approved | Done | Won't Do | Shipping | Request on Hold
+  ticketStatus String? @map("ticket_status") // Backlog | To Do | In Progress | Final Pass | Review | Feedback Given | In Revision | Approved | Done | Won't Do | Shipping | Published | Request on Hold (Final Pass added 2026-09-01, editor polishing an accepted auto-editing-agent draft — E12)
 
   urgency       Int?
   complexity    Int?

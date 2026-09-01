@@ -70,7 +70,8 @@ const arr = (v: unknown): string | null => {
 };
 
 // Active = everything except terminal states; keeps us well under the 10k table size.
-const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do"))`;
+// Published means live on the destination channel — fully terminal, like Done (2026-09-01).
+const ACTIVE_FILTER = `NOT(OR({Ticket Status} = 'Done', {Ticket Status} = "Won't Do", {Ticket Status} = 'Published'))`;
 // Shipped = the terminal Done state. The full set is ~9k rows (mostly migrated
 // history), so never scan it — read only the newest few (getRecentShipped).
 const SHIPPED_FILTER = `{Ticket Status} = 'Done'`;

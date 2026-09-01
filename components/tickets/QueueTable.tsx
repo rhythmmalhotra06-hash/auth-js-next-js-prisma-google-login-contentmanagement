@@ -42,8 +42,10 @@ const EMPTY_SEL: Record<Dim, string> = {
 // prod = actively being made, open = everything not yet delivered). Exported so the
 // callers that render the clickable KPIs count and filter by the same definition.
 export type StageKey = 'open' | 'prod' | 'delivered';
-const DELIVERED_STATUSES = ['Done', 'Shipping'];
-const IN_PROD_STATUSES = ['In Progress', 'In Revision', 'Review', 'Approved'];
+// Published means live on the destination channel — more terminal than Done/Shipping,
+// not a synonym of either, but still counted as "delivered" here (2026-09-01).
+const DELIVERED_STATUSES = ['Done', 'Shipping', 'Published'];
+const IN_PROD_STATUSES = ['In Progress', 'Final Pass', 'In Revision', 'Review', 'Feedback Given', 'Approved'];
 export const STAGE_MATCH: Record<StageKey, (s: string | null) => boolean> = {
   delivered: (s) => DELIVERED_STATUSES.includes(s ?? ''),
   prod: (s) => IN_PROD_STATUSES.includes(s ?? ''),
@@ -53,7 +55,7 @@ export const STAGE_MATCH: Record<StageKey, (s: string | null) => boolean> = {
 const uniq = (rows: QueueTicket[], key: Dim) =>
   [...new Set(rows.map((r) => r[key]).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
 
-const TICKET_ORDER = ['Backlog', 'To Do', 'In Progress', 'In Revision', 'Review', 'Approved', 'Shipping', 'Done', "Won't Do"];
+const TICKET_ORDER = ['Backlog', 'To Do', 'In Progress', 'Final Pass', 'In Revision', 'Review', 'Feedback Given', 'Approved', 'Shipping', 'Done', 'Published', "Won't Do"];
 const orderIdx = (s: string) => { const i = TICKET_ORDER.indexOf(s); return i === -1 ? TICKET_ORDER.length : i; };
 const lower = (v: string | null) => (v ?? '').toLowerCase();
 // Priority is two different scales in one column: a manual 1-N star rank (1 = most

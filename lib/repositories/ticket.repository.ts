@@ -144,5 +144,6 @@ export const TICKET_FIELD = F;
 export const TICKET_LINK = L;
 
 export const TICKET_STATUS_OPTIONS = [
-  'Backlog', 'To Do', 'In Progress', 'Review', 'In Revision', 'Approved', 'Done', "Won't Do", 'Shipping', 'Request on Hold',
+  'Backlog', 'To Do', 'In Progress', 'Final Pass', 'Review', 'Feedback Given',
+  'In Revision', 'Approved', 'Done', "Won't Do", 'Shipping', 'Published', 'Request on Hold',
 ];

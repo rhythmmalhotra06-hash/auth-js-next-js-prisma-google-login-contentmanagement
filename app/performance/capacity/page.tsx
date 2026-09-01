@@ -17,7 +17,7 @@ import { effectiveRoles } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
-const IN_PROD = ['In Progress', 'In Revision', 'Review', 'Approved', 'Shipping'];
+const IN_PROD = ['In Progress', 'Final Pass', 'In Revision', 'Review', 'Feedback Given', 'Approved', 'Shipping'];
 
 function RiskList({ tickets, cfg }: { tickets: QueueTicket[]; cfg?: ScoringConfig }) {
   const load = loadMap(tickets, cfg);

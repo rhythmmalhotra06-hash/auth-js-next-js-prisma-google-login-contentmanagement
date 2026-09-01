@@ -8,9 +8,11 @@ import type { TicketEventRow } from './data.postgres';
 // — reused here rather than inventing a third taxonomy on top of the raw ticket_status enum.
 export const FUNNEL_BUCKETS = [
   { key: 'requested', label: 'Requested', statuses: ['Backlog', 'To Do', 'Request on Hold'] },
-  { key: 'production', label: 'In production', statuses: ['In Progress', 'In Revision'] },
-  { key: 'review', label: 'In review', statuses: ['Review', 'Approved'] },
-  { key: 'published', label: 'Published', statuses: ['Done', 'Shipping'] },
+  { key: 'production', label: 'In production', statuses: ['In Progress', 'Final Pass', 'In Revision'] },
+  { key: 'review', label: 'In review', statuses: ['Review', 'Feedback Given', 'Approved'] },
+  // Published means live on the destination channel — more terminal than Done/Shipping,
+  // not a synonym of either, but still counted as the same funnel-stage bucket (2026-09-01).
+  { key: 'published', label: 'Published', statuses: ['Done', 'Shipping', 'Published'] },
 ] as const;
 
 export type FunnelBucketKey = (typeof FUNNEL_BUCKETS)[number]['key'];
@@ -89,7 +91,7 @@ export function toTimelineRow(t: TimelineTicket): TicketTimelineRow | null {
   const now = new Date().toISOString();
   const spans = buildStageHistory(t.events);
   const last = spans[spans.length - 1];
-  const completed = t.ticketStatus === 'Done' || t.ticketStatus === 'Shipping';
+  const completed = t.ticketStatus === 'Done' || t.ticketStatus === 'Shipping' || t.ticketStatus === 'Published';
 
   const perBucketDays: Partial<Record<FunnelBucketKey, number>> = {};
   for (const span of spans) {

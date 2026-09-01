@@ -11,7 +11,8 @@ export function dueDays(due: string | null): number | null {
   return Number.isNaN(d) ? null : d;
 }
 
-const isActive = (t: QueueTicket) => !['Done', "Won't Do"].includes(t.ticketStatus ?? '');
+// Published means live on the destination channel — fully terminal, no risk/capacity left to track (2026-09-01).
+const isActive = (t: QueueTicket) => !['Done', "Won't Do", 'Published'].includes(t.ticketStatus ?? '');
 
 /** Active-ticket load per editor name. Weighted by event/asset type when a config is given. */
 export function loadMap(tickets: QueueTicket[], cfg?: ScoringConfig): Map<string, number> {
