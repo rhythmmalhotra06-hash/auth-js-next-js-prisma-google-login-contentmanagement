@@ -1,0 +1,23 @@
+{
+  "name": "auto-editing-render-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "E12.2 — headless Remotion renderer for the auto-editing agent. Separate Cloud Run service; deploys via `kessel init --root-dir render-service --type service` from the main repo. Never imported by the Next.js app — talks to it over HTTP.",
+  "scripts": {
+    "start": "node server.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "remotion": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.5.0"
+  }
+}
