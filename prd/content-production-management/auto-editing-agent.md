@@ -6,13 +6,13 @@ status: discovery
 parent: content-production-management.md
 children:
   - content-production-management/auto-editing-agent/edl-brain-service.md
-  - content-production-management/auto-editing-agent/uxp-executor.md
+  - content-production-management/auto-editing-agent/remotion-renderer.md
   - content-production-management/auto-editing-agent/dna-pilot-selection.md
   - content-production-management/auto-editing-agent/instrumentation-drift-alerting.md
   - content-production-management/auto-editing-agent/portal-integration.md
   - content-production-management/auto-editing-agent/technical-design.md
 created: 2026-06-30
-updated: 2026-08-31
+updated: 2026-09-01
 resolution: 6/7
 imported-from: "AutoEditingAgent (3).zip (auto-editing-agent.md, auto-editing-agent-techdesign.md) — originally imported-from Gareth___Rhythm_-_2026_06_30_15_30_IST_-_Notes_by_Gemini.docx"
 ---
@@ -41,9 +41,15 @@ five, so roughly half the human editing time is spent on assets that never ship.
 The clip engine (E8) already solves *which* moments to cut (timestamps, hooks, captions,
 rationale). The unsolved gap is **execution**: turning an approved suggestion into a finished,
 on-brand vertical cut still needs a human in the timeline. This epic is an agent that performs the
-actual edit — transcript-based editing driven by Claude inside Adobe Premiere (a one-time-purchase
-plugin Gareth is acquiring to test), the way Descript does transcript editing but inside the
-team's existing Premiere workflow.
+actual edit — transcript-based editing driven by Claude, the way Descript does transcript editing.
+
+> **Renderer decision (2026-09-01, supersedes the original plan):** v1 was originally scoped
+> against a UXP plugin inside Adobe Premiere on each editor's machine — a real purchase (Gareth
+> acquiring/testing a plugin) sitting on the critical path before anything could render at all.
+> Replaced with **Remotion**, a headless React/Node renderer that runs on the same infrastructure
+> this portal already deploys to. No plugin acquisition, no editor-workstation dependency, no
+> unconfirmed UXP-fidelity bet — see [E12.2](auto-editing-agent/remotion-renderer.md) and the
+> technical design doc's rewritten section 0.
 
 The payoff: collapse the 1–2 hour timeline-to-draft step toward near-zero so an editor's output is
 governed by review capacity, not editing capacity. Because the agent does the cutting, rejected
@@ -98,6 +104,14 @@ cases.
 
 ## Workflows
 
+> **Known stale, not yet rewritten (2026-09-01):** the "Portal integration target" flow below and
+> E12.5 both describe a ticket-checkbox → MCP-dispatch model from the original import. A later
+> conversation with Rhythm settled a different, more specific flow — manual trigger only (an
+> assigned editor clicks "Generate first cut"), reject options (feedback+retry or ignore, both
+> logged), an always-available raw-file download, and a new `Final Pass` ticket_status (shipped
+> 2026-09-01) for the editor's post-accept polish before it re-enters the existing Review stage.
+> That flow isn't written into this epic or E12.5 yet — do that before treating either as current.
+
 **Core flow:**
 
 1. A long-form source (stage talk, summit, podcast, YouTube episode) and its transcript are
@@ -131,8 +145,8 @@ standalone (see Success Criteria).
 ## Boundaries
 
 **In scope:** the execution step for clips already selected by E8 — reframe to 9:16, captioning to
-brand spec, audio/grade QC — for a pilot set of 2–3 asset types, running as an editor-assist agent
-inside Premiere (not a headless render farm in v1).
+brand spec, audio/grade QC — for a pilot set of 2–3 asset types, rendered headlessly via Remotion
+(E12.2) on the same infrastructure this portal already deploys to.
 
 **Explicitly out of scope:**
 - **Moment selection.** That's E8's job. If the wrong moment was cut, it's E8's miss, routed to
@@ -141,9 +155,6 @@ inside Premiere (not a headless render farm in v1).
   the wider system's propose-only contract — a human lens is required for what a transcript can't
   convey (delivery, tone, sarcasm, emotional quality).
 - **A templated auto-render shortcut.** Explicitly rejected as a v1 alternative (see Purpose).
-- **Headless/server-side batch rendering in v1.** Render happens locally inside the editor's
-  Premiere; throughput is bounded by editor-workstation availability. A headless ffmpeg renderer
-  is a v2 path that reuses the same EDL contract (see E12.1/technical design), not a v1 concern.
 - **Portal integration before the standalone gate clears.** E12.5 is explicitly sequenced last.
 
 ## Dependencies
@@ -153,12 +164,14 @@ inside Premiere (not a headless render farm in v1).
   types are mid-audit. v1 builds against 2–3 pilot types with DNA ready first rather than blocking
   on the full audit — see E12.3. Gareth/Titus select the pilot set; guidance: span the risk
   spectrum, ≥1 Vishen-owned, so the pilot exercises the high-risk gate.
-- **Premiere transcript-editing plugin acquisition & testing (Gareth)** — a one-time-purchase
-  plugin Gareth is acquiring to test; the tool that actually drives the edit in v1 (named plugin vs
-  Descript vs custom Claude/MCP build) is resolved via Gareth + Jason's side project, not decided
-  yet.
-- **Claude-integrations side project (Gareth + Jason)** — resolves the v1 render-driving tool
-  choice and the MCP contract for portal dispatch (E12.5).
+- **Remotion deploy footprint (Rhythm)** — `@remotion/renderer` needs a headless Chromium +
+  ffmpeg toolchain that this repo's `node:lts-alpine` Dockerfile doesn't currently support; a
+  Dockerfile change is needed before E12.2 can build in Kessel's pipeline (see E12.2 Open
+  Questions). No acquisition or external vendor dependency — this is an internal infra task, not
+  a blocker owned by someone outside the team.
+- **Claude-integrations side project (Gareth + Jason)** — still relevant for the MCP contract for
+  portal dispatch (E12.5); no longer gates the render-driving tool choice, since that's now
+  decided (Remotion).
 
 **Built and shipped, depended on:**
 - E8, the AI Content Clipping Engine — this agent consumes E8's clip suggestions (timestamps,
@@ -197,14 +210,15 @@ depth of resolution varies per child (see each file's own resolution count).
 | # | Feature | Purpose | Status |
 |---|---|---|---|
 | **E12.1** | [EDL Brain Service](auto-editing-agent/edl-brain-service.md) | The Claude Code agent that decides the edit — reads DNA, slices transcript, calls Claude per clip, emits an Edit Decision List (EDL) | Child PRD created |
-| **E12.2** | [UXP Executor](auto-editing-agent/uxp-executor.md) | The Premiere UXP plugin that applies an EDL — builds the sequence, reframes, captions, exports the draft | Child PRD created |
+| **E12.2** | [Remotion Renderer](auto-editing-agent/remotion-renderer.md) | The headless Remotion service that applies an EDL — reframes, captions, normalizes audio, exports the draft. No plugin, no editor machine (2026-09-01) | Child PRD created |
 | **E12.3** | [DNA Records & Pilot Selection](auto-editing-agent/dna-pilot-selection.md) | Per-asset-type DNA (structured fields + brief + gold reference) for the 2–3 pilot types that unblock v1 | Child PRD created |
 | **E12.4** | [Instrumentation & Drift Alerting](auto-editing-agent/instrumentation-drift-alerting.md) | First-pass acceptance measurement, rejection taxonomy, the two headline time metrics, and the drift-alert/escalation path | Child PRD created |
 | **E12.5** | [Portal Integration](auto-editing-agent/portal-integration.md) | Ticket checkbox → MCP dispatch → agent → review queue. Explicitly deferred until E12.1–E12.4 clear the standalone acceptance gate | Child PRD created — deferred |
 | — | [Technical Design](auto-editing-agent/technical-design.md) | Companion architecture doc: brain/executor split, EDL contract, build sequence | Reference (not a build unit) |
 
 **Dependency order:** E12.3 (pilot DNA) and E12.1 (brain) can start in parallel once pilot types
-are chosen; E12.2 (executor) needs a real EDL from E12.1 to build against; E12.4 instruments all
-three from day one (the spike in the technical design's Build Sequence proves the whole chain —
-E12.1→E12.2 against one pilot type's DNA — before any of this scales); E12.5 is explicitly last,
-gated on the others clearing the acceptance bar.
+are chosen; E12.2 (Remotion renderer) needs a real EDL from E12.1 to build against, but no longer
+needs a plugin acquisition or a pilot type to start — the Dockerfile/deploy work can begin
+immediately. E12.4 instruments all three from day one (the spike in the technical design's Build
+Sequence proves the whole chain — E12.1→E12.2 against one pilot type's DNA — before any of this
+scales); E12.5 is explicitly last, gated on the others clearing the acceptance bar.
