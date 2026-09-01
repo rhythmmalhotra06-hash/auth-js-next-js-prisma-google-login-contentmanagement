@@ -60,10 +60,11 @@ const TICKET_INCLUDE = {
   assignee: { select: { name: true, airtableId: true, active: true } },
   requester: { select: { name: true, airtableId: true } },
   eventType: { select: { name: true } },
+  // Pending E11.A migration (stashed WIP) — AssetType.hours doesn't exist in the
+  // committed schema yet. See lib/asset-types for the unmerged feature branch.
   assetType: {
     select: {
       name: true,
-      hours: true,
       teamLeads: { select: { employee: { select: { name: true } } } },
       dimensions: { select: { dimension: { select: { label: true } } } },
     },
@@ -81,13 +82,12 @@ type TicketWithRelations = {
   typeOfRequest: string | null;
   dueDate: Date | null;
   dateCertainty: string | null;
-  underQuoted: boolean;
   assetFolderLink: string | null;
   assignee: { name: string; airtableId: string | null; active: boolean } | null;
   assigneeName: string | null; // attribution snapshot; outlives the FK
   requester: { name: string; airtableId: string | null } | null;
   eventType: { name: string } | null;
-  assetType: { name: string; hours: number | null } | null;
+  assetType: { name: string } | null;
   officialCalendar: { name: string; airtableId: string | null; startDate: Date | null; endDate: Date | null } | null;
 };
 
@@ -130,8 +130,9 @@ function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number
     typeOfRequest: t.typeOfRequest,
     dueDate: isoDate(t.dueDate),
     dateCertainty: asDateCertainty(t.dateCertainty),
-    assetHours: t.assetType?.hours ?? null,
-    underQuoted: t.underQuoted,
+    // Pending E11.A migration (stashed WIP) — no live source for these yet.
+    assetHours: null,
+    underQuoted: false,
     folderUrl: t.assetFolderLink,
     rawScore: numOf(t.priorityScore),
     campaignWindow: t.officialCalendar ? { start: t.officialCalendar.startDate, end: t.officialCalendar.endDate } : null,
@@ -368,10 +369,11 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
       assignee: { select: { name: true, airtableId: true, active: true } },
       requester: { select: { name: true, airtableId: true } },
       eventType: { select: { name: true } },
+      // Pending E11.A migration (stashed WIP) — AssetType.hours doesn't exist in the
+      // committed schema yet. See lib/asset-types for the unmerged feature branch.
       assetType: {
         select: {
           name: true,
-          hours: true,
           teamLeads: { select: { employee: { select: { name: true } } } },
           dimensions: { select: { dimension: { select: { label: true } } } },
         },
@@ -434,9 +436,10 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     project: t.projectProgram,
     dimensions,
     teamLead,
-    assetHours: t.assetType?.hours ?? null,
-    underQuoted: t.underQuoted,
-    underQuotedNote: t.underQuotedNote,
+    // Pending E11.A migration (stashed WIP) — no live source for these yet.
+    assetHours: null,
+    underQuoted: false,
+    underQuotedNote: null,
     queueRank: t.queueRank,
     folderUrl: t.assetFolderLink,
     sourceLinks: t.sourceLinks,
