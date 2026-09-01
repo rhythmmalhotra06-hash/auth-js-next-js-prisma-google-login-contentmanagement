@@ -37,10 +37,6 @@ export interface QueueTicket {
   dateCertainty: string | null;
   /** Why this ticket ranks where it does, in plain language. Filled by the ranking pass. */
   scoreWhy?: string;
-  /** Typical edit effort for this ticket's asset type, in hours (E11.A). Null when unset. */
-  assetHours: number | null;
-  /** Raised against a date the asset type's hours say isn't achievable (E11.A). */
-  underQuoted: boolean;
   folderUrl: string | null;
   /** Live performance metrics — not wired to a source yet (Clarisights/Amplitude). Undefined today. */
   perf?: { ctr: number; roas: number; views: string; series: number[] } | null;
@@ -60,8 +56,6 @@ const TICKET_INCLUDE = {
   assignee: { select: { name: true, airtableId: true, active: true } },
   requester: { select: { name: true, airtableId: true } },
   eventType: { select: { name: true } },
-  // Pending E11.A migration (stashed WIP) — AssetType.hours doesn't exist in the
-  // committed schema yet. See lib/asset-types for the unmerged feature branch.
   assetType: {
     select: {
       name: true,
@@ -130,9 +124,6 @@ function toQueueTicket(t: TicketWithRelations): QueueTicket & { rawScore: number
     typeOfRequest: t.typeOfRequest,
     dueDate: isoDate(t.dueDate),
     dateCertainty: asDateCertainty(t.dateCertainty),
-    // Pending E11.A migration (stashed WIP) — no live source for these yet.
-    assetHours: null,
-    underQuoted: false,
     folderUrl: t.assetFolderLink,
     rawScore: numOf(t.priorityScore),
     campaignWindow: t.officialCalendar ? { start: t.officialCalendar.startDate, end: t.officialCalendar.endDate } : null,
@@ -323,11 +314,6 @@ export interface TicketDetail {
   project: string | null;
   dimensions: string | null;
   teamLead: string | null;
-  /** Typical edit effort for this ticket's asset type, in hours (E11.A). Never a delivery date. */
-  assetHours: number | null;
-  /** Raised against a date the asset type's hours say isn't achievable (E11.A). */
-  underQuoted: boolean;
-  underQuotedNote: string | null;
   queueRank: number | null;
   folderUrl: string | null;
   sourceLinks: string | null;
@@ -369,8 +355,6 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
       assignee: { select: { name: true, airtableId: true, active: true } },
       requester: { select: { name: true, airtableId: true } },
       eventType: { select: { name: true } },
-      // Pending E11.A migration (stashed WIP) — AssetType.hours doesn't exist in the
-      // committed schema yet. See lib/asset-types for the unmerged feature branch.
       assetType: {
         select: {
           name: true,
@@ -436,10 +420,6 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     project: t.projectProgram,
     dimensions,
     teamLead,
-    // Pending E11.A migration (stashed WIP) — no live source for these yet.
-    assetHours: null,
-    underQuoted: false,
-    underQuotedNote: null,
     queueRank: t.queueRank,
     folderUrl: t.assetFolderLink,
     sourceLinks: t.sourceLinks,
