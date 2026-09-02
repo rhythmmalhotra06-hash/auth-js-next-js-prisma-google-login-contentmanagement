@@ -15,9 +15,17 @@ import { renderMedia, selectComposition } from '@remotion/renderer';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8080;
 
-console.log('[render-service] bundling composition...');
-const bundleLocation = await bundle({ entryPoint: path.join(__dirname, 'src', 'index.tsx') });
-console.log('[render-service] bundle ready:', bundleLocation);
+// Bundle lazily in the background rather than blocking startup — Cloud Run's startup
+// probe needs the container listening on $PORT quickly, and bundling (webpack +
+// Chromium-adjacent work) is slow enough that blocking on it here got the previous
+// deploy marked failed even though the image itself built fine. /health responds
+// immediately regardless; /render awaits this promise.
+console.log('[render-service] bundling composition in the background...');
+const bundlePromise = bundle({ entryPoint: path.join(__dirname, 'src', 'index.tsx') }).then((location) => {
+  console.log('[render-service] bundle ready:', location);
+  return location;
+});
+bundlePromise.catch((e) => console.error('[render-service] bundling failed:', e));
 
 /** Post-render loudness normalization to the EDL's target LUFS. Requires the `ffmpeg`
  *  binary (installed via apt in the Dockerfile) — separate from Remotion's own
@@ -61,6 +69,7 @@ async function handleRender(req, res) {
   const finalOut = path.join(workDir, 'final.mp4');
 
   try {
+    const bundleLocation = await bundlePromise;
     const composition = await selectComposition({ serveUrl: bundleLocation, id: 'EdlClip', inputProps: { edl } });
 
     await renderMedia({
