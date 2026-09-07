@@ -346,6 +346,65 @@ separate, disconnected learning track.
 - Full regression: `npm run build` and `npm run lint` clean; no existing ticket/approval/asset-type
   flows change behavior (Workstream A additions are additive and best-effort/non-blocking throughout).
 
+## Post-deploy fix: video-URL resolution misses `assetFolderLink` (found 2026-09-07)
+
+### Context
+
+E13.1 and E13.2 are both built and deployed to production (see the commits and the PRD's
+revision notes). While testing E13.2's "Review with visuals" against a real ticket — "We Spent
+$5 Trillion in 18 Months on COVID" (`72e141d0-4dcf-41b4-9ef9-b7bd477266b8`, asset type "VL Media
+Clips - Clip - Reel (Under 3 mins)") — it failed with "No final deliverable link (9x16/16x9/4x5)
+is attached to this ticket yet," even though the ticket has a real, working Dropbox video link.
+
+Confirmed via a direct query against the real ticket: `final_9x16`, `final_16x9`, and `final_4x5`
+are all empty; the actual video lives in `asset_folder_link`
+(`https://www.dropbox.com/scl/fi/ppqgfm29ic3mzxrms1814/...mp4?...`), and
+`team_service_level = 'Video Team - Non Campaign'`. This isn't a one-off data-entry quirk — it
+matches a convention already documented elsewhere in this exact codebase: the comment in
+`app/tickets/[id]/actions.ts` on `maybeNotifyAssetReady`'s trigger logic states outright that
+"non-ads tickets have no ratio links, so the Asset Folder Link is their delivery signal instead."
+`lib/dna-review/generate.ts::resolveTicketVideoUrl()` (E13.2) only ever checks the three ratio
+fields, so it silently can't find a deliverable for the entire non-ads ticket population.
+
+### Fix
+
+Extend `resolveTicketVideoUrl()`'s fallback chain (currently `final9x16 → final16x9 → final4x5`)
+to also check `assetFolderLink` last:
+
+```ts
+async function resolveTicketVideoUrl(ticketId: string): Promise<string | null> {
+  const t = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { final9x16: true, final16x9: true, final4x5: true, assetFolderLink: true },
+  });
+  return t?.final9x16?.trim() || t?.final16x9?.trim() || t?.final4x5?.trim() || t?.assetFolderLink?.trim() || null;
+}
+```
+
+Deliberately a flat fallback chain, not a branch on `isAds` (the existing `isAds` heuristic in
+`lib/tickets/data.postgres.ts` is itself flagged `STALE`/unreliable in its own comment — reusing
+a known-shaky signal to decide which field to trust would just import that unreliability here).
+If the ratio fields are empty, trying `assetFolderLink` next is safe regardless of ticket type —
+ads tickets that do have ratio links keep using those first.
+
+**Known accepted risk, not fixed here:** despite its name, `assetFolderLink` sometimes holds a
+single direct file link (as in this real case) and, per its own field name, could sometimes
+genuinely be a multi-file *folder* share instead — which `render-service`'s `dl=1`-rewrite +
+single-file download/ffprobe pipeline cannot handle. If that happens, the existing failure path
+(download/ffprobe error surfaced as a real `{ok:false, error}`, shown in the panel) already
+degrades honestly rather than silently misbehaving — no special-casing needed for v1, but worth
+knowing if "extract-frames failed" reports start showing up for non-ads tickets.
+
+### Verification
+
+- Re-run `runVisualDnaReview('72e141d0-4dcf-41b4-9ef9-b7bd477266b8', null)` locally (or click
+  "Review with visuals" on that ticket in the browser) and confirm it now finds the video and
+  produces real findings instead of the "no deliverable link" error.
+- Confirm a ratio-delivery (ads) ticket with a real `final9x16` link still resolves to that field,
+  not `assetFolderLink` — the fallback order must not regress the already-working case.
+- `npm run build` / `tsc --noEmit` clean; redeploy the main portal only (this fix is main-app-only,
+  no `render-service` change needed).
+
 ## Open items to resolve during build (not blocking, but real)
 
 1. **render-service scope creep** — confirm the team is fine folding frame-extraction into the

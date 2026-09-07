@@ -244,14 +244,21 @@ const VISUAL_SYSTEM_PROMPT = [
   'of the most important findings, not an exhaustive list.',
 ].join(' ');
 
-/** Which delivery-link field to pull the video from, in preference order. Matches the
- *  ASSET_LINK_FIELDS keys in app/tickets/[id]/actions.ts. */
+/**
+ * Which delivery-link field to pull the video from, in preference order. Matches the
+ * ASSET_LINK_FIELDS keys in app/tickets/[id]/actions.ts, plus `assetFolderLink` as a last
+ * resort: per that file's own comment on the "asset ready" notification trigger, "non-ads
+ * tickets have no ratio links, so the Asset Folder Link is their delivery signal instead" —
+ * confirmed against a real ticket (2026-09-07) whose final9x16/16x9/4x5 were all empty but
+ * whose actual Dropbox video lived in assetFolderLink. Deliberately a flat fallback, not a
+ * branch on `isAds` — that heuristic is itself flagged STALE in lib/tickets/data.postgres.ts.
+ */
 async function resolveTicketVideoUrl(ticketId: string): Promise<string | null> {
   const t = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { final9x16: true, final16x9: true, final4x5: true },
+    select: { final9x16: true, final16x9: true, final4x5: true, assetFolderLink: true },
   });
-  return t?.final9x16?.trim() || t?.final16x9?.trim() || t?.final4x5?.trim() || null;
+  return t?.final9x16?.trim() || t?.final16x9?.trim() || t?.final4x5?.trim() || t?.assetFolderLink?.trim() || null;
 }
 
 export interface RunVisualDnaReviewResult {
