@@ -35,17 +35,29 @@ function authorized(req) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-// Bundle lazily in the background rather than blocking startup — Cloud Run's startup
-// probe needs the container listening on $PORT quickly, and bundling (webpack +
-// Chromium-adjacent work) is slow enough that blocking on it here got the previous
-// deploy marked failed even though the image itself built fine. /health responds
-// immediately regardless; /render awaits this promise.
-console.log('[render-service] bundling composition in the background...');
-const bundlePromise = bundle({ entryPoint: path.join(__dirname, 'src', 'index.tsx') }).then((location) => {
-  console.log('[render-service] bundle ready:', location);
-  return location;
-});
-bundlePromise.catch((e) => console.error('[render-service] bundling failed:', e));
+// Bundle on first /render call, not eagerly on container start.
+//
+// Fixed 2026-09-07: the original code kicked off bundle() unconditionally at module load
+// on every cold start, regardless of which endpoint the container was about to serve. On
+// this Cloud Run container's small memory allocation, that webpack bundling step alone was
+// enough to OOM-crash the process before it ever got to handle a request — confirmed via
+// runtime logs showing "FATAL ERROR: ... heap out of memory" immediately after the
+// "bundling composition" log line, with no request-handling code having run yet. This
+// meant every cold start of /extract-frames (E13.2, which never touches Remotion at all)
+// was paying for — and sometimes crashing on — a webpack build it doesn't need.
+// getBundle() now only starts bundling the first time handleRender() actually needs it.
+let bundlePromise = null;
+function getBundle() {
+  if (!bundlePromise) {
+    console.log('[render-service] bundling composition (first /render call)...');
+    bundlePromise = bundle({ entryPoint: path.join(__dirname, 'src', 'index.tsx') }).then((location) => {
+      console.log('[render-service] bundle ready:', location);
+      return location;
+    });
+    bundlePromise.catch((e) => console.error('[render-service] bundling failed:', e));
+  }
+  return bundlePromise;
+}
 
 /** Post-render loudness normalization to the EDL's target LUFS. Requires the `ffmpeg`
  *  binary (installed via apt in the Dockerfile) — separate from Remotion's own
@@ -226,7 +238,7 @@ async function handleRender(req, res) {
   const finalOut = path.join(workDir, 'final.mp4');
 
   try {
-    const bundleLocation = await bundlePromise;
+    const bundleLocation = await getBundle();
     const composition = await selectComposition({ serveUrl: bundleLocation, id: 'EdlClip', inputProps: { edl } });
 
     await renderMedia({

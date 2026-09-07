@@ -475,11 +475,17 @@ Kessel's dashboard. Streaming fixes the worst offender, but Remotion's bundling 
 already uses a meaningful share of a 512MB container, leaving thin headroom for ffmpeg's own
 process memory during a real frame-extraction run.
 
-**Not fixed here, flagged as a real follow-up:** `bundle()` (Remotion webpack bundling) runs
-unconditionally on every cold start even when only `/extract-frames` is being hit and `/render`
-is never called this session — wasted memory/time pressure on exactly the requests this bug
-affects. Deferring it until first actually needed would help, but touching E12.2's render
-startup path is a separate, more invasive change than this fix warrants; noted, not done.
+**Correction — this turned out to be the actual root cause, not just a compounding factor.**
+Deployed the streaming fix above and re-tested the exact same production video: still a 503.
+Runtime logs showed the OOM crash happening immediately after the "bundling composition in the
+background..." log line, before any request-handling code had run — meaning `bundle()`'s
+unconditional webpack build on every cold start was, on its own, enough to OOM this container's
+small memory allocation, independent of the download fix. Fixed by making bundling lazy: `bundle()`
+now only starts on the first real `/render` call (`getBundle()`, memoized), not at module load.
+`/extract-frames` cold starts no longer touch Remotion or webpack at all. Verified locally: a
+fresh server start's log shows only `"listening on :8080"` — no bundling line — and
+`/extract-frames` against the exact video that crashed production completes cleanly (40 frames,
+no heap warnings in the log).
 
 ### Verification
 
