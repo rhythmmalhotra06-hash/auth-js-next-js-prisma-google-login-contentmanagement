@@ -2,6 +2,11 @@
 // pattern already established for cross-service calls in lib/mcp/client.ts — retry only
 // transient upstream faults (429/502/503), not standing conditions. render-service has no
 // storage layer; frames come back base64-inline and are meant to be used once, not cached.
+//
+// render-service is public Cloud Run access (IAP blocked legitimate calls from this app
+// with no CLI/IAM path to fix — see plans/... and the PRD's Rules & Logic), gated instead
+// by RENDER_SERVICE_SECRET as a bearer token — same shared-secret pattern as this app's
+// other server-to-server calls (SYNC_SECRET).
 
 export interface ExtractedFrame {
   timestampMs: number;
@@ -25,6 +30,9 @@ export async function extractFrames(videoUrl: string, maxFrames?: number): Promi
   const base = process.env.RENDER_SERVICE_URL;
   if (!base) return { ok: false, error: 'RENDER_SERVICE_URL is not configured.' };
 
+  const secret = process.env.RENDER_SERVICE_SECRET;
+  if (!secret) return { ok: false, error: 'RENDER_SERVICE_SECRET is not configured.' };
+
   const url = `${base.replace(/\/$/, '')}/extract-frames`;
   let res: Response | null = null;
   let raw = '';
@@ -33,7 +41,7 @@ export async function extractFrames(videoUrl: string, maxFrames?: number): Promi
     try {
       res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
         body: JSON.stringify({ videoUrl, ...(maxFrames ? { maxFrames } : {}) }),
         // Frame extraction downloads a real video file + shells out to ffmpeg — give it
         // real time rather than the platform's short default fetch timeout.

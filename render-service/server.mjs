@@ -9,11 +9,28 @@ import { fileURLToPath } from 'node:url';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
+import { timingSafeEqual } from 'node:crypto';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8080;
+
+// Shared-secret bearer auth (2026-09-07) — this service was moved to public Cloud Run
+// access (IAP blocked legitimate server-to-server calls from the main portal, and there
+// was no CLI/IAM path available to grant it access instead). Public + a real secret gate
+// is the same pattern already used for this app's other server-to-server calls
+// (SYNC_SECRET on /api/sync/*, /api/clips/learn, /api/dna-review/learn) — /health stays
+// open (no video/compute cost, useful for uptime checks).
+function authorized(req) {
+  const secret = process.env.RENDER_SERVICE_SECRET;
+  if (!secret) return false; // fail closed if unset, never fail open
+  const header = req.headers['authorization'] ?? '';
+  const provided = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const a = Buffer.from(provided);
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 // Bundle lazily in the background rather than blocking startup — Cloud Run's startup
 // probe needs the container listening on $PORT quickly, and bundling (webpack +
@@ -225,6 +242,13 @@ async function handleRender(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  if (req.method === 'POST' && (req.url === '/render' || req.url === '/extract-frames')) {
+    if (!authorized(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'unauthorized' }));
+      return;
+    }
+  }
   if (req.method === 'POST' && req.url === '/render') {
     handleRender(req, res).catch((e) => {
       console.error('[render-service] unhandled error:', e);
