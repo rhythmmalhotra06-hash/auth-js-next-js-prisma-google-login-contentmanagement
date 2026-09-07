@@ -6,10 +6,13 @@
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
 import { timingSafeEqual } from 'node:crypto';
+import { pipeline } from 'node:stream/promises';
+import { Readable, Transform } from 'node:stream';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
 
@@ -107,20 +110,33 @@ function toDirectDownloadUrl(url) {
   return /[?&]dl=1(&|$)/.test(url) ? url : url.includes('dl=0') ? url.replace('dl=0', 'dl=1') : `${url}${url.includes('?') ? '&' : '?'}dl=1`;
 }
 
+/**
+ * Streams the download straight to disk — near-constant memory regardless of file size.
+ * Fixed 2026-09-07 after real production OOM crashes: the original implementation
+ * buffered the entire video in an array + Buffer.concat before writing, which worked only
+ * by accident for small test files and reliably crashed the container (small Cloud Run
+ * memory, plus Remotion's own bundling step competing for the same heap) on real videos —
+ * see plans/now-lets-plan-this-reflective-thunder.md's "render-service OOM-crashing" note.
+ */
 async function downloadVideo(url, destPath) {
   const resp = await fetch(toDirectDownloadUrl(url), { redirect: 'follow' });
   if (!resp.ok || !resp.body) throw new Error(`Download failed: HTTP ${resp.status}`);
   const contentLength = Number(resp.headers.get('content-length') ?? 0);
   if (contentLength > MAX_DOWNLOAD_BYTES) throw new Error(`Source file too large (${Math.round(contentLength / 1e6)}MB, max 500MB)`);
 
-  const chunks = [];
   let total = 0;
-  for await (const chunk of resp.body) {
-    total += chunk.length;
-    if (total > MAX_DOWNLOAD_BYTES) throw new Error('Source file exceeded the 500MB guard mid-download');
-    chunks.push(chunk);
-  }
-  await writeFile(destPath, Buffer.concat(chunks));
+  const sizeGuard = new Transform({
+    transform(chunk, _enc, cb) {
+      total += chunk.length;
+      if (total > MAX_DOWNLOAD_BYTES) {
+        cb(new Error('Source file exceeded the 500MB guard mid-download'));
+        return;
+      }
+      cb(null, chunk);
+    },
+  });
+
+  await pipeline(Readable.fromWeb(resp.body), sizeGuard, createWriteStream(destPath));
 }
 
 async function probeDurationSec(filePath) {

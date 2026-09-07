@@ -405,6 +405,92 @@ knowing if "extract-frames failed" reports start showing up for non-ads tickets.
 - `npm run build` / `tsc --noEmit` clean; redeploy the main portal only (this fix is main-app-only,
   no `render-service` change needed).
 
+## Post-deploy fix: render-service OOM-crashing on frame extraction (found 2026-09-07)
+
+### Context
+
+After the `assetFolderLink` fix, real testing hit two more failures on `render-service`:
+first `extract-frames failed (HTTP 503): Service Unavailable`, then (on retry)
+`extract-frames failed (HTTP 500): ffprobe failed (exit 1): moov atom not found /
+Invalid data found when processing input`.
+
+Pulled `kessel runtime-logs --since 30m` (from `render-service/`) and found the real cause: the
+container is repeatedly **crashing with `FATAL ERROR: Reached heap limit — JavaScript heap out of
+memory`**, visible as several back-to-back restart cycles (`[render-service] bundling
+composition in the background... listening on :8080`, repeated). The 503 was Cloud Run's response
+when the container died mid-request; the "moov atom not found" on the next attempt is a
+half-written, truncated MP4 left on disk by a crash that happened mid-download, which `ffprobe`
+then (correctly) rejected as corrupt.
+
+**Root cause:** `downloadVideo()` in `render-service/server.mjs` reads the *entire* source video
+into memory before writing it to disk —
+```js
+const chunks = [];
+for await (const chunk of resp.body) { chunks.push(chunk); }
+await writeFile(destPath, Buffer.concat(chunks));
+```
+This worked in earlier local/manual testing only because those test videos happened to be small
+enough to fit. It was never going to scale, and it's competing for memory with Remotion's own
+webpack bundling step (`bundle({...})`, E12.2), which runs unconditionally on every container
+start regardless of which endpoint is actually being called — on what the V8 heap numbers in the
+crash log imply is a small (~512MB) Cloud Run container, the two together are enough to OOM on a
+real-sized video.
+
+### Fix
+
+Stream the download straight to disk instead of buffering it in memory — near-constant memory
+regardless of file size, using Node's standard `pipeline()` (correct error/cleanup propagation,
+unlike manual `.pipe()`), with the existing size guard enforced incrementally via a `Transform`:
+
+```js
+import { createWriteStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
+import { Readable, Transform } from 'node:stream';
+
+async function downloadVideo(url, destPath) {
+  const resp = await fetch(toDirectDownloadUrl(url), { redirect: 'follow' });
+  if (!resp.ok || !resp.body) throw new Error(`Download failed: HTTP ${resp.status}`);
+  const contentLength = Number(resp.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_DOWNLOAD_BYTES) throw new Error(`Source file too large (${Math.round(contentLength / 1e6)}MB, max 500MB)`);
+
+  let total = 0;
+  const guard = new Transform({
+    transform(chunk, _enc, cb) {
+      total += chunk.length;
+      if (total > MAX_DOWNLOAD_BYTES) return cb(new Error('Source file exceeded the 500MB guard mid-download'));
+      cb(null, chunk);
+    },
+  });
+
+  await pipeline(Readable.fromWeb(resp.body), guard, createWriteStream(destPath));
+}
+```
+
+This is the essential fix regardless of container size — buffering a whole file in memory is the
+wrong pattern at any RAM allocation, not just this one.
+
+**Complementary mitigation, not done here (web-UI only, per CLAUDE.md — Resources aren't
+CLI-configurable):** recommend the user bump `render-service`'s Cloud Run memory allocation via
+Kessel's dashboard. Streaming fixes the worst offender, but Remotion's bundling step alone likely
+already uses a meaningful share of a 512MB container, leaving thin headroom for ffmpeg's own
+process memory during a real frame-extraction run.
+
+**Not fixed here, flagged as a real follow-up:** `bundle()` (Remotion webpack bundling) runs
+unconditionally on every cold start even when only `/extract-frames` is being hit and `/render`
+is never called this session — wasted memory/time pressure on exactly the requests this bug
+affects. Deferring it until first actually needed would help, but touching E12.2's render
+startup path is a separate, more invasive change than this fix warrants; noted, not done.
+
+### Verification
+
+- Re-run the two tickets that failed ("We Spent $5 Trillion in 18 Months on COVID" and whichever
+  ticket produced the 503) after redeploying `render-service` and confirm both complete without
+  crashing.
+- Watch `kessel runtime-logs --since 10m` (from `render-service/`) during a real run and confirm
+  no `heap out of memory` / restart-cycle log lines appear.
+- `node --check render-service/server.mjs` and `npm run typecheck` (from `render-service/`) clean.
+- This is a `render-service`-only fix — no main-portal change or redeploy needed.
+
 ## Open items to resolve during build (not blocking, but real)
 
 1. **render-service scope creep** — confirm the team is fine folding frame-extraction into the
