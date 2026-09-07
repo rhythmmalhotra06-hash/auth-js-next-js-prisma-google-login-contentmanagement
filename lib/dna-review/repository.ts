@@ -94,12 +94,16 @@ export interface CreateDnaReviewInput {
   summary?: string | null;
   triggeredBy: 'status_change' | 'manual';
   requestedBy?: string | null;
+  usedFrames?: boolean; // true once E13.2's visual review populates this run
+  frameSourceUrl?: string | null;
+  frameCount?: number | null;
   findings: Array<{
     dimension: string;
     note: string;
     severity: 'info' | 'suggestion' | 'flag';
     evidence?: string | null;
     ruleId?: string | null;
+    timestampMs?: number | null; // set for a frame-grounded finding (E13.2)
   }>;
 }
 
@@ -113,6 +117,9 @@ export async function createDnaReview(input: CreateDnaReviewInput): Promise<DnaR
       summary: input.summary ?? null,
       triggeredBy: input.triggeredBy,
       requestedBy: input.requestedBy ?? null,
+      usedFrames: input.usedFrames ?? false,
+      frameSourceUrl: input.frameSourceUrl ?? null,
+      frameCount: input.frameCount ?? null,
       findings: {
         create: input.findings.map((f) => ({
           dimension: f.dimension,
@@ -120,6 +127,7 @@ export async function createDnaReview(input: CreateDnaReviewInput): Promise<DnaR
           severity: f.severity,
           evidence: f.evidence ?? null,
           ruleId: f.ruleId ?? null,
+          timestampMs: f.timestampMs ?? null,
         })),
       },
     },

@@ -5,7 +5,7 @@ import { TICKET_STATUSES, PRIO_STATUSES } from '@/lib/tickets/constants';
 import { updateTicket, type TicketPatch } from '@/lib/tickets/write';
 import { maybeNotifyAssetReady, notifyAssignment } from '@/lib/notify/triggers';
 import { prisma } from '@/lib/prisma';
-import { runDnaReview } from '@/lib/dna-review/generate';
+import { runDnaReview, runVisualDnaReview } from '@/lib/dna-review/generate';
 import { checkDnaGate, setFindingReaction } from '@/lib/dna-review/repository';
 import { getDnaAccessForAssetType } from '@/lib/dna-review/access';
 import { rememberDnaFeedbackAsLearning } from '@/lib/dna-review/learn';
@@ -97,6 +97,16 @@ export async function updateTicketStatus(ticketId: string, newStatus: string, ov
 export async function rerunDnaReview(ticketId: string, requestedBy?: string | null): Promise<UpdateStatusResult> {
   const res = await runDnaReview(ticketId, { triggeredBy: 'manual', requestedBy: requestedBy ?? null });
   if (!res.ok) return { ok: false, error: res.error ?? 'Review failed' };
+  revalidatePath(`/tickets/${ticketId}`);
+  return { ok: true };
+}
+
+/** Opt-in "Review with visuals" (E13.2) — real video access via render-service frame
+ *  extraction. Materially more expensive/slower than the text-only review, so this is
+ *  always an explicit click, never automatic. */
+export async function runVisualDnaReviewAction(ticketId: string, requestedBy?: string | null): Promise<UpdateStatusResult> {
+  const res = await runVisualDnaReview(ticketId, requestedBy ?? null);
+  if (!res.ok) return { ok: false, error: res.error ?? 'Visual review failed' };
   revalidatePath(`/tickets/${ticketId}`);
   return { ok: true };
 }

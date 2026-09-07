@@ -11,6 +11,9 @@ imported-from: "plans/now-lets-plan-this-reflective-thunder.md"
 
 # AI-Assisted DNA Feedback — Technical Design
 
+> **2026-09-07:** E13.1 built + deployed to production. E13.2 built and verified locally against
+> real production data (see its own PRD's revision note and Verification below) — not yet deployed.
+
 > Companion to [E13 · AI-Assisted DNA Feedback](../dna-feedback.md) and its children
 > ([E13.1 Text/Metadata Review](text-review-rule-learning.md),
 > [E13.2 Multimodal Video Review](multimodal-video-review.md),
@@ -188,25 +191,37 @@ the one deliberate exception to "propose, don't act" anywhere in this epic.
 - `app/api/dna-review/learn/route.ts` — structural port of `app/api/clips/learn/route.ts`: same
   bearer-secret (`SYNC_SECRET`, `timingSafeEqual`) + `maxDuration = 300` pattern.
 
-## E13.2 — file-by-file
+## E13.2 — file-by-file (built and verified 2026-09-07)
 
-**Reuse `render-service/` rather than a third Kessel service.** It already runs
-`node:22-bookworm-slim` with `ffmpeg` installed via apt (built for Remotion, E12.2) — the exact
-binary dependency frame extraction needs. Add `POST /extract-frames` to `render-service/server.mjs`
-rather than a new service + Dockerfile + deploy pipeline.
+Reused `render-service/` rather than a third Kessel service, confirmed the right call — it already
+runs `node:22-bookworm-slim` with `ffmpeg` installed via apt (built for Remotion, E12.2), so
+`/extract-frames` needed zero new system dependencies. **No transcription was built** — scope
+narrowed to frames-only during implementation (see the feature PRD's Purpose); Deepgram remains
+deferred, not integrated.
 
-- `render-service/server.mjs` — `+/extract-frames` route: downloads the video, runs ffmpeg with an
-  auto-scaled frame budget (≤30s→30 frames … >10min→100 frames, capped), resizes to 1024px
-  JPEG@0.85, returns base64 inline (not persisted to any bucket).
-- `lib/dna-review/frames.ts` — client for that endpoint.
-- `lib/dna-review/generate.ts` (extended) — accepts frames, sends multimodal content blocks
-  (`{type:'image', source:{type:'base64', media_type:'image/jpeg', data}}`) alongside transcript +
-  rulebook.
-- `lib/dna-review/transcribe-deepgram.ts` (or similar) — new transcription path for non-YouTube
-  (Dropbox) sources; YouTube sources continue to use `lib/clipping/transcript.ts`'s existing
-  `fetchSupadataTranscript`/`fetchYouTubeTranscript` unchanged.
-- `components/tickets/DnaReviewPanel.tsx` (extended) — "Review with visuals" button + frame strip,
-  mirroring BlinkLife's button/badge state machine: `available → running → done/failed`.
+- `render-service/server.mjs` — `POST /extract-frames`: downloads the video (Node's built-in
+  `fetch`, 500MB guard, Dropbox `dl=1` rewrite via `toDirectDownloadUrl()`), `ffprobe`s duration,
+  runs one `ffmpeg` pass for the auto-scaled frame budget (≤30s→30 … >10min→100, capped) +
+  1024px-longest-edge scaling, returns frames base64-inline. Not idempotent/cached — each call
+  re-downloads and re-extracts (see the feature PRD's Rules & Logic for why that's an accepted gap).
+- `lib/dna-review/frames.ts` — client for that endpoint, bounded retry (429/502/503 only) matching
+  `lib/mcp/client.ts`'s established pattern.
+- `lib/dna-review/generate.ts::runVisualDnaReview()` — new function (not a modification of
+  `runDnaReview()`) that resolves the ticket's Dropbox video URL (`final9x16` → `final16x9` →
+  `final4x5`), extracts frames, and sends them as multimodal content blocks with a **separate**
+  `VISUAL_FINDINGS_SCHEMA`/`VISUAL_SYSTEM_PROMPT` (allows `dimension: 'visual'|'timing'` and
+  `timestampMs`) at `max_tokens: 4096` — raised from an initial 2000 after hitting a real, silent
+  `stop_reason: 'max_tokens'` failure in testing (see the feature PRD's Rules & Logic). Writes a
+  **new** `DnaReview` row per run, not an update to the prior one.
+- `lib/dna-review/repository.ts::CreateDnaReviewInput` — extended with `usedFrames`/
+  `frameSourceUrl`/`frameCount` (all optional, default false/null) so one `createDnaReview()` call
+  serves both the text-only and visual paths.
+- `app/tickets/[id]/actions.ts::runVisualDnaReviewAction()` — thin wrapper, same
+  best-effort/revalidate shape as `rerunDnaReview()`.
+- `components/tickets/DnaReviewPanel.tsx` (extended) — "👁️ Review with visuals" button with an
+  inline confirm step (cost/time estimate) before firing, a `running` state, and a
+  "✓ Visual review included (N frames)" indicator once done. No frame-strip preview — frames aren't
+  persisted anywhere to show one (by design, see Data in the feature PRD).
 
 ## E13.3 — file-by-file
 
@@ -243,9 +258,12 @@ rather than a new service + Dockerfile + deploy pipeline.
   confirm dismissal (with note, approver-tier only) and approve-with-note-despite-missing-review
   both unblock it; confirm the assigned editor cannot dismiss their own ticket's finding; confirm
   `changes_requested` is never blocked.
-- **E13.2:** confirm `render-service`'s `/extract-frames` endpoint round-trips a real Dropbox test
-  link and a real YouTube link, frame counts match the auto-scaled budget table, and a resulting
-  `DnaReview` has `usedFrames: true` with at least one `timestampMs`-anchored finding.
+- **E13.2 — done, 2026-09-07:** `render-service`'s `/extract-frames` endpoint verified against a
+  real production Dropbox link (87s video → 60 frames, each a valid decodable JPEG); a real
+  `runVisualDnaReview()` run produced genuine, evidence-grounded findings (over-length flag, brief
+  divergence past the provided script, confirmed specific caption corrections); the full
+  click → confirm → complete UI flow verified via a real Playwright browser run. YouTube-source
+  frame extraction was explicitly descoped, not tested (see the feature PRD's Purpose).
 - **E13.3:** confirm the `distributionUrl` auto-match measurably raises attributed-row count
   against real data; confirm `computeContentInsights()` withholds a group below the sample-size
   floor (1-2 posts) and surfaces one at/above it (3+ posts); confirm "Add to DNA rulebook" writes

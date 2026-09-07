@@ -37,6 +37,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
         assetTypeId: dnaReview.assetTypeId,
         summary: dnaReview.summary,
         usedFrames: dnaReview.usedFrames,
+        frameCount: dnaReview.frameCount,
         createdAt: dnaReview.createdAt.toISOString(),
         findings: dnaReview.findings.map((f) => ({
           id: f.id,
@@ -44,6 +45,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           note: f.note,
           severity: f.severity as 'info' | 'suggestion' | 'flag',
           evidence: f.evidence,
+          timestampMs: f.timestampMs,
           reaction: f.reaction,
           reactionNote: f.reactionNote,
         })),

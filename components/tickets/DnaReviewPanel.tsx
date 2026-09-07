@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { rerunDnaReview, reactToDnaFinding, dismissDnaFinding } from '@/app/tickets/[id]/actions';
+import { rerunDnaReview, reactToDnaFinding, dismissDnaFinding, runVisualDnaReviewAction } from '@/app/tickets/[id]/actions';
 import { Badge, type Tone } from '@/components/ui/Badge';
 
 export interface DnaFindingView {
@@ -11,6 +11,7 @@ export interface DnaFindingView {
   note: string;
   severity: 'info' | 'suggestion' | 'flag';
   evidence: string | null;
+  timestampMs: number | null;
   reaction: string | null;
   reactionNote: string | null;
 }
@@ -20,8 +21,16 @@ export interface DnaReviewView {
   assetTypeId: string | null;
   summary: string | null;
   usedFrames: boolean;
+  frameCount: number | null;
   createdAt: string;
   findings: DnaFindingView[];
+}
+
+function formatTimestamp(ms: number): string {
+  const totalSec = Math.round(ms / 1000);
+  const mm = Math.floor(totalSec / 60);
+  const ss = (totalSec % 60).toString().padStart(2, '0');
+  return `${mm}:${ss}`;
 }
 
 function severityTone(s: DnaFindingView['severity']): Tone {
@@ -65,7 +74,10 @@ function FindingRow({ ticketId, f, assetTypeId }: { ticketId: string; f: DnaFind
     <div className="card pad mb-2.5" style={{ opacity: pending ? 0.7 : 1 }}>
       <div className="row-between" style={{ marginBottom: 4 }}>
         <Badge tone={severityTone(f.severity)}>{f.severity}</Badge>
-        <span className="subtle text-xs">{f.dimension.replace(/_/g, ' ')}</span>
+        <span className="subtle text-xs">
+          {f.dimension.replace(/_/g, ' ')}
+          {f.timestampMs != null && <> · {formatTimestamp(f.timestampMs)}</>}
+        </span>
       </div>
       <p style={{ fontSize: 13, margin: '4px 0' }}>{f.note}</p>
       {f.evidence && <p className="muted" style={{ fontSize: 12, margin: '2px 0 6px', fontStyle: 'italic' }}>&ldquo;{f.evidence}&rdquo;</p>}
@@ -104,9 +116,13 @@ function FindingRow({ ticketId, f, assetTypeId }: { ticketId: string; f: DnaFind
   );
 }
 
+type VisualState = 'available' | 'confirming' | 'running' | 'failed';
+
 export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review: DnaReviewView | null }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [visualState, setVisualState] = useState<VisualState>('available');
+  const [visualErr, setVisualErr] = useState<string | null>(null);
   const router = useRouter();
 
   function rerun() {
@@ -115,6 +131,21 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
       const res = await rerunDnaReview(ticketId);
       if (!res.ok) setErr(res.error ?? 'Review failed');
       router.refresh();
+    });
+  }
+
+  function runVisual() {
+    setVisualErr(null);
+    setVisualState('running');
+    start(async () => {
+      const res = await runVisualDnaReviewAction(ticketId);
+      if (res.ok) {
+        setVisualState('available');
+        router.refresh();
+      } else {
+        setVisualState('failed');
+        setVisualErr(res.error ?? 'Visual review failed');
+      }
     });
   }
 
@@ -135,6 +166,11 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
       {review && (
         <>
           {review.summary && <p style={{ fontSize: 13, marginBottom: 8 }}>{review.summary}</p>}
+          {review.usedFrames && (
+            <p className="text-xs" style={{ color: 'var(--success-content)', marginBottom: 8 }}>
+              ✓ Visual review included ({review.frameCount ?? '?'} frames analyzed)
+            </p>
+          )}
           {unmetFlags > 0 && (
             <div className="lockbar" style={{ marginBottom: 10 }}>
               {unmetFlags} unresolved flag{unmetFlags > 1 ? 's' : ''} — blocks moving this ticket to Approved until dismissed.
@@ -147,10 +183,30 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
         </>
       )}
 
-      <button className="btn ghost sm" disabled={pending} onClick={rerun} style={{ marginTop: 4 }}>
-        {pending ? 'Running…' : review ? 'Re-run DNA review' : 'Run DNA review'}
-      </button>
+      <div className="flex items-center gap-2" style={{ marginTop: 4, flexWrap: 'wrap' }}>
+        <button className="btn ghost sm" disabled={pending} onClick={rerun}>
+          {pending && visualState !== 'running' ? 'Running…' : review ? 'Re-run DNA review' : 'Run DNA review'}
+        </button>
+
+        {visualState === 'available' && (
+          <button className="btn ghost sm" disabled={pending} onClick={() => setVisualState('confirming')}>
+            👁️ Review with visuals
+          </button>
+        )}
+        {visualState === 'confirming' && (
+          <span className="flex items-center gap-2">
+            <span className="subtle text-xs">Analyzes real frames from the deliverable. Costs ~$0.30 in Anthropic usage, takes 30-90s.</span>
+            <button className="btn sm" disabled={pending} onClick={runVisual}>Confirm</button>
+            <button className="btn ghost sm" disabled={pending} onClick={() => setVisualState('available')}>Cancel</button>
+          </span>
+        )}
+        {visualState === 'running' && <span className="text-xs text-text-subtle">Watching the recording…</span>}
+        {visualState === 'failed' && (
+          <button className="btn ghost sm" disabled={pending} onClick={() => setVisualState('confirming')}>Retry visual review</button>
+        )}
+      </div>
       {err && <p className="text-xs" style={{ color: 'var(--danger-content)', marginTop: 6 }}>{err}</p>}
+      {visualErr && <p className="text-xs" style={{ color: 'var(--danger-content)', marginTop: 6 }}>{visualErr}</p>}
     </div>
   );
 }

@@ -38,7 +38,7 @@
 | └ [Technical Design](content-production-management/auto-editing-agent/technical-design.md) | technical-design | resolved | — | 2026-08-31 |
 | [E13 · AI-Assisted DNA Feedback](content-production-management/dna-feedback.md) | epic | resolved | 7/7 | 2026-09-07 |
 | [E13.1 · Text/Metadata DNA Review + Rule Learning](content-production-management/dna-feedback/text-review-rule-learning.md) | feature | discovery | 6/7 | 2026-09-07 |
-| [E13.2 · Multimodal Video Review](content-production-management/dna-feedback/multimodal-video-review.md) | feature | discovery | 6/7 | 2026-09-02 |
+| [E13.2 · Multimodal Video Review](content-production-management/dna-feedback/multimodal-video-review.md) | feature | discovery | 6/7 | 2026-09-07 |
 | [E13.3 · Performance-Driven Post-Learning Summary](content-production-management/dna-feedback/performance-post-learning-summary.md) | feature | discovery | 6/7 | 2026-09-02 |
 | └ [Technical Design](content-production-management/dna-feedback/technical-design.md) | technical-design | discovery | — | 2026-09-07 |
 
