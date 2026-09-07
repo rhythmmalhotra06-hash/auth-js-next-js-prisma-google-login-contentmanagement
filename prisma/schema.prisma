@@ -157,6 +157,7 @@ model AssetType {
 
   dimensions AssetTypeDimension[]
   tickets    Ticket[]
+  dnaReviewRules DnaReviewRule[]
 
   @@map("asset_types")
 }
@@ -346,6 +347,9 @@ model Ticket {
   authors   TicketAuthor[]
 
   clipSuggestions ClipSuggestion[] @relation("TicketClipSuggestions")
+
+  dnaReviews          DnaReview[]
+  dnaReviewRuleSources DnaReviewRule[] @relation("DnaRuleSourceTicket")
 
   @@index([priorityScore(sort: Desc), queueRank], map: "idx_tickets_queue")
   @@index([assigneeId], map: "idx_tickets_assignee")
@@ -703,6 +707,95 @@ model ClipSuggestion {
 
   @@index([clipStrategyId], map: "idx_clip_suggestions_strategy")
   @@map("clip_suggestions")
+}
+
+// ===========================================================================
+// AI-ASSISTED DNA FEEDBACK (E13)
+// A first-pass AI review of a ticket against its asset type's DNA, plus a learned
+// rulebook layered on top of AssetType.dnaRequirements/feedbackStandards (the
+// authored baseline). Postgres-native (no Airtable mirror) — this data cites
+// Ticket/AssetType evidence that's already Postgres-primary. See
+// prd/content-production-management/dna-feedback/technical-design.md.
+// ===========================================================================
+
+// The learned rulebook — one row per rule, scoped to an AssetType. Structurally the
+// analog of ClipRule.kind === 'Rule' rows, but richer (statement/rationale/example/
+// weight/confidence) to match the reference design this ports (BlinkLife's Recorder
+// Review Skills rule schema). Proposals land `active: false` pending approval.
+model DnaReviewRule {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assetTypeId    String   @map("asset_type_id") @db.Uuid
+  statement      String // imperative, <200 chars — the rule itself
+  rationale      String? // why it matters
+  example        String? // concrete example or quoted evidence
+  weight         Int      @default(3) // 1-5, importance
+  confidence     Float    @default(0.5) // 0-1
+  active         Boolean  @default(false) // proposals land inactive; approval flips true
+  source         String // 'tier1_decision' | 'tier1_reaction' | 'tier2_proposal' | 'manual'
+  sourceTicketId String?  @map("source_ticket_id") @db.Uuid
+  note           String?
+  createdBy      String?  @map("created_by") // email
+  updatedBy      String?  @map("updated_by") // email
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  assetType    AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  sourceTicket Ticket?   @relation("DnaRuleSourceTicket", fields: [sourceTicketId], references: [id], onDelete: SetNull)
+  findings     DnaReviewFinding[]
+
+  @@index([assetTypeId, active])
+  @@map("dna_review_rules")
+}
+
+// One review run for one ticket. `usedFrames`/`frameSourceUrl`/`frameCount`/`costMicros`
+// are populated once E13.2 (multimodal video review) ships; until then always false/null.
+model DnaReview {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId            String   @map("ticket_id") @db.Uuid
+  assetTypeId         String?  @map("asset_type_id") @db.Uuid // snapshot at review time
+  model               String // provenance, e.g. claude-sonnet-5
+  usedTranscript      Boolean  @default(false) @map("used_transcript")
+  usedFrames          Boolean  @default(false) @map("used_frames")
+  transcriptSourceUrl String?  @map("transcript_source_url")
+  frameSourceUrl      String?  @map("frame_source_url")
+  frameCount          Int?     @map("frame_count")
+  costMicros          Int?     @map("cost_micros")
+  summary             String?
+  triggeredBy         String   @map("triggered_by") // 'status_change' | 'manual'
+  requestedBy         String?  @map("requested_by") // email
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  findings DnaReviewFinding[]
+
+  @@index([ticketId, createdAt])
+  @@map("dna_reviews")
+}
+
+// One finding within a review. `severity: 'flag'` is the one hard gate anywhere in this
+// system — it blocks Ticket.ticketStatus -> 'Approved' in updateTicketStatus() unless
+// dismissed (reaction='dismissed' + reactionNote) by someone with rule-approval
+// permission. `info`/`suggestion` never block anything. `reaction` also carries the
+// Tier-1 learning signal ('helpful'/'not_helpful') separate from dismissal.
+model DnaReviewFinding {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reviewId     String    @map("review_id") @db.Uuid
+  dimension    String // 'brief_compliance' | 'wording' | 'deliverable_metadata' | 'visual' | 'timing'
+  note         String
+  severity     String    @default("info") // info | suggestion | flag
+  evidence     String? // quoted brief excerpt, or "frame at 0:06" (E13.2)
+  timestampMs  Int?      @map("timestamp_ms") // set when evidence is frame/transcript-anchored (E13.2)
+  ruleId       String?   @map("rule_id") @db.Uuid
+  reaction     String? // null | 'helpful' | 'not_helpful' | 'dismissed'
+  reactionNote String?   @map("reaction_note")
+  reactedBy    String?   @map("reacted_by") // email
+  reactedAt    DateTime? @map("reacted_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  review DnaReview      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  rule   DnaReviewRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@map("dna_review_findings")
 }
 
 // ===========================================================================

@@ -12,6 +12,8 @@ import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 import { AssetPanel } from '@/components/tickets/AssetPanel';
 import { ApprovalRows } from '@/components/tickets/ApprovalRows';
 import { StageHistory } from '@/components/tickets/StageHistory';
+import { DnaReviewPanel, type DnaReviewView } from '@/components/tickets/DnaReviewPanel';
+import { getLatestDnaReview } from '@/lib/dna-review/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +30,25 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const t = await getTicketDetail(id);
   if (!t) notFound();
-  const employees = await getAssignableEmployees();
+  const [employees, dnaReview] = await Promise.all([getAssignableEmployees(), getLatestDnaReview(t.id)]);
+  const dnaReviewView: DnaReviewView | null = dnaReview
+    ? {
+        id: dnaReview.id,
+        assetTypeId: dnaReview.assetTypeId,
+        summary: dnaReview.summary,
+        usedFrames: dnaReview.usedFrames,
+        createdAt: dnaReview.createdAt.toISOString(),
+        findings: dnaReview.findings.map((f) => ({
+          id: f.id,
+          dimension: f.dimension,
+          note: f.note,
+          severity: f.severity as 'info' | 'suggestion' | 'flag',
+          evidence: f.evidence,
+          reaction: f.reaction,
+          reactionNote: f.reactionNote,
+        })),
+      }
+    : null;
 
   return (
     <AppShell title={t.title} subtitle={[t.eventType, t.assetType].filter(Boolean).join(' · ') || undefined}>
@@ -99,6 +119,11 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
           <div className="card pad">
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Review &amp; approval</div>
             <ApprovalRows approvals={t.approvals} />
+          </div>
+
+          <div className="card pad">
+            <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>DNA review</div>
+            <DnaReviewPanel ticketId={t.id} review={dnaReviewView} />
           </div>
 
           <div className="card pad">

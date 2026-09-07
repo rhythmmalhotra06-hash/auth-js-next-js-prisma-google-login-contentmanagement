@@ -17,6 +17,9 @@ export const CLIP_MODEL = 'claude-opus-4-8';
 // the main 10-section generation, so a smaller model keeps them quick and low-cost.
 export const DISTILL_MODEL = 'claude-haiku-4-5';
 
+// DNA review model (E13) — text/metadata review of a ticket against its asset type's DNA.
+export const REVIEW_MODEL = 'claude-sonnet-5';
+
 /**
  * Translate an Anthropic SDK error into a clear, user-facing sentence.
  * Returns null when `e` isn't a recognizable API error, so callers can fall

@@ -23,6 +23,9 @@ const namesFrom = (v: unknown, map: Map<string, string>): string[] =>
 
 export interface AssetTypeDnaRow {
   id: string;
+  /** Postgres uuid (AssetType.id) — needed to scope DnaReviewRule rows (E13), which are
+   *  Postgres-native and keyed off the uuid, not the Airtable recId used elsewhere here. */
+  assetTypePgId: string | null;
   name: string;
   active: boolean;
   requirements: string | null;
@@ -43,7 +46,7 @@ async function listAssetTypeDnaPg(): Promise<AirtableResult<AssetTypeDnaRow[]>> 
   const rows = await prisma.assetType.findMany({
     where: { active: true },
     select: {
-      airtableId: true, name: true, fullName: true,
+      id: true, airtableId: true, name: true, fullName: true,
       dnaRequirements: true, feedbackStandards: true, dnaUpdatedBy: true,
       teamLeads: { select: { employee: { select: { name: true, airtableId: true } } } },
       preferredEditors: { select: { employee: { select: { name: true } } } },
@@ -55,6 +58,7 @@ async function listAssetTypeDnaPg(): Promise<AirtableResult<AssetTypeDnaRow[]>> 
     .filter((r): r is typeof r & { airtableId: string } => !!r.airtableId)
     .map((r) => ({
       id: r.airtableId,
+      assetTypePgId: r.id,
       name: r.name ?? r.fullName ?? '(unnamed)',
       active: true,
       requirements: r.dnaRequirements,
@@ -78,11 +82,20 @@ export async function listAssetTypeDna(): Promise<AirtableResult<AssetTypeDnaRow
     nameMap('employees'), nameMap('dimensions'), nameMap('eventTypes'),
   ]);
   if (!res.ok) return res;
+  // Batch-resolve Postgres uuids for these asset types (E13 DnaReviewRule scoping) — the
+  // Postgres AssetType mirror always exists alongside the Airtable-direct read path.
+  const { prisma } = await import('@/lib/prisma');
+  const pgRows = await prisma.assetType.findMany({
+    where: { airtableId: { in: res.data.map((r) => r.id) } },
+    select: { id: true, airtableId: true },
+  });
+  const pgIdByAirtableId = new Map(pgRows.map((r) => [r.airtableId as string, r.id]));
   const rows = res.data
     .map((rec) => {
       const f = rec.fields as Record<string, unknown>;
       return {
         id: rec.id,
+        assetTypePgId: pgIdByAirtableId.get(rec.id) ?? null,
         name: str(f[AF.name]) ?? str(f[AF.fullName]) ?? '(unnamed)',
         active: str(f[AF.status]) === 'Active',
         requirements: str(f[AF.dnaRequirements]),

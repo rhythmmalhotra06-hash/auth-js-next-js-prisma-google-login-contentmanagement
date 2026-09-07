@@ -17,8 +17,9 @@ children:
   - content-production-management/editor-tasks.md
   - content-production-management/prioritisation-content-engine.md
   - content-production-management/auto-editing-agent.md
+  - content-production-management/dna-feedback.md
 created: 2026-06-25
-updated: 2026-08-27
+updated: 2026-09-02
 resolution: 5/8
 imported-from: "CLAUDE.md"
 ---
@@ -139,7 +140,7 @@ These are Phase 2 candidates *only if* the manual-assisted queue proves insuffic
 **Architecture fork — DECIDED: HYBRID (2026-06-25).** Build the workflow surfaces (intake, queue, role views — valid under either architecture) now in this standalone repo; migrate the *nouns* to brain nodes + an app manifest later, referencing the BlinkWork monorepo (`github.com/mindvalley-ai/BlinkWork`, INTERNAL, accessible via `gh`). Only workflow state (tickets/queue/approvals) stays app-owned permanently. The standalone Postgres model (E1) holds for now and is reframed — not discarded — at migration. `context/productization.md` is the migration target spec.
 
 Still open under the hybrid:
-- **Intelligence layer** (`context/intelligence-layer.md`): 5 propose-only capabilities — a likely new epic (E8), build order 1→2 first. Largely free under the Blinkwork-app fork, more work under standalone.
+- **Intelligence layer** (`context/intelligence-layer.md`): 5 propose-only capabilities, build order 1→2 first. Capability #4 (DNA feedback) is now underway as **E13**, and wires in capability #1 (performance insight) too — see below. Capabilities #2, #3, #5 remain unscheduled. Largely free under the Blinkwork-app fork, more work under standalone.
 - **UI mockups** (`context/mockups/`): the agreed visual target for E3/E5 surfaces — rebuild in `@mindvalley-ai-advanced/ui` (shadcn/CVA), do not restyle the HTML.
 
 **Decisions explicitly NOT yet settled (from decision-log — do not guess):**
@@ -179,5 +180,6 @@ Phase 1 is seven epics (E1–E7 — the Performance Loop was pulled into Phase 1
 | E9 | [Portal Feedback / Usability Round 1](content-production-management/portal-feedback-round-1.md) | Jun 29 feedback round: cut-ready editor briefs, shoot approvals in Studio, team/campaign visibility, Slack notifications, revenue/campaign scoring, auto-assign, DNA editor, multi-asset requests. | E3, E4, E5, E8 | 1 |
 | E10 | [Editor Tasks](content-production-management/editor-tasks.md) | Lightweight sub-tasks under Creative Requests — own owner/due/status, two-way synced to a new Airtable table. Manual creation + promote-to-ticket; advisory only. | E5 (E1, E6) | 1 |
 | E12 | [Transcript-Based Auto-Editing Agent](content-production-management/auto-editing-agent.md) | Claude-driven execution agent (headless Remotion renderer, not Premiere) — turns an approved E8 clip suggestion into a finished, on-brand vertical cut. Propose-only; gated to Vishen-owned channels at a 70% first-pass-acceptance bar. | E8 | 1 |
+| E13 | [AI-Assisted DNA Feedback](content-production-management/dna-feedback.md) | First-pass AI review of a ticket against its asset type's learned DNA rulebook (text + real video access), plus a performance-driven post-learning summary on the Performance page — closes intelligence-layer.md capabilities #1 and #4. Generalizes the E8 clip-engine's rule-learning loop (`ClipRule`) rather than reinventing it. | E5, E7, E9.7, E12.2 | 2 |
 
-**Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6 → E7. E8, E9 and E10 extend the Phase-1 surfaces.
+**Dependency order (Phase 1):** E1 → E2 → E3 → {E4 ∥ E5} → E6 → E7. E8, E9 and E10 extend the Phase-1 surfaces. E13 is Phase 2 — it extends E7/E9.7 and reuses E12.2's render-service.
