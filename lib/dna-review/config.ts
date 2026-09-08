@@ -22,6 +22,9 @@ export interface DnaReviewConfig {
   baselineSource: 'portal' | 'upstream' | 'none';
   /** Airtable "Process DNA" link, when the asset type has one. */
   processDnaUrl: string | null;
+  /** The rule-list text only (no Process summary), for splitting into checkpoints in the
+   *  ticket panel. `baseline` stays exactly what the model is shown. */
+  dnaText: string | null;
   ruleBullets: string[]; // "statement — rationale (example)" per active rule, highest weight first
 }
 
@@ -71,6 +74,7 @@ export async function getDnaReviewConfig(assetTypeId: string): Promise<DnaReview
   const baseline = parts.length
     ? [...parts, ...processPart].join('\n\n')
     : 'No DNA requirements or feedback standards have been written for this asset type yet.';
+  const dnaText = parts.length ? parts.join(', ') : null;
 
   const rules = await getActiveDnaRules(assetTypeId);
   const ruleBullets = rules.map(composeRuleBullet);
@@ -80,6 +84,7 @@ export async function getDnaReviewConfig(assetTypeId: string): Promise<DnaReview
     baseline,
     baselineSource,
     processDnaUrl: assetType.processDnaUrl?.trim() || null,
+    dnaText,
     ruleBullets,
   };
   cache.set(assetTypeId, { value, at: Date.now() });

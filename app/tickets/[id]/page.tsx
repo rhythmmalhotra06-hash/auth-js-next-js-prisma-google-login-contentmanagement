@@ -111,6 +111,11 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               }}
             />
           </div>
+
+          {/* Left column, under the delivery links (Titus, 2026-09-08): the DNA is what an
+              editor works against, so it belongs in the wide column next to the brief —
+              not in the narrow status rail. The DNA *review* stays on the right. */}
+          <TicketDnaPanel assetTypeId={t.assetTypeId} />
         </div>
 
         <div className="stack">
@@ -128,8 +133,6 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Review &amp; approval</div>
             <ApprovalRows approvals={t.approvals} />
           </div>
-
-          <TicketDnaPanel assetTypeId={t.assetTypeId} />
 
           <div className="card pad">
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>DNA review</div>
