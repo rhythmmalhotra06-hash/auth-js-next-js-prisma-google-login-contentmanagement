@@ -276,6 +276,12 @@ export function resolveVideoSource(fields: Partial<Record<VideoSourceField, stri
   return { ok: false, reason: 'unsupported-host', candidates: ranked, sample: ranked[0]?.url ?? null };
 }
 
+/** "a" vs "an" for a host name — the messages read as prose, and "a app.frame.io link"
+ *  is the kind of wrongness people notice. */
+function article(word: string): string {
+  return /^[aeiou]/i.test(word) ? 'an' : 'a';
+}
+
 function hostOf(url: string | null): string {
   if (!url) return 'that host';
   try {
@@ -300,7 +306,7 @@ export const VIDEO_SOURCE_FAILURE_MESSAGE: Record<VideoSourceFailureReason, (sam
       /youtu/.test(host)
         ? ' YouTube sources already get transcript-only enrichment, which does not need frames.'
         : '';
-    return `The only link on this ticket is a ${host} link, which can't be downloaded directly. Export the video and paste a direct Dropbox file link below.${tail}`;
+    return `The only link on this ticket is ${article(host)} ${host} link, which can't be downloaded directly. Export the video and paste a direct Dropbox file link below.${tail}`;
   },
 };
 
