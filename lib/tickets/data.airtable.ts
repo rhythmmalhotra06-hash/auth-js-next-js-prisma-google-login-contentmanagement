@@ -223,6 +223,32 @@ export async function getQueueTickets(opts: { assigneeId?: string; includeComple
  * has no reliable published-date), so the founder overview reads ~1 page instead of
  * scanning all ~9k Done rows via the includeCompleted path.
  */
+/** Airtable twin of the Postgres searchTickets — see that one for why this exists.
+ *  SEARCH() over the title with maxRecords set: one bounded query, never a scan of the
+ *  ~9k-row Done archive. Escapes single quotes so a title with an apostrophe can't break
+ *  the formula. */
+export async function searchTickets(query: string, limit = 25): Promise<QueueTicket[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+  const safe = q.replace(/'/g, "\\'");
+  const [res, employees, eventTypes, assetTypes, contractors, calendars] = await Promise.all([
+    listAll(TICKETS.baseId, TICKETS.tableId, {
+      // filterByFormula matches field NAMES, not ids — {Name} is the formula primary
+      // (F.name = fld59SWr1qd1XPuR0), same convention as ACTIVE_FILTER's {Ticket Status}.
+      filterByFormula: `SEARCH(LOWER('${safe}'), LOWER({Name}))`,
+      sort: [{ field: 'Created', direction: 'desc' }],
+      maxRecords: limit,
+      fields: QUEUE_FIELDS,
+    }),
+    nameMap('employees'), nameMap('eventTypes'), nameMap('assetTypes'), nameMap('contractors'), nameMap('officialCalendars'),
+  ]);
+  if (!res.ok) return [];
+  return res.data.map((rec) => {
+    const { assigneeId: _drop, ...rest } = mapTicketRow(rec, employees, eventTypes, assetTypes, contractors, calendars);
+    return rest;
+  });
+}
+
 export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
   const [res, employees, eventTypes, assetTypes, contractors, calendars] = await Promise.all([
     listAll(TICKETS.baseId, TICKETS.tableId, {

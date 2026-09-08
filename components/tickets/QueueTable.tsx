@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { TicketStatusBadge, PrioStatusBadge } from '@/components/ui/Badge';
@@ -17,6 +17,7 @@ import { loadMap, riskOf } from '@/lib/tickets/intel';
 import { tierForEvent } from '@/lib/tickets/tiers';
 import type { QueueTicket } from '@/lib/tickets/data';
 import type { ScoringConfig } from '@/lib/scoring-config/config';
+import { searchAllTickets, type TicketSearchResult } from '@/lib/tickets/search-action';
 
 // Filterable, sortable, configurable queue table — ported to the prototype `.list`
 // look. Mandated first five columns (CLAUDE.md §7): Title · Priority · Assigned ·
@@ -142,6 +143,14 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
   });
   const [q, setQ] = useState('');
 
+  // Delivered tickets (Done / Won't Do / Published) are excluded server-side from every
+  // grid, and the filter above only narrows rows already on the page — so searching for a
+  // finished ticket found nothing. When the on-page search comes up empty, ask the server,
+  // which searches regardless of status. Debounced, min 3 chars, and only on a miss, so the
+  // common case costs nothing.
+  const [archive, setArchive] = useState<NonNullable<TicketSearchResult['tickets']>>([]);
+  const [archiveBusy, setArchiveBusy] = useState(false);
+
   // A leading "#" position column (manager view). It's a non-data ornament that sits
   // *before* the mandated five — it never reorders or replaces them.
   const columns = useMemo<ColumnDef<QueueTicket>[]>(
@@ -172,6 +181,23 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
     );
   }, [tickets, sel, q, stageFilter]);
   const rows = useMemo(() => view.sortRows(filtered), [view, filtered]);
+
+  // Only fires when the on-page filter found nothing — see the note by `archive` above.
+  useEffect(() => {
+    const needle = q.trim();
+    if (needle.length < 3 || rows.length > 0) { setArchive([]); setArchiveBusy(false); return; }
+    let cancelled = false;
+    setArchiveBusy(true);
+    const timer = setTimeout(async () => {
+      const res = await searchAllTickets(needle);
+      if (cancelled) return;
+      // Drop anything already visible on the page so the panel only shows the extras.
+      const onPage = new Set(tickets.map((t) => t.id));
+      setArchive((res.tickets ?? []).filter((t) => !onPage.has(t.id)));
+      setArchiveBusy(false);
+    }, 350);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [q, rows.length, tickets]);
 
   const load = useMemo(() => loadMap(tickets, scoringConfig), [tickets, scoringConfig]);
   const funnel = useMemo(() => {
@@ -310,6 +336,33 @@ export function QueueTable({ tickets, basePath = '/tickets', storageKey = 'queue
           <ColumnsMenu columns={COLUMNS} isVisible={view.isVisible} onToggle={view.toggleColumn} onReset={view.reset} hiddenCount={view.hiddenCount} />
         </div>
       </div>
+
+      {q.trim().length >= 3 && (archiveBusy || archive.length > 0) && rows.length === 0 && (
+        <div className="card pad" style={{ marginBottom: 12 }}>
+          {archiveBusy ? (
+            <p className="subtle text-xs">Searching delivered and archived tickets…</p>
+          ) : (
+            <>
+              <p className="subtle text-xs" style={{ marginBottom: 8 }}>
+                Nothing open matches “{q.trim()}”, but{' '}
+                {archive.length === 1 ? '1 delivered or archived ticket does' : `${archive.length} delivered or archived tickets do`}:
+              </p>
+              <div className="vstack">
+                {archive.map((t) => (
+                  <button key={t.id} className="vrow" style={{ textAlign: 'left', cursor: 'pointer' }}
+                    onClick={() => router.push(`${basePath}/${t.id}`)}>
+                    <div className="meta">
+                      <b>{t.title}</b>
+                      <span className="subtle">{[t.ticketStatus, t.prioStatus, t.assignee].filter(Boolean).join(' · ')}</span>
+                    </div>
+                    <Icon name="arrow" size={14} />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Mobile (≤560px): stacked cards showing the mandated five fields. Same rows,
           same click-through; the desktop table below is hidden at this width. */}

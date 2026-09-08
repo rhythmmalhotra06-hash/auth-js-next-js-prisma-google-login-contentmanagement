@@ -29,4 +29,5 @@ export const getRecentShipped = impl.getRecentShipped;
 export const getMyRequests = impl.getMyRequests;
 export const getRequestsForScope = impl.getRequestsForScope;
 export const getTicketDetail = impl.getTicketDetail;
+export const searchTickets = impl.searchTickets;
 export const getTicketTimelines = impl.getTicketTimelines;

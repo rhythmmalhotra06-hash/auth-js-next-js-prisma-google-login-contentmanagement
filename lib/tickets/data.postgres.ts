@@ -255,6 +255,30 @@ export async function getRecentShipped(limit = 12): Promise<QueueTicket[]> {
 }
 
 /**
+ * Find tickets by title REGARDLESS of status — the one read that deliberately ignores
+ * ACTIVE_STATUSES_EXCLUDED.
+ *
+ * Every grid drops Done / Won't Do / Published (see ACTIVE_STATUSES_EXCLUDED), and
+ * QueueTable's search box only filters rows already on the page, so a delivered ticket was
+ * unfindable anywhere except /stakeholder?archive=1. Titus hit exactly this on 2026-09-08:
+ * "why can't I find the ticket?" — it was Done.
+ *
+ * Bounded on purpose: `take` caps the result and there's no full scan, because the Airtable
+ * twin of this function sits in front of ~9k Done rows.
+ */
+export async function searchTickets(query: string, limit = 25): Promise<QueueTicket[]> {
+  const q = query.trim();
+  if (q.length < 3) return []; // too short to be a search; don't dredge the table
+  const rows = (await prisma.ticket.findMany({
+    where: { title: { contains: q, mode: 'insensitive' } },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: TICKET_INCLUDE,
+  })) as unknown as TicketWithRelations[];
+  return rankTickets(rows);
+}
+
+/**
  * The full archive of requests a person raised (every status). Matched by the
  * requester's Airtable recId (the id the app carries for employees).
  */
