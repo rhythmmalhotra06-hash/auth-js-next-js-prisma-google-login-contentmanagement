@@ -4,6 +4,9 @@ import { createTicketRow } from '@/lib/tickets/write';
 import { resolveAutoAssignee } from '@/lib/tickets/auto-assign';
 import { notifyAssignment } from '@/lib/notify/triggers';
 import { asDateCertainty } from '@/lib/tickets/scoring';
+import { getIntakeReferenceData } from '@/lib/intake/data';
+import { getAdminAccess } from '@/lib/admin/access';
+import { canRaiseAssetType, canRaiseAnyAssetType } from '@/lib/intake/entitlement';
 
 export interface CreateTicketInput {
   requesterId: string; // Airtable recId (Employees)
@@ -46,6 +49,43 @@ const REQUIRED: [keyof CreateTicketInput, string][] = [
   ['dateCertainty', 'Date certainty'],
 ];
 
+/**
+ * Server-side re-check of the intake Asset Type rules: the asset type must belong to the
+ * chosen event type, and the signed-in user OR the named requester must be a Stakeholder on
+ * it. Fails open exactly where the shared helper does (non-video, no stakeholders listed,
+ * privileged role) — see lib/intake/entitlement.ts.
+ *
+ * Best-effort by design: if reference data can't be read we allow the submit rather than
+ * block a real request on our own outage, and say so in the log.
+ */
+async function assertMayRaise(
+  eventTypeId: string,
+  assetTypeId: string,
+  requesterId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const [data, access] = await Promise.all([getIntakeReferenceData(), getAdminAccess()]);
+    const assetType = data.assetTypes.find((a) => a.id === assetTypeId);
+    if (!assetType) return { ok: true }; // unknown to us (stale cache) — let the write decide
+
+    if (!assetType.eventTypeIds.includes(eventTypeId)) {
+      return { ok: false, error: 'That Asset Type is not available for the chosen Event Type.' };
+    }
+    if (canRaiseAnyAssetType(access.roles, access.isAdmin)) return { ok: true };
+
+    const requesterEmail = data.employees.find((e) => e.id === requesterId)?.email ?? null;
+    if (canRaiseAssetType(assetType, { sessionEmail: access.email, requesterEmail })) return { ok: true };
+
+    return {
+      ok: false,
+      error: `“${assetType.fullName || assetType.name}” isn't one of the asset types you can request. Ask the team lead to add you as a stakeholder, or pick another.`,
+    };
+  } catch (e) {
+    console.error('[intake] entitlement check failed — allowing the submit', e);
+    return { ok: true };
+  }
+}
+
 // Airtable-direct: write the new request straight to the Prio Requests table. The
 // intake form already serves reference options as Airtable recIds, so link fields
 // are set directly — no Postgres, no reference resolution, no scoring (Airtable's
@@ -57,6 +97,12 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
       return { ok: false, error: `${label} is required` };
     }
   }
+  // Entitlement: the client narrows the Asset Type list, but the client can't be trusted —
+  // this action previously accepted any assetTypeId at all (and didn't even check that it
+  // belonged to the chosen event type). Same rule, evaluated server-side.
+  const entitled = await assertMayRaise(input.eventTypeId, input.assetTypeId, input.requesterId);
+  if (!entitled.ok) return { ok: false, error: entitled.error };
+
   if (input.title.trim().length > 40) {
     return { ok: false, error: 'Project/Program must be 40 characters or fewer' };
   }

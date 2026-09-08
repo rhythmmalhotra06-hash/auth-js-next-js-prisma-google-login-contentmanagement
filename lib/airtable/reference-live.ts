@@ -8,12 +8,13 @@ import { listRecords } from './client';
 import { listRecords as listRest } from './rest';
 import {
   EMPLOYEES, EVENT_TYPES, ASSET_TYPES, DIMENSIONS, OFFICIAL_CALENDARS, AUTHORS, SHOOTS,
+  STAKEHOLDER_DIRECTORY,
 } from './field-map';
 import { mapEmployee, mapEventType, mapAssetType, mapDimension, mapOfficialCalendar, mapAuthor } from './sync';
-import type { Option, AssetTypeOption } from '@/lib/intake/data';
+import type { Option, AssetTypeOption, EmployeeIntakeOption } from '@/lib/intake/data';
 
 export interface LiveReference {
-  employees: Option[];
+  employees: EmployeeIntakeOption[];
   eventTypes: Option[];
   assetTypes: AssetTypeOption[];
   officialCalendars: Option[];
@@ -36,7 +37,7 @@ async function fetchLive(): Promise<LiveReference> {
   // would blow the per-base rate limit (client.listRecords already paces itself).
   const employeesRaw = (await listRecords(EMPLOYEES.baseId, EMPLOYEES.tableId))
     .map(mapEmployee).filter((e) => e.active);
-  const employees = employeesRaw.map((e) => ({ id: e.airtableId, name: e.name }));
+  const employees = employeesRaw.map((e) => ({ id: e.airtableId, name: e.name, email: e.email ?? null }));
   // recId → name maps so the intake auto-fill block can show team lead / editor / dimension names.
   const empName = new Map(employeesRaw.map((e) => [e.airtableId, e.name]));
 
@@ -47,6 +48,17 @@ async function fetchLive(): Promise<LiveReference> {
   const dimName = new Map(
     (await listRecords(DIMENSIONS.baseId, DIMENSIONS.tableId)).map(mapDimension).map((d) => [d.airtableId, d.label]),
   );
+  // "Stakeholder" links to a SECOND employees roster (tblC0gR8ZVw4WzOwx) whose recIds don't
+  // exist in 👬 Employees, so they can only be resolved by work email.
+  const stakeholderEmail = new Map<string, string>(
+    (await listRecords(STAKEHOLDER_DIRECTORY.baseId, STAKEHOLDER_DIRECTORY.tableId))
+      .map((r) => {
+        const email = r.fields[STAKEHOLDER_DIRECTORY.fields.workEmail];
+        return [r.id, typeof email === 'string' ? email.trim().toLowerCase() : ''] as const;
+      })
+      .filter(([, email]) => !!email),
+  );
+
   const names = (ids: string[], m: Map<string, string>) => {
     const out = ids.map((id) => m.get(id)).filter((n): n is string => !!n);
     return out.length ? [...new Set(out)].join(', ') : null;
@@ -56,6 +68,7 @@ async function fetchLive(): Promise<LiveReference> {
     .map(mapAssetType).filter((a) => a.active)
     .map((a) => ({ id: a.airtableId, name: a.name, fullName: a.fullName, category: a.category, eventTypeIds: a.links.eventTypes,
       isVideo: a.creativeCategory === 'Creative Video Type',
+      stakeholderEmails: a.links.stakeholders.map((id) => stakeholderEmail.get(id)).filter((e): e is string => !!e),
       teamLead: names(a.links.teamLeads, empName),
       preferredEditor: names(a.links.preferredEditors, empName),
       dimensions: names(a.links.dimensions, dimName) }));

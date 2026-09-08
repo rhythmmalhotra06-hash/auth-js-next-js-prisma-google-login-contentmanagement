@@ -17,12 +17,13 @@ export async function getPgIntakeReference(): Promise<LiveReference> {
   const { prisma } = await import('@/lib/prisma');
 
   const [employeeRows, eventTypeRows, assetTypeRows, calendarRows, authorRows, shootRows] = await Promise.all([
-    prisma.employee.findMany({ where: { active: true }, select: { airtableId: true, name: true } }),
+    prisma.employee.findMany({ where: { active: true }, select: { airtableId: true, name: true, email: true } }),
     prisma.eventType.findMany({ where: { active: true }, select: { airtableId: true, name: true } }),
     prisma.assetType.findMany({
       where: { active: true },
       select: {
         airtableId: true, name: true, fullName: true, category: true, creativeCategory: true,
+        stakeholderEmails: true,
         eventTypes: { select: { eventType: { select: { airtableId: true } } } },
         teamLeads: { select: { employee: { select: { name: true } } } },
         preferredEditors: { select: { employee: { select: { name: true } } } },
@@ -34,9 +35,9 @@ export async function getPgIntakeReference(): Promise<LiveReference> {
     prisma.shoot.findMany({ where: { NOT: { status: SHOOT_STATUS.cancelled } }, select: { airtableId: true, title: true }, take: SHOOTS_MAX }),
   ]);
 
-  const employees: Option[] = employeeRows
+  const employees = employeeRows
     .filter((r) => r.airtableId)
-    .map((r) => ({ id: r.airtableId as string, name: r.name }));
+    .map((r) => ({ id: r.airtableId as string, name: r.name, email: r.email ?? null }));
 
   const eventTypes: Option[] = eventTypeRows
     .filter((r) => r.airtableId)
@@ -51,6 +52,7 @@ export async function getPgIntakeReference(): Promise<LiveReference> {
       category: r.category,
       eventTypeIds: r.eventTypes.map((e) => e.eventType.airtableId).filter((x): x is string => !!x),
       isVideo: r.creativeCategory === 'Creative Video Type',
+      stakeholderEmails: r.stakeholderEmails ?? [],
       teamLead: joinNames(r.teamLeads.map((t) => t.employee.name)),
       preferredEditor: joinNames(r.preferredEditors.map((p) => p.employee.name)),
       dimensions: joinNames(r.dimensions.map((d) => d.dimension.label)),

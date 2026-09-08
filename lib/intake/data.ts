@@ -13,11 +13,24 @@ export interface Option {
   name: string;
 }
 
+/** Employee option — carries the work email so the intake form can apply the asset-type
+ *  entitlement rule to the SELECTED requester, not just the signed-in user (raising a
+ *  request on a colleague's behalf is normal here). See lib/intake/entitlement.ts. */
+export interface EmployeeIntakeOption extends Option {
+  email: string | null;
+}
+
 export interface AssetTypeOption extends Option {
   fullName: string | null; // Airtable "Asset Type (Full title)" — shown in the dropdown to disambiguate same-named types across event contexts
   category: string | null;
   eventTypeIds: string[]; // Asset Type is filtered to those linked to the chosen Event Type
   isVideo: boolean; // Category === "Creative Video Type" — used to restrict the shoot form to video assets
+  /**
+   * Work emails allowed to RAISE this asset type (Airtable "Stakeholder"). Empty means
+   * unrestricted — a blank field must never hide an asset type from everyone, which is the
+   * trap the `Category`/isVideo field already sprang once.
+   */
+  stakeholderEmails: string[];
   // Locked lookups shown on the intake form once an asset type is picked (resolved to names).
   teamLead: string | null;
   preferredEditor: string | null;
@@ -25,7 +38,7 @@ export interface AssetTypeOption extends Option {
 }
 
 export interface IntakeReferenceData {
-  employees: Option[];
+  employees: EmployeeIntakeOption[];
   eventTypes: Option[];
   assetTypes: AssetTypeOption[];
   officialCalendars: Option[];

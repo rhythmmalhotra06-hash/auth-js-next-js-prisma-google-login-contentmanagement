@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { allowedAssetTypes } from '@/lib/intake/entitlement';
 import type { IntakeReferenceData } from '@/lib/intake/data';
 import { createTicket } from '@/app/intake/actions';
 import { SearchableSelect, type SelectOption } from '@/components/ui/SearchableSelect';
@@ -72,7 +73,13 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
-export function IntakeForm({ data }: { data: IntakeReferenceData }) {
+export function IntakeForm({ data, sessionEmail = null, unrestricted = false }: {
+  data: IntakeReferenceData;
+  /** Signed-in user's email — one half of the asset-type entitlement check. */
+  sessionEmail?: string | null;
+  /** Admin / manager / founder: skip the Stakeholder filter entirely. */
+  unrestricted?: boolean;
+}) {
   const [requesterId, setRequesterId] = useState('');
   const [title, setTitle] = useState('');
   const [teamServiceLevel, setTeamServiceLevel] = useState('');
@@ -94,11 +101,24 @@ export function IntakeForm({ data }: { data: IntakeReferenceData }) {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  // Asset Type is filtered to those linked to the chosen Event Type.
-  const filteredAssetTypes = useMemo(
-    () => (eventTypeId ? data.assetTypes.filter((a) => a.eventTypeIds.includes(eventTypeId)) : []),
-    [eventTypeId, data.assetTypes],
+  // Asset Type is filtered to those linked to the chosen Event Type, then to the ones this
+  // person may actually raise (Airtable "Stakeholder"). The entitlement rule is shared with
+  // the server-side re-check in app/intake/actions.ts — see lib/intake/entitlement.ts.
+  const requesterEmail = useMemo(
+    () => data.employees.find((e) => e.id === requesterId)?.email ?? null,
+    [requesterId, data.employees],
   );
+  const filteredAssetTypes = useMemo(() => {
+    if (!eventTypeId) return [];
+    const linked = data.assetTypes.filter((a) => a.eventTypeIds.includes(eventTypeId));
+    return allowedAssetTypes(linked, { sessionEmail, requesterEmail }, unrestricted);
+  }, [eventTypeId, data.assetTypes, sessionEmail, requesterEmail, unrestricted]);
+
+  // Changing the requester can revoke the asset type already chosen — drop it rather than
+  // submitting something the server will reject.
+  useEffect(() => {
+    if (assetTypeId && !filteredAssetTypes.some((a) => a.id === assetTypeId)) setAssetTypeId('');
+  }, [filteredAssetTypes, assetTypeId]);
 
   // Searchable-select option lists.
   const employeeOpts: SelectOption[] = useMemo(() => data.employees.map((e) => ({ value: e.id, label: e.name })), [data.employees]);
