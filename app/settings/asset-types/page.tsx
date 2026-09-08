@@ -29,12 +29,15 @@ export default async function AssetTypeDnaPage() {
   return (
     <AppShell
       title="Asset types & DNA"
-      subtitle="The creative DNA, requirements and feedback standards for each asset type. Admins edit all; team leads edit the asset types they lead."
+      subtitle="The creative DNA, requirements and feedback standards for each asset type. Admins and managers edit all; team leads edit the asset types they lead."
     >
       <AssetTypeEditor
         rows={rows}
         myEmployeeId={employee?.id ?? null}
         isAdmin={access.isAdmin}
+        // Managers/approvers and founders edit DNA text for ALL asset types (2026-09-08) —
+        // mirrors the server-side check in ./actions.ts. Team leads still edit their own.
+        canEditAll={isManager || isFounder(access.roles)}
         // DNA-rule governance (E13) is broader than DNA-text edit rights: manager/approver
         // and founder/exec can approve/dismiss learned rules for oversight, matching
         // lib/dna-review/access.ts's server-side check — not just admin + team lead.

@@ -149,12 +149,17 @@ export function AssetTypeEditor({
   rows,
   myEmployeeId,
   isAdmin,
+  canEditAll = false,
   canGovernDna = false,
   dnaRulesByAssetType = {},
 }: {
   rows: AssetTypeDnaRow[];
   myEmployeeId: string | null;
   isAdmin: boolean;
+  /** Manager/approver/founder — edits DNA text for every asset type, not just the ones
+   *  they lead. Computed server-side in app/settings/asset-types/page.tsx and re-checked
+   *  in ./actions.ts; this prop only drives the UI. */
+  canEditAll?: boolean;
   /** Manager/approver/founder oversight — broader than DNA-text edit rights (admin +
    *  team lead). Computed server-side in app/settings/asset-types/page.tsx. */
   canGovernDna?: boolean;
@@ -169,7 +174,7 @@ export function AssetTypeEditor({
           <Row
             key={row.id}
             row={row}
-            canEdit={isAdmin || teamLeadOfThis}
+            canEdit={isAdmin || canEditAll || teamLeadOfThis}
             canGovernDna={isAdmin || canGovernDna || teamLeadOfThis}
             dnaRules={(row.assetTypePgId && dnaRulesByAssetType[row.assetTypePgId]) || []}
           />
