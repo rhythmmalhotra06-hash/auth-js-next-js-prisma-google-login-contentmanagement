@@ -12,6 +12,7 @@ import { AssigneeUpdater } from '@/components/tickets/AssigneeUpdater';
 import { AssetPanel } from '@/components/tickets/AssetPanel';
 import { ApprovalRows } from '@/components/tickets/ApprovalRows';
 import { StageHistory } from '@/components/tickets/StageHistory';
+import { TicketDnaPanel } from '@/components/tickets/TicketDnaPanel';
 import { DnaReviewPanel, type DnaReviewView } from '@/components/tickets/DnaReviewPanel';
 import { getLatestDnaReview } from '@/lib/dna-review/repository';
 
@@ -75,8 +76,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
                 "we don't need the team lead here". The COLUMNS stay: teamServiceLevel still
                 derives `isAds`, which gates the per-ratio delivery links below. */}
             <div className="grid2">
-              <Field label="Event type" value={t.eventType} lookup />
-              <Field label="Asset type" value={t.assetType} lookup />
+              {/* Not marked `lookup`: these are the ticket's own linked fields, chosen at
+                  intake — unlike Dimensions / Team lead, which are derived from the asset type. */}
+              <Field label="Event type" value={t.eventType} />
+              <Field label="Asset type" value={t.assetType} />
               <Field label="Project" value={t.project} />
               <Field label="Dimensions" value={t.dimensions} lookup />
               <Field label="Requested by" value={t.requester} lookup />
@@ -125,6 +128,8 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>Review &amp; approval</div>
             <ApprovalRows approvals={t.approvals} />
           </div>
+
+          <TicketDnaPanel assetTypeId={t.assetTypeId} />
 
           <div className="card pad">
             <div className="k" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--text-subtle)', marginBottom: 10 }}>DNA review</div>

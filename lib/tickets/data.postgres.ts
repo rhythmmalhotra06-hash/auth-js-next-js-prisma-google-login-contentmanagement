@@ -333,6 +333,8 @@ export interface TicketDetail {
   priorityScore: string | null;
   eventType: string | null;
   assetType: string | null;
+  /** PG uuid of the asset type — needed to load its DNA server-side (the name isn't a key). */
+  assetTypeId: string | null;
   requester: string | null;
   requesterId: string | null;
   assignee: string | null;
@@ -430,6 +432,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     priorityScore: t.priorityScore != null ? String(t.priorityScore) : null,
     eventType: t.eventType?.name ?? null,
     assetType: t.assetType?.name ?? null,
+    assetTypeId: t.assetTypeId ?? null,
     requester: t.requester?.name ?? null,
     requesterId: t.requester?.airtableId ?? null,
     assignee: credit.name,

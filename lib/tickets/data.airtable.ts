@@ -342,6 +342,9 @@ export interface TicketDetail {
   priorityScore: string | null;
   eventType: string | null;
   assetType: string | null;
+  /** PG uuid of the asset type. This backend has no uuid to give, so it is always null
+   *  here and the ticket DNA panel simply does not render. */
+  assetTypeId: string | null;
   requester: string | null;
   requesterId: string | null;
   assignee: string | null;
@@ -420,6 +423,7 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     priorityScore: num(f[F.score]) != null ? String(num(f[F.score])) : null,
     eventType: firstLinkedName(f[L.eventTypes], eventTypes),
     assetType: firstLinkedName(f[L.assetTypes], assetTypes),
+    assetTypeId: null, // no PG uuid on this backend — see the interface note
     requester: firstLinkedName(f[L.requestedBy], employees),
     requesterId: firstLinkedId(f[L.requestedBy]),
     assignee: firstLinkedName(f[L.assignedCreative], employees) ?? firstLinkedName(f[L.assignedContractor], contractors),
