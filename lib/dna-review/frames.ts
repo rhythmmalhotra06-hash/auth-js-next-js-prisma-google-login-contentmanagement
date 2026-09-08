@@ -17,8 +17,84 @@ export interface ExtractFramesResult {
   ok: boolean;
   durationMs?: number;
   frames?: ExtractedFrame[];
+  /** Human sentence, already mapped through RENDER_ERROR_MESSAGE where we know the code. */
   error?: string;
+  /** render-service's structured failure code (added 2026-09-08). `undefined` when talking
+   *  to an older render-service deploy — callers must degrade to `error` alone. */
+  code?: string;
+  detail?: string | null;
+  /** True when the failure means "this link isn't a downloadable video", i.e. the portal
+   *  should offer its paste-a-direct-link box rather than just reporting a failure. */
+  needsLink?: boolean;
 }
+
+interface RenderErrorBody {
+  ok?: boolean;
+  code?: string;
+  error?: string;
+  detail?: string | null;
+  durationMs?: number;
+  frames?: ExtractedFrame[];
+}
+
+/**
+ * render-service failure codes -> user-facing copy. The app owns the wording; the
+ * service's own `error` string is the fallback for codes we don't recognise (including
+ * every code, if the deployed service predates them).
+ *
+ * Root cause these describe: the four delivery-link fields are free text, so 44% of
+ * tickets pointed at something that isn't a video file — a Dropbox folder (whose only
+ * no-auth download form is a .zip), a Dropbox Replay page, or a Frame.io review URL. All
+ * three used to surface as ffprobe's "moov atom not found".
+ */
+const RENDER_ERROR_MESSAGE: Record<string, (b: RenderErrorBody) => string> = {
+  invalid_url: () => "That isn't a valid https:// link.",
+  invalid_body: () => 'Frame extraction was called with a malformed request.',
+  blocked_host: () => "That link points at a private or internal address and won't be fetched.",
+  unsupported_dropbox_replay: () =>
+    'That is a Dropbox Replay link — a review page, not the video file. Open it in Dropbox, then share the video file itself and paste that link.',
+  unsupported_dropbox_folder: () =>
+    'That Dropbox link is a folder — downloading it gives a .zip, not a video. Open the folder, right-click the final video, Copy link, and paste that.',
+  unsupported_host: (b) =>
+    `${b.detail ?? 'That host'} links can't be downloaded directly. Export the video and paste a direct Dropbox file link.`,
+  unsupported_youtube: () =>
+    "YouTube links can't be frame-extracted here — YouTube sources already get transcript-only enrichment.",
+  dropbox_folder_unconfigured: () =>
+    "That ticket links a Dropbox folder, and Dropbox folder access isn't set up on the render service yet. Paste a direct link to the video file instead.",
+  dropbox_folder_unauthorized: () =>
+    "We couldn't open that Dropbox folder — it may be restricted or the share may have expired. Paste a direct file link instead.",
+  dropbox_folder_no_video: () =>
+    "That Dropbox folder has no video file we can read. Paste a direct link to the final video instead.",
+  dropbox_folder_video_too_large: (b) =>
+    `The video in that Dropbox folder is over the 500MB limit for visual review${b.detail ? ` (${Math.round(Number(b.detail) / 1e6)}MB)` : ''}.`,
+  source_empty: () => 'That link returned an empty file — the share may have expired or lost permission.',
+  not_a_video: (b) => `That link returned ${b.detail ?? 'something that is not a video'}, not a video file.`,
+  probe_failed: () =>
+    "The file downloaded but isn't a readable video — it may be corrupt or still uploading. Try again once the upload finishes.",
+  source_too_large: () => 'This video is over the 500MB limit for visual review.',
+  download_http_error: (b) =>
+    `The host refused the download${b.detail ? ` (HTTP ${b.detail})` : ''} — the link may have expired or require sign-in.`,
+  download_truncated: () => 'The download ended early — worth another try.',
+  extract_failed: () => "Frame extraction failed on this video. It's been logged for an admin.",
+  internal: () => "Frame extraction hit an internal error. It's been logged for an admin.",
+};
+
+/** Codes where the fix is "give us a different link", so the UI offers the paste box. */
+const NEEDS_LINK_CODES = new Set([
+  'invalid_url',
+  'blocked_host',
+  'unsupported_dropbox_replay',
+  'unsupported_dropbox_folder',
+  'unsupported_host',
+  'unsupported_youtube',
+  'dropbox_folder_unconfigured',
+  'dropbox_folder_unauthorized',
+  'dropbox_folder_no_video',
+  'source_empty',
+  'not_a_video',
+  'probe_failed',
+  'download_http_error',
+]);
 
 const MAX_RETRIES = 2;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -60,13 +136,29 @@ export async function extractFrames(videoUrl: string, maxFrames?: number): Promi
   }
 
   if (!res) return { ok: false, error: 'extract-frames: no response' };
-  if (!res.ok) return { ok: false, error: `extract-frames failed (HTTP ${res.status}): ${raw.slice(0, 300)}` };
 
+  let body: RenderErrorBody | null = null;
   try {
-    const parsed = JSON.parse(raw) as ExtractFramesResult;
-    if (!parsed.ok) return { ok: false, error: parsed.error ?? 'extract-frames returned ok:false' };
-    return parsed;
+    body = JSON.parse(raw) as RenderErrorBody;
   } catch {
-    return { ok: false, error: 'extract-frames: could not parse response body' };
+    // Non-JSON (e.g. Cloud Run's own HTML 503 page) — fall through to the raw text.
   }
+
+  if (!res.ok || body?.ok === false) {
+    const code = body?.code;
+    const message =
+      (code ? RENDER_ERROR_MESSAGE[code]?.(body ?? {}) : undefined) ??
+      body?.error ??
+      `extract-frames failed (HTTP ${res.status}): ${raw.slice(0, 300)}`;
+    return {
+      ok: false,
+      code,
+      detail: body?.detail ?? null,
+      error: message,
+      needsLink: code ? NEEDS_LINK_CODES.has(code) : false,
+    };
+  }
+
+  if (!body?.frames?.length) return { ok: false, error: 'extract-frames: could not parse response body' };
+  return { ok: true, durationMs: body.durationMs, frames: body.frames };
 }

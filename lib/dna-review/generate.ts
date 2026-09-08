@@ -11,6 +11,13 @@ import { getDnaReviewConfig } from '@/lib/dna-review/config';
 import { checkDeliverableCompleteness } from '@/lib/dna-review/deliverables';
 import { createDnaReview, type DnaReviewWithFindings } from '@/lib/dna-review/repository';
 import { extractFrames } from '@/lib/dna-review/frames';
+import {
+  resolveVideoSource,
+  isAttemptableVideoLink,
+  isSafePublicHttpUrl,
+  VIDEO_SOURCE_FAILURE_MESSAGE,
+  type VideoSourceFailureReason,
+} from '@/lib/dna-review/video-source';
 
 type AnyParams = Record<string, unknown>;
 
@@ -245,26 +252,50 @@ const VISUAL_SYSTEM_PROMPT = [
 ].join(' ');
 
 /**
- * Which delivery-link field to pull the video from, in preference order. Matches the
- * ASSET_LINK_FIELDS keys in app/tickets/[id]/actions.ts, plus `assetFolderLink` as a last
- * resort: per that file's own comment on the "asset ready" notification trigger, "non-ads
- * tickets have no ratio links, so the Asset Folder Link is their delivery signal instead" —
- * confirmed against a real ticket (2026-09-07) whose final9x16/16x9/4x5 were all empty but
- * whose actual Dropbox video lived in assetFolderLink. Deliberately a flat fallback, not a
- * branch on `isAds` — that heuristic is itself flagged STALE in lib/tickets/data.postgres.ts.
+ * The ticket's delivery-link columns, fed to the resolver in lib/dna-review/video-source.ts.
+ *
+ * All four are FREE TEXT in Airtable, so the resolver — not this function — decides which
+ * of the links they contain is actually downloadable. See that module's header for the
+ * measured distribution; the short version is that taking the first non-empty field (what
+ * this used to do) picked an undownloadable Dropbox folder, Replay page or Frame.io URL on
+ * 44% of tickets, which surfaced as ffprobe's "moov atom not found".
+ *
+ * `assetFolderLink` is included per a33e581: as lib/tickets/write.airtable.ts notes on the
+ * "asset ready" trigger, non-ads tickets have no ratio links, so the Asset Folder Link is
+ * their delivery signal instead.
  */
-async function resolveTicketVideoUrl(ticketId: string): Promise<string | null> {
+async function ticketLinkFields(ticketId: string) {
   const t = await prisma.ticket.findUnique({
     where: { id: ticketId },
     select: { final9x16: true, final16x9: true, final4x5: true, assetFolderLink: true },
   });
-  return t?.final9x16?.trim() || t?.final16x9?.trim() || t?.final4x5?.trim() || t?.assetFolderLink?.trim() || null;
+  return {
+    final9x16: t?.final9x16 ?? null,
+    final16x9: t?.final16x9 ?? null,
+    final4x5: t?.final4x5 ?? null,
+    assetFolderLink: t?.assetFolderLink ?? null,
+  };
 }
 
 export interface RunVisualDnaReviewResult {
   ok: boolean;
   reviewId?: string;
   error?: string;
+  /** Set when the failure is "we have no usable link", not "the review itself failed" —
+   *  the ticket panel then offers its paste-a-direct-link box. */
+  needsLink?: boolean;
+  /** The resolver's typed reason, or render-service's structured code. */
+  reason?: VideoSourceFailureReason | string;
+  /** The best link we found but couldn't use, so the UI can name it. */
+  detectedUrl?: string | null;
+}
+
+export interface RunVisualDnaReviewOptions {
+  requestedBy?: string | null;
+  /** Escape hatch: a direct video link supplied by the user, used instead of resolving the
+   *  ticket's own fields. Still validated, and still recorded as the review's
+   *  frameSourceUrl. */
+  videoUrlOverride?: string | null;
 }
 
 /**
@@ -273,7 +304,11 @@ export interface RunVisualDnaReviewResult {
  * immutable — each run is its own row, and the latest one is what the decision lock and
  * the ticket panel read). Best-effort — never throws.
  */
-export async function runVisualDnaReview(ticketId: string, requestedBy?: string | null): Promise<RunVisualDnaReviewResult> {
+export async function runVisualDnaReview(
+  ticketId: string,
+  opts: RunVisualDnaReviewOptions = {},
+): Promise<RunVisualDnaReviewResult> {
+  const { requestedBy = null, videoUrlOverride = null } = opts;
   try {
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
@@ -289,12 +324,50 @@ export async function runVisualDnaReview(ticketId: string, requestedBy?: string 
     });
     if (!ticket) return { ok: false, error: 'Ticket not found' };
 
-    const videoUrl = await resolveTicketVideoUrl(ticketId);
-    if (!videoUrl) return { ok: false, error: 'No final deliverable link (9x16/16x9/4x5) is attached to this ticket yet.' };
+    let videoUrl: string;
+    const override = videoUrlOverride?.trim();
+    if (override) {
+      if (!isSafePublicHttpUrl(override)) {
+        return {
+          ok: false,
+          needsLink: true,
+          reason: 'not-a-url',
+          error: 'Enter a full https:// link to a publicly reachable file.',
+        };
+      }
+      if (!isAttemptableVideoLink(override)) {
+        return {
+          ok: false,
+          needsLink: true,
+          reason: 'unsupported-host',
+          error:
+            'That looks like a preview or review page rather than a file. Paste the link to the video FILE itself (a Dropbox .../scl/fi/... link, or any URL ending in .mp4).',
+        };
+      }
+      videoUrl = override;
+    } else {
+      const resolved = resolveVideoSource(await ticketLinkFields(ticketId));
+      if (!resolved.ok) {
+        return {
+          ok: false,
+          needsLink: true,
+          reason: resolved.reason,
+          detectedUrl: resolved.sample,
+          error: VIDEO_SOURCE_FAILURE_MESSAGE[resolved.reason](resolved.sample),
+        };
+      }
+      videoUrl = resolved.chosen.url;
+    }
 
     const frameResult = await extractFrames(videoUrl);
     if (!frameResult.ok || !frameResult.frames?.length) {
-      return { ok: false, error: frameResult.error ?? 'Frame extraction returned no frames.' };
+      return {
+        ok: false,
+        error: frameResult.error ?? 'Frame extraction returned no frames.',
+        needsLink: frameResult.needsLink ?? false,
+        reason: frameResult.code,
+        detectedUrl: videoUrl,
+      };
     }
 
     const deliverableFindings = await checkDeliverableCompleteness(ticketId);

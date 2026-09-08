@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { rerunDnaReview, reactToDnaFinding, dismissDnaFinding, runVisualDnaReviewAction } from '@/app/tickets/[id]/actions';
 import { Badge, type Tone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Field, Input, Select } from '@/components/ui/Field';
+import { inferRatioField, type RatioField } from '@/lib/dna-review/video-source';
 
 export interface DnaFindingView {
   id: string;
@@ -109,20 +112,32 @@ function FindingRow({ ticketId, f, assetTypeId }: { ticketId: string; f: DnaFind
             <button className="btn sm" disabled={pending || !note.trim()} onClick={submitDismiss}>Confirm dismiss</button>
             <button className="btn ghost sm" disabled={pending} onClick={() => { setDismissing(false); setErr(null); }}>Cancel</button>
           </div>
-          {err && <p className="text-xs" style={{ color: 'var(--danger-content)', marginTop: 4 }}>{err}</p>}
+          {err && <p className="mt-1 text-xs text-danger">{err}</p>}
         </div>
       )}
     </div>
   );
 }
 
-type VisualState = 'available' | 'confirming' | 'running' | 'failed';
+// 'needs-link' is the escape hatch: the ticket's delivery-link fields hold something
+// undownloadable (a Dropbox folder we couldn't resolve, a Replay page, a Frame.io review
+// URL), so we ask for a direct file link instead of just reporting a failure.
+type VisualState = 'available' | 'confirming' | 'running' | 'needs-link' | 'failed';
+
+const RATIO_LABEL: Record<RatioField, string> = {
+  final9x16: '9×16 Final Link',
+  final16x9: '16×9 Final Link',
+  final4x5: '4×5 Final Link',
+};
 
 export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review: DnaReviewView | null }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [visualState, setVisualState] = useState<VisualState>('available');
   const [visualErr, setVisualErr] = useState<string | null>(null);
+  const [overrideUrl, setOverrideUrl] = useState('');
+  const [saveTo, setSaveTo] = useState<RatioField | 'none'>('final9x16');
+  const [savedNote, setSavedNote] = useState<string | null>(null);
   const router = useRouter();
 
   function rerun() {
@@ -134,19 +149,36 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
     });
   }
 
-  function runVisual() {
+  function runVisual(videoUrlOverride?: string) {
     setVisualErr(null);
+    setSavedNote(null);
     setVisualState('running');
     start(async () => {
-      const res = await runVisualDnaReviewAction(ticketId);
+      const res = await runVisualDnaReviewAction(
+        ticketId,
+        videoUrlOverride
+          ? { videoUrlOverride, saveTo: saveTo === 'none' ? null : saveTo, save: saveTo !== 'none' }
+          : undefined,
+      );
       if (res.ok) {
         setVisualState('available');
+        setOverrideUrl('');
+        setSavedNote(res.savedTo ? `Link saved to ${RATIO_LABEL[res.savedTo]} — future reviews will find it automatically.` : null);
         router.refresh();
       } else {
-        setVisualState('failed');
+        // needsLink means "give us a different link", not "the review broke".
+        setVisualState(res.needsLink ? 'needs-link' : 'failed');
         setVisualErr(res.error ?? 'Visual review failed');
       }
     });
+  }
+
+  // Pre-select the ratio column the pasted filename implies, so save-back defaults to the
+  // right field without the user thinking about it.
+  function onOverrideChange(value: string) {
+    setOverrideUrl(value);
+    const inferred = inferRatioField(value);
+    if (inferred) setSaveTo(inferred);
   }
 
   const unmetFlags = review?.findings.filter((f) => f.severity === 'flag' && f.reaction == null).length ?? 0;
@@ -167,7 +199,7 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
         <>
           {review.summary && <p style={{ fontSize: 13, marginBottom: 8 }}>{review.summary}</p>}
           {review.usedFrames && (
-            <p className="text-xs" style={{ color: 'var(--success-content)', marginBottom: 8 }}>
+            <p className="mb-2 text-xs text-success">
               ✓ Visual review included ({review.frameCount ?? '?'} frames analyzed)
             </p>
           )}
@@ -183,7 +215,47 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
         </>
       )}
 
-      <div className="flex items-center gap-2" style={{ marginTop: 4, flexWrap: 'wrap' }}>
+      {visualState === 'needs-link' && (
+        <div className="mt-1 space-y-2">
+          <div className="lockbar">{visualErr}</div>
+          <Field
+            label="Direct video link"
+            hint="A Dropbox file link (…/scl/fi/…) or any URL ending in .mp4 / .mov."
+          >
+            <Input
+              type="url"
+              inputMode="url"
+              value={overrideUrl}
+              disabled={pending}
+              placeholder="https://www.dropbox.com/scl/fi/…"
+              onChange={(e) => onOverrideChange(e.target.value)}
+            />
+          </Field>
+          <Field label="Save it to" hint="So the next review finds it without pasting.">
+            <Select value={saveTo} disabled={pending} onChange={(e) => setSaveTo(e.target.value as RatioField | 'none')}>
+              {(Object.keys(RATIO_LABEL) as RatioField[]).map((f) => (
+                <option key={f} value={f}>{RATIO_LABEL[f]}</option>
+              ))}
+              <option value="none">Don&apos;t save — use for this run only</option>
+            </Select>
+          </Field>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" disabled={pending || !overrideUrl.trim()} onClick={() => runVisual(overrideUrl.trim())}>
+              {pending ? 'Running…' : 'Run with this link'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={pending}
+              onClick={() => { setVisualState('available'); setVisualErr(null); }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-1 flex flex-wrap items-center gap-2">
         <button className="btn ghost sm" disabled={pending} onClick={rerun}>
           {pending && visualState !== 'running' ? 'Running…' : review ? 'Re-run DNA review' : 'Run DNA review'}
         </button>
@@ -194,9 +266,9 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
           </button>
         )}
         {visualState === 'confirming' && (
-          <span className="flex items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
             <span className="subtle text-xs">Analyzes real frames from the deliverable. Costs ~$0.30 in Anthropic usage, takes 30-90s.</span>
-            <button className="btn sm" disabled={pending} onClick={runVisual}>Confirm</button>
+            <button className="btn sm" disabled={pending} onClick={() => runVisual()}>Confirm</button>
             <button className="btn ghost sm" disabled={pending} onClick={() => setVisualState('available')}>Cancel</button>
           </span>
         )}
@@ -205,8 +277,10 @@ export function DnaReviewPanel({ ticketId, review }: { ticketId: string; review:
           <button className="btn ghost sm" disabled={pending} onClick={() => setVisualState('confirming')}>Retry visual review</button>
         )}
       </div>
-      {err && <p className="text-xs" style={{ color: 'var(--danger-content)', marginTop: 6 }}>{err}</p>}
-      {visualErr && <p className="text-xs" style={{ color: 'var(--danger-content)', marginTop: 6 }}>{visualErr}</p>}
+      {savedNote && <p className="mt-1.5 text-xs text-success">{savedNote}</p>}
+      {err && <p className="mt-1.5 text-xs text-danger">{err}</p>}
+      {/* In needs-link the message is already shown in the lockbar above. */}
+      {visualErr && visualState !== 'needs-link' && <p className="mt-1.5 text-xs text-danger">{visualErr}</p>}
     </div>
   );
 }

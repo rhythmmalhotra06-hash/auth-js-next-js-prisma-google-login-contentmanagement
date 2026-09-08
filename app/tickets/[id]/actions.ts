@@ -6,6 +6,7 @@ import { updateTicket, type TicketPatch } from '@/lib/tickets/write';
 import { maybeNotifyAssetReady, notifyAssignment } from '@/lib/notify/triggers';
 import { prisma } from '@/lib/prisma';
 import { runDnaReview, runVisualDnaReview } from '@/lib/dna-review/generate';
+import { isSafePublicHttpUrl, inferRatioField, type RatioField } from '@/lib/dna-review/video-source';
 import { checkDnaGate, setFindingReaction } from '@/lib/dna-review/repository';
 import { getDnaAccessForAssetType } from '@/lib/dna-review/access';
 import { rememberDnaFeedbackAsLearning } from '@/lib/dna-review/learn';
@@ -101,14 +102,97 @@ export async function rerunDnaReview(ticketId: string, requestedBy?: string | nu
   return { ok: true };
 }
 
+export interface VisualReviewResult extends UpdateStatusResult {
+  /** The link isn't usable — show the paste-a-direct-link box rather than a bare failure. */
+  needsLink?: boolean;
+  reason?: string;
+  detectedUrl?: string | null;
+  /** Which ratio column a pasted link was saved into, if any (for the confirmation line). */
+  savedTo?: RatioField | null;
+}
+
+const RATIO_FIELDS: RatioField[] = ['final9x16', 'final16x9', 'final4x5'];
+
+/**
+ * Persist a link the user pasted to unblock a review, so the next run needs no paste.
+ *
+ * Writes through `updateTicket` (Postgres + the two-way Airtable push) rather than
+ * `updateTicketLink`, deliberately: that wrapper also fires `maybeNotifyAssetReady`, which
+ * DMs the requester and posts to #content-ready for `delivery: true` fields. An AI review
+ * action must not trigger an "asset ready" announcement as a side effect.
+ *
+ * Only ever fills an EMPTY column unless the user explicitly named the target — these are
+ * fields the creative team maintains by hand.
+ */
+async function saveResolvedLink(ticketId: string, url: string, requested?: RatioField | null): Promise<RatioField | null> {
+  const t = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { final9x16: true, final16x9: true, final4x5: true },
+  });
+  if (!t) return null;
+
+  const isEmpty = (f: RatioField) => !(t[f] ?? '').trim();
+
+  let target: RatioField | null = null;
+  if (requested) {
+    target = requested; // explicit user choice may overwrite
+  } else {
+    const inferred = inferRatioField(url);
+    if (inferred && isEmpty(inferred)) target = inferred;
+    else target = RATIO_FIELDS.find(isEmpty) ?? null;
+  }
+  if (!target) return null;
+
+  const res = await updateTicket(ticketId, { [target]: url } as TicketPatch);
+  if (!res.ok) {
+    console.error('[dna-review] saving the pasted link failed', res.error);
+    return null;
+  }
+  return target;
+}
+
 /** Opt-in "Review with visuals" (E13.2) — real video access via render-service frame
  *  extraction. Materially more expensive/slower than the text-only review, so this is
- *  always an explicit click, never automatic. */
-export async function runVisualDnaReviewAction(ticketId: string, requestedBy?: string | null): Promise<UpdateStatusResult> {
-  const res = await runVisualDnaReview(ticketId, requestedBy ?? null);
-  if (!res.ok) return { ok: false, error: res.error ?? 'Visual review failed' };
+ *  always an explicit click, never automatic.
+ *
+ *  `videoUrlOverride` is the escape hatch for the ~44% of tickets whose delivery-link
+ *  fields hold something undownloadable (a Dropbox folder we can't resolve, a Replay page,
+ *  a Frame.io review URL). `saveTo` names the ratio column to persist it into. */
+export async function runVisualDnaReviewAction(
+  ticketId: string,
+  opts?: { videoUrlOverride?: string; saveTo?: RatioField | null; save?: boolean },
+): Promise<VisualReviewResult> {
+  const override = opts?.videoUrlOverride?.trim();
+  // Never trust a client-supplied URL: it becomes an outbound fetch from render-service.
+  if (override && !isSafePublicHttpUrl(override)) {
+    return {
+      ok: false,
+      needsLink: true,
+      reason: 'not-a-url',
+      error: 'Enter a full https:// link to a publicly reachable video file.',
+    };
+  }
+
+  const res = await runVisualDnaReview(ticketId, { videoUrlOverride: override ?? null });
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: res.error ?? 'Visual review failed',
+      needsLink: res.needsLink,
+      reason: res.reason,
+      detectedUrl: res.detectedUrl,
+    };
+  }
+
+  // Save-back only for a link the user typed — a link we resolved ourselves is already on
+  // the ticket, and a Dropbox folder has no shareable direct-file form to store.
+  let savedTo: RatioField | null = null;
+  if (override && opts?.save !== false) {
+    savedTo = await saveResolvedLink(ticketId, override, opts?.saveTo ?? null);
+  }
+
   revalidatePath(`/tickets/${ticketId}`);
-  return { ok: true };
+  return { ok: true, savedTo };
 }
 
 /** An editor's thumbs up/down + note on a specific finding — the Tier-1 learning signal,
