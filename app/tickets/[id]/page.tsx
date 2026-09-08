@@ -70,12 +70,15 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
               <div className="k">Creative brief</div>
               <div className="v"><BriefText text={t.creativeBrief} /></div>
             </div>
+            {/* Team / Service level / Team lead removed 2026-09-08 at Titus's request —
+                "we don't have a service level and a team at all, it's all just one" and
+                "we don't need the team lead here". The COLUMNS stay: teamServiceLevel still
+                derives `isAds`, which gates the per-ratio delivery links below. */}
             <div className="grid2">
+              <Field label="Event type" value={t.eventType} lookup />
+              <Field label="Asset type" value={t.assetType} lookup />
               <Field label="Project" value={t.project} />
               <Field label="Dimensions" value={t.dimensions} lookup />
-              <Field label="Team" value={t.team} />
-              <Field label="Service level" value={t.teamServiceLevel} />
-              <Field label="Team lead" value={t.teamLead} lookup />
               <Field label="Requested by" value={t.requester} lookup />
               <Field label="Call to action" value={t.cta} />
               <Field label="Type of request" value={t.typeOfRequest} />

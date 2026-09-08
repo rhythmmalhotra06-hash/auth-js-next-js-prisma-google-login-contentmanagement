@@ -288,8 +288,13 @@ export async function decideApproval(
 // non-URL strings, so we guard before writing). `delivery: true` marks a final-delivery
 // link whose arrival is the "asset ready" signal (deduped by asset_ready_notified).
 const ASSET_LINK_FIELDS = {
+  // assetFolderLink = Airtable's live "Feedback Link" (Dropbox Replay review link, present
+  // during review) → NOT a delivery signal. workingFiles = live "Final Output Folder Link",
+  // created only once the work is approved → that IS the delivery signal for non-ads
+  // tickets, which have no per-ratio Final Links. Corrected 2026-09-08 from Titus's
+  // description of the actual review workflow.
   assetFolderLink: { url: false, delivery: false },
-  workingFiles: { url: false, delivery: false },
+  workingFiles: { url: false, delivery: true },
   final16x9: { url: false, delivery: true },
   folder16x9: { url: true, delivery: false },
   final9x16: { url: false, delivery: true },
@@ -301,10 +306,9 @@ const ASSET_LINK_FIELDS = {
 export type AssetLinkKey = keyof typeof ASSET_LINK_FIELDS;
 
 // Write (or clear, with an empty value) a single delivery-link field.
-// `isAds` gates the "ready" signal for the folder link: ads tickets deliver via the ratio
-// Final Links, so only those notify; non-ads tickets have no ratio links, so the Asset
-// Folder Link is their delivery signal instead.
-export async function updateTicketLink(ticketId: string, key: string, value: string, isAds = false): Promise<UpdateStatusResult> {
+//
+// `isAds` is accepted for call-site compatibility but no longer gates anything — see below.
+export async function updateTicketLink(ticketId: string, key: string, value: string, _isAds = false): Promise<UpdateStatusResult> {
   const spec = ASSET_LINK_FIELDS[key as AssetLinkKey];
   if (!spec) return { ok: false, error: 'Unknown field' };
   const v = value.trim();
@@ -312,7 +316,14 @@ export async function updateTicketLink(ticketId: string, key: string, value: str
   const res = await updateTicket(ticketId, { [key as AssetLinkKey]: v } as TicketPatch);
   if (!res.ok) return { ok: false, error: res.error };
   // E9.4 — filling a delivery link DMs the requester + posts to #content-ready (once, best-effort).
-  const isDelivery = spec.delivery || (key === 'assetFolderLink' && !isAds);
-  if (v && isDelivery) await maybeNotifyAssetReady(ticketId, v);
+  //
+  // Fixed 2026-09-08: this used to also treat `assetFolderLink` as a delivery signal
+  // whenever `!isAds`. That field is Airtable's live "Feedback Link", which holds the
+  // Dropbox Replay link *while the ticket is in review* — and AssetPanel never passed
+  // `isAds`, so it defaulted to false and the branch always fired. Net effect: pasting a
+  // review link announced "your asset is ready" to the requester and #content-ready before
+  // anything had been approved. Per Titus, the real delivery signal is the Final Output
+  // Folder Link, created only after approval. Only `delivery: true` fields notify now.
+  if (v && spec.delivery) await maybeNotifyAssetReady(ticketId, v);
   return done(ticketId);
 }

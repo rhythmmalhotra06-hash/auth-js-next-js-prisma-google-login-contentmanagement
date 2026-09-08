@@ -51,9 +51,8 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
               <Field label="Asset type" value={t.assetType} />
               <Field label="Project" value={t.project} />
               <Field label="Dimensions" value={t.dimensions} />
-              <Field label="Team" value={t.team} />
-              <Field label="Service level" value={t.teamServiceLevel} />
-              <Field label="Team lead" value={t.teamLead} />
+              {/* Team / Service level / Team lead dropped 2026-09-08 (Titus) — see the note
+                  on the same removal in app/tickets/[id]/page.tsx. */}
               <Field label="Requested by" value={t.requester} />
               <Field label="Assigned creative" value={t.assignee} />
               <Field label="Type of request" value={t.typeOfRequest} />
@@ -101,7 +100,9 @@ export default async function MyRequestDetailPage({ params }: { params: Promise<
 const FILE_META: Record<string, { label: string; tag: string; bg: string }> = {
   final: { label: 'Final asset', tag: 'FIN', bg: 'var(--brand)' },
   raw: { label: 'Working file', tag: 'RAW', bg: 'var(--g500)' },
-  folder: { label: 'Asset folder', tag: 'DIR', bg: 'var(--blue)' },
+  // Fed by assetFolderLink = Airtable's live "Feedback Link" (a Dropbox Replay review
+  // link), not a delivery folder. Verified 2026-09-08.
+  folder: { label: 'Feedback link (review)', tag: 'REV', bg: 'var(--blue)' },
 };
 
 function Deliverables({ assets, folderUrl }: { assets: { id: string; kind: string; fileUrl: string | null }[]; folderUrl: string | null }) {

@@ -21,8 +21,8 @@ const isUrl = (v: string) => /^https?:\/\//i.test(v.trim());
 
 // One editable delivery link, bound to an Airtable field. Saves on blur when the value
 // changed; optimistic with rollback + inline error on failure.
-function LinkField({ ticketId, fieldKey, label, initial }: {
-  ticketId: string; fieldKey: keyof AssetLinkValues; label: string; initial: string | null;
+function LinkField({ ticketId, fieldKey, label, initial, hint }: {
+  ticketId: string; fieldKey: keyof AssetLinkValues; label: string; initial: string | null; hint?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -42,7 +42,7 @@ function LinkField({ ticketId, fieldKey, label, initial }: {
   }
 
   return (
-    <Field label={label}>
+    <Field label={label} hint={hint}>
       <div className="flex items-center gap-2">
         <Input
           value={value}
@@ -75,9 +75,17 @@ export function AssetPanel({ ticketId, isAds, values }: {
 }) {
   return (
     <div className="space-y-4">
+      {/* Labels match the LIVE Airtable field names, not our column names (verified
+          2026-09-08). The team restructured these: `assetFolderLink` is Airtable's
+          "Feedback Link" and carries the Dropbox Replay review link while a ticket is in
+          review; `workingFiles` is "Final Output Folder Link" and is only filled after
+          approval. Per Titus: "no one reviews in Dropbox — once it's approved, that's when
+          the final output folder is created." The Postgres column names are left alone. */}
       <div className="grid2">
-        <LinkField ticketId={ticketId} fieldKey="assetFolderLink" label="Asset Folder Link" initial={values.assetFolderLink} />
-        <LinkField ticketId={ticketId} fieldKey="workingFiles" label="Working Files" initial={values.workingFiles} />
+        <LinkField ticketId={ticketId} fieldKey="assetFolderLink" label="Feedback link (review)"
+          hint="Dropbox Replay link reviewers comment on" initial={values.assetFolderLink} />
+        <LinkField ticketId={ticketId} fieldKey="workingFiles" label="Final output folder"
+          hint="created once the work is approved" initial={values.workingFiles} />
       </div>
 
       {isAds && (
