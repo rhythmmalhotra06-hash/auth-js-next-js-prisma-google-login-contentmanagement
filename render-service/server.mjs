@@ -7,7 +7,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createWriteStream } from 'node:fs';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, open, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
 import { timingSafeEqual } from 'node:crypto';
@@ -111,15 +111,289 @@ function frameBudgetFor(durationSec) {
   return 100; // >10min, sparse
 }
 
-const MAX_DOWNLOAD_BYTES = 500 * 1024 * 1024; // 500MB guard — a runaway/huge source shouldn't hang the container
+// 500MB guard — a runaway/huge source shouldn't hang the container. NOTE: Cloud Run's /tmp
+// is a RAM-backed tmpfs, so this ceiling is effectively a memory ceiling too, on the same
+// heap the 2026-09-07 OOM crashes exhausted. Keep it conservative.
+const MAX_DOWNLOAD_BYTES = 500 * 1024 * 1024;
+
+/** Typed failure. `code` is contractual — the main app maps it to user-facing copy in
+ *  lib/dna-review/frames.ts's RENDER_ERROR_MESSAGE table, and `status` decides whether
+ *  that client retries (it retries 429/502/503 ONLY, so standing conditions must be
+ *  400/413/422 and genuinely transient ones 502). */
+class ExtractError extends Error {
+  constructor(code, status, message, detail) {
+    super(message);
+    this.name = 'ExtractError';
+    this.code = code;
+    this.status = status;
+    this.detail = detail ?? null;
+  }
+}
+
+// Hosts whose share links serve an HTML app shell, never the file bytes. Measured against
+// live production ticket links on 2026-09-08: every one of these answers 200 text/html,
+// which the old code wrote verbatim to source.mp4 and only noticed as ffprobe's
+// "moov atom not found". 5% of tickets link Dropbox Replay and 10% these others.
+// Kept deliberately parallel to UNSUPPORTED_HOST_PATTERNS in lib/dna-review/video-source.ts
+// — render-service is a separate npm project and cannot import from the app, so an edit
+// here needs a matching edit there.
+const UNSUPPORTED_HOSTS = [
+  { match: /^replay\.dropbox\.com$/i, code: 'unsupported_dropbox_replay' },
+  { match: /^(www\.)?(youtube\.com|youtu\.be)$/i, code: 'unsupported_youtube' },
+  { match: /(^|\.)frame\.io$/i, code: 'unsupported_host' },
+  { match: /^f\.io$/i, code: 'unsupported_host' },
+  { match: /(^|\.)airtable\.com$/i, code: 'unsupported_host' },
+  { match: /(^|\.)canva\.com$/i, code: 'unsupported_host' },
+  { match: /^canva\.link$/i, code: 'unsupported_host' },
+  { match: /(^|\.)sharepoint\.com$/i, code: 'unsupported_host' },
+  { match: /^(drive|docs)\.google\.com$/i, code: 'unsupported_host' },
+  { match: /(^|\.)figma\.com$/i, code: 'unsupported_host' },
+  { match: /(^|\.)descript\.com$/i, code: 'unsupported_host' },
+  { match: /(^|\.)atlassian\.net$/i, code: 'unsupported_host' },
+];
+
+// SSRF guard. This endpoint is public Cloud Run (secret-gated) and now accepts a
+// user-pasted URL forwarded from the portal, so it must never be talked into fetching the
+// GCP metadata server or anything on a private range.
+const BLOCKED_HOST =
+  /^(localhost|\[?::1\]?|0\.0\.0\.0|metadata\.google\.internal)$|\.internal$|^127\.|^10\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./i;
+
+/** True for Dropbox share links that address a FOLDER rather than a file. `dl=1` on these
+ *  returns a .zip of the whole folder (measured: 1.47GB, content-type application/zip) —
+ *  and so does `dl=0` for a non-browser client. 28% of tickets link only a folder, which
+ *  is the single largest cause of the "moov atom not found" report. Resolved properly via
+ *  the Dropbox API below instead. */
+function isDropboxFolderUrl(u) {
+  return /(^|\.)dropbox\.com$/i.test(u.hostname) && /^\/(scl\/fo|sh)\//i.test(u.pathname);
+}
+
+/** Parse + reject everything we can judge before spending any network I/O.
+ *  Returns { url: URL, kind: 'dropbox-folder' | 'plain' }. */
+function classifySourceUrl(raw) {
+  let u;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new ExtractError('invalid_url', 400, 'videoUrl is not a valid URL.', String(raw).slice(0, 80));
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+    throw new ExtractError('invalid_url', 400, `Unsupported URL scheme "${u.protocol}".`, u.protocol);
+  }
+  if (BLOCKED_HOST.test(u.hostname)) {
+    throw new ExtractError('blocked_host', 400, 'That URL points at a private or internal address.', u.hostname);
+  }
+  const bad = UNSUPPORTED_HOSTS.find((h) => h.match.test(u.hostname));
+  if (bad) {
+    throw new ExtractError(bad.code, 422, `${u.hostname} links cannot be downloaded directly.`, u.hostname);
+  }
+  return { url: u, kind: isDropboxFolderUrl(u) ? 'dropbox-folder' : 'plain' };
+}
 
 /** Dropbox share links (`dl=0`) redirect to an HTML preview, not the file bytes;
  *  `dl=1` redirects to the direct-download CDN URL instead. Verified empirically
  *  against real production links — no Dropbox API/OAuth needed for "anyone with the
- *  link" shares. Non-Dropbox URLs are passed through unchanged. */
-function toDirectDownloadUrl(url) {
-  if (!/dropbox\.com/i.test(url)) return url;
-  return /[?&]dl=1(&|$)/.test(url) ? url : url.includes('dl=0') ? url.replace('dl=0', 'dl=1') : `${url}${url.includes('?') ? '&' : '?'}dl=1`;
+ *  link" shares of a single FILE. Non-Dropbox URLs are passed through unchanged.
+ *
+ *  Rewritten 2026-09-08 — the previous one-liner had three defects: a blind
+ *  `url.replace('dl=0','dl=1')` that could hit any occurrence anywhere in the URL
+ *  (including inside `rlkey`), an already-`dl=1` test that missed `?dl=1#frag`, and a
+ *  loose `/dropbox\.com/` that also matched replay.dropbox.com, where `dl=1` is
+ *  meaningless — which is exactly the path that produced the reported bug. */
+function toDirectDownloadUrl(u) {
+  if (!/(^|\.)dropbox\.com$/i.test(u.hostname)) return u.toString();
+  const out = new URL(u.toString());
+  out.searchParams.set('dl', '1'); // idempotent; preserves rlkey/st/e and the fragment
+  return out.toString();
+}
+
+const SNIFF_BYTES = 64 * 1024;
+
+/** The origin's real total size: `content-range` when we got a 206, else `content-length`. */
+function totalBytesFrom(headers) {
+  const range = headers.get('content-range'); // "bytes 0-65535/82984167"
+  if (range) {
+    const n = Number(range.split('/')[1]);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const len = Number(headers.get('content-length') ?? 0);
+  return Number.isFinite(len) && len > 0 ? len : 0;
+}
+
+/** Cheap 64KB ranged GET so we can reject a non-video before committing to the transfer.
+ *  Without this, a folder link costs a 1.47GB download before ffprobe complains. */
+async function sniffSource(directUrl) {
+  const ac = new AbortController();
+  let resp;
+  try {
+    resp = await fetch(directUrl, {
+      redirect: 'follow',
+      signal: ac.signal,
+      headers: { Range: `bytes=0-${SNIFF_BYTES - 1}` },
+    });
+  } catch (e) {
+    throw new ExtractError('download_http_error', 502, `Could not reach that link: ${e.message}`);
+  }
+  if (!resp.ok && resp.status !== 206) {
+    ac.abort();
+    throw new ExtractError(
+      'download_http_error',
+      502,
+      `The host refused the download (HTTP ${resp.status}).`,
+      String(resp.status),
+    );
+  }
+
+  const chunks = [];
+  let n = 0;
+  if (resp.body) {
+    for await (const c of resp.body) {
+      chunks.push(Buffer.from(c));
+      n += c.length;
+      if (n >= SNIFF_BYTES) break;
+    }
+    // A server that ignores Range answers 200 with the FULL body — without this abort we
+    // stream the entire file we were trying to avoid downloading.
+    ac.abort();
+  }
+
+  return {
+    head: Buffer.concat(chunks),
+    contentType: (resp.headers.get('content-type') ?? '').toLowerCase(),
+    contentDisposition: resp.headers.get('content-disposition') ?? '',
+    totalBytes: totalBytesFrom(resp.headers),
+  };
+}
+
+// Container signatures.
+//
+// ⚠️ Content-type can NOT be used as an allowlist: the WORKING Dropbox /scl/fi/ path
+// answers `content-type: application/binary`, not video/*. Measured 2026-09-08 against a
+// real production link (83MB mp4). Turning the check below into `if (!/^video\//) reject`
+// would break 56% of tickets — the ones that currently work. Content-type is a denylist
+// only; the positive signal is the magic bytes.
+const VIDEO_SIGNATURES = [
+  // ISO-BMFF: MP4 / MOV / M4V — the box type at offset 4
+  (b) => b.length >= 12 && ['ftyp', 'moov', 'mdat', 'free', 'skip', 'wide', 'pnot'].includes(b.toString('latin1', 4, 8)),
+  (b) => b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'AVI ',
+  (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3, // Matroska / WebM
+  (b) => b.toString('latin1', 0, 4) === 'OggS',
+  (b) => b.toString('latin1', 0, 3) === 'FLV',
+  (b) => b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && (b[3] === 0xba || b[3] === 0xb3), // MPEG-PS
+  (b) => b.length > 188 && b[0] === 0x47 && b[188] === 0x47, // MPEG-TS
+];
+
+const NON_VIDEO_SIGNATURES = [
+  { what: 'a .zip archive', test: (b) => b.toString('latin1', 0, 2) === 'PK' },
+  { what: 'an HTML page', test: (b) => /^\s*(<!doctype|<html|<\?xml|<head)/i.test(b.toString('utf8', 0, 256)) },
+  { what: 'a JSON response', test: (b) => /^\s*[{[]/.test(b.toString('utf8', 0, 64)) },
+  { what: 'a PDF', test: (b) => b.toString('latin1', 0, 4) === '%PDF' },
+  {
+    what: 'a still image',
+    test: (b) =>
+      b.toString('latin1', 0, 3) === 'GIF' ||
+      (b[0] === 0x89 && b.toString('latin1', 1, 4) === 'PNG') ||
+      (b[0] === 0xff && b[1] === 0xd8),
+  },
+];
+
+const DENIED_CONTENT_TYPES = [/^text\//, /^application\/(zip|x-zip-compressed|json|xml|pdf)/, /^multipart\//, /^image\//];
+
+function isVideoBytes(head) {
+  return VIDEO_SIGNATURES.some((t) => {
+    try {
+      return t(head);
+    } catch {
+      return false;
+    }
+  });
+}
+
+/** Throws a precise ExtractError, or returns quietly for a plausible video. */
+function assertVideoSource(u, sniff) {
+  if (sniff.totalBytes && sniff.totalBytes > MAX_DOWNLOAD_BYTES) {
+    throw new ExtractError(
+      'source_too_large',
+      413,
+      `Source file is ${Math.round(sniff.totalBytes / 1e6)}MB (max 500MB).`,
+      String(sniff.totalBytes),
+    );
+  }
+  if (sniff.head.length === 0) {
+    throw new ExtractError('source_empty', 422, 'That link returned an empty response.');
+  }
+
+  const looksZipped = /filename\*?=[^;]*\.zip/i.test(sniff.contentDisposition);
+  const shape = NON_VIDEO_SIGNATURES.find((s) => s.test(sniff.head));
+  const isDropbox = /(^|\.)dropbox\.com$/i.test(u.hostname);
+
+  // A zip from Dropbox means the link addressed a folder — name it as such rather than as
+  // a generic non-video, since the fix is completely different.
+  if ((shape?.what === 'a .zip archive' || looksZipped) && isDropbox) {
+    throw new ExtractError(
+      'unsupported_dropbox_folder',
+      422,
+      'That Dropbox link downloads as a .zip of a folder, not a video file.',
+      'zip',
+    );
+  }
+  if (shape) {
+    throw new ExtractError(
+      'not_a_video',
+      422,
+      `That link returned ${shape.what}${sniff.contentType ? ` (${sniff.contentType})` : ''}, not a video file.`,
+      shape.what,
+    );
+  }
+  if (DENIED_CONTENT_TYPES.some((re) => re.test(sniff.contentType))) {
+    throw new ExtractError(
+      'not_a_video',
+      422,
+      `That link returned content-type ${sniff.contentType}, not a video file.`,
+      sniff.contentType,
+    );
+  }
+  if (!isVideoBytes(sniff.head)) {
+    throw new ExtractError(
+      'not_a_video',
+      422,
+      `The first bytes of that file are not a known video container${sniff.contentType ? ` (content-type ${sniff.contentType})` : ''}.`,
+      sniff.head.toString('hex', 0, 12),
+    );
+  }
+}
+
+/** Shared 500MB mid-stream ceiling for both download paths. */
+function makeSizeGuard(counter) {
+  return new Transform({
+    transform(chunk, _enc, cb) {
+      counter.total += chunk.length;
+      if (counter.total > MAX_DOWNLOAD_BYTES) {
+        cb(new ExtractError('source_too_large', 413, 'Source file exceeded the 500MB guard mid-download.'));
+        return;
+      }
+      cb(null, chunk);
+    },
+  });
+}
+
+/** Post-transfer sanity: 0 bytes, absurdly small, or short of what the origin promised.
+ *  The bytes-vs-content-length reconciliation is the check that was entirely missing — a
+ *  server that closes cleanly after a partial body used to be reported as a success, and
+ *  the truncated file then surfaced as "moov atom not found". */
+function assertTransferComplete(total, expected) {
+  if (total === 0) throw new ExtractError('source_empty', 422, 'The download produced a 0-byte file.');
+  if (total < 1024) {
+    throw new ExtractError('not_a_video', 422, `The download produced only ${total} bytes — not a video file.`, String(total));
+  }
+  // Only meaningful when the origin declared a length; chunked responses don't.
+  if (expected && total < expected) {
+    throw new ExtractError(
+      'download_truncated',
+      502,
+      `The download ended early — got ${total} of ${expected} bytes.`,
+      `${total}/${expected}`,
+    );
+  }
 }
 
 /**
@@ -129,46 +403,270 @@ function toDirectDownloadUrl(url) {
  * by accident for small test files and reliably crashed the container (small Cloud Run
  * memory, plus Remotion's own bundling step competing for the same heap) on real videos —
  * see plans/now-lets-plan-this-reflective-thunder.md's "render-service OOM-crashing" note.
+ *
+ * Extended 2026-09-08 with the pre-flight sniff + post-transfer reconciliation, so a link
+ * that isn't a video fails in ~1s with a diagnosis instead of after a full download with
+ * an ffprobe stack trace.
  */
-async function downloadVideo(url, destPath) {
-  const resp = await fetch(toDirectDownloadUrl(url), { redirect: 'follow' });
-  if (!resp.ok || !resp.body) throw new Error(`Download failed: HTTP ${resp.status}`);
-  const contentLength = Number(resp.headers.get('content-length') ?? 0);
-  if (contentLength > MAX_DOWNLOAD_BYTES) throw new Error(`Source file too large (${Math.round(contentLength / 1e6)}MB, max 500MB)`);
+async function downloadVideo(u, destPath) {
+  const direct = toDirectDownloadUrl(u);
+  const sniff = await sniffSource(direct);
+  assertVideoSource(u, sniff);
 
-  let total = 0;
-  const sizeGuard = new Transform({
-    transform(chunk, _enc, cb) {
-      total += chunk.length;
-      if (total > MAX_DOWNLOAD_BYTES) {
-        cb(new Error('Source file exceeded the 500MB guard mid-download'));
-        return;
-      }
-      cb(null, chunk);
+  const resp = await fetch(direct, { redirect: 'follow' });
+  if (!resp.ok || !resp.body) {
+    throw new ExtractError('download_http_error', 502, `Download failed: HTTP ${resp.status}`, String(resp.status));
+  }
+  const expected = totalBytesFrom(resp.headers);
+  if (expected > MAX_DOWNLOAD_BYTES) {
+    throw new ExtractError('source_too_large', 413, `Source file is ${Math.round(expected / 1e6)}MB (max 500MB).`);
+  }
+
+  const counter = { total: 0 };
+  await pipeline(Readable.fromWeb(resp.body), makeSizeGuard(counter), createWriteStream(destPath));
+  assertTransferComplete(counter.total, expected);
+}
+
+// ---------------------------------------------------------------------------
+// Dropbox folder links (2026-09-08). 28% of tickets link only a Dropbox FOLDER, whose
+// only no-auth download form is a .zip of everything in it. Resolved instead via the
+// Dropbox API:
+//   files/list_folder            {path:"", shared_link:{url}}   user auth, files.metadata.read
+//   sharing/get_shared_link_file {url, path:"/name.mp4"}        app|user, sharing.read
+// list_folder permits user auth only, so an app key/secret pair isn't enough — this needs
+// a one-time offline OAuth grant and the resulting refresh token. Absent the creds we
+// return dropbox_folder_unconfigured and the portal falls back to its paste-a-link box.
+// ---------------------------------------------------------------------------
+
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv|avi)$/i;
+const DEPRIORITISED = /working|raw|source|proxy|draft|wip|textless|pending/i;
+
+function dropboxConfigured() {
+  return Boolean(process.env.DROPBOX_APP_KEY && process.env.DROPBOX_APP_SECRET && process.env.DROPBOX_REFRESH_TOKEN);
+}
+
+let dropboxToken = { value: null, expiresAt: 0 };
+
+/** Short-lived access token from the long-lived refresh token, memoized just under
+ *  Dropbox's ~4h expiry. */
+async function dropboxAccessToken() {
+  if (dropboxToken.value && Date.now() < dropboxToken.expiresAt) return dropboxToken.value;
+
+  const basic = Buffer.from(`${process.env.DROPBOX_APP_KEY}:${process.env.DROPBOX_APP_SECRET}`).toString('base64');
+  const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: process.env.DROPBOX_REFRESH_TOKEN }),
+  });
+  const body = await resp.text();
+  if (!resp.ok) {
+    throw new ExtractError(
+      'dropbox_folder_unauthorized',
+      422,
+      'Dropbox rejected our stored credentials — the refresh token may have been revoked.',
+      `${resp.status}: ${body.slice(0, 200)}`,
+    );
+  }
+  const parsed = JSON.parse(body);
+  dropboxToken = {
+    value: parsed.access_token,
+    expiresAt: Date.now() + Math.max(60, (parsed.expires_in ?? 14400) - 300) * 1000,
+  };
+  return dropboxToken.value;
+}
+
+/** Dropbox-API-Arg must be HTTP-header-safe ASCII, and real filenames carry en-dashes and
+ *  accents (a live example: "Viral Clip Creation – Vishen Lakhiani…"), so every non-ASCII
+ *  codepoint has to go out as a \uXXXX escape. */
+function asciiJson(obj) {
+  return JSON.stringify(obj).replace(/[\u007f-\uffff]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
+async function dropboxRpc(endpoint, arg) {
+  const token = await dropboxAccessToken();
+  const resp = await fetch(`https://api.dropboxapi.com/2/${endpoint}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(arg),
+  });
+  const body = await resp.text();
+  if (!resp.ok) {
+    const code = resp.status === 401 || resp.status === 403 ? 'dropbox_folder_unauthorized' : 'dropbox_folder_no_video';
+    throw new ExtractError(
+      code,
+      422,
+      resp.status === 401 || resp.status === 403
+        ? 'We do not have permission to open that Dropbox folder.'
+        : 'Dropbox could not list that folder link.',
+      `${resp.status}: ${body.slice(0, 200)}`,
+    );
+  }
+  return JSON.parse(body);
+}
+
+/** One level of a shared folder. `prefix` is the path relative to the share root ('' at
+ *  the top). Paginates; entries come back tagged file/folder. */
+async function listSharedFolder(shareUrl, prefix = '') {
+  const entries = [];
+  let page = await dropboxRpc('files/list_folder', { path: prefix, shared_link: { url: shareUrl } });
+  for (;;) {
+    for (const e of page.entries ?? []) {
+      entries.push({ tag: e['.tag'], name: e.name, size: e.size ?? 0, path: `${prefix}/${e.name}` });
+    }
+    if (!page.has_more) break;
+    page = await dropboxRpc('files/list_folder/continue', { cursor: page.cursor });
+  }
+  return entries;
+}
+
+/** Best video file in a listing: playable extension, within the size ceiling, then
+ *  ratio-named files first and working/raw/textless variants last, largest as tiebreak. */
+function pickVideoEntry(entries) {
+  const scored = entries
+    .filter((e) => e.tag === 'file' && VIDEO_EXT.test(e.name) && e.size > 0 && e.size <= MAX_DOWNLOAD_BYTES)
+    .map((e) => {
+      let score = 0;
+      if (/9\s*[x×]\s*16/i.test(e.name)) score += 6;
+      else if (/16\s*[x×]\s*9/i.test(e.name)) score += 4;
+      else if (/4\s*[x×]\s*5/i.test(e.name)) score += 2;
+      if (DEPRIORITISED.test(e.path)) score -= 8;
+      if (/final/i.test(e.name)) score += 3;
+      return { entry: e, score };
+    })
+    .sort((a, b) => b.score - a.score || b.entry.size - a.entry.size);
+  return scored[0]?.entry ?? null;
+}
+
+/** Stream one file out of a shared folder link. This is a download-style endpoint on the
+ *  content host, so the arg travels in a header and the body is the raw bytes. */
+async function streamSharedLinkFile(shareUrl, relPath, destPath) {
+  const token = await dropboxAccessToken();
+  const resp = await fetch('https://content.dropboxapi.com/2/sharing/get_shared_link_file', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Dropbox-API-Arg': asciiJson({ url: shareUrl, path: relPath }),
     },
   });
+  if (!resp.ok || !resp.body) {
+    const body = await resp.text().catch(() => '');
+    throw new ExtractError(
+      'dropbox_folder_unauthorized',
+      422,
+      `Dropbox refused to download "${relPath}" from that folder.`,
+      `${resp.status}: ${body.slice(0, 200)}`,
+    );
+  }
+  const expected = totalBytesFrom(resp.headers);
+  const counter = { total: 0 };
+  await pipeline(Readable.fromWeb(resp.body), makeSizeGuard(counter), createWriteStream(destPath));
+  assertTransferComplete(counter.total, expected);
+}
 
-  await pipeline(Readable.fromWeb(resp.body), sizeGuard, createWriteStream(destPath));
+/** Resolve a Dropbox folder share to the best video inside it and download that. */
+async function downloadFromDropboxFolder(u, destPath) {
+  if (!dropboxConfigured()) {
+    throw new ExtractError(
+      'dropbox_folder_unconfigured',
+      422,
+      'That Dropbox link is a folder, and Dropbox folder access is not configured on this service.',
+      u.pathname.split('/').slice(1, 3).join('/'),
+    );
+  }
+  const shareUrl = u.toString();
+
+  let entries = await listSharedFolder(shareUrl);
+  let chosen = pickVideoEntry(entries);
+
+  // Descend one level when the top holds only subfolders ("Working Files (Pending)",
+  // "16x9", … are the common shapes). Capped so a deep share can't fan out.
+  if (!chosen) {
+    const subs = entries.filter((e) => e.tag === 'folder').slice(0, 6);
+    for (const sub of subs) {
+      const inner = await listSharedFolder(shareUrl, sub.path);
+      entries = entries.concat(inner);
+    }
+    chosen = pickVideoEntry(entries);
+  }
+
+  if (!chosen) {
+    const oversize = entries.find((e) => e.tag === 'file' && VIDEO_EXT.test(e.name) && e.size > MAX_DOWNLOAD_BYTES);
+    if (oversize) {
+      throw new ExtractError(
+        'dropbox_folder_video_too_large',
+        413,
+        `The video in that folder ("${oversize.name}") is ${Math.round(oversize.size / 1e6)}MB, over the 500MB limit.`,
+        String(oversize.size),
+      );
+    }
+    throw new ExtractError(
+      'dropbox_folder_no_video',
+      422,
+      'That Dropbox folder has no video file we can read.',
+      `${entries.length} entries`,
+    );
+  }
+
+  console.log(`[render-service] dropbox folder resolved to "${chosen.path}" (${chosen.size} bytes)`);
+  await streamSharedLinkFile(shareUrl, chosen.path, destPath);
+}
+
+/** Magic-byte check on what actually landed on disk. Cheap, and it turns a corrupt or
+ *  wrong-type file into a precise message rather than an ffprobe stack. */
+async function assertVideoFileOnDisk(filePath) {
+  const fh = await open(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(512);
+    const { bytesRead } = await fh.read(buf, 0, 512, 0);
+    const head = buf.subarray(0, bytesRead);
+    const shape = NON_VIDEO_SIGNATURES.find((s) => s.test(head));
+    if (shape) {
+      throw new ExtractError('not_a_video', 422, `The downloaded file is ${shape.what}, not a video.`, shape.what);
+    }
+  } finally {
+    await fh.close();
+  }
 }
 
 async function probeDurationSec(filePath) {
-  const out = await runCommand('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath]);
+  let out;
+  try {
+    out = await runCommand('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath]);
+  } catch (e) {
+    // A valid ftyp header with no moov yet is the real "still uploading" case — the one
+    // situation where the original bare ffprobe error was actually informative.
+    throw new ExtractError(
+      'probe_failed',
+      422,
+      'The file downloaded but is not a readable video — it may be corrupt or still uploading.',
+      String(e.message ?? e).slice(-400),
+    );
+  }
   const seconds = parseFloat(out.trim());
-  if (!Number.isFinite(seconds) || seconds <= 0) throw new Error('Could not determine video duration (ffprobe)');
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new ExtractError('probe_failed', 422, 'Could not determine the video duration (ffprobe read no duration).', out.slice(0, 200));
+  }
   return seconds;
 }
 
 async function extractFrameFiles(videoPath, workDir, frameCount, durationSec) {
   const interval = durationSec / frameCount;
   const pattern = path.join(workDir, 'frame_%04d.jpg');
-  await runCommand('ffmpeg', [
-    '-y', '-i', videoPath,
-    '-vf', `fps=1/${interval},scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease`,
-    '-vframes', String(frameCount),
-    '-q:v', '3',
-    pattern,
-  ]);
+  try {
+    await runCommand('ffmpeg', [
+      '-y', '-i', videoPath,
+      '-vf', `fps=1/${interval},scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease`,
+      '-vframes', String(frameCount),
+      '-q:v', '3',
+      pattern,
+    ]);
+  } catch (e) {
+    throw new ExtractError('extract_failed', 500, 'ffmpeg could not extract frames from this video.', String(e.message ?? e).slice(-400));
+  }
   const files = (await readdir(workDir)).filter((f) => f.startsWith('frame_') && f.endsWith('.jpg')).sort();
+  if (files.length === 0) {
+    throw new ExtractError('extract_failed', 500, 'ffmpeg produced no frames from this video.');
+  }
   return files.map((f, i) => ({ file: path.join(workDir, f), timestampMs: Math.round(i * interval * 1000) }));
 }
 
@@ -178,23 +676,43 @@ async function handleExtractFrames(req, res) {
     payload = JSON.parse(await readBody(req));
   } catch {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: false, error: 'Request body must be JSON.' }));
+    res.end(JSON.stringify({ ok: false, code: 'invalid_body', error: 'Request body must be JSON.' }));
     return;
   }
 
   const videoUrl = payload?.videoUrl;
-  if (typeof videoUrl !== 'string' || !videoUrl) {
+  if (typeof videoUrl !== 'string' || !videoUrl.trim()) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: false, error: 'Body must be { videoUrl: string }.' }));
+    res.end(JSON.stringify({ ok: false, code: 'invalid_body', error: 'Body must be { videoUrl: string }.' }));
     return;
   }
 
-  const workDir = await mkdtemp(path.join(tmpdir(), 'extract-frames-'));
-  const videoPath = path.join(workDir, 'source.mp4');
+  let workDir = null;
 
   try {
-    await downloadVideo(videoUrl, videoPath);
+    // Judged before any temp dir or network I/O, so an unsupported link costs nothing.
+    const { url, kind } = classifySourceUrl(videoUrl.trim());
+
+    workDir = await mkdtemp(path.join(tmpdir(), 'extract-frames-'));
+    const videoPath = path.join(workDir, 'source.mp4');
+
+    if (kind === 'dropbox-folder') {
+      await downloadFromDropboxFolder(url, videoPath);
+    } else {
+      await downloadVideo(url, videoPath);
+    }
+    await assertVideoFileOnDisk(videoPath);
+
     const durationSec = await probeDurationSec(videoPath);
+
+    // `probeOnly` answers "is this link usable?" without paying for ffmpeg or the
+    // downstream Claude call — useful for validating a pasted link in the portal.
+    if (payload?.probeOnly === true) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, probeOnly: true, durationMs: Math.round(durationSec * 1000) }));
+      return;
+    }
+
     const frameCount = Math.min(payload?.maxFrames ?? frameBudgetFor(durationSec), frameBudgetFor(durationSec));
     const frameFiles = await extractFrameFiles(videoPath, workDir, frameCount, durationSec);
 
@@ -208,11 +726,18 @@ async function handleExtractFrames(req, res) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, durationMs: Math.round(durationSec * 1000), frames }));
   } catch (e) {
-    console.error('[render-service] extract-frames failed:', e);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : 'Frame extraction failed' }));
+    const err = e instanceof ExtractError
+      ? e
+      : new ExtractError('internal', 500, e instanceof Error ? e.message : 'Frame extraction failed');
+    // One line per failure, with the code first so runtime-logs can be grepped by cause.
+    console.error(`[render-service] extract-frames ${err.code}: ${err.message}`, err.detail ?? '');
+    if (err.code === 'internal' || err.code === 'extract_failed') console.error(e);
+    res.writeHead(err.status, { 'Content-Type': 'application/json' });
+    // `error` stays a human sentence: the currently-deployed client reads only that field,
+    // so an old app talking to this service still gets a better message than before.
+    res.end(JSON.stringify({ ok: false, code: err.code, error: err.message, detail: err.detail }));
   } finally {
-    await rm(workDir, { recursive: true, force: true });
+    if (workDir) await rm(workDir, { recursive: true, force: true });
   }
 }
 
