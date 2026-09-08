@@ -146,6 +146,21 @@ model AssetType {
   dnaRequirements   String?  @map("dna_requirements") // ← Airtable "DNA / Requirements" (E9.7)
   feedbackStandards String?  @map("feedback_standards") // ← Airtable "Feedback Standards" (E9.7)
   dnaUpdatedBy      String?  @map("dna_updated_by") // ← Airtable "DNA Updated By": last portal editor email
+
+  // Upstream DNA, READ-ONLY from Airtable's synced source (added 2026-09-08). The
+  // portal-owned pair above wins when non-empty; otherwise these are the review baseline.
+  // Precedence lives in lib/dna-review/config.ts so the two interfaces can't diverge.
+  dnaUpstream       String?  @map("dna_upstream") // ← Airtable "DNA" (72/118 populated)
+  viralityDna       String?  @map("virality_dna") // ← Airtable "Video/Virality DNA"
+  dnaLink           String?  @map("dna_link") // ← Airtable "DNA link" (url)
+  processDnaUrl     String?  @map("process_dna_url") // ← Airtable "Process DNA" (url)
+  processDnaSummary String?  @map("process_dna_summary") // ← Airtable "URL Summary (Process DNA)" (aiText)
+
+  // Work emails allowed to RAISE this asset type on the intake form, resolved from
+  // Airtable's "Stakeholder" link at sync time. Stored as emails rather than a join table:
+  // the linked records live in a second employees roster the app doesn't mirror, so their
+  // recIds can never resolve locally. Empty array = no restriction (fail open).
+  stakeholderEmails String[] @default([]) @map("stakeholder_emails")
   syncedAt          DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
   dna Dna? @relation(fields: [dnaId], references: [id])

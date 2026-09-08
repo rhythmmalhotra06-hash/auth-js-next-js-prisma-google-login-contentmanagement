@@ -236,23 +236,64 @@ export const ASSET_TYPES = {
     status: 'fldfCsqOjPO2LH9Ye', // "Status" (Active | Inactive)
     loadWeight: 'fld7d85oMy4ELYmDi', // "Load Weight" (number) — capacity cost per ticket; blank → 1. From /settings/scoring
     effortNorm: 'fldKEQQQnkQK9XL3q', // "Effort Norm" (number 0–1) — priority complexity effort; blank → 0.5. From /settings/scoring
+    // Portal-OWNED, writable (locally-added fields on this synced table). /settings/asset-types
+    // edits these. Measured 2026-09-08: populated on 0 of 118 asset types — nobody has ever
+    // used the portal editor, which is why the DNA review always saw an empty baseline.
     dnaRequirements: 'fldogRGYGUJq6rHIX', // "DNA / Requirements" (multilineText) — E9.7, edited at /settings/asset-types
     feedbackStandards: 'fldhlP1atHGC6diSS', // "Feedback Standards" (multilineText) — E9.7
     dnaUpdatedBy: 'fldb3LMpdlPikEVKf', // "DNA Updated By" (singleLineText) — last portal editor email (E9.7 audit)
+
+    // ⚠️ READ-ONLY (synced source). This table carries "Sync Source" (fldoAFVIeCt2IXoS3), so
+    // these arrive from the upstream base and CANNOT be written back — attempting it fails the
+    // whole record push, exactly like the deleted delivery-link fields noted above. These are
+    // where the team's real DNA lives: "DNA" is populated on 72 asset types (verified
+    // 2026-09-08) while the portal-owned pair above is empty on all of them.
+    dna: 'fldK5PcSa9cw8tSj4', // "DNA" (singleLineText, ~2.5–6.7k chars) — the rule-name list per asset type
+    viralityDna: 'fldJ6iykUqJWL4loZ', // "Video/Virality DNA" (singleLineText) — same shape, wider rule set
+    dnaLink: 'fldN8Nrq7q480lWjx', // "DNA link" (url) — 0/72 populated
+    processDnaUrl: 'fldMLua28x8DVMbQd', // "Process DNA" (url) — 0/72; Titus is filling these
+    processDnaSummary: 'fldOX3USnD6o8QMp4', // "URL Summary (Process DNA)" (aiText over processDnaUrl)
   },
   // Multi-record links → resolved to our join tables in pass 2.
   links: {
     eventTypes: 'fldCDp2QUGCTbyp3v', // → Event Type
-    teamLeads: 'fldwO5GJ7OUoeJHfL', // → Employees
-    preferredEditors: 'fldyynej9y49WBxNm', // → Employees
+    // ⚠️ MISNAMED: fldwO5GJ7OUoeJHfL is live-named "Sub Lead", not "Team Lead". The real
+    // "Team Lead" is fld0cS6VU1olTKkMM and links to the OTHER employees table
+    // (tblC0gR8ZVw4WzOwx), whose recIds are disjoint from 👬 Employees — so repointing this
+    // needs email-based resolution, not a one-line swap. Tracked as its own task; until then
+    // "team lead" means "sub lead" in sync.ts, access.ts, data.postgres.ts and auto-assign.ts.
+    teamLeads: 'fldwO5GJ7OUoeJHfL', // → 👬 Employees (LIVE NAME: "Sub Lead")
+    preferredEditors: 'fldyynej9y49WBxNm', // → 👬 Employees
     dimensions: 'fld3XvOZ2lJ7foY7t', // → Dimensions
+    // "Stakeholder" — who may RAISE this asset type on the intake form. Links to
+    // tblC0gR8ZVw4WzOwx ("EMPLOYEES"), a SECOND HR roster whose recIds do NOT exist in
+    // 👬 Employees, so these ids can never resolve through `empMap`. Joined on Work Email
+    // instead (see STAKEHOLDER_DIRECTORY below). Populated on all 74 active video asset types.
+    stakeholders: 'fldeIpc5s5znc3jJn', // → EMPLOYEES (tblC0gR8ZVw4WzOwx)
   },
 } as const;
 
-// NOTE: DNA is deferred from v1. The Asset Type "DNA" field is free text + a URL
-// (not a record link), and the DNAs table (ads_creative_lib tbl0fsHkGxD6HZz6k) has
-// no requirements/feedback_standards fields — so asset_type↔dna can't be auto-resolved
-// by link. Revisit when DNA integration is designed.
+// The second employees roster, referenced only to resolve Stakeholder recIds → work email.
+// Deliberately NOT mirrored into Postgres: we store the resolved emails on asset_types
+// instead, so there's no third identity table to keep in sync.
+export const STAKEHOLDER_DIRECTORY = {
+  baseId: BASES.creativeServices,
+  tableId: 'tblC0gR8ZVw4WzOwx', // "EMPLOYEES" — distinct from 👬 Employees (tbllP5vRon54L7Ccf)
+  fields: {
+    name: 'fldYQS2fz0FExZp03', // "Name"
+    workEmail: 'fldpgstGVKnyxbZ88', // "Work Email" — the join key
+    department: 'fldFB2jv9Y7ZBKIYi', // "Department"
+  },
+} as const;
+
+// RESOLVED 2026-09-08 (was: "DNA is deferred from v1 … Revisit when DNA integration is
+// designed"). The Asset Type "DNA"/"Video/Virality DNA" free-text fields are now mapped and
+// synced above, and getDnaReviewConfig reads them as the baseline when the portal-owned
+// fields are empty. The richer rule library still isn't ingested: tbloYIZcaC4ipPZAe
+// "Video/Virality DNA" in this base holds one row per rule (Rule, Notes with Do/Don't
+// blocks, Priority Level, Component, Yes/No reference images) and joins to asset types by
+// NAME TEXT (fldRbfY1EUXoS8XFh matches AssetType.fullName), not by record link — that's the
+// next step, not a blocker.
 
 export const OFFICIAL_CALENDARS = {
   baseId: BASES.creativeServices,

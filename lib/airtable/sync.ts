@@ -9,7 +9,7 @@
 //   pass 2 — resolve asset_type link arrays to our uuids, fill join tables.
 
 import { listRecords, type AirtableRecord } from './client';
-import { EMPLOYEES, DIMENSIONS, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS, CONTRACTORS, SCORING_CONFIG, CLIP_RULES, COMMS_OFFICIAL_CAL } from './field-map';
+import { EMPLOYEES, DIMENSIONS, EVENT_TYPES, ASSET_TYPES, OFFICIAL_CALENDARS, AUTHORS, CONTRACTORS, SCORING_CONFIG, CLIP_RULES, COMMS_OFFICIAL_CAL, STAKEHOLDER_DIRECTORY } from './field-map';
 
 /** First string out of an Airtable value (handles scalar / array / null). */
 export function str(v: unknown): string | null {
@@ -137,11 +137,20 @@ export function mapAssetType(r: AirtableRecord) {
     dnaRequirements: str(r.fields[ASSET_TYPES.fields.dnaRequirements]),
     feedbackStandards: str(r.fields[ASSET_TYPES.fields.feedbackStandards]),
     dnaUpdatedBy: str(r.fields[ASSET_TYPES.fields.dnaUpdatedBy]),
+    // Read-only upstream DNA (synced source) — the fields the team actually fills.
+    dnaUpstream: str(r.fields[ASSET_TYPES.fields.dna]),
+    viralityDna: str(r.fields[ASSET_TYPES.fields.viralityDna]),
+    dnaLink: str(r.fields[ASSET_TYPES.fields.dnaLink]),
+    processDnaUrl: str(r.fields[ASSET_TYPES.fields.processDnaUrl]),
+    processDnaSummary: str(r.fields[ASSET_TYPES.fields.processDnaSummary]),
     links: {
       eventTypes: linkIds(r.fields[ASSET_TYPES.links.eventTypes]),
       teamLeads: linkIds(r.fields[ASSET_TYPES.links.teamLeads]),
       preferredEditors: linkIds(r.fields[ASSET_TYPES.links.preferredEditors]),
       dimensions: linkIds(r.fields[ASSET_TYPES.links.dimensions]),
+      // recIds from the OTHER employees roster — resolved to work emails below, never
+      // through empMap (they don't exist there and would be silently dropped).
+      stakeholders: linkIds(r.fields[ASSET_TYPES.links.stakeholders]),
     },
   };
 }
@@ -169,7 +178,7 @@ export interface SyncReport {
   counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number; contractors: number; scoringKnobs: number; clipRules: number; commsCalendars: number };
   // Rows deactivated because they no longer exist in Airtable (self-heal; see pass 3).
   deactivated: { employees: number; eventTypes: number; assetTypes: number; contractors: number };
-  linkEdges: { eventTypes: number; teamLeads: number; preferredEditors: number; dimensions: number };
+  linkEdges: { eventTypes: number; teamLeads: number; stakeholders: number; stakeholderEmails: number; preferredEditors: number; dimensions: number };
   samples: { employee?: string; eventType?: string; assetType?: string };
 }
 
@@ -188,6 +197,14 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
   const scRecs = await listRecords(SCORING_CONFIG.baseId, SCORING_CONFIG.tableId);
   const crRecs = await listRecords(CLIP_RULES.baseId, CLIP_RULES.tableId);
   const ccRecs = await listRecords(COMMS_OFFICIAL_CAL.baseId, COMMS_OFFICIAL_CAL.tableId);
+  // Second employees roster, read solely to turn "Stakeholder" recIds into work emails.
+  // Its recIds are disjoint from 👬 Employees, so they can never resolve via empMap below.
+  const sdRecs = await listRecords(STAKEHOLDER_DIRECTORY.baseId, STAKEHOLDER_DIRECTORY.tableId);
+  const stakeholderEmailById = new Map<string, string>();
+  for (const r of sdRecs) {
+    const email = str(r.fields[STAKEHOLDER_DIRECTORY.fields.workEmail])?.trim().toLowerCase();
+    if (email) stakeholderEmailById.set(r.id, email);
+  }
 
   const employees = empRecs.map(mapEmployee);
   const dimensions = dimRecs.map(mapDimension);
@@ -203,6 +220,13 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
   const linkEdges = {
     eventTypes: assetTypes.reduce((n, a) => n + a.links.eventTypes.length, 0),
     teamLeads: assetTypes.reduce((n, a) => n + a.links.teamLeads.length, 0),
+    // Both counted on purpose: a non-zero `stakeholders` alongside a much smaller
+    // `stakeholderEmails` is the silent-drop signal (recIds that resolved to no email).
+    stakeholders: assetTypes.reduce((n, a) => n + a.links.stakeholders.length, 0),
+    stakeholderEmails: assetTypes.reduce(
+      (n, a) => n + a.links.stakeholders.filter((id) => stakeholderEmailById.has(id)).length,
+      0,
+    ),
     preferredEditors: assetTypes.reduce((n, a) => n + a.links.preferredEditors.length, 0),
     dimensions: assetTypes.reduce((n, a) => n + a.links.dimensions.length, 0),
   };
@@ -236,6 +260,9 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
         name: a.name, fullName: a.fullName, category: a.category, creativeCategory: a.creativeCategory,
         active: a.active, loadWeight: a.loadWeight, effortNorm: a.effortNorm,
         dnaRequirements: a.dnaRequirements, feedbackStandards: a.feedbackStandards, dnaUpdatedBy: a.dnaUpdatedBy,
+        dnaUpstream: a.dnaUpstream, viralityDna: a.viralityDna, dnaLink: a.dnaLink,
+        processDnaUrl: a.processDnaUrl, processDnaSummary: a.processDnaSummary,
+        stakeholderEmails: (a.links.stakeholders ?? []).map((id) => stakeholderEmailById.get(id)).filter((e): e is string => !!e),
       };
       await prisma.assetType.upsert({
         where: { airtableId: a.airtableId },
