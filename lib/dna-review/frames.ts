@@ -129,7 +129,13 @@ export async function extractFrames(videoUrl: string, maxFrames?: number): Promi
         body: JSON.stringify({ videoUrl, ...(maxFrames ? { maxFrames } : {}) }),
         // Frame extraction downloads a real video file + shells out to ffmpeg — give it
         // real time rather than the platform's short default fetch timeout.
-        signal: AbortSignal.timeout(180_000),
+        //
+        // Raised 180s -> 240s on 2026-09-09. A frame seek is network-bound (measured 11.6s
+        // wall for 0.5s of CPU), so a long master's run is dominated by how fast the origin
+        // serves ~30 ranged reads: 131s for a 3.5GB/56min source locally. 180s left too
+        // little margin for a slower origin day, and a spurious abort looks identical to a
+        // real failure to the person waiting. Stays under Cloud Run's 300s request ceiling.
+        signal: AbortSignal.timeout(240_000),
       });
     } catch (err) {
       return { ok: false, error: `Could not reach render-service: ${err instanceof Error ? err.message : String(err)}` };

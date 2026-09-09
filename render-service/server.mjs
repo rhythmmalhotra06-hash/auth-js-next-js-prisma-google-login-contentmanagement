@@ -109,49 +109,70 @@ function frameBudgetFor(durationSec) {
   return 60; // ≤3min
 }
 
-/** Ceiling on frames for a long source. The client aborts at 180s (lib/dna-review/frames.ts)
- *  and a remote seek costs ~2s of wall clock at concurrency 8, so ~60 frames is the most
- *  that fits with headroom. Measured: 60 frames off a 10GB/65min master took 107s. */
-const LONG_FORM_MAX_FRAMES = 60;
-const FRONT_WINDOW_SEC = 120; // the hook/caption/safe-area window the rulebook judges
-const FRONT_INTERVAL_SEC = 4;
+/**
+ * Frame budget and seek concurrency — both sized by the CONTAINER, not by what the source
+ * could support.
+ *
+ * Learned the hard way 2026-09-09: concurrency 8 (fine locally) took production down with
+ * HTTP 503s and no log line at all — the platform SIGKILLs the container on memory
+ * exhaustion, so nothing gets printed. Measured peak RSS of one seek against a 1080p/8Mbps
+ * master: 100MB with default threading, 62MB with `-threads 1 -an -sn -dn`. Eight of those
+ * is ~940MB on what the earlier OOM crashes imply is a ~512MB container. Three is ~180MB,
+ * which leaves room for Node.
+ *
+ * Wall clock at concurrency 3 is ~4s per frame effective (measured: 12s for 3 frames), so
+ * 30 frames ≈ 120s — inside the client's 180s abort with headroom for a slower container.
+ *
+ * Both are env-overridable so the numbers can be raised from the Kessel dashboard after a
+ * memory bump, without a code change.
+ */
+const SEEK_CONCURRENCY = Math.max(1, Number(process.env.EXTRACT_CONCURRENCY ?? 3));
+const MAX_FRAMES = Math.max(1, Number(process.env.EXTRACT_MAX_FRAMES ?? 30));
+
+const HEAD_WINDOW_SEC = 30; // where hook rules live — sampled densest
+const MID_WINDOW_SEC = 120; // captions / safe area / early pacing
 
 /**
  * The timestamps to sample, in seconds.
  *
  * Short sources (≤3min) sample uniformly — front-weighting a 45-second reel is meaningless,
- * and short-form is where most tickets live, so that behaviour is left exactly as it was.
+ * and short-form is where most tickets live, so that behaviour is left as it was.
  *
- * Longer sources are FRONT-WEIGHTED: a dense first two minutes, then the remaining budget
- * spread evenly over everything after it. Almost every DNA rule judges the opening (does the
- * hook land by 0:03, are captions present, is the safe area respected), and a 65-minute
- * master sampled uniformly gives one frame every 39 seconds — enough to prove the file
- * exists, nearly useless for what is being reviewed. The evenly-spread tail still confirms
- * the whole deliverable is there and doesn't fall apart late.
+ * Longer sources are FRONT-WEIGHTED, in three proportional bands: a third of the budget in
+ * the first 30s (hook), a sixth across the rest of the first two minutes, and the remainder
+ * spread evenly over everything after. Almost every DNA rule judges the opening, and uniform
+ * sampling of a 65-minute master gives one frame every 39s — enough to prove the file exists,
+ * useless for what is being reviewed.
  *
- * The tail is spread across the REMAINDER rather than on a fixed interval, which matters at
- * the short end: a 4.7-minute video on a fixed 60s mid-interval got 30 frames in its first
- * two minutes and only 3 for the remaining 2.7 (caught in testing 2026-09-09). Proportional
- * spreading keeps both ends sane with one rule instead of three buckets.
+ * Every band is a SHARE of the budget rather than a fixed interval. A fixed mid-interval
+ * starved a 4.7-minute video (30 frames in its first two minutes, 3 for the remaining 2.7);
+ * proportional bands stay sane at both ends and rescale if MAX_FRAMES is raised.
  */
-function frameScheduleFor(durationSec) {
+function frameScheduleFor(durationSec, budget = MAX_FRAMES) {
   if (durationSec <= 180) {
-    const count = frameBudgetFor(durationSec);
+    const count = Math.min(frameBudgetFor(durationSec), budget);
     const interval = durationSec / count;
     return Array.from({ length: count }, (_, i) => i * interval);
   }
 
+  const headCount = Math.max(1, Math.round(budget / 3));
+  const midCount = Math.max(1, Math.round(budget / 6));
+  const tailCount = Math.max(0, budget - headCount - midCount);
   const times = [];
-  for (let t = 0; t < Math.min(FRONT_WINDOW_SEC, durationSec); t += FRONT_INTERVAL_SEC) times.push(t);
 
-  const tailBudget = LONG_FORM_MAX_FRAMES - times.length;
-  if (tailBudget > 0 && durationSec > FRONT_WINDOW_SEC) {
-    const step = (durationSec - FRONT_WINDOW_SEC) / tailBudget;
-    for (let i = 0; i < tailBudget; i++) times.push(FRONT_WINDOW_SEC + i * step);
-  }
+  const span = (fromSec, toSec, n) => {
+    if (n <= 0 || toSec <= fromSec) return;
+    const step = (toSec - fromSec) / n;
+    for (let i = 0; i < n; i++) times.push(fromSec + i * step);
+  };
+
+  span(0, Math.min(HEAD_WINDOW_SEC, durationSec), headCount);
+  span(HEAD_WINDOW_SEC, Math.min(MID_WINDOW_SEC, durationSec), midCount);
+  span(MID_WINDOW_SEC, durationSec, tailCount);
+
   // Never seek to the final moments: the last keyframe may be short and some encoders leave
   // an unreadable tail, which would fail a frame for no diagnostic gain.
-  return times.filter((t) => t < durationSec - 1);
+  return times.filter((t) => t >= 0 && t < durationSec - 1);
 }
 
 /** A caller's `maxFrames` may only ever REDUCE the schedule (same contract as before).
@@ -744,11 +765,6 @@ async function probeDurationSec(input) {
   return seconds;
 }
 
-/** Concurrent seeks. 8 was measured at 16s for 8 frames on a 10GB Dropbox source (~2s per
- *  frame effective); higher risks the origin throttling a burst, lower risks the client's
- *  180s timeout on a long source. */
-const SEEK_CONCURRENCY = 8;
-
 /**
  * Extract one frame per requested timestamp, by seeking to each.
  *
@@ -777,9 +793,15 @@ async function extractFramesAt(input, workDir, timesSec) {
       try {
         await runCommand('ffmpeg', [
           '-nostdin', '-loglevel', 'error', '-y',
+          // `-threads 1` is a memory decision, not a speed one: it cut peak RSS from 100MB
+          // to 62MB per process, and the container has ~1 CPU anyway so extra decode
+          // threads buy nothing. See the SEEK_CONCURRENCY note.
+          '-threads', '1',
           ...(remote ? REMOTE_INPUT_FLAGS : []),
           '-ss', String(t),
           '-i', input,
+          // Nothing but video is wanted — don't allocate for audio/subtitle/data streams.
+          '-an', '-sn', '-dn',
           '-frames:v', '1',
           '-vf', `scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease`,
           '-q:v', '3',
@@ -878,7 +900,7 @@ async function handleExtractFrames(req, res) {
       return;
     }
 
-    const frameFiles = await extractFramesAt(input, workDir, capSchedule(frameScheduleFor(durationSec), payload?.maxFrames));
+    const frameFiles = await extractFramesAt(input, workDir, capSchedule(frameScheduleFor(durationSec), Math.min(payload?.maxFrames ?? MAX_FRAMES, MAX_FRAMES)));
 
     const frames = await Promise.all(
       frameFiles.map(async ({ file, timestampMs }) => ({
