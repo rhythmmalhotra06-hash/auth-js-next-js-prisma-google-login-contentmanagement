@@ -68,7 +68,8 @@ async function Numbers({ isAdmin, canCustom, range, from, to }: {
         </div>
         <p className="t-meta">
           Looking for throughput, capacity or at-risk work? That&apos;s on{' '}
-          <Link href="/performance/capacity">Capacity &amp; risk</Link>.
+          <Link href="/performance/capacity">Capacity &amp; risk</Link>. The AI first pass on
+          work in production is on <Link href="/performance/reviews">DNA reviews</Link>.
         </p>
       </>
     );
@@ -94,7 +95,8 @@ async function Numbers({ isAdmin, canCustom, range, from, to }: {
       </div>
       <p className="t-meta">
         Capacity, throughput and at-risk work live on{' '}
-        <Link href="/performance/capacity">Capacity &amp; risk</Link>.
+        <Link href="/performance/capacity">Capacity &amp; risk</Link>. The AI first pass on work
+        in production is on <Link href="/performance/reviews">DNA reviews</Link>.
       </p>
     </>
   );

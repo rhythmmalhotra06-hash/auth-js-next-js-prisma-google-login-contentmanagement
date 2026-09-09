@@ -211,3 +211,121 @@ export async function setFindingReaction(
     data: { reaction, reactionNote: note, reactedBy, reactedAt: new Date() },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Cross-ticket listings for /performance/reviews. Everything above answers
+// "what about THIS ticket"; a browse surface needs the opposite shape, and needs it in a
+// fixed number of queries rather than one per ticket.
+// ---------------------------------------------------------------------------
+
+export interface DnaReviewListRow {
+  id: string;
+  ticketId: string;
+  ticketTitle: string;
+  ticketStatus: string | null;
+  assetTypeName: string | null;
+  createdAt: Date;
+  usedFrames: boolean;
+  frameCount: number | null;
+  summary: string | null;
+  counts: { info: number; suggestion: number; flag: number };
+  /** Flags that still block approval. Deliberately the SAME predicate checkDnaGate uses
+   *  (`reaction == null`, so ANY reaction clears it — not just 'dismissed'). If this page
+   *  and the gate disagreed, the page would show an "open flag" on a ticket that approves
+   *  fine, which is worse than showing nothing. */
+  openFlags: number;
+  /** The first still-open flag, for the row headline. */
+  topFlag: { note: string; evidence: string | null; timestampMs: number | null } | null;
+}
+
+/**
+ * Latest review per ticket within a window. `distinct` on ticketId with a createdAt-desc
+ * order keeps the newest run per ticket, so a re-reviewed ticket appears once, at its
+ * current verdict — not once per attempt.
+ */
+export async function listRecentDnaReviews({ days = 30, limit = 100 }: { days?: number; limit?: number } = {}): Promise<DnaReviewListRow[]> {
+  const since = new Date(Date.now() - days * 86400_000);
+  const rows = await prisma.dnaReview.findMany({
+    where: { createdAt: { gte: since } },
+    orderBy: { createdAt: 'desc' },
+    distinct: ['ticketId'],
+    take: limit,
+    include: {
+      findings: { orderBy: { createdAt: 'asc' } },
+      ticket: { select: { title: true, ticketStatus: true, assetType: { select: { name: true } } } },
+    },
+  });
+
+  return rows.map((r) => {
+    const counts = { info: 0, suggestion: 0, flag: 0 };
+    for (const f of r.findings) {
+      if (f.severity === 'flag') counts.flag++;
+      else if (f.severity === 'suggestion') counts.suggestion++;
+      else counts.info++;
+    }
+    const open = r.findings.filter((f) => f.severity === 'flag' && f.reaction == null);
+    const first = open[0];
+    return {
+      id: r.id,
+      ticketId: r.ticketId,
+      ticketTitle: r.ticket.title,
+      ticketStatus: r.ticket.ticketStatus,
+      assetTypeName: r.ticket.assetType?.name ?? null,
+      createdAt: r.createdAt,
+      usedFrames: r.usedFrames,
+      frameCount: r.frameCount,
+      summary: r.summary,
+      counts,
+      openFlags: open.length,
+      topFlag: first ? { note: first.note, evidence: first.evidence, timestampMs: first.timestampMs } : null,
+    };
+  });
+}
+
+export interface AwaitingDnaReviewRow {
+  id: string;
+  title: string;
+  assetTypeName: string | null;
+  assigneeName: string | null;
+  dueDate: Date | null;
+}
+
+/**
+ * Tickets sitting at `Review` with no review run at all.
+ *
+ * Not cosmetic: per the decision lock, checkDnaGate() fails closed on a missing review, so
+ * every ticket in this list is blocked from being approved. The automatic trigger fires on
+ * entry to `Review`, so anything here means that best-effort call didn't land — an AI
+ * outage, or a ticket that reached `Review` some other way.
+ */
+export async function listTicketsAwaitingDnaReview(limit = 50): Promise<{ rows: AwaitingDnaReviewRow[]; total: number }> {
+  const where = { ticketStatus: 'Review', dnaReviews: { none: {} } };
+  // `total` is counted separately rather than read off rows.length: there are far more of
+  // these than a page should render at once (92 in production on 2026-09-08), and a KPI that
+  // silently reports the page size instead of the real backlog is worse than no KPI at all.
+  const [rows, total] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      orderBy: [{ dueDate: 'asc' }, { updatedAt: 'desc' }],
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        assigneeName: true,
+        dueDate: true,
+        assetType: { select: { name: true } },
+      },
+    }),
+    prisma.ticket.count({ where }),
+  ]);
+  return {
+    rows: rows.map((t) => ({
+      id: t.id,
+      title: t.title,
+      assetTypeName: t.assetType?.name ?? null,
+      assigneeName: t.assigneeName,
+      dueDate: t.dueDate,
+    })),
+    total,
+  };
+}
