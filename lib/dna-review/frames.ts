@@ -70,8 +70,13 @@ const RENDER_ERROR_MESSAGE: Record<string, (b: RenderErrorBody) => string> = {
   source_empty: () => 'That link returned an empty file — the share may have expired or lost permission.',
   not_a_video: (b) => `That link returned ${b.detail ?? 'something that is not a video'}, not a video file.`,
   probe_failed: () =>
-    "The file downloaded but isn't a readable video — it may be corrupt or still uploading. Try again once the upload finishes.",
-  source_too_large: () => 'This video is over the 500MB limit for visual review.',
+    "That link isn't a readable video — it may be corrupt or still uploading. Try again once the upload finishes.",
+  // Since 2026-09-09 large sources are read in place (ffmpeg seeks over HTTP range
+  // requests) instead of being staged, so size alone is no longer a limit — real
+  // deliverables run 0.5-10GB. This code now only fires for a host that refuses ranged
+  // reads, where the file would have to be staged whole in a RAM-backed tmpfs.
+  source_too_large: () =>
+    'That host does not support partial reads, so this video would have to be downloaded whole — it is too large for that. Paste a direct Dropbox file link instead.',
   download_http_error: (b) =>
     `The host refused the download${b.detail ? ` (HTTP ${b.detail})` : ''} — the link may have expired or require sign-in.`,
   download_truncated: () => 'The download ended early — worth another try.',
@@ -94,6 +99,9 @@ const NEEDS_LINK_CODES = new Set([
   'not_a_video',
   'probe_failed',
   'download_http_error',
+  // The fix is a different link (one on a range-capable host), so offer the paste box
+  // rather than just reporting a dead end.
+  'source_too_large',
 ]);
 
 const MAX_RETRIES = 2;

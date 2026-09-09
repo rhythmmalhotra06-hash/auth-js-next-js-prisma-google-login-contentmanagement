@@ -7,7 +7,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createWriteStream } from 'node:fs';
-import { mkdtemp, open, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, open, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
 import { timingSafeEqual } from 'node:crypto';
@@ -100,21 +100,80 @@ function runCommand(cmd, args) {
   });
 }
 
-/** Auto-scaled frame budget — matches the internal /watch skill's + BlinkLife Recorder's
- *  table (see plans/vishen-recorder-dna-review-loop.md). Sensible defaults so the caller
- *  never has to tune it. */
+/** Auto-scaled frame budget for SHORT sources — matches the internal /watch skill's +
+ *  BlinkLife Recorder's table (see plans/vishen-recorder-dna-review-loop.md). Sensible
+ *  defaults so the caller never has to tune it. */
 function frameBudgetFor(durationSec) {
   if (durationSec <= 30) return 30;
   if (durationSec <= 60) return 40;
-  if (durationSec <= 180) return 60;
-  if (durationSec <= 600) return 80;
-  return 100; // >10min, sparse
+  return 60; // ≤3min
+}
+
+/** Ceiling on frames for a long source. The client aborts at 180s (lib/dna-review/frames.ts)
+ *  and a remote seek costs ~2s of wall clock at concurrency 8, so ~60 frames is the most
+ *  that fits with headroom. Measured: 60 frames off a 10GB/65min master took 107s. */
+const LONG_FORM_MAX_FRAMES = 60;
+const FRONT_WINDOW_SEC = 120; // the hook/caption/safe-area window the rulebook judges
+const FRONT_INTERVAL_SEC = 4;
+
+/**
+ * The timestamps to sample, in seconds.
+ *
+ * Short sources (≤3min) sample uniformly — front-weighting a 45-second reel is meaningless,
+ * and short-form is where most tickets live, so that behaviour is left exactly as it was.
+ *
+ * Longer sources are FRONT-WEIGHTED: a dense first two minutes, then the remaining budget
+ * spread evenly over everything after it. Almost every DNA rule judges the opening (does the
+ * hook land by 0:03, are captions present, is the safe area respected), and a 65-minute
+ * master sampled uniformly gives one frame every 39 seconds — enough to prove the file
+ * exists, nearly useless for what is being reviewed. The evenly-spread tail still confirms
+ * the whole deliverable is there and doesn't fall apart late.
+ *
+ * The tail is spread across the REMAINDER rather than on a fixed interval, which matters at
+ * the short end: a 4.7-minute video on a fixed 60s mid-interval got 30 frames in its first
+ * two minutes and only 3 for the remaining 2.7 (caught in testing 2026-09-09). Proportional
+ * spreading keeps both ends sane with one rule instead of three buckets.
+ */
+function frameScheduleFor(durationSec) {
+  if (durationSec <= 180) {
+    const count = frameBudgetFor(durationSec);
+    const interval = durationSec / count;
+    return Array.from({ length: count }, (_, i) => i * interval);
+  }
+
+  const times = [];
+  for (let t = 0; t < Math.min(FRONT_WINDOW_SEC, durationSec); t += FRONT_INTERVAL_SEC) times.push(t);
+
+  const tailBudget = LONG_FORM_MAX_FRAMES - times.length;
+  if (tailBudget > 0 && durationSec > FRONT_WINDOW_SEC) {
+    const step = (durationSec - FRONT_WINDOW_SEC) / tailBudget;
+    for (let i = 0; i < tailBudget; i++) times.push(FRONT_WINDOW_SEC + i * step);
+  }
+  // Never seek to the final moments: the last keyframe may be short and some encoders leave
+  // an unreadable tail, which would fail a frame for no diagnostic gain.
+  return times.filter((t) => t < durationSec - 1);
+}
+
+/** A caller's `maxFrames` may only ever REDUCE the schedule (same contract as before).
+ *  Subsampling evenly keeps the front-weighted shape rather than truncating to the opening
+ *  and losing all coverage of the rest. */
+function capSchedule(times, maxFrames) {
+  if (typeof maxFrames !== 'number' || !Number.isFinite(maxFrames) || maxFrames < 1) return times;
+  if (maxFrames >= times.length) return times;
+  const step = times.length / maxFrames;
+  return Array.from({ length: maxFrames }, (_, i) => times[Math.floor(i * step)]);
 }
 
 // 500MB guard — a runaway/huge source shouldn't hang the container. NOTE: Cloud Run's /tmp
 // is a RAM-backed tmpfs, so this ceiling is effectively a memory ceiling too, on the same
 // heap the 2026-09-07 OOM crashes exhausted. Keep it conservative.
 const MAX_DOWNLOAD_BYTES = 500 * 1024 * 1024;
+
+/** Below this we stage the file locally even though the host supports ranged reads: one
+ *  sequential transfer of a small file beats ~60 network seeks. Above it, seeking in place
+ *  is the only option that works at all — real deliverables measured 2026-09-09 were
+ *  568MB, 3.5GB, 3.7GB and 10GB, so this is the common case, not the exception. */
+const STAGE_LOCALLY_MAX_BYTES = 150 * 1024 * 1024;
 
 /** Typed failure. `code` is contractual — the main app maps it to user-facing copy in
  *  lib/dna-review/frames.ts's RENDER_ERROR_MESSAGE table, and `status` decides whether
@@ -261,6 +320,15 @@ async function sniffSource(directUrl) {
     contentType: (resp.headers.get('content-type') ?? '').toLowerCase(),
     contentDisposition: resp.headers.get('content-disposition') ?? '',
     totalBytes: totalBytesFrom(resp.headers),
+    // NOTE: the post-redirect URL (`resp.url`) is deliberately NOT returned for reuse.
+    // Dropbox's signed dl.dropboxusercontent.com/cd/0/get/... token is single-use — handing
+    // it to a second process answers 403 Forbidden (confirmed 2026-09-09 against the 10GB
+    // production master). ffmpeg is given the pre-redirect `dl=1` URL and follows the
+    // redirect itself, minting its own token per seek.
+    // 206 means the origin honoured our Range header, which is exactly the capability the
+    // seek-in-place extraction path needs. A 200 here means it ignored Range and started
+    // sending the whole file — the case the abort above exists to contain.
+    rangeSupported: resp.status === 206,
   };
 }
 
@@ -308,16 +376,13 @@ function isVideoBytes(head) {
   });
 }
 
-/** Throws a precise ExtractError, or returns quietly for a plausible video. */
+/** Throws a precise ExtractError, or returns quietly for a plausible video.
+ *
+ *  The size ceiling deliberately lives on the DOWNLOAD path (see assertDownloadable), not
+ *  here: it is a memory guard, and the seek-in-place path never stages the file, so a 10GB
+ *  master is fine there. Checking it here would reject every real deliverable — which is
+ *  exactly the bug this split fixes. */
 function assertVideoSource(u, sniff) {
-  if (sniff.totalBytes && sniff.totalBytes > MAX_DOWNLOAD_BYTES) {
-    throw new ExtractError(
-      'source_too_large',
-      413,
-      `Source file is ${Math.round(sniff.totalBytes / 1e6)}MB (max 500MB).`,
-      String(sniff.totalBytes),
-    );
-  }
   if (sniff.head.length === 0) {
     throw new ExtractError('source_empty', 422, 'That link returned an empty response.');
   }
@@ -408,10 +473,11 @@ function assertTransferComplete(total, expected) {
  * that isn't a video fails in ~1s with a diagnosis instead of after a full download with
  * an ffprobe stack trace.
  */
-async function downloadVideo(u, destPath) {
+async function downloadVideo(u, destPath, presniffed) {
   const direct = toDirectDownloadUrl(u);
-  const sniff = await sniffSource(direct);
-  assertVideoSource(u, sniff);
+  const sniff = presniffed ?? (await sniffSource(direct));
+  if (!presniffed) assertVideoSource(u, sniff);
+  assertDownloadable(sniff);
 
   const resp = await fetch(direct, { redirect: 'follow' });
   if (!resp.ok || !resp.body) {
@@ -425,6 +491,20 @@ async function downloadVideo(u, destPath) {
   const counter = { total: 0 };
   await pipeline(Readable.fromWeb(resp.body), makeSizeGuard(counter), createWriteStream(destPath));
   assertTransferComplete(counter.total, expected);
+}
+
+/** The memory guard, applied only where the file actually gets staged in tmpfs. Reached
+ *  only when the origin refused Range, since a range-capable host takes the seek path
+ *  regardless of size. */
+function assertDownloadable(sniff) {
+  if (sniff.totalBytes && sniff.totalBytes > MAX_DOWNLOAD_BYTES) {
+    throw new ExtractError(
+      'source_too_large',
+      413,
+      `Source file is ${Math.round(sniff.totalBytes / 1e6)}MB and that host does not support ranged reads, so it would have to be staged whole (max 500MB).`,
+      String(sniff.totalBytes),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -628,17 +708,32 @@ async function assertVideoFileOnDisk(filePath) {
   }
 }
 
-async function probeDurationSec(filePath) {
+const isRemoteInput = (input) => /^https?:\/\//i.test(input);
+
+/** HTTP-protocol options for a remote input: survive a dropped connection mid-seek rather
+ *  than failing the frame. Only valid on an http(s) input — ffmpeg rejects them for a
+ *  local file. Must precede `-i`. */
+const REMOTE_INPUT_FLAGS = ['-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5'];
+
+/** Duration of a local path OR a remote URL. ffprobe handles both; against a range-capable
+ *  host it range-requests just the header and footer, so this costs ~2.6s even on a 10GB
+ *  file (measured) rather than a download. */
+async function probeDurationSec(input) {
   let out;
   try {
-    out = await runCommand('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath]);
+    out = await runCommand('ffprobe', [
+      '-v', 'error',
+      ...(isRemoteInput(input) ? REMOTE_INPUT_FLAGS : []),
+      '-show_entries', 'format=duration', '-of', 'csv=p=0',
+      input,
+    ]);
   } catch (e) {
     // A valid ftyp header with no moov yet is the real "still uploading" case — the one
     // situation where the original bare ffprobe error was actually informative.
     throw new ExtractError(
       'probe_failed',
       422,
-      'The file downloaded but is not a readable video — it may be corrupt or still uploading.',
+      'That link is not a readable video — it may be corrupt or still uploading.',
       String(e.message ?? e).slice(-400),
     );
   }
@@ -649,25 +744,71 @@ async function probeDurationSec(filePath) {
   return seconds;
 }
 
-async function extractFrameFiles(videoPath, workDir, frameCount, durationSec) {
-  const interval = durationSec / frameCount;
-  const pattern = path.join(workDir, 'frame_%04d.jpg');
-  try {
-    await runCommand('ffmpeg', [
-      '-y', '-i', videoPath,
-      '-vf', `fps=1/${interval},scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease`,
-      '-vframes', String(frameCount),
-      '-q:v', '3',
-      pattern,
-    ]);
-  } catch (e) {
-    throw new ExtractError('extract_failed', 500, 'ffmpeg could not extract frames from this video.', String(e.message ?? e).slice(-400));
+/** Concurrent seeks. 8 was measured at 16s for 8 frames on a 10GB Dropbox source (~2s per
+ *  frame effective); higher risks the origin throttling a burst, lower risks the client's
+ *  180s timeout on a long source. */
+const SEEK_CONCURRENCY = 8;
+
+/**
+ * Extract one frame per requested timestamp, by seeking to each.
+ *
+ * `-ss` goes BEFORE `-i`, which is the entire point: input seeking makes ffmpeg jump to the
+ * timestamp (a range request, on a remote input) instead of decoding from zero. That is what
+ * lets this read a 10GB master without downloading it — measured at 5-7s per frame whether
+ * the target is 30s or 3600s in, i.e. flat with depth.
+ *
+ * Replaces a single `fps=1/interval` pass. That was cheaper for a local file, but it can only
+ * sample uniformly and it requires the whole file on disk — and on Cloud Run "disk" is
+ * RAM-backed tmpfs, which is why the old design capped sources at 500MB and therefore
+ * rejected essentially every real deliverable.
+ */
+async function extractFramesAt(input, workDir, timesSec) {
+  const remote = isRemoteInput(input);
+  const results = new Array(timesSec.length).fill(null);
+  let cursor = 0;
+  const failures = [];
+
+  async function worker() {
+    for (;;) {
+      const i = cursor++;
+      if (i >= timesSec.length) return;
+      const t = timesSec[i];
+      const file = path.join(workDir, `frame_${String(i).padStart(4, '0')}.jpg`);
+      try {
+        await runCommand('ffmpeg', [
+          '-nostdin', '-loglevel', 'error', '-y',
+          ...(remote ? REMOTE_INPUT_FLAGS : []),
+          '-ss', String(t),
+          '-i', input,
+          '-frames:v', '1',
+          '-vf', `scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease`,
+          '-q:v', '3',
+          file,
+        ]);
+        results[i] = { file, timestampMs: Math.round(t * 1000) };
+      } catch (e) {
+        // One unreadable timestamp shouldn't lose the other 59 frames — a damaged GOP or a
+        // momentary connection drop is a partial result, not a failed review.
+        failures.push(`${t}s: ${String(e.message ?? e).slice(-120)}`);
+      }
+    }
   }
-  const files = (await readdir(workDir)).filter((f) => f.startsWith('frame_') && f.endsWith('.jpg')).sort();
-  if (files.length === 0) {
-    throw new ExtractError('extract_failed', 500, 'ffmpeg produced no frames from this video.');
+
+  await Promise.all(Array.from({ length: Math.min(SEEK_CONCURRENCY, timesSec.length) }, worker));
+
+  const frames = results.filter(Boolean);
+  if (frames.length === 0) {
+    throw new ExtractError(
+      'extract_failed',
+      500,
+      'ffmpeg could not extract any frames from this video.',
+      failures.slice(0, 3).join(' | ').slice(-400),
+    );
   }
-  return files.map((f, i) => ({ file: path.join(workDir, f), timestampMs: Math.round(i * interval * 1000) }));
+  if (failures.length) {
+    console.warn(`[extract-frames] ${failures.length}/${timesSec.length} timestamps failed:`, failures.slice(0, 3));
+  }
+  return frames;
 }
 
 async function handleExtractFrames(req, res) {
@@ -694,16 +835,40 @@ async function handleExtractFrames(req, res) {
     const { url, kind } = classifySourceUrl(videoUrl.trim());
 
     workDir = await mkdtemp(path.join(tmpdir(), 'extract-frames-'));
-    const videoPath = path.join(workDir, 'source.mp4');
+
+    // What ffprobe/ffmpeg read: either a staged local file or the source URL itself.
+    let input;
 
     if (kind === 'dropbox-folder') {
-      await downloadFromDropboxFolder(url, videoPath);
+      // The folder path resolves through a Dropbox content endpoint that streams bytes
+      // rather than handing back a range-seekable public URL, so it still stages locally
+      // (and still carries the 500MB ceiling). Unblocking multi-GB folder videos needs
+      // either ffmpeg `-headers` with the Dropbox auth or files/get_temporary_link — and
+      // the folder path is credential-blocked today anyway.
+      input = path.join(workDir, 'source.mp4');
+      await downloadFromDropboxFolder(url, input);
+      await assertVideoFileOnDisk(input);
     } else {
-      await downloadVideo(url, videoPath);
-    }
-    await assertVideoFileOnDisk(videoPath);
+      const sniff = await sniffSource(toDirectDownloadUrl(url));
+      assertVideoSource(url, sniff);
 
-    const durationSec = await probeDurationSec(videoPath);
+      // Prefer seeking in place. Stage locally only when the origin refuses Range (seeks
+      // would be impossible) or the file is small enough that one transfer beats ~60
+      // network round-trips.
+      const small = sniff.totalBytes > 0 && sniff.totalBytes <= STAGE_LOCALLY_MAX_BYTES;
+      if (!sniff.rangeSupported || small) {
+        input = path.join(workDir, 'source.mp4');
+        await downloadVideo(url, input, sniff);
+        await assertVideoFileOnDisk(input);
+      } else {
+        // The pre-redirect `dl=1` URL, not the signed one the sniff landed on — see the
+        // note in sniffSource. ffmpeg re-follows the redirect per seek, which costs one
+        // extra request each and is the only form that actually works.
+        input = toDirectDownloadUrl(url);
+      }
+    }
+
+    const durationSec = await probeDurationSec(input);
 
     // `probeOnly` answers "is this link usable?" without paying for ffmpeg or the
     // downstream Claude call — useful for validating a pasted link in the portal.
@@ -713,8 +878,7 @@ async function handleExtractFrames(req, res) {
       return;
     }
 
-    const frameCount = Math.min(payload?.maxFrames ?? frameBudgetFor(durationSec), frameBudgetFor(durationSec));
-    const frameFiles = await extractFrameFiles(videoPath, workDir, frameCount, durationSec);
+    const frameFiles = await extractFramesAt(input, workDir, capSchedule(frameScheduleFor(durationSec), payload?.maxFrames));
 
     const frames = await Promise.all(
       frameFiles.map(async ({ file, timestampMs }) => ({
