@@ -105,6 +105,67 @@ agencyColor(source) }}` (dynamic value) is the sanctioned use.
 
 ---
 
+## 3b. Roles added by the MOW design pass (2026-09-10)
+
+From the Claude Design handoff at `Sep Calls/10 Sep/design_handoff_comms_calendar/`. Live
+component sheet: **`/settings/components`** — the source of truth, and the fastest way to check
+the two rules below in both themes.
+
+**`--mv-staged` / `-content` / `-soft` — provisional.** Violet-slate. Carries *everything*
+provisional: staged, inferred, sample, a gap someone owns, and the "present but meaningless"
+third state. Absorbing all of that is what frees red to mean `missed` and nothing else.
+
+**`--mv-vishen` / `-content` / `-soft` — Vishen Lakhiani Media.** Teal, on **every** surface. VL
+was teal on the calendar and brand-purple on `/performance/week` and Vishen's card, where the two
+brand pills came out byte-identical — which collapses the two-lane argument the moment you leave
+the calendar. Use `<Badge tone="vishen">` wherever a VL entity is named.
+
+**`--mv-surface-recessed`, `--mv-text-emphasis`, `--mv-today-tint`.** Recessed is table heads and
+lane gutters: on light it matches the subtle fill, on dark it goes *darker* than the surface,
+because **elevation replaces shadow on dark** — the two-layer shadow is invisible there.
+
+### Colour roles — one job each
+
+| Role | Means | Never means |
+|---|---|---|
+| **Gold** | Attention. **Exactly one element per screen.** | A status. |
+| **Red** | Missed — due and did not happen. | Sample data, an unowned field, an empty future week. |
+| **Amber** | Blocked — waiting on someone upstream. | An editor's failure. |
+| **Violet-slate** | Provisional. | A lifecycle state. |
+| **Green** | Landed — on plan, published, committed. | Anything unfinished. |
+| **Teal / purple** | Brand. | Anything else. |
+
+Count gold honestly: a block with a gold frame, gold pills *and* gold buttons is three elements,
+not one. Make the frame gold and everything inside amber or neutral.
+
+### Vertical rhythm — 14 / 22 / 38
+
+`gap-within` (cards in a grid, rows in a list) · `gap-label` (an eyebrow to the thing it names) ·
+`gap-section` (**the only** break that says "new subject"). Surfaces previously used 12–26px
+between everything, so a section break and a card gap looked identical.
+
+### New primitives
+
+| Need | Use |
+|---|---|
+| A gap someone owns | `EmptyOwned` — always names who closes it |
+| A blank that's fine | `EmptyFine` — no marker, no owner; a weekend isn't a gap |
+| Junk that must not be rewritten | `PlaceholderValue` — `test`, `vcvdsv`, `Mindalley` |
+| A headline figure | `BigNumber` — three target cases; a missing target changes the component's **shape** |
+| An asset | `AssetRow` / `AssetCard` — **the left edge carries state and nothing else** |
+| "+5 social" | `OverflowCollapse` — never quieter than a single asset |
+| A missing image | `ThumbPlaceholder` — hatch **plus a stated reason**, never a broken-image icon |
+
+### Two rules that are not stylistic
+
+1. **Never render a zero for missing data.** No `0`, no `0%`, no `NaN`, no zero-width bar, no empty
+   progress track with a target marker. `fmt()` returns `null` and the caller renders a gap.
+2. **Nine canonical empty strings, two tiers** (`TIER1` / `TIER2` in `components/ui/Empty.tsx`).
+   Never a dashed box in light mode — it reads as a component that failed to load. Say it once per
+   boundary, not once per cell.
+
+---
+
 ## 4. Radius, shadow, spacing, motion
 
 - **Radius:** `rounded-xs` 4 · `rounded-sm` **8** (buttons, badges, inputs, chips) ·
