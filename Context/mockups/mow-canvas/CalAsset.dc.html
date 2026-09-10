@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#fff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600;
+      padding:2px 7px; border-radius:8px; white-space:nowrap; }
+    .dot { width:6px; height:6px; border-radius:9999px; flex:none; }
+    .k { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#a59db4; }
+    .v { font-size:13px; margin-top:2px; }
+    .blank { color:#a59db4; font-style:italic; }
+    .mono { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:12px; }
+  </style>
+</helmet>
+
+<div style="padding:24px 22px; max-width:900px; margin:0 auto">
+
+  <div style="margin-bottom:14px">
+    <div class="eyebrow">Comms Calendar · asset detail</div>
+    <div style="font-size:12.5px; color:#6b6478; margin-top:4px">
+      Clicking a cell opens the <strong>asset</strong>, not the day — that is the grain the link
+      actually has. This is Thursday's real VL asset.
+    </div>
+  </div>
+
+  <div class="card" style="padding:20px 22px; margin-bottom:14px">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px">
+      <div>
+        <h1 style="margin:0 0 5px; font-size:19px; font-weight:700; letter-spacing:-.015em; line-height:1.3">
+          I visualised the trophy for years and wondered why nothing ever moved.
+        </h1>
+        <div style="display:flex; flex-wrap:wrap; gap:6px">
+          <span class="pill" style="background:#e4f2f1; color:#0F6E6E"><span class="dot" style="background:#0d9488"></span>Vishen Lakhiani Media</span>
+          <span class="pill" style="background:#fff4d9; color:#7a5600">1. Idea</span>
+          <span class="pill" style="background:#f4f2f8; color:#6b6478">LinkedIn</span>
+        </div>
+      </div>
+      <div style="text-align:right; flex:none">
+        <div class="k">Live date</div>
+        <div style="font-size:15px; font-weight:700; letter-spacing:-.01em">10 Sep 2026</div>
+        <span class="pill" style="background:#e8f9f1; color:#0e6742; margin-top:4px">set</span>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; padding-top:16px; border-top:1px solid rgba(40,20,60,.12)">
+      <sc-for list="{{ fields }}" as="f" hint-placeholder-count="9">
+        <div>
+          <div class="k">{{ f.k }}</div>
+          <div class="v {{ f.cls }}">{{ f.v }}</div>
+          <sc-if value="{{ f.note }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:11px; color:#a59db4; margin-top:2px">{{ f.note }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- The join the link field bought: judge a message as a set, not post by post. -->
+  <div class="card" style="padding:18px 20px; margin-bottom:14px">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:11px">
+      <div class="eyebrow">Same message · siblings</div>
+      <span style="font-size:11.5px; color:#a59db4">everything else carrying “test”</span>
+    </div>
+    <div style="border:1px dashed rgba(40,20,60,.22); border-radius:8px; padding:16px; text-align:center">
+      <div style="font-size:12.5px; color:#6b6478">
+        This is the only asset linked to a message. Once Ramya populates two weeks, every other asset
+        carrying the same message appears here — so a message can be judged as a set rather than
+        post by post.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:18px 20px">
+    <div class="eyebrow" style="margin-bottom:11px">What the portal adds on top</div>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px">
+      <sc-for list="{{ adds }}" as="a" hint-placeholder-count="3">
+        <div>
+          <div style="display:flex; align-items:center; gap:7px; margin-bottom:4px">
+            <span style="font-size:12.5px; font-weight:600">{{ a.t }}</span>
+            <span class="pill" style="background:{{ a.bg }}; color:{{ a.fg }}">{{ a.state }}</span>
+          </div>
+          <div style="font-size:11.5px; color:#6b6478; line-height:1.45">{{ a.d }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:15px; padding-top:13px; border-top:1px solid rgba(40,20,60,.12); font-size:11.5px; color:#a59db4">
+      Read-only. The portal proposes; the human commits in Airtable. The MOW sync is one-way into the
+      VL base — two-way editing is how the two brand lists drift apart.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "$preview": {"width":900,"height":880}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      fields: [
+        { k: 'Message of the week', v: 'test', cls: '', note: 'the only VL message in the base' },
+        { k: 'Goal', v: 'vcvdsv', cls: 'mono', note: 'lookup from the message' },
+        { k: 'Brand', v: 'Vishen Lakhiani Media', cls: '', note: '' },
+        { k: 'Medium / channel', v: 'LinkedIn — Vishen', cls: '', note: '' },
+        { k: 'Status', v: '1. Idea', cls: '', note: '' },
+        { k: 'Source', v: 'VL LI: Two Comma PR', cls: '', note: '' },
+        { k: 'Owner', v: 'not set', cls: 'blank', note: '' },
+        // Empty across every published VL asset. It says so; it never shows 0.
+        { k: '24h read', v: 'not filled', cls: 'blank', note: 'empty on every published VL asset' },
+        { k: 'Published link', v: 'not published yet', cls: 'blank', note: '' },
+      ],
+      adds: [
+        { t: 'Lever attribution', state: 'needs E10', bg: '#f2f0f9', fg: '#4b4173',
+          d: 'Retention to the editor, thumbnail CTR to the packaging owner, click-through to the message owner. A label until the sub-task model exists.' },
+        { t: 'Test link', state: 'held', bg: '#fff4d9', fg: '#7a5600',
+          d: 'Points at the live scoreboard in Funnels & Experimentation — held until the 6,000-sessions-vs-1,579 gap is explained.' },
+        { t: 'Same-message set', state: 'ready', bg: '#e8f9f1', fg: '#0e6742',
+          d: 'The join the link field bought. Works the moment more than one asset carries a message.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

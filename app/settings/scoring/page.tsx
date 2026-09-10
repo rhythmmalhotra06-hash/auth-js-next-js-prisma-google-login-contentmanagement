@@ -4,7 +4,7 @@ import { AppShell } from '@/components/ui/AppShell';
 import { ScoringConfigEditor, type PersonRow } from '@/components/settings/ScoringConfigEditor';
 import { getAdminAccess } from '@/lib/admin/access';
 import { homeRouteForRoles } from '@/lib/roles';
-import { getScoringConfig, listGlobalRows, listEventTypeRows, listAssetTypeRows } from '@/lib/scoring-config/repository';
+import { getScoringConfig, listGlobalRows, listEventTypeRows } from '@/lib/scoring-config/repository';
 import { getEligibleAssignees } from '@/lib/tickets/data';
 
 export const dynamic = 'force-dynamic';
@@ -13,11 +13,10 @@ export default async function ScoringConfigPage() {
   const access = await getAdminAccess();
   if (!access.isAdmin) redirect(homeRouteForRoles(access.roles)); // admin-only surface
 
-  const [cfg, globals, eventTypes, assetTypes, assignees] = await Promise.all([
+  const [cfg, globals, eventTypes, assignees] = await Promise.all([
     getScoringConfig(),
     listGlobalRows(),
     listEventTypeRows(),
-    listAssetTypeRows(),
     getEligibleAssignees(),
   ]);
 
@@ -37,7 +36,6 @@ export default async function ScoringConfigPage() {
       <ScoringConfigEditor
         globals={globals.ok ? globals.data : []}
         eventTypes={eventTypes.ok ? eventTypes.data : []}
-        assetTypes={assetTypes.ok ? assetTypes.data : []}
         people={people}
         defaultCapacity={cfg.defaultCapacity}
         canEdit={access.isAdmin}

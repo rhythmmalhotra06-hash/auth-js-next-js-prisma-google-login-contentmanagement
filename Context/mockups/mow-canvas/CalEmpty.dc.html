@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#fff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600;
+      padding:2px 7px; border-radius:8px; white-space:nowrap; }
+    .gap { border:1px dashed rgba(40,20,60,.22); border-radius:8px; padding:14px 12px;
+      font-size:12px; color:#a59db4; text-align:center; background:#fff; }
+  </style>
+</helmet>
+
+<div style="padding:26px 22px; max-width:1400px; margin:0 auto">
+
+  <div style="margin-bottom:18px">
+    <div class="eyebrow">Comms Calendar</div>
+    <h1 style="margin:5px 0 4px; font-size:23px; font-weight:700; letter-spacing:-.02em">Three empty states</h1>
+    <div style="font-size:13px; color:#6b6478; max-width:760px">
+      These are the feature, not a fallback. Vishen's meeting is largely about the gaps, so each one
+      says <em>which</em> gap it is and who closes it — three different sentences, never one generic
+      “no data”. Today the calendar is mostly made of these.
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; margin-bottom:18px">
+    <sc-for list="{{ states }}" as="s" hint-placeholder-count="3">
+      <div class="card" style="padding:18px; border-top:3px solid {{ s.accent }}">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:11px">
+          <span class="pill" style="background:{{ s.chipBg }}; color:{{ s.chipFg }}">{{ s.tag }}</span>
+          <span style="font-size:11.5px; color:#a59db4">{{ s.count }}</span>
+        </div>
+
+        <div style="font-size:15px; font-weight:600; letter-spacing:-.01em; margin-bottom:5px">{{ s.title }}</div>
+        <div style="font-size:12.5px; color:#6b6478; line-height:1.5; margin-bottom:14px">{{ s.body }}</div>
+
+        <!-- How it actually renders in the grid -->
+        <div style="background:#faf9fc; border-radius:8px; padding:12px; margin-bottom:13px">
+          <div style="font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#a59db4; margin-bottom:8px">In the grid</div>
+          <div class="gap">{{ s.inGrid }}</div>
+        </div>
+
+        <div style="display:flex; align-items:baseline; gap:7px; font-size:12px">
+          <span style="color:#a59db4; flex:none">Closed by</span>
+          <span style="font-weight:600; color:{{ s.ownerColor }}">{{ s.owner }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="card" style="padding:17px 19px">
+    <div class="eyebrow" style="margin-bottom:10px">What none of them do</div>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px">
+      <sc-for list="{{ nevers }}" as="n" hint-placeholder-count="4">
+        <div style="display:flex; gap:9px; align-items:flex-start">
+          <svg viewBox="0 0 20 20" fill="none" stroke="#8a1f1f" stroke-width="1.8" style="width:15px;height:15px;flex:none;margin-top:2px">
+            <circle cx="10" cy="10" r="7.5"/><path d="M6.5 6.5l7 7"/>
+          </svg>
+          <div>
+            <div style="font-size:12.5px; font-weight:600; margin-bottom:2px">{{ n.t }}</div>
+            <div style="font-size:11.5px; color:#6b6478; line-height:1.45">{{ n.d }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "$preview": {"width":1440,"height":560}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      states: [
+        {
+          tag: 'no Live Date', accent: '#c9801a', chipBg: '#fff4d9', chipFg: '#7a5600',
+          count: '221 assets · 66 published',
+          title: 'The asset exists. It has no day.',
+          body: 'It is real work, often already live — it simply cannot be placed on a calendar. It goes to the not-dated tray with a count, never dropped and never silently excluded.',
+          inGrid: 'not shown here — see the tray',
+          owner: 'unassigned — the critical path', ownerColor: '#8a1f1f',
+        },
+        {
+          tag: 'no message committed', accent: '#7b6ea8', chipBg: '#f2f0f9', chipFg: '#4b4173',
+          count: 'VL, every week this month',
+          title: 'The week has assets. It has no message.',
+          body: 'Content shipped, but nothing says what the week was about. The other brand’s message is never borrowed to fill this — doing that is what made v1 read as “Mindvalley’s calendar”.',
+          inGrid: 'no message committed',
+          owner: 'Ramya', ownerColor: '#1a1523',
+        },
+        {
+          tag: 'no goal set', accent: '#a59db4', chipBg: '#f4f2f8', chipFg: '#6b6478',
+          count: 'all 6 real messages',
+          title: 'The message exists. Its goal is blank.',
+          body: 'Goal is empty on every real record, so the lookup chain resolves to nothing and no asset inherits a goal. The target reads “no target set” — never a zero, never a 0% bar.',
+          inGrid: 'goal not set',
+          owner: 'Ramya', ownerColor: '#1a1523',
+        },
+      ],
+      nevers: [
+        { t: 'Never a zero', d: 'An empty 24h read renders “not filled”. A percentage with an empty denominator renders blank, not 0% or NaN.' },
+        { t: 'Never borrowed', d: 'One brand’s gap is never filled with the other brand’s message or goal.' },
+        { t: 'Never dropped', d: 'An undated asset is counted and reachable, not filtered out of existence.' },
+        { t: 'Never generic', d: 'Three gaps, three sentences. “No data” tells nobody what to do next.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

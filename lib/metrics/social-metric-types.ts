@@ -5,7 +5,7 @@
 // lib/clipping/clip-types.ts exists.
 
 /** Where a metric row came from. */
-export type MetricSource = 'manual' | 'hootsuite:perch';
+export type MetricSource = 'manual' | 'hootsuite:perch' | 'composio-ig' | 'composio-yt';
 
 export interface SocialMetricInput {
   source: MetricSource;
@@ -17,6 +17,8 @@ export interface SocialMetricInput {
   vishenVideoId?: string | null;
   ticketAirtableId?: string | null;
   channel?: string | null;
+  /** Hootsuite campaign/speaker tags. Empty means "not tagged", never "no campaign". */
+  tags?: string[] | null;
   impressions?: number | null;
   views?: number | null;
   reach?: number | null;

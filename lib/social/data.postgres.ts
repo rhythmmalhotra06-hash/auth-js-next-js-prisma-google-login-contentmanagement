@@ -69,7 +69,7 @@ export async function getSocialSuggestion(idOrRec: string): Promise<AirtableResu
 }
 
 export async function listCommsCalendarEntries(): Promise<AirtableResult<CommsCalendarEntry[]>> {
-  const rows = await prisma.commsCalendar.findMany({
+  const rows = await prisma.officialCalCC.findMany({
     select: { airtableId: true, name: true, status: true, startDate: true, endDate: true },
   });
   const data: CommsCalendarEntry[] = rows

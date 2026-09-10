@@ -88,6 +88,11 @@ model Employee {
   ticketEvents              TicketEvent[]
   approvals                 Approval[]
   contentSources            ContentSource[]            @relation("ContentSourceCreatedBy")
+  mowSlots                  MowSlot[]
+  performanceAttributions   PerformanceAttribution[]
+  learnings                 Learning[]
+  briefs                    Brief[]
+  experiments               Experiment[]
 
   @@map("employees")
 }
@@ -365,6 +370,9 @@ model Ticket {
 
   dnaReviews          DnaReview[]
   dnaReviewRuleSources DnaReviewRule[] @relation("DnaRuleSourceTicket")
+
+  performanceSnapshots AssetPerformanceSnapshot[]
+  creativeRecords      CreativeRecord[]
 
   @@index([priorityScore(sort: Desc), queueRank], map: "idx_tickets_queue")
   @@index([assigneeId], map: "idx_tickets_assignee")
@@ -644,9 +652,17 @@ model VishenVideo {
   @@map("vishen_videos")
 }
 
-// 📅 Content & Comms campaign calendar (distinct from OfficialCalendar). Reference:
-// one-way Airtable → PG; edited in Airtable. Powers the /social/new calendar picker.
-model CommsCalendar {
+// 📅 Official Cal in the Content & Comms base (COMMS_OFFICIAL_CAL, tbl3PkmIprAMhU4AI) —
+// one row per *project*. Distinct from OfficialCalendar (Creative Services) above, and from
+// CommsDay (the day-level 🗓️ Comms Calendar) below.
+//
+// Renamed from `CommsCalendar` on 2026-09-09: the old name said "comms calendar" but
+// `mapCommsCalendar` has always populated it from Official Cal, which made it look as though the
+// day-level calendar was already synced when it wasn't. The DB table keeps its original name, so
+// this rename is code-only — no DDL, no data movement.
+//
+// Reference: one-way Airtable → PG; edited in Airtable. Powers the /social/new calendar picker.
+model OfficialCalCC {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   airtableId String?  @unique @map("airtable_id")
   name       String
@@ -851,6 +867,19 @@ model SocialMetric {
   vishenVideoId    String?  @map("vishen_video_id") // VishenVideo.id when resolved (uuid or recId)
   ticketAirtableId String?  @map("ticket_airtable_id")
   channel          String?
+  /**
+   * Hootsuite campaign/speaker tags for this post, e.g. 'Expert to Authority Summit 2026',
+   * 'Weekly Masterclass', 'Vishen', 'Regan Hillyer'.
+   *
+   * Perch has always returned these inside `raw.details.tags`; we stored the payload but never
+   * lifted them out. This is the mechanism the social team already groups campaigns by — Glen:
+   * "on Hootsuite we tag a post depending on the campaign… MCH August 2026" — so extracting it
+   * gives campaign-level grouping with no new integration.
+   *
+   * Coverage is partial by nature (56 of 329 posts at 10 Sep) because it depends on the team
+   * tagging as they schedule. Treat an empty array as "not tagged", never as "no campaign".
+   */
+  tags             String[]
   impressions      Int?
   views            Int?
   reach            Int?
@@ -869,6 +898,7 @@ model SocialMetric {
   @@index([publishedUrl, capturedAt], map: "idx_social_metrics_url")
   @@index([vishenVideoId, capturedAt], map: "idx_social_metrics_video")
   @@index([ticketAirtableId, capturedAt], map: "idx_social_metrics_ticket")
+  @@index([tags], map: "idx_social_metrics_tags", type: Gin)
   @@map("social_metrics")
 }
 
@@ -910,4 +940,458 @@ model SyncState {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("sync_state")
+}
+
+// ===========================================================================
+// MESSAGE OF THE WEEK (E-MOW) — migration 0024_mow
+//
+// The Monday 08:00 MYT pack: one weekly record per brand holding the message, the goal, one
+// committed smart number, and the day-by-day slots with named owners and learnings.
+//
+// Plan:  plans/ref-to-sep-call-zazzy-moth.md   (decisions S1–S21 override the brief)
+// Brief: Sep Calls/Handoff/MOW-HANDOFF.md      (D1–D9, data model, jobs, views)
+//
+// Two principles this section must not break:
+//  1. PROPOSE-ONLY. Every narrative field is a staged/committed PAIR. AI writes `*Staged`;
+//     a named human commits into `*Committed`; downstream reads ONLY the committed value.
+//     This is Glen's condition — "if efficiency is a recommendation and that's not true, it
+//     might derail everything." Copies the DnaReview* / ClipRule pattern; do not invent a second.
+//  2. ONE HEADLINE NUMBER. `smartNumber` is a single Json object, never an array. The other
+//     candidate metrics live in `drivers` and render smaller. See S1's guardrail in the plan.
+// ===========================================================================
+
+// 🗓️ Comms Calendar (COMMS_DAY, tblUUVMKdSrLVhTx8) — one row per DATE. The upstream for MowSlot
+// and the answer to "what went out on 2 September".
+//
+// TWO-WAY (S8): PG is system-of-record, writes enqueue an AirtableOutbox row and drain via
+// lib/airtable/drain-after.ts, with echo-suppression on airtablePushedAt — but ONLY over the
+// writable subset. Airtable rejects writes to formula/rollup/lookup/createdTime/lastModifiedTime,
+// which is 31 of this table's 75 fields, so the `ro*` columns below are mirror-for-display and
+// must never appear in the push map. Surface that in the UI so a refused write doesn't read as a
+// sync bug.
+//
+// Link fields are kept as Airtable recId arrays (same convention as MediaSource) rather than
+// modelled as relations — the linked tables are mostly unsynced.
+model CommsDay {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId    String?   @unique @map("airtable_id")
+  date          DateTime? @db.Date // ← "Date"; the row's identity, one per day
+  messageOfWeek String?   @map("message_of_week") // ← plain text today; becomes a link post-workshop
+  theGoal       String?   @map("the_goal") // ← plain text today, same
+  phase         String?
+  coreMessage   Boolean   @default(false) @map("core_message")
+  internalNote  String?   @map("internal_note")
+  score         String?
+  campaignType  String?   @map("campaign_type")
+  noOfEmails    Int?      @map("no_of_emails")
+
+  // Actuals the day-cards read.
+  landingPageSessions Int?     @map("landing_page_sessions")
+  sublist             Int?
+  attendees           Int?
+  spSessions          Int?     @map("sp_sessions")
+  sales               Int?
+  totalDailyRevenue   Decimal? @map("total_daily_revenue") @db.Decimal(14, 2)
+
+  // Airtable link fields, stored as recId arrays.
+  officialCalIds            String[] @map("official_cal_ids") // → 📅 Official Cal; presence ⇒ a campaign is live that day (drives S2's leads default)
+  initiativeIds             String[] @map("initiative_ids")
+  emailIds                  String[] @map("email_ids")
+  socialAssetIds            String[] @map("social_asset_ids")
+  bannerIds                 String[] @map("banner_ids")
+  notificationIds           String[] @map("notification_ids")
+  blogIds                   String[] @map("blog_ids")
+
+  // READ-ONLY mirror (formula/lookup upstream). Never written back.
+  roLeadGenGoal    Decimal? @map("ro_lead_gen_goal") @db.Decimal(14, 2) // ← lookup: the campaign's lead target
+  roTargetRevenue  Decimal? @map("ro_target_revenue") @db.Decimal(14, 2)
+  roProjectName    String?  @map("ro_project_name")
+  roStatus         String?  @map("ro_status")
+  roWeekday        String?  @map("ro_weekday")
+  roNameOfComms    String?  @map("ro_name_of_comms")
+
+  airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt         DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  slots MowSlot[]
+
+  @@index([date], map: "idx_comms_days_date")
+  @@index([airtablePushedAt], map: "idx_comms_days_pushed")
+  @@map("comms_days")
+}
+
+// 🗓️ Message of the Week master (MESSAGE_OF_WEEK, tbl3NPxLDApiIyobS).
+//
+// Repointed 10 Sep (plan §0 / V3): the master is the table the 9 Sep notes called
+// "Message of the week copy" and said to delete. `tblrxLMH2ncoLaHO5` is the superseded one.
+//
+// `brand` is a SINGLE value, not a set — the 10 Sep workshop settled it as one row per brand per
+// week, which is what MowWeek's (weekStart, brand) key already assumed. Live values include the
+// misspelling 'Mindalley' on 6 of 7 records; it is NOT normalised here (reference data is
+// read-only in the app — the fix is in Airtable + a reconcile). See MESSAGE_OF_WEEK.brandValues.
+//
+// `weekStarting` does not exist upstream yet. Until it does the week is DERIVED from the
+// message's linked dates (MV via the comms-calendar link, VL via the Live Date lookup), so this
+// column stays nullable and readers must tolerate null.
+model MessageOfWeek {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId   String?   @unique @map("airtable_id")
+  mow          String? // ← "MOW" (primary)
+  keyMessage   String?   @map("key_message")
+  goal         String? // richText upstream; EMPTY on all 6 real records as of 10 Sep
+  brand        String? // SINGLE select upstream: 'Mindalley' [sic] | 'VL'
+  weekStarting DateTime? @map("week_starting") @db.Date // not upstream yet — derived meanwhile
+  active       Boolean   @default(true)
+  companyGoals String?   @map("company_goals")
+  assigneeName String?   @map("assignee_name")
+
+  // 🗓️ Comms Calendar link, as Airtable recIds. This is how an MV message's WEEK is derived
+  // before `Week starting` exists (V2): resolve these against `comms_days.airtable_id` to get
+  // real dates. Stored as ids rather than dates because the REST layer returns link fields as
+  // recIds (returnFieldsByFieldId=true) — the display names that read "September 8, 2026" are
+  // only available through the MCP, which the app cannot call.
+  //
+  // VL messages have no comms-calendar link; their dates live on the VL base's Videos link, which
+  // the comms-calendar read path resolves. So a VL week stays underivable here until either that
+  // path lands or `Week starting` is populated.
+  commsCalendarIds String[] @map("comms_calendar_ids")
+
+  airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt         DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+
+  weeks MowWeek[]
+
+  @@index([weekStarting], map: "idx_mow_week_starting")
+  @@index([airtablePushedAt], map: "idx_mow_pushed")
+  @@map("messages_of_week")
+}
+
+// One weekly record PER BRAND (S3 — overrides the brief's "default one"). MV and VL each get
+// their own message, goal and smart number; a third brand is simply another row.
+model MowWeek {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekStart DateTime @map("week_start") @db.Date // Monday
+  brand     String // 'MV' | 'VL' | … — part of the identity, not a tag
+  status    String   @default("draft") // draft | set | closed
+
+  messageOfWeekId String?        @map("message_of_week_id") @db.Uuid
+  messageOfWeek   MessageOfWeek? @relation(fields: [messageOfWeekId], references: [id], onDelete: SetNull)
+
+  // The message + goal as committed for this brand-week (denormalized from MessageOfWeek so a
+  // closed week keeps what it actually said, even if the master row is later edited).
+  message String?
+  goal    String?
+
+  // THE one headline number. A single object — never an array. Shape:
+  //   { key: 'revenue'|'leads'|'active_users', label, value, target, source, asOf }
+  // `source` records the provenance path (e.g. 'session:metabase' vs 'app:metabase') so the
+  // Metabase swap in plan §2 is invisible to the page. Staged until a human commits.
+  smartNumberStaged    Json?   @map("smart_number_staged")
+  smartNumberCommitted Json?   @map("smart_number_committed")
+  // Which metric is the headline this week (S1/S2). Campaign weeks default to 'leads' against
+  // the campaign's own lead goal (CommsDay.roLeadGenGoal); otherwise from the primary Offer.
+  smartNumberKey       String? @map("smart_number_key")
+  // The other candidate metrics, demoted — rendered smaller, never promoted automatically.
+  drivers              Json?
+
+  primaryOfferId String? @map("primary_offer_id") @db.Uuid
+  primaryOffer   Offer?  @relation(fields: [primaryOfferId], references: [id], onDelete: SetNull)
+
+  weekSummaryStaged    String? @map("week_summary_staged")
+  weekSummaryCommitted String? @map("week_summary_committed")
+
+  // Any of Gareth, Glen or Ramya may commit (S4) — enforced by an allowlist in code, and shown
+  // on the page so the room knows whose numbers these are.
+  committedBy String?   @map("committed_by")
+  committedAt DateTime? @map("committed_at") @db.Timestamptz
+  generatedAt DateTime? @map("generated_at") @db.Timestamptz
+
+  airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  slots       MowSlot[]
+  learnings   Learning[]
+  briefs      Brief[]
+  experiments Experiment[]
+
+  @@unique([weekStart, brand], map: "uq_mow_weeks_week_brand")
+  @@index([weekStart], map: "idx_mow_weeks_start")
+  @@map("mow_weeks")
+}
+
+// One row per (day × channel). Email and social on the same day are SEPARATE rows and are
+// intentionally different messages — per the brief, do not treat that as misalignment. What must
+// be shared is the destination (Offer).
+model MowSlot {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId String  @map("week_id") @db.Uuid
+  week   MowWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  day       DateTime @db.Date
+  channel   String // email | social | platform
+  brand     String?
+  // Platform comms (Sadaf) attach to the WEEK, not a day — they run >= 7 days. Those rows carry
+  // channel='platform' and the week's Monday as `day` (it is NOT NULL, so there is no "no day"
+  // sentinel). No source exists yet, so they render as a labelled empty state and nobody types
+  // anything (S17).
+  expectedAssetType String?  @map("expected_asset_type")
+  ownerEmployeeId   String?  @map("owner_employee_id") @db.Uuid
+  ownerEmployee     Employee? @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  ownerNameFallback String?  @map("owner_name_fallback") // e.g. "Editor TBC" where the transcript is unverified
+
+  plannedFromSource String? @map("planned_from_source") // 'comms_calendar' | 'release_planner' | 'manual'
+
+  // 'blocked' (upstream, e.g. no speaker list) is NOT 'missed' (we just didn't ship it).
+  // Two statuses, two colours — the brief is explicit about this.
+  status      String  @default("planned") // planned | shipped | missed | blocked
+  blockerNote String? @map("blocker_note")
+
+  commsDayId String?   @map("comms_day_id") @db.Uuid
+  commsDay   CommsDay? @relation(fields: [commsDayId], references: [id], onDelete: SetNull)
+
+  offerId String? @map("offer_id") @db.Uuid
+  offer   Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  snapshots AssetPerformanceSnapshot[]
+  learnings Learning[]
+  briefs    Brief[]
+
+  @@index([weekId, day], map: "idx_mow_slots_week_day")
+  @@index([day, channel], map: "idx_mow_slots_day_channel")
+  @@map("mow_slots")
+}
+
+// A destination / offer — the thing assets point at, and the level at which the smart number is
+// actually true (brief D3). Inferred from parsed UTMs, not entered by hand (brief D2).
+model Offer {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  path         String // e.g. /summit/expert
+  canonicalUrl String? @map("canonical_url")
+  name         String?
+
+  utmCampaignPattern String? @map("utm_campaign_pattern") // e.g. launch_eas_sep_2026
+  // Which metric this offer is judged on; supplies MowWeek's default headline outside campaign
+  // weeks. 'revenue' | 'leads' | 'active_users'.
+  smartNumberDefinition String? @map("smart_number_definition")
+  // Curated Metabase question id. HARD-ALLOWLISTED in code to 31846 (leads) / 32044 (revenue) —
+  // never point a generator at the full dashboard: Glen's did, and "it would just make shit up
+  // after every two days, it would fake the revenue".
+  metabaseQueryRef String? @map("metabase_query_ref")
+  // Rafi's "Funnels & Experimentations" scoreboard row. Link out, don't rebuild (brief D6).
+  airtableTestRecordId String? @map("airtable_test_record_id")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  slots            MowSlot[]
+  weeks            MowWeek[]
+  destinationLinks DestinationLink[]
+  snapshots        AssetPerformanceSnapshot[]
+  creativeRecords  CreativeRecord[]
+
+  @@unique([path], map: "uq_offers_path")
+  @@map("offers")
+}
+
+// The output of destination inference, and the human-link queue for what it couldn't match
+// (brief D2). One row per observed link on a send / post / banner / test.
+//
+// Resolves to WHICH OFFER, not which post. Getting to per-post needs utm_content unique per post
+// — an Airtable formula on the 📣 Social row (S7, plan §3). Today utm_content carries only 30
+// distinct placement values, so ten reels in one campaign are indistinguishable.
+model DestinationLink {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceType String  @map("source_type") // braze_send | social_post | banner | test
+  sourceId   String  @map("source_id") // Airtable recId or PG id of the originating row
+  rawUrl     String  @map("raw_url")
+  parsedUtm  Json?   @map("parsed_utm") // { source, medium, campaign, content, term }
+  offerId    String? @map("offer_id") @db.Uuid
+  offer      Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  matchConfidence Decimal? @map("match_confidence") @db.Decimal(4, 3)
+  humanLinkedBy   String?  @map("human_linked_by")
+  humanLinkedAt   DateTime? @map("human_linked_at") @db.Timestamptz
+  // True when the CTA runs through ManyChat DM rather than a clickable link: attribution there is
+  // campaign-level at best, so the UI labels it that way instead of showing a blank (plan §3).
+  viaManychat Boolean @default(false) @map("via_manychat")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([sourceType, sourceId, rawUrl], map: "uq_destination_links_source_url")
+  @@index([offerId], map: "idx_destination_links_offer")
+  @@map("destination_links")
+}
+
+// SNAPSHOTS, not a mutable current value — revenue backfills upward as late attribution lands,
+// so a figure is never final and the page must show "as of".
+model AssetPerformanceSnapshot {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId String? @map("ticket_id") @db.Uuid
+  ticket   Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  slotId   String? @map("slot_id") @db.Uuid
+  slot     MowSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  offerId  String? @map("offer_id") @db.Uuid
+  offer    Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  channel     String?
+  publishedAt DateTime? @map("published_at") @db.Timestamptz
+  snapshotAt  DateTime  @default(now()) @map("snapshot_at") @db.Timestamptz
+  horizon     String // 24h | 7d | 30d — Rafi's rule: nothing is read early
+  // Whatever the source gave us. Sources disagree about what they can report, so we store the
+  // payload and let the read side show the best available rather than forcing one vocabulary.
+  metrics     Json
+
+  source String // hootsuite:perch | youtube | braze | airtable:sends | manual
+
+  attributions PerformanceAttribution[]
+
+  @@index([ticketId, snapshotAt], map: "idx_aps_ticket")
+  @@index([slotId, horizon], map: "idx_aps_slot_horizon")
+  @@map("asset_performance_snapshots")
+}
+
+// Performance decomposes to lever → owner: retention → editor, thumbnail CTR → packaging owner,
+// destination click-through → message owner (brief D5).
+//
+// MANUAL for 14 Sep (S16) — a human types the owner. Structuring it now means the eventual E10
+// sub-task model backfills into a real column instead of migrating free text.
+model PerformanceAttribution {
+  id         String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotId String                   @map("snapshot_id") @db.Uuid
+  snapshot   AssetPerformanceSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  lever             String // retention | packaging | message
+  ownerEmployeeId   String?   @map("owner_employee_id") @db.Uuid
+  ownerEmployee     Employee? @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  ownerNameFallback String?   @map("owner_name_fallback")
+  note              String?
+  enteredBy         String?   @map("entered_by")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([snapshotId], map: "idx_perf_attr_snapshot")
+  @@map("performance_attributions")
+}
+
+// Gareth's tabular data: every asset stored with its copy, transcript, hook, offer and CTA, so
+// the system becomes a learning engine and not just a storage engine. Backfill Ramya's
+// newsletter archive first. Phase 2 — the table lands now so there's no second migration.
+model CreativeRecord {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId String? @map("ticket_id") @db.Uuid
+  ticket   Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  offerId  String? @map("offer_id") @db.Uuid
+  offer    Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  assetType    String? @map("asset_type")
+  copy         String?
+  transcript   String?
+  hook         String?
+  cta          String?
+  thumbnailRef String? @map("thumbnail_ref")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([ticketId], map: "idx_creative_records_ticket")
+  @@map("creative_records")
+}
+
+// <= 5 COMMITTED learnings per week, each attributed to the person who controls the lever.
+// The library is read by the agent, not browsed (brief D7) — the page is the evidence trail.
+model Learning {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId String  @map("week_id") @db.Uuid
+  week   MowWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  slotId String? @map("slot_id") @db.Uuid
+  slot   MowSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
+  textStaged    String? @map("text_staged")
+  textCommitted String? @map("text_committed")
+
+  leverOwnerEmployeeId String?   @map("lever_owner_employee_id") @db.Uuid
+  leverOwnerEmployee   Employee? @relation(fields: [leverOwnerEmployeeId], references: [id], onDelete: SetNull)
+
+  rank        Int? // display order within the week's <= 5
+  committedBy String?   @map("committed_by")
+  committedAt DateTime? @map("committed_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  appliedToBriefs Brief[]
+
+  @@index([weekId, rank], map: "idx_learnings_week_rank")
+  @@map("learnings")
+}
+
+// The pack is mostly briefs: one per slot owner, drafted from last week's evidence, committed by
+// a human. Editors also declare what they will improve in the next upload — Glen's specific ask.
+model Brief {
+  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId String  @map("week_id") @db.Uuid
+  week   MowWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  slotId String? @map("slot_id") @db.Uuid
+  slot   MowSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
+  ownerEmployeeId String?   @map("owner_employee_id") @db.Uuid
+  ownerEmployee   Employee? @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  ownerEmail      String?   @map("owner_email") // who may edit this block
+
+  textStaged    String? @map("text_staged")
+  textCommitted String? @map("text_committed")
+  // "What am I improving in my next upload?" — one key point, owner's own words.
+  nextUploadFocus String? @map("next_upload_focus")
+
+  evidence Json? // learning ids + snapshot ids the draft was built from
+
+  committedBy String?   @map("committed_by")
+  committedAt DateTime? @map("committed_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  learnings Learning[]
+
+  @@index([weekId], map: "idx_briefs_week")
+  @@index([ownerEmail], map: "idx_briefs_owner")
+  @@map("briefs")
+}
+
+// CONTENT experiments only — hooks, thumbnails, formats, messaging (brief D6). Funnel and page
+// tests are Rafi's; link out to his scoreboard via the shared Offer, don't rebuild them.
+model Experiment {
+  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId String?  @map("week_id") @db.Uuid
+  week   MowWeek? @relation(fields: [weekId], references: [id], onDelete: SetNull)
+
+  hypothesis String
+  evidence   Json?
+  scope      String @default("content") // content only
+
+  ownerEmployeeId String?   @map("owner_employee_id") @db.Uuid
+  ownerEmployee   Employee? @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+
+  status  String    @default("proposed") // proposed | open | closed
+  opensAt DateTime? @map("opens_at") @db.Date
+  // Rafi's rule: nothing is read early. Enforce >= 7 days after opensAt.
+  readsAt DateTime? @map("reads_at") @db.Date
+  result  String?
+
+  linkedAirtableTestId String? @map("linked_airtable_test_id")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([status, readsAt], map: "idx_experiments_status_reads")
+  @@map("experiments")
 }

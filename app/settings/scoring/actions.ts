@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { getScoringConfigAccess } from '@/lib/scoring-config/access';
 import {
-  updateGlobalValue, updateEventTypeScoring, updateAssetTypeScoring, updateCapacity,
-  type EventTypeField, type AssetTypeField,
+  updateGlobalValue, updateEventTypeScoring, updateCapacity,
+  type EventTypeField,
 } from '@/lib/scoring-config/repository';
 
 export interface ActionResult {
@@ -57,17 +57,8 @@ export async function setEventTypeValue(recId: string, field: EventTypeField, ra
   return { ok: true };
 }
 
-export async function setAssetTypeValue(recId: string, field: AssetTypeField, raw: string): Promise<ActionResult> {
-  const g = await guard();
-  if ('error' in g) return { ok: false, error: g.error };
-  const v = parseOptional(raw);
-  if (v && typeof v === 'object') return { ok: false, error: v.error };
-  if (field === 'effortNorm' && v != null && v > 1) return { ok: false, error: 'Effort must be between 0 and 1.' };
-  const res = await updateAssetTypeScoring(recId, field, v as number | null);
-  if (!res.ok) return { ok: false, error: res.error.message };
-  revalidate();
-  return { ok: true };
-}
+// `setAssetTypeValue` removed 10 Sep: the Airtable fields it wrote do not exist on the synced
+// 🛎️ Asset Type table, so every call was an unknown-field rejection. See lib/scoring-config/repository.ts.
 
 export async function setCapacity(group: 'Creatives' | 'Freelancers & contractors', recId: string, raw: string): Promise<ActionResult> {
   const g = await guard();

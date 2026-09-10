@@ -41,6 +41,32 @@
   --mv-red-content:    #8a1f1f;
   --mv-red-soft:       #ffe4e4;
 
+  /* ————————————————— Staged / provisional (design handoff 3a) —————————————————
+     A role gold could not carry. Gold is attention-only — exactly one element per screen —
+     but a pack has a staged number, ~5 staged learnings and N staged briefs. Violet-slate
+     absorbs everything PROVISIONAL: staged, inferred, sample, a gap someone owns, and the
+     "present but meaningless" third state (`test`, `vcvdsv`, `Mindalley`).
+     Absorbing all of that is what frees red to mean `missed` and nothing else. */
+  --mv-staged:         #7b6ea8;
+  --mv-staged-content: #4b4173;
+  --mv-staged-soft:    #f2f0f9;
+
+  /* ————————————————— Vishen Lakhiani Media (brand, not status) —————————————————
+     VL renders teal on EVERY surface. It was teal on the calendar and Mindvalley purple on
+     /performance/week and Vishen's card, where the two brand pills were byte-identical —
+     which collapses the two-lane argument the moment you leave the calendar. */
+  --mv-vishen:         #0d9488;
+  --mv-vishen-content: #0F6E6E;
+  --mv-vishen-soft:    #e4f2f1;
+
+  /* Today's tint on a calendar cell. */
+  --mv-today-tint:     #fdfcfe;
+
+  /* Recessed surface (table heads, lane gutters). On light this is the existing subtle fill;
+     on dark it goes DARKER than the surface, because elevation replaces shadow there. */
+  --mv-surface-recessed: #f4f2f8;
+  --mv-text-emphasis:    #463f54;
+
   /* ————————————————— Agency palette (categorical — "who made it") —————————————————
      Distinct hues for the media calendar/lanes only, so each agency reads at a glance.
      NOT a status axis and NOT the accent — status stays green/blue/amber/red, gold stays attention. */
@@ -118,9 +144,27 @@
 [data-mv-theme="dark"] {
   --mv-brand:          #b98fe0; /* lifted for contrast on dark */
   --mv-brand-bright:   #cda9ec;
-  --mv-brand-content:  #e9dcf6;
-  --mv-brand-soft:     #2a1c3a;
+  --mv-brand-content:  #c9a3ec;
+  --mv-brand-soft:     #2e2040;
   --mv-brand-border:   #3d2c52;
+
+  /* Derived BY ROLE, not by inverting: inverting #f1eaf7 gives a muddy near-black that
+     reads as a hover state rather than a brand tint (design handoff 6a). */
+  --mv-staged:         #a99cd4;
+  --mv-staged-content: #c5bce0;
+  --mv-staged-soft:    #241f33;
+
+  --mv-vishen:         #34c8b8;
+  --mv-vishen-content: #5fd4c6;
+  --mv-vishen-soft:    #123330;
+
+  --mv-today-tint:     #241a33;
+
+  /* Elevation replaces shadow on dark — the two-layer shadow is invisible there, so cards get
+     lighter and table heads/lane gutters get DARKER than the surface. `recessed` is the second
+     half of that pair and has no light-mode equivalent (light uses --mv-bg-subtle). */
+  --mv-surface-recessed: #1a1523;
+  --mv-text-emphasis:    #c5bce0;
 
   --mv-bg:               #15101d;
   --mv-bg-muted:         #110c18;
@@ -138,13 +182,26 @@
   --mv-border:           rgba(200, 180, 230, 0.14);
   --mv-border-strong:    rgba(200, 180, 230, 0.26);
   --mv-border-muted:     rgba(200, 180, 230, 0.07);
-
-  --mv-green-soft:  #11291f;
-  --mv-blue-soft:   #14233f;
-  --mv-amber-soft:  #2e2410;
-  --mv-red-soft:    #2e1414;
-  --mv-gold-soft:   #2e2410;
-
+  /* Status hues + their ink, lifted for dark (design handoff 6a).
+     These were NEVER overridden: `-content` inherited its LIGHT value, so pill text rendered
+     e.g. #0e6742 green on a #11291f green fill — 2.23:1, well under the 4.5:1 floor. That
+     affected every Badge in the app on dark, not only the MOW surfaces. Derived by role rather
+     than inverted: inverting a light tint gives a muddy near-black that reads as a hover state. */
+  --mv-green:          #34d399;
+  --mv-green-content:  #4ade9c;
+  --mv-green-soft:     #10281f;
+  --mv-blue:          #7fa5f5;
+  --mv-blue-content:  #7fa5f5;
+  --mv-blue-soft:     #1c2136;
+  --mv-amber:          #e8a33d;
+  --mv-amber-content:  #e8a33d;
+  --mv-amber-soft:     #2e2210;
+  --mv-red:          #f87171;
+  --mv-red-content:  #f87171;
+  --mv-red-soft:     #331616;
+  /* Gold keeps its hue on dark — it is the accent. Only the ink lifts. */
+  --mv-gold-content: #f5c351;
+  --mv-gold-soft:    #2f2408;
   /* Agency palette — lifted for contrast on dark */
   --mv-ag-simplex:  #2dd4bf;
   --mv-ag-svishen:  #a5b4fc;
@@ -169,6 +226,27 @@
   --color-brand:         var(--mv-brand);
   --color-brand-bright:  var(--mv-brand-bright);
   --color-brand-content: var(--mv-brand-content);
+
+  /* Design-handoff roles (3a). staged = everything provisional; vishen = the VL brand,
+     teal on every surface; recessed = table heads / lane gutters. */
+  --color-staged:          var(--mv-staged);
+  --color-staged-content:  var(--mv-staged-content);
+  --color-staged-soft:     var(--mv-staged-soft);
+  --color-vishen:          var(--mv-vishen);
+  --color-vishen-content:  var(--mv-vishen-content);
+  --color-vishen-soft:     var(--mv-vishen-soft);
+  --color-surface-recessed: var(--mv-surface-recessed);
+  --color-today-tint:      var(--mv-today-tint);
+  --color-text-emphasis:   var(--mv-text-emphasis);
+
+  /* Vertical rhythm (design handoff 3a §7). Three steps, no more. The surfaces this replaces
+     used 12–26px between everything, so a section break and a card gap looked identical.
+       within — cards in one grid, rows in one list
+       label  — an eyebrow to the thing it names
+       section — the ONLY break that says "new subject" */
+  --spacing-within:  14px;
+  --spacing-label:   22px;
+  --spacing-section: 38px;
   --color-brand-strong:  var(--mv-brand-strong);
   --color-brand-soft:    var(--mv-brand-soft);
   --color-brand-border:  var(--mv-brand-border);
@@ -1051,7 +1129,11 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 /* 4-stage lifecycle: colour-coded top accent + tinted stage icon (learnable state language) */
 .st-lane::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--st-accent);opacity:.9;}
 .st-lane.tone-prod{--st-accent:var(--st-violet);}
-.st-lane.tone-review{--st-accent:var(--gold);}
+/* Awaiting sign-off is PROVISIONAL, not urgent — violet-slate, not gold. It gave up its gold
+   accent when the `5c` blocker card arrived above it: gold is attention-only and one element per
+   screen, and a founder page with two golds has none that reads as urgent. Semantically better
+   anyway; everything awaiting a human lives in the staged palette. */
+.st-lane.tone-review{--st-accent:var(--mv-staged);}
 .st-lane.tone-ready{--st-accent:var(--blue-content);}
 .st-lane.tone-pub{--st-accent:var(--green);}
 .st-lane[class*="tone-"] .st-stage .ic{background:color-mix(in srgb,var(--st-accent) 15%,var(--surface));color:var(--st-accent);}

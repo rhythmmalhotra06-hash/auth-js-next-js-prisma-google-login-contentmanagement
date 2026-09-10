@@ -157,6 +157,7 @@ export async function ingestSocialMetrics(rows: SocialMetricInput[]): Promise<In
       vishenVideoId,
       ticketAirtableId: (r.ticketAirtableId ?? '').trim() || null,
       channel: r.channel ?? null,
+      tags: Array.isArray(r.tags) ? [...new Set(r.tags.filter((t) => typeof t === 'string' && t.trim()))] : [],
       impressions: int(r.impressions),
       views: int(r.views),
       reach: int(r.reach),

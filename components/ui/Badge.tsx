@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 
-export type Tone = 'neutral' | 'brand' | 'success' | 'info' | 'warning' | 'danger';
+export type Tone = 'neutral' | 'brand' | 'success' | 'info' | 'warning' | 'danger' | 'staged' | 'vishen';
 
 const TONE: Record<Tone, { wrap: string; dot: string }> = {
   neutral: { wrap: 'bg-bg-subtle text-text-muted', dot: 'bg-text-subtle' },
@@ -9,7 +9,27 @@ const TONE: Record<Tone, { wrap: string; dot: string }> = {
   info: { wrap: 'bg-info-soft text-info-content', dot: 'bg-info' },
   warning: { wrap: 'bg-warning-soft text-warning-content', dot: 'bg-warning' },
   danger: { wrap: 'bg-danger-soft text-danger-content', dot: 'bg-danger' },
+  // Design handoff 3a. `staged` carries everything PROVISIONAL — staged, inferred, sample, a gap
+  // someone owns, a placeholder value — which is what frees `danger` to mean `missed` alone.
+  // `vishen` is the VL brand and must be used wherever a VL entity is named, on every surface:
+  // rendering it in `brand` purple made the two brand pills byte-identical on Vishen's card.
+  staged: { wrap: 'bg-staged-soft text-staged-content', dot: 'bg-staged' },
+  vishen: { wrap: 'bg-vishen-soft text-vishen-content', dot: 'bg-vishen' },
 };
+
+/**
+ * Slot status — five states, and `blocked` is NOT `missed`.
+ *
+ * Blocked is upstream (content not recorded, no speaker list) and must never read as an editor's
+ * failure. Missed is work that was due and did not happen. Two states, two colours, never merged.
+ */
+export const SLOT_TONE = {
+  planned: 'neutral',
+  shipped: 'success',
+  offPlan: 'info',
+  missed: 'danger',
+  blocked: 'warning',
+} as const satisfies Record<string, Tone>;
 
 export function Badge({ tone = 'neutral', dot = true, children, className }: {
   tone?: Tone; dot?: boolean; children: React.ReactNode; className?: string;

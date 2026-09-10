@@ -83,7 +83,7 @@ export function mapScoringKnob(r: AirtableRecord) {
   };
 }
 
-export function mapCommsCalendar(r: AirtableRecord) {
+export function mapOfficialCalCC(r: AirtableRecord) {
   return {
     airtableId: r.id,
     name: str(r.fields[COMMS_OFFICIAL_CAL.fields.name]) ?? '(untitled)',
@@ -132,8 +132,9 @@ export function mapAssetType(r: AirtableRecord) {
     category: str(r.fields[ASSET_TYPES.fields.category]),
     creativeCategory: str(r.fields[ASSET_TYPES.fields.creativeCategory]), // Creative Video/Brand Design/Event Design Type
     active: str(r.fields[ASSET_TYPES.fields.status]) === 'Active',
-    loadWeight: numVal(r.fields[ASSET_TYPES.fields.loadWeight]),
-    effortNorm: numVal(r.fields[ASSET_TYPES.fields.effortNorm]),
+    // `loadWeight` / `effortNorm` are NOT read from Airtable: the fields do not exist on this
+    // synced table (see the note in field-map.ts). The columns stay null and scoring uses its
+    // documented defaults, which is what has actually been happening since before 10 Sep.
     dnaRequirements: str(r.fields[ASSET_TYPES.fields.dnaRequirements]),
     feedbackStandards: str(r.fields[ASSET_TYPES.fields.feedbackStandards]),
     dnaUpdatedBy: str(r.fields[ASSET_TYPES.fields.dnaUpdatedBy]),
@@ -175,7 +176,7 @@ export function mapAuthor(r: AirtableRecord) {
 
 export interface SyncReport {
   dryRun: boolean;
-  counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number; contractors: number; scoringKnobs: number; clipRules: number; commsCalendars: number };
+  counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number; contractors: number; scoringKnobs: number; clipRules: number; officialCalsCC: number };
   // Rows deactivated because they no longer exist in Airtable (self-heal; see pass 3).
   deactivated: { employees: number; eventTypes: number; assetTypes: number; contractors: number };
   linkEdges: { eventTypes: number; teamLeads: number; stakeholders: number; stakeholderEmails: number; preferredEditors: number; dimensions: number };
@@ -215,7 +216,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
   const contractors = conRecs.map(mapContractor);
   const scoringKnobs = scRecs.map(mapScoringKnob);
   const clipRules = crRecs.map(mapClipRule);
-  const commsCalendars = ccRecs.map(mapCommsCalendar);
+  const officialCalsCC = ccRecs.map(mapOfficialCalCC);
 
   const linkEdges = {
     eventTypes: assetTypes.reduce((n, a) => n + a.links.eventTypes.length, 0),
@@ -258,7 +259,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     for (const a of assetTypes) {
       const scalars = {
         name: a.name, fullName: a.fullName, category: a.category, creativeCategory: a.creativeCategory,
-        active: a.active, loadWeight: a.loadWeight, effortNorm: a.effortNorm,
+        active: a.active,
         dnaRequirements: a.dnaRequirements, feedbackStandards: a.feedbackStandards, dnaUpdatedBy: a.dnaUpdatedBy,
         dnaUpstream: a.dnaUpstream, viralityDna: a.viralityDna, dnaLink: a.dnaLink,
         processDnaUrl: a.processDnaUrl, processDnaSummary: a.processDnaSummary,
@@ -286,8 +287,8 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     for (const cr of clipRules) {
       await prisma.clipRule.upsert({ where: { airtableId: cr.airtableId }, create: cr, update: { name: cr.name, kind: cr.kind, clipType: cr.clipType, content: cr.content, active: cr.active, order: cr.order, section: cr.section, note: cr.note, updatedBy: cr.updatedBy, airtableUpdatedAt: cr.airtableUpdatedAt, createdTime: cr.createdTime, syncedAt: new Date() } });
     }
-    for (const cc of commsCalendars) {
-      await prisma.commsCalendar.upsert({ where: { airtableId: cc.airtableId }, create: cc, update: { name: cc.name, status: cc.status, startDate: cc.startDate, endDate: cc.endDate, syncedAt: new Date() } });
+    for (const cc of officialCalsCC) {
+      await prisma.officialCalCC.upsert({ where: { airtableId: cc.airtableId }, create: cc, update: { name: cc.name, status: cc.status, startDate: cc.startDate, endDate: cc.endDate, syncedAt: new Date() } });
     }
 
     // Build airtable_id → our uuid maps for link resolution.
@@ -349,7 +350,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
 
   return {
     dryRun,
-    counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length, officialCalendars: officialCalendars.length, authors: authors.length, contractors: contractors.length, scoringKnobs: scoringKnobs.length, clipRules: clipRules.length, commsCalendars: commsCalendars.length },
+    counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length, officialCalendars: officialCalendars.length, authors: authors.length, contractors: contractors.length, scoringKnobs: scoringKnobs.length, clipRules: clipRules.length, officialCalsCC: officialCalsCC.length },
     deactivated,
     linkEdges,
     samples: { employee: employees[0]?.name, eventType: eventTypes[0]?.name, assetType: assetTypes[0]?.name },

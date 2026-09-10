@@ -7,9 +7,11 @@ import { pullShoots } from './pull-shoots';
 import { pullSocial } from './pull-social';
 import { pullVishenVideos } from './pull-vishen-videos';
 import { pullMediaSources } from './pull-media-sources';
+import { pullCommsDays } from './pull-comms-days';
 import { shootsArePostgres } from '@/lib/shoots/backend';
 import { socialIsPostgres } from '@/lib/social/backend';
 import { vishenVideosArePostgres, mediaIsPostgres } from '@/lib/media/backend';
+import { mowIsPostgres } from '@/lib/mow/backend';
 import type { PullReport } from './pull-core';
 
 export interface PullRunner {
@@ -28,4 +30,7 @@ export const PULL_RUNNERS: PullRunner[] = [
   ...(socialIsPostgres() ? [{ entity: 'social', run: pullSocial }] : []),
   ...(vishenVideosArePostgres() ? [{ entity: 'vishenVideo', run: pullVishenVideos }] : []),
   ...(mediaIsPostgres() ? [{ entity: 'mediaSource', run: pullMediaSources }] : []),
+  // 🗓️ Comms Calendar — the day-level calendar MOW reads. Cursor: native Last Modified
+  // (fldFGu7r22gvQi2qW), ISO format — deliberately not the formula format the others use.
+  ...(mowIsPostgres() ? [{ entity: 'commsDay', run: pullCommsDays }] : []),
 ];

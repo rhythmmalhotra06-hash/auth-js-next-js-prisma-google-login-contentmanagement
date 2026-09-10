@@ -96,6 +96,15 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
       return isMarketingDivision(division);
     case '/shoots':
       return true; // anyone can submit/track a shoot request
+    case '/studio/comms-calendar':
+    case '/studio/comms-calendar/not-dated':
+    case '/performance/week':
+    case '/performance/week/assets':
+      // Read-only, and their primary readers are Vishen, Ramya and Glen. The calendar is
+      // deliberately NOT gated to the founder surface despite sitting under /studio, and the pack
+      // is the surface the Monday meeting runs from — falling through to `default` would hide
+      // either from anyone untagged, and untagged users default to Stakeholder.
+      return true;
     case '/settings/clip-rules':
     case '/settings/scoring':
     case '/settings/team':
@@ -154,6 +163,10 @@ export function navForRoles(
   // Two surfaces, deliberately separate: "Performance" answers how published work landed,
   // "Capacity & risk" answers whether the studio can take more on. They were one page and
   // competed for the same screen.
+  // Comms Calendar — one route, three brand states. Read-only, so it is visible to anyone who can
+  // see the Intelligence group rather than gated to the founder surface.
+  items.push({ href: '/studio/comms-calendar', label: 'Comms Calendar', icon: 'list', group: 'Intelligence' });
+  items.push({ href: '/performance/week', label: 'The week', icon: 'calendar', group: 'Intelligence' });
   items.push({ href: '/performance', label: 'Performance', icon: 'chart', group: 'Intelligence' });
   items.push({ href: '/performance/capacity', label: 'Capacity & risk', icon: 'sliders', group: 'Intelligence' });
   // Asset-type DNA editor (E9.7): admins + managers get the nav entry; a team lead who

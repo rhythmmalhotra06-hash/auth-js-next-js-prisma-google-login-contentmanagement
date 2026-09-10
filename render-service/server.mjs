@@ -230,6 +230,8 @@ const UNSUPPORTED_HOSTS = [
   { match: /(^|\.)figma\.com$/i, code: 'unsupported_host' },
   { match: /(^|\.)descript\.com$/i, code: 'unsupported_host' },
   { match: /(^|\.)atlassian\.net$/i, code: 'unsupported_host' },
+  { match: /(^|\.)notion\.so$/i, code: 'unsupported_host' },
+  { match: /(^|\.)wetransfer\.com$/i, code: 'unsupported_host' },
 ];
 
 // SSRF guard. This endpoint is public Cloud Run (secret-gated) and now accepts a

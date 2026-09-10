@@ -497,6 +497,100 @@ no heap warnings in the log).
 - `node --check render-service/server.mjs` and `npm run typecheck` (from `render-service/`) clean.
 - This is a `render-service`-only fix — no main-portal change or redeploy needed.
 
+## Workstream C revision: real attribution data confirmed, and it changes the design (2026-09-08)
+
+### What the user corrected
+
+The original Workstream C above assumed auto-matching `SocialMetric.publishedUrl` against
+`Asset.distributionUrl`. Real data killed that: `assets` has 0 rows in production, so there is
+nothing to match against. The user corrected this: Content & Comms already has a **live Airtable
+automation** that links a raised ticket back to the social post that spawned it — no need to invent
+a new linking mechanism, it already exists.
+
+### What live Airtable data actually shows
+
+Investigated the "📣 Social" table (`app9YRZOVeE65fJPA` / `tblCcrdkHzOakOGnm`, 8546 rows) directly:
+
+- **The ticket-link half is real, confirmed working, at low volume.** Two fields carry it:
+  `Creative Ticket ID` (`fldZxIaWrFImce9H9`, singleLineText, written by the portal's own
+  `createTicket` flow — already mirrored as `SocialPost.creativeTicketId`) is populated on
+  **96 of 8546 rows (1.1%)**. A *separate* linked-record field, `Creative Request`
+  (`flddCgrgYAcBMFcs9`, multipleRecordLinks straight to the Prio base's ticket row — the field the
+  "Raise Request (Creative)" checkbox automation actually writes) is populated on **95 rows**. In
+  the one sample record checked, these two fields pointed to **two different ticket records**
+  (`recdw1N9Ua76ScU99` vs. `reck4Q8YOSEWt2Zcx`) — i.e. the portal path and the checkbox-automation
+  path can each raise their own ticket independently for the same post. That's a pre-existing
+  duplicate-ticket edge case in the Airtable automations, not something to silently paper over in
+  this app's join logic — flagged below, not fixed here.
+- **The published-URL half — the other half attribution actually needs — is essentially absent.**
+  `Instagram Published Link` (`fldTVU4jMZW3JNswX`, url field) is the only field shaped to hold what
+  `SocialMetric.publishedUrl` (already populated from Hootsuite Perch, per `lib/metrics/social-perf.ts`)
+  would need to match against. It is populated on **1 of 8546 rows in the entire table**, and that
+  one row is **not** one of the 95-96 ticket-linked rows. Confirmed by direct query
+  (`isNotEmpty(Creative Ticket ID) AND isNotEmpty(Instagram Published Link)` → 0 rows;
+  `isNotEmpty(Creative Request) AND isNotEmpty(Instagram Published Link)` → 0 rows).
+
+**Conclusion: the blocker isn't a missing join field in this app's code — it's that Content & Comms
+doesn't fill in the published-post URL for tickets raised through Creative Services.** Wiring
+`SocialPost.instagramPublishedLink` into the sync (the move planned earlier this session) would add
+a column with real data in it for ~1 row total. Building the join logic around it today would ship
+a feature with zero attributable rows to show for it.
+
+### Options (needs a decision, not a code call)
+
+1. **Fix it upstream, in Airtable/process** — ask Content & Comms to populate "Instagram Published
+   Link" going forward for ticket-raised posts (a process ask, not a build task). Once real volume
+   exists there, the join is genuinely simple: mirror the field, normalize the URL the same way
+   `publishedUrl` already is, match. Low app-code cost, but depends on a team habit change outside
+   this repo's control, and yields nothing for the ~8545 rows that already exist without it.
+2. **Fuzzy-match on what already exists instead of the URL field** — both the "📣 Social" table and
+   `SocialMetric`/Hootsuite carry `Title`/`Live Date`/channel-ish data; a same-channel,
+   near-same-date, similar-title match could attribute retroactively without waiting on new data
+   entry. Real cost: this is heuristic, needs a confidence threshold, and needs validation against
+   real overlapping records before trusting it — no evidence yet on how well titles/dates actually
+   line up between the two sources.
+3. **Composio, per the user's mid-thread question** ("also for data can we not use composio as
+   vishen had suggested") — a `claude.ai Composio` MCP connector is already listed as available in
+   this environment but **not yet authorized** (shows under "MCP servers require authentication").
+   Composio is an integration-connector platform; if it has a ready-made Instagram/Meta Graph API
+   connector, it could plausibly pull the *actual* published-post permalink directly by account/date
+   rather than depending on Airtable's manually-entered field at all — which would solve exactly the
+   gap found above, not just work around it. Unverified — its available toolset can't be inspected
+   until the user authorizes it (claude.ai connector settings), and it's unclear from the one-line
+   mention whether Vishen meant this exact gap or something else (e.g. as a Hootsuite Perch
+   alternative, or for a different data source entirely).
+4. **Keep manual attribution as the primary path, deprioritize auto-match** — `attachPostToTicket()`
+   already exists and works today; given confirmed near-zero automatic overlap, Workstream C's
+   "insight panel" could ship against whatever volume manual attribution accumulates, and the
+   auto-match effort gets dropped rather than built against ~0 rows.
+
+None of these are mutually exclusive (e.g. 1 + 4 together is a reasonable default: fix the process
+going forward, keep manual attribution as the practical near-term source of volume).
+
+### Decision (2026-09-08): investigate Composio before designing Workstream C further
+
+User's call: hold off finalizing Workstream C's attribution design and **investigate Composio
+first**. On what Vishen actually meant by it, the user confirmed **both** of: (1) pulling real
+social/Instagram post data directly (could close the published-URL gap found above without
+depending on Content & Comms filling in an Airtable field), and (2) as a possible **alternative to
+the Hootsuite Perch MCP connector entirely** (the connector this session already built the
+performance loop on — see memory `performance-loop-data-source.md`). That second point is a bigger
+question than E13.3 alone — it would touch the already-shipped `lib/metrics/social-perf.ts`
+ingestion path, not just attribution.
+
+**Blocked on user action, not a design question:** the `claude.ai Composio` MCP server is listed in
+this environment as requiring authorization (visible under "MCP servers require authentication") —
+it cannot be inspected, called, or evaluated until the user authorizes it via **claude.ai connector
+settings**. There is no OAuth flow available from this non-interactive session, and no way to guess
+at its toolset without that authorization.
+
+**Next step once authorized:** enumerate what the Composio connector actually offers (an
+Instagram/Meta Graph API integration? something else?), then re-evaluate against two separate
+questions — (a) does it solve the E13.3 published-URL gap better than options 1/2/4 above, and
+(b) is it a credible replacement for Hootsuite Perch as the metrics source, which is a separate,
+larger decision outside E13.3's scope. Workstream C's implementation plan stays unfinalized until
+that investigation happens.
+
 ## Open items to resolve during build (not blocking, but real)
 
 1. **render-service scope creep** — confirm the team is fine folding frame-extraction into the

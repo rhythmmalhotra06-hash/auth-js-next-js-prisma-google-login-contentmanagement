@@ -1,0 +1,164 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Comms Calendar"
+    },
+    {
+      "id": "page-2",
+      "name": "MOW pack"
+    },
+    {
+      "id": "page-3",
+      "name": "System"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "CalMain.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "page": "page-1",
+      "title": "/studio/comms-calendar \u2014 Main",
+      "is_interactive": false
+    },
+    {
+      "file": "CalVishen.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1",
+      "title": "Vishen's \u2014 as it renders today"
+    },
+    {
+      "file": "CalMindvalley.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1",
+      "title": "Mindvalley \u2014 the populated case"
+    },
+    {
+      "file": "CalMonth.dc.html",
+      "x": 0,
+      "y": 1120,
+      "w": 1440,
+      "h": 1040,
+      "page": "page-1",
+      "title": "Month zoom-out"
+    },
+    {
+      "file": "CalEmpty.dc.html",
+      "x": 1560,
+      "y": 1120,
+      "w": 1440,
+      "h": 560,
+      "page": "page-1",
+      "title": "The three empty states"
+    },
+    {
+      "file": "CalAsset.dc.html",
+      "x": 3120,
+      "y": 1120,
+      "w": 900,
+      "h": 880,
+      "page": "page-1",
+      "title": "Asset detail"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2160,
+      "page": "page-2",
+      "title": "/performance/week \u2014 the pack",
+      "is_interactive": true
+    },
+    {
+      "file": "Assets.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1320,
+      "page": "page-2",
+      "title": "/performance/week/assets"
+    },
+    {
+      "file": "StudioCard.dc.html",
+      "x": 1560,
+      "y": 1560,
+      "w": 1000,
+      "h": 760,
+      "page": "page-2",
+      "title": "/studio \u2014 blocker-first card"
+    },
+    {
+      "file": "System.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1560,
+      "page": "page-3",
+      "title": "Tokens & components"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "read-me",
+      "x": 0,
+      "y": -240,
+      "w": 620,
+      "text": "Message of the Week \u2014 Mindvalley Content Studio\n\nEvery colour, radius, type size and shadow is lifted from app/globals.css, not approximated. Plus Jakarta Sans, 14px base, 8/12/16px radii.\n\nAll data is real: the week of 7-13 Sep comes from the live comms calendar; last week's numbers are Glen's actual report.\n\nThe governing constraint: Vishen's complaint was density, not absence. First screen = ~5 numbers and 5 sentences; the analysis is one click down.",
+      "page": "page-2"
+    },
+    {
+      "id": "try-this",
+      "x": 660,
+      "y": -240,
+      "w": 500,
+      "text": "Try on the pack artboard:\n\n\u00b7 Meeting mode \u2014 collapses the prose and leaves the numbers, for screen-sharing the Monday meeting.\n\n\u00b7 Click any day row \u2014 expands into Glen's full read: per-platform stats, the CTR gauge against the fixed 7%, and what's working / needs attention / recommendations.\n\n\u00b7 The 'staged tint' tweak swaps the proposed --mv-staged token.",
+      "page": "page-2"
+    },
+    {
+      "id": "open-question",
+      "x": 1560,
+      "y": -240,
+      "w": 520,
+      "text": "Open for design:\n\n1. Two brand cards means two numbers on the first screen. Right call, or should Mindvalley lead and Vishen Lakhiani Media sit smaller beneath it?\n\n2. The day table is one row per slot, so a day with email + social takes two rows. Group them under a spanning day cell instead?\n\n3. Dark mode is first-class in this app and is not drawn yet.",
+      "page": "page-2"
+    },
+    {
+      "id": "cal-read-me",
+      "page": "page-1",
+      "x": 0,
+      "y": -300,
+      "w": 640,
+      "text": "Comms Calendar \u2014 /studio/comms-calendar\n\nOne route, three brand states, week grain with a month zoom-out. Every asset shown is real, read from the live bases on 10 Sep.\n\nThe two artboards to compare are Vishen's and Mindvalley's: same layout, same week, wildly different data. That contrast is the whole argument."
+    },
+    {
+      "id": "cal-gap",
+      "page": "page-1",
+      "x": 700,
+      "y": -300,
+      "w": 560,
+      "text": "The number that matters\n\n219 VL assets have a Live Date. 221 do not \u2014 and 66 of those are already published, mostly VL IG: Risevoice.\n\nSo a date-grouped calendar cannot show about a third of published VL work. The not-dated tray isn't a courtesy; it's where that work lives. Live Date currently has no owner."
+    },
+    {
+      "id": "cal-open",
+      "page": "page-1",
+      "x": 1320,
+      "y": -300,
+      "w": 560,
+      "text": "Open for design\n\n1. Main stacks VL above MV per day. At 7 columns a busy day gets tight \u2014 worth trying day-rows instead?\n\n2. MV days collapse to '+5 social'. Is the count enough, or does the meeting need the titles?\n\n3. Nothing is dated past 22 Sep. Should the calendar refuse to page beyond that, or show the empty weeks?"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

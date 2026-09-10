@@ -7,11 +7,12 @@
 
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@/app/generated/prisma/client';
-import { TICKETS, SHOOTS, SOCIAL, VISHEN_VIDEOS } from './field-map';
+import { TICKETS, SHOOTS, SOCIAL, VISHEN_VIDEOS, COMMS_DAY } from './field-map';
 import { ticketToAirtableFields, type TicketForPush } from './push-map';
 import { shootToAirtableFields } from './shoot-push-map';
 import { socialToAirtableFields } from './social-push-map';
 import { vishenVideoToAirtableFields } from './vishen-video-push-map';
+import { commsDayToAirtableFields, assertNoReadOnlyFields } from './comms-day-push-map';
 
 export interface LoadedPush {
   /** Current Airtable recId for this row, or null if it has never been pushed. */
@@ -184,6 +185,35 @@ const vishenVideoHandler: PushHandler = {
   },
 };
 
+// ── Comms Day handler (🗓️ Comms Calendar, the day-level calendar) ────────────
+
+// Only the writable columns. The ro* mirrors are excluded here as well as in the push map:
+// Airtable rejects writes to formula/rollup/lookup fields and a single bad key fails the whole
+// PATCH, so `assertNoReadOnlyFields` catches a future slip locally instead of at the API.
+const COMMS_DAY_PUSH_SELECT = {
+  airtableId: true, date: true, messageOfWeek: true, theGoal: true, phase: true,
+  coreMessage: true, internalNote: true, score: true, campaignType: true, noOfEmails: true,
+  landingPageSessions: true, sublist: true, attendees: true, spSessions: true, sales: true,
+  totalDailyRevenue: true, officialCalIds: true, initiativeIds: true, emailIds: true,
+  socialAssetIds: true, bannerIds: true, notificationIds: true, blogIds: true,
+} as const;
+
+const commsDayHandler: PushHandler = {
+  baseId: COMMS_DAY.baseId,
+  tableId: COMMS_DAY.tableId,
+  async load(id) {
+    const c = await prisma.commsDay.findUnique({ where: { id }, select: COMMS_DAY_PUSH_SELECT });
+    if (!c) return null;
+    const { airtableId, ...rest } = c;
+    const fields = commsDayToAirtableFields(rest);
+    assertNoReadOnlyFields(fields);
+    return { recId: airtableId, fields };
+  },
+  stampOps(id, recId) {
+    return [prisma.commsDay.update({ where: { id }, data: { airtableId: recId, airtablePushedAt: new Date() } })];
+  },
+};
+
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 export const PUSH_HANDLERS: Record<string, PushHandler> = {
@@ -191,4 +221,5 @@ export const PUSH_HANDLERS: Record<string, PushHandler> = {
   shoot: shootHandler,
   social: socialHandler,
   vishenVideo: vishenVideoHandler,
+  commsDay: commsDayHandler,
 };
