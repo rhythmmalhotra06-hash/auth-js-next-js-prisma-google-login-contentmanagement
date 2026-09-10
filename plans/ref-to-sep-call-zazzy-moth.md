@@ -845,11 +845,12 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | # | Artboard | Surface | State |
 |---|---|---|---|
 | 1 | `3a` | Component layer + tokens + `/settings/components` | ✅ **done** |
-| 2 | `6a` | Dark theme — role values over the same components | next |
-| 3 | `1a` | Week calendar, three brand states, `/studio/comms-calendar` | the one to protect |
-| 4 | `5a` `5b` | Month · asset detail | |
-| 5 | `2a` `4a` | Monday pack · assets table | `2a` fixes the `<tr>`-in-`<div>` bug with a grid |
-| 6 | `5c` | Vishen's card | |
+| 2 | `6a` | Dark theme — role values over the same components | ✅ **done** (incl. the real contrast bug) |
+| 3 | `1a` | Week calendar, three brand states, `/studio/comms-calendar` | ✅ **done** — `08413a4` |
+| 3b | — | **Reader correctness fix** (§6C) | **next** — blocks 4 and 5 both |
+| 4 | `2a` | Monday pack at `/performance/week` | **reordered ahead of Month** (Y4) |
+| 5 | `5a` `5b` | Month · asset detail | boundary now computed, not 22 Sep (Y3) |
+| 6 | `4a` `5c` | Assets table · Vishen's card | |
 | 7 | `6b` | Not-dated tray | needs Airtable rows that don't exist yet |
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
@@ -871,6 +872,104 @@ normalise.
 > `6a` dark mode. The two I would protect are `3a` and `1a`: the component sheet because skipping it
 > reintroduces all four faults per page, and the calendar because it is the only surface whose data
 > is real and whose owner is seeding it tomorrow.
+
+---
+
+## 6C. The first live run — three defects, and the reordered build
+
+### Context
+
+`1a` shipped verified against real record *shapes* but never against the live API — there was no
+token locally. Given one on 10 Sep, the reader was run once against the live bases. It **worked**:
+all 14 field references resolved, both lanes populated, no crash, no fabricated zero. It also
+exposed three defects that shape-based tests structurally could not catch, because every one of
+them is about **choosing between multiple real rows** rather than about parsing one.
+
+All three share a root cause worth stating plainly: **the calendar reader reimplemented what
+`resolveBrandsForWeek()` ([lib/mow/pack.ts:76](lib/mow/pack.ts#L76)) already solves.** The V5
+coverage rule is built, tested and correct. `assembleWeek()` just isn't calling it.
+
+| # | Live data | What the reader displayed | Why |
+|---|---|---|---|
+| **D1** | MV w/c 7 Sep carries **2 messages and 3 goals** — `Expert to Authority` (35k on Mon 7, 25k on Wed 9–Sun 13) and `Jim Kwik` (Tue 8 only) | "Expert to Authority / 25k", Jim Kwik silently dropped | `mvMessage ??=` / `mvGoal ??=` take whichever row Airtable returns first. Non-deterministic *and* lossy — it hides a real day's content, the exact failure V5 was written to prevent |
+| **D2** | **Zero** VL assets in w/c 7 Sep link to any message. The single linked asset in the whole base (1 of 238 dated) is dated **16 Sep** | "test / vcvdsv" as this week's VL message | `[...msgById.values()].find(m => m.brand === 'VL')` picks the first VL row in the table regardless of week |
+| **D3** | VL is dated through **30 Sep**, with a sparse tail (23, 26, 30 — nothing on 24, 25, 27–29) | boundary strip said 30 Sep correctly, but `5a`'s spec is written around 22 Sep | Ramya seeded more dates after the handoff was captured. Undated count also moved 221 → **204** (66 published, unchanged) |
+
+**D2 is the serious one.** Vishen's own lane claimed a message he never committed, on the surface
+built for him. It is precisely the fault the handoff names — *never borrow or invent one brand's
+message* — arriving through a different door than expected.
+
+### Decisions
+
+| # | Decision |
+|---|---|
+| **Y1** | **Extract the coverage rule, don't duplicate it.** Pull the primary/related sort out of `resolveBrandsForWeek` into a pure `lib/mow/coverage.ts`, taking `{key, name, goal, daysInWeek}[]` and returning `{primary, related, warnings}`. Both the Postgres resolver and the Airtable calendar call it. Fixing D1/D2 by writing a *second* selection rule is how the two surfaces start disagreeing. |
+| **Y2** | **Placeholders suppress to the tier-1 gap, they do not display.** `test` and `vcvdsv` render as `No message committed — Ramya`, identical to true absence. **Reverses `3a`'s `PlaceholderValue` treatment for message and goal** — the handoff itself flagged it as needing confirmation before going in front of a viewer, and it does not. The value is still never rewritten; it is simply not shown. `messageIsPlaceholder` / `goalIsPlaceholder` stay on the shape and drive a `warnings` entry, so the junk is visible to whoever can fix it without being visible to Vishen. `PlaceholderValue` itself stays for `4a`'s `Soc`-in-a-Priority-field case; if `4a` does not land, delete it. |
+| **Y3** | **The month boundary is computed, never a constant.** `5a`'s "post-22-Sep days come off red, one marker on 23" is stale — the tail is now sparse through 30 Sep, so there is no single boundary date any more. The design's *intent* survives intact and is what to implement: undated future days are **provisional, never red**, each keeps its own cell, and the sentence sits in a strip **beneath** the grid. The strip states the two real facts instead of one invented one: *"VL: 3 assets dated after 22 Sep · 204 with no Live Date at all."* A reader can still point at 24 Sep. |
+| **Y4** | **The Monday pack (`2a`) moves ahead of Month and Asset detail.** It is the surface Vishen asked for and the one the 08:00 meeting runs from; Month and Asset detail are navigation around a calendar that already works. If anything slips it should be the zoom-out, not the pack. |
+| **Y5** | **The pack reads hybrid: Airtable for the message and goal, Postgres for the staged→committed prose.** `MOW_BACKEND` stays `airtable` and needs no flip — the `0024_mow` tables are live in prod and hold the app-owned workflow state (staged/committed learnings, `committedBy`, the headline override). This is the split `CLAUDE.md`'s architecture note already mandates: reference data upstream, workflow state app-side. No reconcile on the critical path. |
+
+### 3b · The reader fix (blocks both 4 and 5)
+
+1. **`lib/mow/coverage.ts`** — the extracted pure resolver (Y1). `resolveBrandsForWeek` calls it and
+   loses its inline sort; behaviour and its 24 existing checks are unchanged.
+2. **MV lane** — group the comms-day rows by `Message of the week` text, count days in the week,
+   pick by coverage: `Expert to Authority` (6 days) leads, `Jim Kwik` (1 day) becomes `related`.
+   Then group *within* the primary by `The Goal`: 25k (5 days) leads, 35k (1 day) does not.
+   **A message carrying two different goals in one week is itself the finding** — emit a warning
+   naming both and their dates rather than choosing silently.
+3. **VL lane** — resolve the message from the assets *dated into this week*, via their
+   `Message of the week` link. Zero linked assets → `message: null`. Never scan the table.
+4. **`spanNote` gets filled.** Currently hardcoded `null`. Widen the comms-day fetch from one week
+   to a **five-week window** (one `filterByFormula`, same cost) so a message's true range is known:
+   `Expert to Authority` renders "spans 7–21 Sep". The same window is what `5a` reads, so Month
+   inherits its fetch rather than adding one.
+5. **`BrandWeekHeader` gains `related: {name, days}[]`** — rendered under the primary message, small.
+   Tuesday's Jim Kwik beat stops being invisible.
+
+### 4 · `2a` the Monday pack — `/performance/week`
+
+Per §6's anatomy and §6B's corrections. The three that are non-negotiable because each is a fault
+already found: a **CSS grid with `grid-column: 1 / -1`** for the day expansion (never `<div>`
+wrapping `<tr>` — that was a real rendering bug, and `build-export.mjs` still has it), **VL teal on
+every surface** including the brand cards, and the **commit bar as the only gold element**.
+
+What it can honestly show on Monday, given §0B's audit:
+
+| Band | Source | State |
+|---|---|---|
+| Message + goal per brand | Airtable, via the Y1 resolver | **real** — MV 25k inferred from prose, VL a named gap |
+| Headline number | none app-side | `BigNumber` renders the tier-1 gap, **never a zero** |
+| Planned vs shipped, 7 rows | comms-days + VL `Live Date`/status | **real** |
+| Per-platform reach/engagement | `social_metrics`, 329 posts | **real in aggregate**; per-asset impossible (`ticket_airtable_id` on 0 rows) |
+| YouTube · revenue · leads | — | labelled absent; Glen hand-enters week one (W5) |
+| Learnings, per-owner prose | Postgres `0024_mow` tables (Y5) | staged→committed, human-written |
+
+### Verification for 3b and 4
+
+`npx tsc --noEmit && npm run lint && npm run build`, plus the four existing suites
+(`verify-derive`, `verify-smart`, `verify-tags`, `verify-calendar`) — all must stay green;
+`verify-calendar`'s 24 checks cover the shapes the refactor moves.
+
+New checks, each written against the live rows the run above returned, so they fail today and pass
+after the fix:
+
+1. **D1** — w/c 7 Sep MV resolves primary `Expert to Authority` with goal `25k`, `related` carries
+   `Jim Kwik` at 1 day, and a warning names both the 35k and 25k goals with their dates.
+2. **D2** — w/c 7 Sep VL resolves `message: null`. w/c **14 Sep** resolves the linked asset's
+   message, and per Y2 still renders `No message committed` because that message is `test`.
+3. **D3** — the boundary strip states 3 assets after 22 Sep and 204 undated; no day cell after
+   22 Sep is red; every day 23–30 is individually addressable in the DOM.
+4. **Y2** — grep the built surfaces: `vcvdsv` and `test` appear in no rendered header.
+5. **One gold element per screen** — grep for `bg-gold`/`border-gold` per page; the calendar's is
+   the missing-goal strip, the pack's is the commit bar.
+6. **Live re-run** of both surfaces against the API before deploy, not only against fixtures — that
+   is what caught all three of these.
+
+> **Credential note.** The token used for this run was pasted into a chat transcript, and
+> InfoSec's own position (§0, change 6) is that developer PATs are not shared. **Rotate it**, and
+> put the replacement in Kessel as a secret (`kessel env secret AIRTABLE_TOKEN=…`) rather than in a
+> local file. It was passed inline for the run and written to no file in the repo.
 
 ---
 

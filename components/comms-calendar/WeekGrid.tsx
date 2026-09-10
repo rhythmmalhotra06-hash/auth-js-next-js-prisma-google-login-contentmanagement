@@ -10,7 +10,7 @@
 
 import { Badge } from '@/components/ui/Badge';
 import { AssetRow, OverflowCollapse } from '@/components/ui/Asset';
-import { EmptyOwned, EmptyFine, PlaceholderValue, TIER2 } from '@/components/ui/Empty';
+import { EmptyOwned, EmptyFine, TIER2 } from '@/components/ui/Empty';
 import { cn } from '@/lib/cn';
 import type { BrandState, BrandWeekHeader, CalendarDay, CalendarWeek } from '@/lib/comms-calendar/types';
 
@@ -39,20 +39,35 @@ function LaneHeader({ h }: { h: BrandWeekHeader }) {
 
       <div className="mt-2">
         {h.message === null ? (
-          // Never borrowed from the other brand. That is what made an earlier version read as
-          // "Mindvalley's calendar".
+          // Never borrowed from the other brand, and never scanned for outside this week — both
+          // are how an earlier version put a message on Vishen's lane that he never committed.
+          //
+          // Y2: a junk value (`test`) lands here too. It renders as the ordinary gap rather than
+          // as itself with a chip, because the founder reads this surface and junk-plus-caveat
+          // still reads as a broken tool. The value is never rewritten, only not shown — it
+          // reaches `week.warnings` for whoever can fix it upstream.
           <>
             <div className="text-base font-semibold tracking-[-.01em] text-text-subtle">
               No message committed
             </div>
             <div className="mt-0.5 text-xs text-text-subtle">Nothing is inherited from the other brand</div>
           </>
-        ) : h.messageIsPlaceholder ? (
-          <PlaceholderValue value={h.message} note="The only message on this brand in the base." />
         ) : (
           <div className="text-base font-semibold tracking-[-.01em]">{h.message}</div>
         )}
       </div>
+
+      {/* A one-day beat inside the week's campaign message. Kept, not ranked against it. */}
+      {h.related.length ? (
+        <div className="mt-1.5 flex flex-col gap-0.5">
+          {h.related.map((r) => (
+            <div key={r.name} className="text-xs text-text-muted">
+              <span className="text-text">{r.name}</span>
+              <span className="text-text-subtle"> · {r.days === 1 ? '1 day' : `${r.days} days`}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
         <span>{h.datedCount} assets dated this week</span>
@@ -227,19 +242,37 @@ export function WeekGrid({ week, state }: { week: CalendarWeek; state: BrandStat
         </div>
       ) : null}
 
-      {/* ── The grid states its own boundary, so an empty future week is not read as a broken tool ── */}
+      {/*
+        ── The grid states its own boundary, so an empty future week is not read as a broken tool ──
+
+        Y3: this is COMPUTED, never a constant. The design was written when the last Vishen date was
+        22 Sep, which made "content stops here" a fair sentence. It no longer is — the tail is
+        sparse (3 assets across 23, 26 and 30 Sep), so the strip states how many are out there
+        rather than implying either a full future or a cliff. Future days are provisional, never red.
+      */}
       {week.datedThrough ? (
         <div className="bg-surface-recessed px-[18px] py-2.5 text-center text-2xs text-text-muted">
-          Dated through {new Date(`${week.datedThrough}T00:00:00Z`).toLocaleDateString('en-GB', {
+          Vishen&rsquo;s lane is dated through{' '}
+          {new Date(`${week.datedThrough}T00:00:00Z`).toLocaleDateString('en-GB', {
             day: 'numeric', month: 'short', timeZone: 'UTC',
-          })}. Weeks after that will page, and will be empty.
+          })}
+          {week.datedAfterWeek > 0
+            ? ` — ${week.datedAfterWeek} ${week.datedAfterWeek === 1 ? 'asset' : 'assets'} after this week, spread thin.`
+            : '. Later weeks will page, and will be empty.'}
         </div>
       ) : null}
     </div>
   );
 }
 
-/** The not-dated tray. Its count is the nag — 66 published assets the calendar can never show. */
+/**
+ * The not-dated tray. Its count is the nag — published assets the calendar can never show.
+ *
+ * The prose is computed, not asserted. It read "More than half the Vishen workflow" from the
+ * handoff's 221-undated-against-219-dated snapshot; by the first live run Ramya had moved it to
+ * 204 against 238, making the sentence quietly false. A number that moves weekly does not belong
+ * in a hardcoded phrase.
+ */
 export function NotDatedBar({ notDated }: { notDated: CalendarWeek['notDated'] }) {
   if (!notDated.total) return null;
   return (
@@ -252,8 +285,8 @@ export function NotDatedBar({ notDated }: { notDated: CalendarWeek['notDated'] }
           Not dated · {notDated.total} assets, {notDated.published} of them already published
         </div>
         <div className="mt-0.5 text-xs text-text-muted">
-          More than half the Vishen workflow has no Live Date, so the calendar cannot place it.
-          Nothing here is dropped — it is just not on a day yet.
+          {notDated.sharePct === null ? 'Some' : `${notDated.sharePct}%`} of the Vishen workflow has no Live Date, so the
+          calendar cannot place it. Nothing here is dropped — it is just not on a day yet.
         </div>
       </div>
     </div>

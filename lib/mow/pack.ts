@@ -27,6 +27,7 @@ import {
   type SmartNumberKey,
 } from './smart-number';
 import { deriveWeeks, normaliseBrand, splitJammedName, type MowBrandKey } from './derive-week';
+import { pickByCoverage } from './coverage';
 
 /**
  * The brands a week is generated for when the MOW master has nothing for it yet.
@@ -126,23 +127,18 @@ export async function resolveBrandsForWeek(weekStart: Date): Promise<{
 
   const messages = new Map<string, BrandWeek>();
   for (const [brand, entries] of byBrand) {
-    entries.sort((a, b) => b.daysInWeek - a.daysInWeek || a.name.localeCompare(b.name));
-    const [primary, ...related] = entries;
-    messages.set(brand, { primary, related });
+    // The coverage rule lives in ONE place (lib/mow/coverage.ts) because the Airtable calendar
+    // reader needs the same answer, and reimplementing it there shipped two real defects.
+    const picked = pickByCoverage(entries, { label: brand, weekLabel: target });
+    warnings.push(...picked.warnings);
+    if (!picked.primary) continue;
 
-    // Only a genuine tie is ambiguous. An uneven split is the normal shape (a campaign message
-    // plus a one-day beat inside it) and needs no warning.
-    if (related.length && related[0].daysInWeek === primary.daysInWeek) {
+    messages.set(brand, { primary: picked.primary, related: picked.related });
+
+    if (!picked.primary.goal || !picked.primary.goal.trim()) {
       warnings.push(
-        `${brand} has ${entries.length} messages for week ${target} with equal coverage ` +
-          `(${primary.daysInWeek} day(s) each): leading with "${primary.name}". Confirm which is the week's message.`,
+        `${brand} message "${picked.primary.name}" has no goal set — the target will read "no target set".`,
       );
-    }
-    if (primary.spansMultiple) {
-      warnings.push(`${brand} message "${primary.name}" spans more than one week; shown in each, marked.`);
-    }
-    if (!primary.goal || !primary.goal.trim()) {
-      warnings.push(`${brand} message "${primary.name}" has no goal set — the target will read "no target set".`);
     }
   }
 
