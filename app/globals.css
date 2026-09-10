@@ -1129,7 +1129,11 @@ table.list tbody tr{animation:fadeIn .4s var(--ease) both;animation-delay:calc(v
 /* 4-stage lifecycle: colour-coded top accent + tinted stage icon (learnable state language) */
 .st-lane::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--st-accent);opacity:.9;}
 .st-lane.tone-prod{--st-accent:var(--st-violet);}
-.st-lane.tone-review{--st-accent:var(--gold);}
+/* Awaiting sign-off is PROVISIONAL, not urgent — violet-slate, not gold. It gave up its gold
+   accent when the `5c` blocker card arrived above it: gold is attention-only and one element per
+   screen, and a founder page with two golds has none that reads as urgent. Semantically better
+   anyway; everything awaiting a human lives in the staged palette. */
+.st-lane.tone-review{--st-accent:var(--mv-staged);}
 .st-lane.tone-ready{--st-accent:var(--blue-content);}
 .st-lane.tone-pub{--st-accent:var(--green);}
 .st-lane[class*="tone-"] .st-stage .ic{background:color-mix(in srgb,var(--st-accent) 15%,var(--surface));color:var(--st-accent);}

@@ -10,6 +10,9 @@ import { getLatestMetrics } from '@/lib/metrics/social-perf';
 import { MediaHub } from '@/components/studio/media/MediaHub';
 import { PipelineFunnel, type FunnelStage } from '@/components/studio/PipelineFunnel';
 import { LaunchesSection } from '@/components/studio/LaunchesSection';
+import { VishenCard, type VishenBlocker } from '@/components/mow/VishenCard';
+import { getCalendarWeekFromAirtable } from '@/lib/comms-calendar/data.airtable';
+import { weekStartOf, toYmd } from '@/lib/mow/week';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +37,40 @@ export default async function StudioPage() {
 
   // Shoots actually awaiting Vishen's sign-off (Filming Status = "Needs Vishen's Review").
   const pendingShoots = getPendingShoots(studio.shoots).map(toShootSignOffItem);
+
+  // ── Artboard `5c`: the blocker-first card ────────────────────────────────────────────────
+  // The week's message comes from the same Airtable reader the calendar and the pack use, so all
+  // three can never disagree about whose week it is. Best-effort: a founder's home page must not
+  // 500 because Airtable is slow, so a failure degrades to the card's own empty states.
+  const week = await getCalendarWeekFromAirtable(new Date()).catch(() => null);
+  const proposedClips = proposedRes.ok ? proposedRes.data : [];
+
+  const blockers: VishenBlocker[] = [
+    ...pendingShoots.map((sh) => ({
+      id: sh.id,
+      title: sh.title,
+      kind: 'Shoot sign-off' + (sh.format ? ` · ${sh.format}` : ''),
+      when: sh.filmingDate
+        ? new Date(`${sh.filmingDate.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', {
+            weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
+          })
+        : null,
+      href: '/studio/sign-off',
+      actionLabel: 'Review',
+    })),
+    // Clips collapse to ONE row rather than sixteen: the ask is identical for all of them, and a
+    // list of sixteen identical requests reads as a backlog instead of a decision.
+    ...(proposedClips.length
+      ? [{
+          id: 'clips',
+          title: `${proposedClips.length} clip${proposedClips.length === 1 ? '' : 's'} proposed for your approval`,
+          kind: 'Clip approval',
+          when: null,
+          href: '/studio/sign-off',
+          actionLabel: 'Open',
+        }]
+      : []),
+  ];
 
   // Pipeline tab (server-rendered slot): the ticket production funnel + launches + shipped.
   const pulse = pulseCounts(studio.active, studio.metrics);
@@ -80,6 +117,15 @@ export default async function StudioPage() {
 
   return (
     <AppShell title="Your media" subtitle="Everything made for your channels — catch up, approve, and see what's coming">
+      {/* `5c` — blockers first, then the week's message. Above everything else on the page. */}
+      <div className="mb-8">
+        <VishenCard
+          blockers={blockers}
+          headers={week?.headers ?? []}
+          weekHref={`/performance/week?week=${toYmd(weekStartOf(new Date()))}`}
+        />
+      </div>
+
       {videos.length === 0 ? (
         <div className="empty">No videos found in your content base yet.</div>
       ) : (

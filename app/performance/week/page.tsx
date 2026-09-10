@@ -88,8 +88,12 @@ export default async function WeekPackPage({
                     className="rounded-sm border border-border-strong bg-surface px-3 py-1.5 text-[12.5px] font-medium text-text-muted hover:bg-bg-subtle">
                 Next →
               </Link>
-              <Link href={`/studio/comms-calendar?week=${toYmd(start)}`}
+              <Link href={`/performance/week/assets?week=${toYmd(start)}`}
                     className="ml-1 text-[12.5px] font-medium text-brand hover:underline">
+                What we delivered →
+              </Link>
+              <Link href={`/studio/comms-calendar?week=${toYmd(start)}`}
+                    className="text-[12.5px] font-medium text-brand hover:underline">
                 Open the calendar →
               </Link>
             </div>
