@@ -145,6 +145,29 @@ export default async function WeekPackPage({
                           source={n.source}
                           asOf={n.asOf ? new Date(n.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null}
                         />
+
+                        {/*
+                          The drivers, DEMOTED — smaller, never promoted automatically (S1). Social
+                          and email revenue sit side by side and are never summed (AB3): Ramya
+                          presents email, Glen presents social, and one total would let either be
+                          mistaken for the other.
+                        */}
+                        {st!.drivers.length ? (
+                          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 border-t border-border-default pt-2.5">
+                            {st!.drivers.map((d) => (
+                              <div key={d.key}>
+                                <div className="text-2xs text-text-subtle">{d.label}</div>
+                                <div className="font-display text-[15px] font-bold tabular-nums">
+                                  {d.value === null
+                                    ? '—'
+                                    : d.key.includes('revenue')
+                                      ? `$${d.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                                      : d.value.toLocaleString('en-US')}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                       </StagedBlock>
                     ) : (
                       <>

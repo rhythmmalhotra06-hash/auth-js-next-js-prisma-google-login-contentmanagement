@@ -23,10 +23,17 @@
 //   3. `none`     — prose only, no comparison, no % achieved. An honest empty target.
 // Nothing here silently invents a denominator.
 
-export type SmartNumberKey = 'revenue' | 'leads' | 'active_users';
+/**
+ * `revenue` is ORGANIC SOCIAL revenue and nothing else — Glen's rule, and the difference between
+ * $6,855 and $504,748 for w/c 7 Sep. `email_revenue` is carried separately rather than folded in
+ * (AB3): Ramya presents email, Glen presents social, and a combined total would let either be
+ * mistaken for the other. They are never summed.
+ */
+export type SmartNumberKey = 'revenue' | 'email_revenue' | 'leads' | 'active_users';
 
 export const SMART_NUMBER_LABELS: Record<SmartNumberKey, string> = {
-  revenue: 'Revenue',
+  revenue: 'Revenue · organic social',
+  email_revenue: 'Revenue · email',
   leads: 'Leads',
   active_users: 'Active users gained',
 };

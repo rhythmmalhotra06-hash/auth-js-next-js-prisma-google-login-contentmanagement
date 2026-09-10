@@ -87,6 +87,8 @@ export interface BrandState {
   /** committed ?? staged — AA4. `isCommitted` says which, and the UI must show it. */
   smartNumber: unknown;
   smartNumberIsCommitted: boolean;
+  /** The demoted metrics — rendered smaller, never promoted automatically (S1). */
+  drivers: { key: string; label: string; value: number | null; source: string | null }[];
   summary: string | null;
   summaryIsCommitted: boolean;
   learnings: {
@@ -246,6 +248,9 @@ export async function getWeekPack(anchor: Date): Promise<WeekPack> {
       // AA4: the committed snapshot wins, and the page says which it is showing.
       smartNumber: w.smartNumberCommitted ?? w.smartNumberStaged ?? null,
       smartNumberIsCommitted: !!w.smartNumberCommitted,
+      drivers: Array.isArray(w.drivers)
+        ? (w.drivers as { key: string; label: string; value: number | null; source: string | null }[])
+        : [],
       summary: w.weekSummaryCommitted ?? w.weekSummaryStaged ?? null,
       summaryIsCommitted: !!w.weekSummaryCommitted,
       learnings: w.learnings.map((l) => ({

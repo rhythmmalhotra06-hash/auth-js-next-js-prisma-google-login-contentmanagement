@@ -1,0 +1,69 @@
+name: MOW weekly figures
+
+# Post the week's headline figures into the Monday pack.
+#
+# This is the manual half of decision S6. The deployed app cannot call a claude.ai connector, so
+# the numbers are pulled from Metabase by a human or a scheduled Claude agent and posted here. The
+# figures must be produced by following scripts/mow-ingest-agent.md — the four guards in it are not
+# optional, and the first alone is the difference between $6,855 and $504,748.
+#
+# Why a workflow rather than a curl from a laptop: SYNC_SECRET already lives in repo secrets, the
+# run is logged, and anyone on the team can re-run it without holding the credential.
+#
+# Safe to re-run. The route writes `smart_number_staged` only and refuses to touch a week a human
+# has already committed. It creates the week from Airtable if nobody has opened the pack yet.
+
+on:
+  workflow_dispatch:
+    inputs:
+      weekOf:
+        description: 'Any date in the target week (YYYY-MM-DD). Normalised to the Monday.'
+        required: true
+      leads:
+        description: 'Leads — Metabase 31846, already filtered to Organic Social.'
+        required: false
+      revenue:
+        description: 'ORGANIC SOCIAL revenue only — 32044 filtered to Organic Social, summed over DISTINCT order_id.'
+        required: false
+      emailRevenue:
+        description: 'EMAIL revenue — same question filtered to Email. Kept separate from social, never summed.'
+        required: false
+      brands:
+        description: 'Comma-separated brands. Leave blank only if the figure truly covers every brand.'
+        required: false
+        default: 'MV'
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the payload
+        env:
+          WEEK_OF: ${{ github.event.inputs.weekOf }}
+          LEADS: ${{ github.event.inputs.leads }}
+          REVENUE: ${{ github.event.inputs.revenue }}
+          EMAIL_REVENUE: ${{ github.event.inputs.emailRevenue }}
+          BRANDS: ${{ github.event.inputs.brands }}
+        run: python3 scripts/mow-figures-payload.py > /tmp/body.json
+
+      - name: Post to the app
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "::error::SYNC_SECRET is not set in repo secrets"; exit 1
+          fi
+          echo "POST $APP_URL/api/mow/metrics/ingest"
+          cat /tmp/body.json
+          HTTP=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -X POST "$APP_URL/api/mow/metrics/ingest" \
+            -H "Authorization: Bearer $SYNC_SECRET" \
+            -H 'content-type: application/json' \
+            --data @/tmp/body.json)
+          echo "HTTP $HTTP"; cat /tmp/resp.json; echo
+          if [ "$HTTP" != "200" ]; then echo "::error::ingest failed (HTTP $HTTP)"; exit 1; fi
+          python3 scripts/mow-figures-check.py

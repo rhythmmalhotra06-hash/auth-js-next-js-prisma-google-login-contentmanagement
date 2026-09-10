@@ -3,6 +3,8 @@ import { requireSyncSecret } from '@/lib/api/guard';
 import { prisma } from '@/lib/prisma';
 import { buildSmartNumber, resolveTarget, SMART_NUMBER_LABELS, type SmartNumberKey } from '@/lib/mow/smart-number';
 import { utcDay, weekStartOf } from '@/lib/mow/week';
+import { ensureWeek } from '@/lib/mow/week-state';
+import { getCalendarWeekFromAirtable } from '@/lib/comms-calendar/data.airtable';
 
 // Ingest the week's headline figures into a MOW week.
 //
@@ -35,7 +37,7 @@ import { utcDay, weekStartOf } from '@/lib/mow/week';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const KEYS: SmartNumberKey[] = ['revenue', 'leads', 'active_users'];
+const KEYS: SmartNumberKey[] = ['revenue', 'email_revenue', 'leads', 'active_users'];
 
 interface Body {
   weekOf?: string;
@@ -79,13 +81,44 @@ export async function POST(req: Request) {
   // Provenance is required, and must say which path produced the number so the page can show it.
   const source = body.source ?? 'session:metabase';
 
-  const weeks = await prisma.mowWeek.findMany({
+  let weeks = await prisma.mowWeek.findMany({
     where: { weekStart, ...(body.brands?.length ? { brand: { in: body.brands } } : {}) },
     select: { id: true, brand: true, smartNumberKey: true, committedAt: true, goal: true },
   });
+
+  // Create the week if nobody has opened the pack for it yet.
+  //
+  // This used to 404 with "generate the pack first", which made the ingest depend on a human
+  // having loaded a page — a footgun for a job that runs unattended on a Sunday night, and the
+  // reason no figure ever reached production. `ensureWeek` resolves the message and goal from
+  // Airtable exactly as the page does, so the row is identical either way.
+  if (!weeks.length) {
+    try {
+      const cal = await getCalendarWeekFromAirtable(weekStart);
+      const wanted = body.brands?.length
+        ? cal.headers.filter((h) => body.brands!.includes(h.brand))
+        : cal.headers;
+      for (const h of wanted) {
+        await ensureWeek(weekStart, h.brand, {
+          message: h.message,
+          goal: h.goal,
+          liveCampaign: cal.liveCampaign,
+        });
+      }
+      weeks = await prisma.mowWeek.findMany({
+        where: { weekStart, ...(body.brands?.length ? { brand: { in: body.brands } } : {}) },
+        select: { id: true, brand: true, smartNumberKey: true, committedAt: true, goal: true },
+      });
+    } catch (err) {
+      return NextResponse.json(
+        { ok: false, error: `Could not create the week from Airtable: ${err instanceof Error ? err.message : String(err)}` },
+        { status: 502 },
+      );
+    }
+  }
   if (!weeks.length) {
     return NextResponse.json(
-      { ok: false, error: `No MOW week for ${weekStart.toISOString().slice(0, 10)} — generate the pack first.` },
+      { ok: false, error: `No brands resolved for ${weekStart.toISOString().slice(0, 10)}.` },
       { status: 404 },
     );
   }

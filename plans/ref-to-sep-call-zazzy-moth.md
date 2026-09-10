@@ -854,7 +854,8 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 6 | `4a` `5c` | Assets table · Vishen's card | ✅ **done** — `bb26776` |
 | 7 | `6b` | Not-dated tray | ✅ **done** — data existed after all; 204 assets listed |
 | — | — | **Merged to `main` and deployed** — `40db344`, deploy success | ✅ |
-| 8 | — | **Commit bar · staged learnings · the headline number** (§6E) | **next** |
+| 8 | — | **Commit bar · staged learnings · the headline number** (§6E) | ✅ **done** — `24db06e`; headline detection fixed `e9cca1c` |
+| 9 | — | **Feedback round: real posts, real numbers** (§6F) | **next** |
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
 element per screen, red only on `missed`, VL teal on every surface, nine canonical empty strings,
@@ -1194,6 +1195,85 @@ exist, and the read path bypasses Postgres entirely.
 - Confirm exactly one gold element on `/performance/week` once the commit bar exists (it currently
   has none), by counting `border-gold` in the rendered DOM as with `5c`.
 - `npm run verify` stays green; add a suite covering `ensureWeek` idempotency and the commit guard.
+
+---
+
+## 6F. Feedback from the first real look at the deployed app (10 Sep)
+
+### Context
+
+Ten pieces of feedback after opening the deployed surfaces. One theme runs through most of them:
+**the pack is mechanically correct and analytically empty**, and the calendar shows *counts* where
+it should show *work*. Everything below was verified against live data before planning.
+
+### What I checked, and what is actually true
+
+| Report | Finding |
+|---|---|
+| *"No data in comms calendar"* (w/c 31 Aug, MV) | **The reader is fine** — it returns 7 MV assets for that week. What it *renders* is a synthetic `Social +1` chip, because I decided not to resolve linked titles ("rows the meeting reads as volume"). Six real posts exist with real titles. That decision was wrong: a count carries no information, so the page reads as empty. **This is the root of items 4, 5 and 9.** |
+| *"No insights or learnings, nor revenue"* | Correct, and partly my fault. I ingested the figures to a **scratch** database, never to production, so `mow_weeks` is empty upstream and every card shows its gap. Learnings are empty because nothing has been written yet. |
+| *"Add email revenue"* | One filter. w/c 7 Sep to date: **Email $38,037.69 (1,026 orders)** against Organic Social **$6,854.74 (56)**. |
+| *Shoot sign-off goes to the wrong place* | Confirmed. `/studio/sign-off` is titled *"Review queue — video work in review"*. My card sends shoot approvals there. |
+| *Toggle colours look off* | Confirmed. The Week/Month control uses `bg-text`/`text-surface` (near-black) directly beside the brand control's `bg-brand` purple — two different active treatments side by side. |
+| *Drill into posts / show ticket + editor* | **📣 Social has it all**: `Channels` (`FB: MV`, `IG: VL`…), `► Editor`, `Creative Request`, `Assigned Creative`, `Engagement`, two published-link fields, and two attachment fields. |
+
+### The data honesty check, across all 8,564 Social records
+
+| Field | Populated | |
+|---|---|---|
+| Title | **100%** | the drill-down's spine |
+| Channels | **89%** | makes the Facebook view possible |
+| Any image | **62%** | |
+| Creative Request | 1% overall, **15% since July** | improving — worth surfacing |
+| Final Published Link | **3%** | 0% since July |
+| `Engagement` / `Engagement Rate` | **1%** | 0% since July |
+| `► Editor` | **10%** overall, **1% since July** | |
+
+So a post grid built only on Airtable fields would be title, channel and image — and blank where it
+matters. **The results have to come from Perch.**
+
+### The join that makes results possible
+
+`social_metrics.raw->details->content->>body` carries the published caption on **all 1,642 rows**.
+Tested against the Social table's caption / title / notes: **39 of 40 sampled captions matched.**
+That is far better than the 3% published-URL join and it is what unlocks real numbers per post.
+
+One wrinkle found while testing: the same Airtable row matched both a German and an English Perch
+post — regional accounts repost translated copy. Summing them is defensible as total reach across
+channels, but it must be **labelled as multi-account**, never presented as one post's number.
+
+### Decisions
+
+| # | Decision |
+|---|---|
+| **AB1** | **The Mindvalley lane shows real posts, not counts.** Resolve the linked 📣 Social records and render title + channel, clickable through to a detail. This reverses my earlier "volume, not titles" call — it saved round-trips and cost the page its meaning. |
+| **AB2** | **Results come from Perch, joined on caption text** — 39/40 match rate, refreshed nightly, versus 1% for Airtable's own `Engagement`. A row whose numbers span several accounts says so. |
+| **AB3** | **Revenue shows organic social AND email, separately labelled**, never summed into one "revenue" figure. Ramya presents email; Glen presents social; a combined total would let either be mistaken for the other. Organic social stays the social team's number. |
+| **AB4** | **Live Date is writable from the tray — that field only**, stamped with who set it and pushed through the existing `AirtableOutbox` so it retries and echo-suppresses. Status stays untouched: the standing rule is that the app only overwrites statuses it owns. |
+| **AB5** | **Shoot sign-off gets its own route**, `/studio/shoots/sign-off`, filtered to what awaits Vishen. The review queue is a different surface answering a different question. |
+| **AB6** | **Deferred, and named rather than silently dropped:** Glen-grade narrative (planned-pillar-vs-actual prose, "first 5 minutes" actions with owners, IG↔YouTube pairing) and the `/performance/week/assets` rethink. Both are real, both are larger than the time left, and neither blocks Monday. |
+
+### Build order
+
+1. **Ingest the real figures to production** — `{"weekOf":"2026-09-14","brands":["MV"],"figures":{"leads":…,"revenue":…}}`, plus email revenue as a driver (AB3). Nothing else matters if the pack still shows gaps.
+2. **`lib/comms-calendar/social.ts`** — resolve linked Social records: title, channels, status, image, editor, `Creative Request` → ticket, and Perch results via the caption join. Extend `SOCIAL` in `field-map.ts` with the fields listed above (they are not mapped today).
+3. **Real posts in the MV lane** (AB1) + a **post grid** on `/performance/week` that opens on click, filterable by channel so "Facebook this week" is one click.
+4. **Asset detail gains the creative ticket and editor** where present, and says who owns filling it where absent.
+5. **Live Date write-back** from the tray (AB4) via `lib/airtable/push-map.ts` + `drain-after.ts`.
+6. **`/studio/shoots/sign-off`** (AB5), and repoint the card.
+7. **Toggle styling** — one active treatment for both controls.
+
+### Verification
+
+- Post to the **deployed** ingest route and confirm the pack renders 883 leads and both revenue
+  figures, staged, with `session:metabase` provenance.
+- Open w/c 31 Aug with `brand=mv` and confirm the six real post titles render, not `Social +1`.
+- Click through to a Facebook post and confirm channel, image and — where Perch matched — reach and
+  engagement, with the multi-account label where it applies.
+- Set a Live Date in the tray; confirm it lands in Airtable, that `airtablePushedAt` suppresses the
+  echo, and that the asset leaves the tray on the next read.
+- `npm run doctor` clean; `npm run verify` green with a new suite covering the caption join
+  (including the multi-account case) and the Live Date push map.
 
 ---
 
