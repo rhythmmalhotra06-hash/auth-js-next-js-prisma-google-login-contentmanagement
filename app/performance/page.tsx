@@ -10,6 +10,7 @@ import { getAccountPerformanceForRange } from '@/lib/hootsuite/perch';
 import { getQueueTickets, getRecentShipped } from '@/lib/tickets/data';
 import { SocialAccountPanel } from '@/components/performance/SocialAccountPanel';
 import { PerformanceRangeFilter, type PerformanceRange } from '@/components/performance/PerformanceRangeFilter';
+import { ExperimentsScoreboardCard } from '@/components/performance/ExperimentsScoreboardCard';
 import type { TicketOption } from '@/components/performance/PostRowActions';
 
 // Performance — THE NUMBERS. How published work actually landed: reach and engagement per
@@ -117,6 +118,9 @@ export default async function PerformancePage({ searchParams }: { searchParams: 
       <Suspense fallback={<QueueSkeleton kpis={3} />}>
         <Numbers isAdmin={isAdmin} canCustom={canCustom} range={range} from={from} to={to} />
       </Suspense>
+      {/* Sits outside <Numbers> on purpose: the scoreboard is worth surfacing whether or not
+          Hootsuite has filled the social boards above. */}
+      <ExperimentsScoreboardCard />
     </AppShell>
   );
 }
