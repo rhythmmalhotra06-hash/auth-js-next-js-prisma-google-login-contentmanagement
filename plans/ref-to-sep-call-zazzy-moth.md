@@ -850,8 +850,8 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 3b | — | **Reader correctness fix** (§6C) | ✅ **done** — `a86b6eb`, verified live |
 | 4 | `2a` | Monday pack at `/performance/week` | ✅ **read layer done** — `da7d00a`. Commit bar + learnings still to come |
 | 5 | `5a` `5b` | Month · asset detail | ✅ **done** — `49cd7a1`, rendered against live data |
-| 5b | — | **Data-flow audit + `npm run doctor`** (§6D) | **next** — 2 dead field ids to remove |
-| 6 | `4a` `5c` | Assets table · Vishen's card | then this, and deploy after it (Z1) |
+| 5b | — | **Data-flow audit + `npm run doctor`** (§6D) | ✅ **done** — `4b869a1`. 294 ids, 0 errors, 1 warning |
+| 6 | `4a` `5c` | Assets table · Vishen's card | **next**, then deploy (Z1) |
 | 7 | `6b` | Not-dated tray | needs Airtable rows that don't exist yet |
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
