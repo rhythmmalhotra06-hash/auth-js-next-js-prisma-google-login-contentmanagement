@@ -72,10 +72,11 @@ export default async function CommsCalendarPage({
   let week: Awaited<ReturnType<typeof getCalendarWeekFromAirtable>> | null = null;
   let error: string | null = null;
   try {
-    // Postgres path lands when the reconcile is pulling CommsDay; until then read Airtable direct.
-    week = commsCalendarIsPostgres()
-      ? await getCalendarWeekFromAirtable(anchor)
-      : await getCalendarWeekFromAirtable(anchor);
+    // Only the Airtable reader exists so far, so the flag cannot change the source yet — it is
+    // read here purely to caveat the freshness line below. Both branches were literally identical
+    // before, which read as a working switch and was not one. `assembleWeek()` is already split
+    // out as the pure half so the Postgres reader can share it when it lands.
+    week = await getCalendarWeekFromAirtable(anchor);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
@@ -114,7 +115,9 @@ export default async function CommsCalendarPage({
             </div>
             {/* The calendar must never imply live data — inbound sync is on a schedule. */}
             <span className="text-2xs text-text-subtle">
-              as of {new Date(week.asOf).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              read live from Airtable, as of{' '}
+              {new Date(week.asOf).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              {commsCalendarIsPostgres() ? ' · COMMS_CALENDAR_BACKEND=postgres is set but no Postgres reader exists yet' : ''}
             </span>
           </div>
 
