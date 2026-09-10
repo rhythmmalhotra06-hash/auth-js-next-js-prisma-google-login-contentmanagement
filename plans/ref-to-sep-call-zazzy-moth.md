@@ -855,7 +855,18 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 7 | `6b` | Not-dated tray | ✅ **done** — data existed after all; 204 assets listed |
 | — | — | **Merged to `main` and deployed** — `40db344`, deploy success | ✅ |
 | 8 | — | **Commit bar · staged learnings · the headline number** (§6E) | ✅ **done** — `24db06e`; headline detection fixed `e9cca1c` |
-| 9 | — | **Feedback round: real posts, real numbers** (§6F) | **next** |
+| 9 | — | **Feedback round: real posts, real numbers** (§6F) | ✅ 8 of 10 done — see below |
+
+**§6F progress (10 Sep).** Done and deployed: figures in production incl. email revenue · real
+posts in the Mindvalley lane · post grid with platform filter · creative ticket + editor on post
+detail · Live Date write-back · shoots sign-off page · one toggle style · calendar 5.5s → 1s.
+**Deferred, by decision AB6:** Glen-grade narrative, and the `/performance/week/assets` rethink —
+its question ("what is it trying to do?") has no good answer yet and it deserves a rebuild rather
+than a patch.
+
+**Corrected while building:** the caption join was quoted at 39/40. That measured Perch→Airtable;
+this feature needs Airtable→Perch, which is **63 of 110 (57%)** inside Perch's window. Nothing was
+shipped on the wrong figure, but it was close.
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
 element per screen, red only on `missed`, VL teal on every surface, nine canonical empty strings,

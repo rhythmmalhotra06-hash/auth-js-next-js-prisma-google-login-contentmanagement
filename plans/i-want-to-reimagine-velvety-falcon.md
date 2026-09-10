@@ -1,13 +1,14 @@
-# Content Studio v2 — the pivot: review, product thesis, and prototype
+# Content Studio v2 — the pivot: review, discovery record, and real-data prototype
 
-**Status:** plan (nothing built yet). Deliverable of this plan = a clickable HTML prototype + this
-document as the proposal. No production code changes until the prototype is walked through with
-Vishen, Gareth/Glen and Titus and the decisions in §6 have owners.
+**Status:** plan. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
+prototype built on REAL data is approved by Rhythm.** This plan's only outputs are (1) the product PRD
+`prd/content-studio-v2.md` (via the `/prd` protocol, discovery already run below), (2) a static
+clickable HTML prototype fed by real Postgres/Airtable exports, published as an Artifact.
+The build sequence in §7 is recorded for honesty, not for execution.
 
-**Decisions taken with Rhythm (10 Sep 2026):** greenfield v2 information architecture (current
-portal treated as a data source, not a UI to extend) · clickable HTML prototype · walkthrough
-audience = Vishen, Gareth/Glen, Titus + team leads/editors (agencies appear as a capability, not
-as the audience).
+Decisions taken with Rhythm on 10 Sep: greenfield v2 information architecture (current portal =
+data source, not a UI to extend) · clickable HTML prototype · walkthrough audience Vishen,
+Gareth/Glen, Titus + editors · sign-off = Rhythm alone.
 
 ---
 
@@ -16,240 +17,238 @@ as the audience).
 The ask: one intelligent system that runs the workflow for every content team (video/editors,
 social, banners, email, podcast, shoots), is the repository of everything made, pulls numbers in
 real time (Hootsuite, Composio, analytics, Metabase, Braze), lets agencies ideate/create/publish/
-request shoots with us, shows managers performance, and teaches the content team what works.
-Airtable as a building block for now, Postgres only later. Above all: **the right data flows in
-and the system learns.**
+request shoots with us, shows managers performance, and teaches the content team what works —
+**a continuous learning engine.** Airtable as a building block now, Postgres only later.
 
-The current portal was reviewed end to end (every route, server action, API route, Prisma model,
-sync path, integration, and the product docs in `Context/`, `prd/`, `plans/`). The honest picture:
+Full review done (every route, action, API route, model, sync path, integration, and the docs in
+`Context/`, `prd/`, `plans/`). Honest picture:
 
-### What is real and working (keep — it is the foundation)
-- **Ticket lifecycle spine**: `Ticket` + two status axes + scoring (`lib/tickets/scoring.ts`) +
-  capacity/risk (`lib/tickets/intel.ts`) + `QueueTable` with the mandated 5 columns. In daily use.
-- **Airtable ↔ Postgres sync engine**: generalized outbox push (`lib/airtable/push.ts`,
-  `push-registry.ts`), cursored pull with echo suppression (`pull-core.ts`, `pull-registry.ts`),
-  field-id map (`field-map.ts`). Six domains on `*_BACKEND=postgres`. Mature.
-- **Two closed, human-gated learning loops**: clip rules (`lib/clipping/learn.ts` → 🧠 Clip Rules,
-  weekly cron) and DNA review rules (`lib/dna-review/learn.ts` → `DnaReviewRule`, decision lock on
-  Approved). These are the proof that "propose → human approves → behaviour changes" works here.
-- **One unattended metrics source**: Hootsuite Perch → `social_metrics` via app-held OAuth
+### Real and working (foundation — keep)
+- Ticket lifecycle spine: `Ticket` + two status axes + `lib/tickets/scoring.ts` + `intel.ts` +
+  `QueueTable` with the mandated 5 columns. 11,143 tickets.
+- Airtable ↔ Postgres sync engine: outbox push (`lib/airtable/push.ts`, `push-registry.ts`),
+  cursored pull with echo suppression (`pull-core.ts`, `pull-registry.ts`), field-id map. Six
+  domains on `*_BACKEND=postgres`.
+- Two closed human-gated learning loops: clip rules (`lib/clipping/learn.ts` → 🧠 Clip Rules,
+  weekly cron) and DNA review rules (`lib/dna-review/learn.ts` → `DnaReviewRule`, decision lock).
+- One unattended metrics source: Hootsuite Perch → `social_metrics` via app-held OAuth
   (`lib/hootsuite/perch.ts`, `lib/metrics/social-perf.ts`). 1,642 rows / 329 posts / 10+ accounts.
 - Shoots (two-way), Comms Calendar (read), MOW pack (staged/committed), Cover Generator, Slack
-  digests, clip engine (`/media`, `/social`).
+  digests, clip engine.
 
-### What is broken at the join (the reason the vision can't happen on today's shape)
-1. **No production→performance join.** `ticket_airtable_id` is populated on **0 of 1,642** metric
-   rows. `assets` has **0 rows**. The published-URL field in Airtable is filled on 1 of 8,546
-   posts. The caption-fingerprint matcher (`lib/performance/attribution.ts`) was written and **is
-   called from nowhere**. Result: "how did *my* asset do" (Glen's ask) is unanswerable; nothing
-   can learn from outcomes; the two learning loops run on human ratings only.
-2. **Seven disjoint work nouns** with no shared spine: `Ticket`, `Shoot`, `SocialPost`,
-   `MediaSource`/`ClipSuggestion`, `VishenVideo`, `CommsDay`/`MowSlot`, `Asset`. Each got its own
-   page, sync path and status vocabulary. Banners/email/podcast have no home at all (banners = one
-   link field; email = a calendar lane; podcast = clip-engine input).
-3. **Intelligence is two islands + open loops.** Of the 5 capabilities in
-   `Context/intelligence-layer.md`, #4 (DNA feedback) is built, #3 (prioritization) has scoring but
-   no learning, #1 (performance insight), #2 (brief from what wins) don't exist, #5 is keyword
-   matching (`app/api/ask/route.ts`). `TicketEvent` records **only** `ticketStatus` transitions —
-   re-rank/assignee/prio changes leave no trace, so there is no signal to learn prioritization from.
-4. **Numbers don't flow unattended.** Only Perch is app-owned. Metabase (leads/revenue), Composio
-   (IG views, YouTube), Braze (email) reach us only via claude.ai connectors in a human's session
-   (decision S6). Zero YouTube rows; `views` on 16/1,642; no email metrics. The scheduler is
-   GitHub Actions, which slips **3–11 hours**. Three documented crons don't exist
-   (`mow-monday-pack.yml`, DNA Tier-2 learn, pack generation).
-5. **Agencies have zero access.** SSO is locked to `@mindvalley.com`; `Agency / External` is a
-   role string with no other reference; `/stakeholder` shows *every* request to anyone signed in.
-6. **Schema debt**: 9 models with 0 call sites (`Offer`, `DestinationLink`, `CreativeRecord`,
-   `Experiment`, `AssetPerformanceSnapshot`, `PerformanceAttribution`, `Approval`, `Performance`,
-   `Dna`); `Brief` read-never-written; `Learning.proposed` never set true. Orphan pages
-   (`/vishen`, `/tickets`, content-engine redirects), two dead navs, stale README, a hardcoded
-   "Synced 2 min ago".
-7. **Airtable is still the editing surface** for taxonomy, DNA, clip rules, calendar, MOW message/
-   goal — so it cannot be sunset until the app has editors for those nouns. Two live Airtable
-   automations *create tickets* (shoot checkbox, Raise Request), so inbound pull can't stop either.
+### Broken at the join (why the vision can't run on today's shape)
+1. **No production→performance join.** `ticket_airtable_id` set on 0/1,642 metric rows; `assets`
+   0 rows; `lib/performance/attribution.ts` (caption matcher) has no caller.
+2. **Seven disjoint work nouns** (`Ticket`, `Shoot`, `SocialPost`, `MediaSource`/`ClipSuggestion`,
+   `VishenVideo`, `CommsDay`/`MowSlot`, `Asset`), each with its own page and status vocabulary.
+   Banners/email/podcast have no home.
+3. **Intelligence = two islands + open loops.** Of the 5 capabilities in
+   `Context/intelligence-layer.md`: #4 built, #3 scoring without learning, #1 and #2 absent, #5 a
+   keyword stub. `TicketEvent` logs only `ticketStatus` — no re-rank signal exists.
+4. **Numbers don't flow unattended.** Metabase/Composio/Braze are session-side claude.ai
+   connectors. Scheduler = GitHub Actions slipping 3–11h. Three documented crons don't exist.
+5. **Agencies: zero access.** SSO locked to `@mindvalley.com`; `/stakeholder` is read-all.
+6. **Schema debt**: 9 models with 0 call sites; `Brief` never written; `Learning.proposed` never
+   true; orphan pages, two dead navs, stale README, hardcoded "Synced 2 min ago".
+7. **Airtable is still the editing surface** for taxonomy, DNA, rules, calendar, MOW; two live
+   Airtable automations create tickets → pulls can't stop yet.
 
-**Conclusion:** the portal is a good *workflow* tool with a broken *learning* spine. The pivot is
-not "more pages" — it is to give every piece of content one identity from request to result, make
-outcomes flow to that identity automatically, and put one propose→approve knowledge store over it.
+### NEW finding from the worked example (10 Sep) — the views gap is OUR bug
+Perch's raw payload carries `post_views`, `likes`, `saved`, `shares`, `comments`,
+`ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, `post_type`, `collaborators`
+(+ invite status) on **869/869 IG rows**; our mapper lifts none of them (`views` column filled on
+0). The umbrella plan's "views on 16/1,642, Composio needed" conclusion is wrong for IG — the data
+is already in Postgres. Watch time exists on 468 rows (the reels).
 
 ---
 
-## 2. Product thesis — Content Studio v2
+## 2. The proof point — one record, end to end (real numbers, 10 Sep)
 
-**One loop for every team: Plan → Make → Publish → Measure → Learn.** Teams differ by *lane*
-(video · social · design/banners · email · podcast · shoots), not by workflow shape. The IA is
-organised by the loop; lane and role are filters, not sections.
+**Airtable 📣 Social `recJ9laDP1uWIXTHe`** (`app9YRZOVeE65fJPA/tblCcrdkHzOakOGnm`): *Pathway::
+Manifesting – Stage Talk – Manifest Love* · `11: Released` · posted 9 Sep 23:01 UTC · IG + FB
+MV Manifesting · editor **Yuthika Peiris** · Creative ticket **#11057** (`recfmrnlmw9pqbgO3`,
+asset type *Pathway Organic – Snippets*, 9×16, event *Social Media Promotion*, source asset
+`recllHS6i1jgSoYYY` = a paid Masterclass ad re-cut to organic) · content pillar `💡 Educate` ·
+caption, transcript, 1080×1920 cover attached · speaker Jeffrey Allen.
 
-### The content graph (six nouns; keep what exists, add what's missing)
+**Postgres `social_metrics`** (Perch, captured 10 Sep): found by URL `instagram.com/reel/DdFYhV8DXTk`,
+`platform_post_id 17841400376176964_18092461193412440`, tag `Jeffrey Allen`, `ticket_airtable_id`
+NULL. Day-1: views 3,725 · reach 2,835 · ER 1.52% · likes 51 · saves 16 · shares 4 · comments 9 ·
+avg watch 8s · total watch 25,379s · collaborators `@mindvalley.manifesting`, `@iamjeffreyallen`
+both **`Pending`**.
 
-| Noun | Purpose | Built on | Notes |
+**Day-1 vs the 21 @mindvalley reels published since 27 Aug (same account, same age):**
+
+| Metric | This reel | Peer median (n=21) | Position |
 |---|---|---|---|
-| **Work item** | The request → production record. Two status axes, priority, owner, brief, spec. | `Ticket` + `TicketEvent` (+ `Approval`, currently unused) | **Keep `Ticket` as-is; add `lane` enum.** Do NOT go polymorphic-JSON — queue, scoring, push-map and the 5-column mandate all read concrete columns. `Shoot` stays its own table (it's an event). `SocialPost` folds in only after sunset. |
-| **Asset** | The repository: every deliverable, versions (raw/final), tabular creative record — copy, transcript, hook, CTA, offer (Gareth's "learning engine, not storage engine"). | `Asset` (0 rows → reshape freely) absorbing `CreativeRecord`; `Ticket.final*`/`folder*` become versions | |
-| **Publication** | **NEW, load-bearing.** asset × channel × account × URL/platform_post_id × published_at × campaign tags × utm_content × short code. Created at publish time, so attribution is *by design*. | backfill from `VishenVideo.publishedLink`, `Ticket.final*`, `SocialMetric.publishedUrl`, `DestinationLink` (absorb — it already parses UTM→Offer), and one run of `attributeMetrics()` for history | The missing middle between plan (`CommsDay`) and observation (`SocialMetric`). |
-| **Metric observation** | Time-series per publication per source. | `SocialMetric` + `ingestSocialMetrics()` (+ `publicationId` FK) | Sources: Perch (live), YouTube Analytics (app OAuth), Composio (server SDK), Metabase (REST, allowlisted Q31846/Q32044), Braze (REST, per send). |
-| **Knowledge** | One propose→approve→apply store for everything learned: rules, insights, weight proposals, weekly learnings. `scope {lane, assetType, channel, owner}`, `evidence`, `confidence`, `active`. | `DnaReviewRule` (richest shape) + `lib/dna-review/learn.ts`; fold in `ClipRule`, `Learning` | Flat schemas only (structured-output grammar limit). |
-| **Party / workspace** | Employees, contractors, agencies + members; row-level scoping. | `Employee`, `Contractor`, `AssetType.stakeholderEmails` (existing per-type allowlist) | Invitation-based sign-in for non-mindvalley domains. |
+| Views | 3,725 | 9,735 | 19th of 21 |
+| Reach | 2,835 | ~7,900 | bottom quartile |
+| Engagement rate | 1.52% | 1.9% | below |
+| Saves | 16 | 31 | below |
+| Comments (the gated CTA's own KPI) | 9 | 20 | below |
+| **Avg watch time** | **8s** | **5s** (n=15) | **top third** |
 
-### Attribution by design (the single most important product rule)
-Every work item gets a short code (e.g. `MV-4821`). It travels: as `utm_content` on the
-destination link, as a Hootsuite tag, in the filename/caption convention, and on the Publication
-row created when someone hits **Log publish** (or when Perch/Composio sees a new post whose tag or
-URL matches). Metrics then join deterministically. Coverage is shown as a number
-("attributed: 61%") on the Measure surface and never faked.
+**Learnings the engine would propose (each with evidence + n):**
+1. *Distribution signal, not edit signal:* both collab invites were Pending at capture → the reel
+   reached only @mindvalley's audience. Owner: social team. Certain (in payload).
+2. *Edit signal, positive:* 8s avg watch vs 5s median → the re-cut kept viewers. Proposed DNA rule
+   for *Pathway Organic Snippets*: "repurposed-ad re-cuts that strip end-card/CTA slate retain above
+   baseline" (n=15 with watch time — shown as *watch*, not *rule*, until n≥8 in both cohorts).
+3. *Caption signal:* "Comment X" gated-CTA reels get ~40% less day-1 views (median 6.2k vs 10.9k,
+   n=8 vs 13) — judge them on comments; this one under-indexed there too. Owner: caption owner.
 
-### Learning by design (propose only, cite evidence, sample-size honesty)
-Generalize the two working loops into `lib/knowledge/learn.ts`: `distill(one human note) → rule`
-and `propose(aggregated signals) → ≤3 proposals landed inactive`. New signal sources:
-- **Publication × Metric outcomes** — top/bottom quartile per (lane, asset type, channel), n ≥ 8,
-  joined to the creative record (hook/CTA/offer) → asset-DNA and "what's working" insights (cap. #1).
-- **Re-rank / reassign / prio events** — widen `TicketEvent` to record them → scoring-weight
-  proposals for the existing knobs (cap. #3).
-- **Approval override notes + DNA finding reactions** — already flow.
-- **Brief generation at intake** (cap. #2) = top performers of that event×asset type + DNA +
-  active Knowledge, drafted into the brief field, editable.
-One **Knowledge inbox** UI; approved items feed the DNA reviewer, the clip prompt assembly, the
-scoring knobs, and the MOW learnings (finally setting `Learning.proposed=true` for AI drafts).
-
-### Data flow (app-owned, scheduled, honest)
-The "session-side only" constraint is about the *claude.ai connector*, not the source. Move
-Metabase (REST + API key), Composio (server SDK + API key), Braze (REST), YouTube Analytics (channel
-OAuth) app-side like Perch, credentials sealed in `external_credentials`, on a **real scheduler**
-(Kessel cron or external cron hitting the existing bearer routes) — not GitHub Actions, not a
-human's Claude session. Every surface labels absent data ("not connected", "n=3 — too small",
-"not attributed") rather than guessing.
-
-### Airtable: building block now → connector → sunset
-1. PG canonical for all workflow nouns (6 done; finish comms/MOW). Outbox already behaves as a
-   projection (loads current PG state, upserts) — Airtable becomes a read-only mirror.
-2. Build app-side editors for what the team still edits in Airtable: taxonomy, DNA text, clip
-   rules/knowledge, calendar/day plan, MOW message + goal. Rebuild the two ticket-creating Airtable
-   automations app-side.
-3. Stop pulls domain by domain (tickets last), run a "Airtable edited after last push" diff
-   report before each flip, keep push 30 days, archive bases.
-4. Keep the Airtable *connector* pattern only for external bases (Rise Voice's agency base).
-   Biggest hidden cost: `Employee.id === airtableId` in ~430 places — identity is the last thing to
-   migrate.
-
-### Agencies as first-class collaborators
-Agency workspace (Rise Voice, Simplex, Talking Heads, Two Comma PR): submit requests (intake with
-brief), request shoots, upload deliverables (versions), see status of *their* items only, comment,
-see *their* publications' numbers. Free, unlimited, read/comment + upload — the Ziflow pattern.
-**Row scoping ships before the domain opens** (today `/stakeholder` is read-all).
+Conclusion: intelligence from Airtable-mirrored-to-Postgres is feasible today for this asset
+class; the prototype can and must run on real numbers.
 
 ---
 
-## 3. The prototype (what this plan builds)
+## 3. Discovery record (the `/prd` protocol, run 10 Sep with Rhythm) — DECIDED
 
-**Form:** one self-contained clickable HTML file, hash-routed, published as an Artifact (shareable
-link) — same approach as `Context/mockups/demo.html`. Realistic data taken from the review (real
-lanes, real accounts, 1,642/329, real gaps shown as gaps). Brand per `DESIGN_SYSTEM.md`: primary
-`#572280`, gold `#F5B000` at most once per screen, Plus Jakarta Sans, 8/12px radii, light + dark.
-Desktop-first, no horizontal body scroll, reflows to ~390px.
+| # | Question | Decision |
+|---|---|---|
+| D1 | PRD scope | **New product PRD `prd/content-studio-v2.md`** superseding `prd/content-production-management.md` (which stays as history, linked). Learning engine, content graph, lanes, agencies, Airtable sunset = its epics. |
+| D2 | Units of learning in scope | All four: editor's edit · asset-type DNA · caption/CTA/distribution · campaign/speaker/offer. |
+| D3 | First loop that must work end-to-end | **Editor + asset-type DNA.** The others are sequenced epics behind it. |
+| D4 | North-star metric | **Depends on the publication's declared goal.** Editors judged on retention/watch time; captions on comments/saves; campaigns on leads/revenue; awareness on reach. |
+| D5 | Goal source | Airtable Social *Content Pillar* (`💡 Educate`…) mapped to a goal metric now; a portal Goal field on Publication later. |
+| D6 | Readout windows | **24h + 7d, always vs same-account/same-type peers at the same age.** Nothing read before 24h. |
+| D7 | Delivery (all four, in this order of build) | Performance band inside the ticket → "My work" page → Slack DM 24h after publish → Monday team digest (folded into MOW/social digest). |
+| D8 | Approval of numeric DNA proposals | **Team lead of the asset type activates; editor endorses/disputes** (reaction = Tier-1 signal). Mirrors `AssetType.teamLeads` + `DnaReviewRule` approval. |
+| D9 | People comparison | **Never rank people.** Per-editor views private to editor + lead; managers see aggregates by asset type/channel/campaign. |
+| D10 | Attribution mechanism | **The system matches, humans confirm only on ambiguity.** Signals in order: URL/platform_post_id (Airtable Social *Published Link*, `VishenVideo.publishedLink`) → caption fingerprint (`lib/performance/attribution.ts`, exists) → transcript overlap (Social *Transcript* vs Perch caption/body) → image similarity (Social cover attachment vs Perch thumbnail). Plus a **Log publish** action in the portal for the future. Not a data-entry discipline on Vidura/Ramya. |
+| D11 | Channels v1 | IG (all MV accounts Perch covers) + FB (Perch, clicks only). **v1.1:** YouTube (needs YouTube Analytics channel OAuth — 0 rows today), TikTok, LinkedIn/VL — cannot appear in a real-data prototype until integrated. |
+| D12 | Sample floor | **n ≥ 8 same-type posts in both cohorts**; below that the UI shows "collecting (3/8)". |
+| D13 | Prototype bar | **Static HTML with real numbers exported from Postgres + Airtable**, baked in as JSON. No backend. Re-export to refresh. |
+| D14 | Success criteria (60 days) | ≥ 80% of Released social posts attributed to a ticket within 24h (today ~0%) · ≥ 10 DNA rules approved from numeric proposals with ≤ 30% rejected. |
+| D15 | Non-negotiable failure behaviour | Never show a number without source, capture age and n · always distinguish *edit signal* from *distribution signal* · dead tokens ⇒ "not captured", never stale-as-current. |
+| D16 | Boundaries v1 | No auto-editing/re-cuts (E12 separate) · no per-post revenue/leads claims (Metabase stays week/campaign level until utm_content-per-post) · no cross-account or cross-brand comparison. **Airtable structure changes ARE allowed** (Goal field, short code). |
+| D17 | Rule shape | `statement + rationale + evidence(refs, n, delta) + example + weight + confidence`, scoped to asset type — the `DnaReviewRule` shape. |
+| D18 | Lanes in the prototype as real queues | Video · Social (posts + clips) · Email · Podcast · Shoots. **Banners excluded** (E14 held pending Rafi). |
+| D19 | Agencies in v2 | See status + performance of own items · submit requests + shoot requests · upload deliverables/versions + comment · sign in with any Google account **by invitation** (row scoping ships first). |
+| D20 | Airtable sunset | Domain by domain as each app editor ships, no fixed date; Airtable a read-only mirror throughout, then archived. Reference nouns → calendar/MOW → tickets last. |
+| D21 | Ownership of a repurposed publication | **The last ticket that produced the delivered file** (#11057) owns it and gets the readout; source ticket linked as *derived from*; learning attaches to the re-cut's asset type. |
+| D22 | Editor identity | `Employee` by email, `assigneeName` snapshot on the ticket as fallback. |
+| D23 | Sign-off | **Rhythm** approves the prototype; that approval is the only thing that unlocks code. |
 
-**File:** `Context/mockups/v2/content-studio-v2.html` (new folder; keeps the existing mockups
-untouched). Publish via Artifact; also note the link in `Context/mockups/README.md` after approval.
-
-**Skills to load before writing:** `artifact-design`, `dataviz` (KPI tiles, sparklines, bars),
-`artifact-diagramming` (content-graph + data-flow diagrams).
-
-### Screens (in walkthrough order)
-
-| # | Screen | Who it's for | What it must show |
-|---|---|---|---|
-| 0 | **State of the portal** | everyone | The honest audit in one page: what's real (green), built-but-unwired (amber), planned-only (grey); the 0/1,642 join; the 3 missing crons; "why we pivot". Sets up the story. |
-| 1 | **Today** (role-adaptive home) | Vishen · Glen · Titus toggle | Vishen: the one number (Metabase, brand-labelled), what ships today across lanes, what's blocked on him. Editor (Glen's ask): next up + **24h/7d readout of my last 5 publications**. Lead: lane health, at-risk, capacity. |
-| 2 | **Plan → Calendar** | leads, Vishen | Week/month, all lanes as rows (video · social · email · banners · podcast · shoots), two brands, Message of the Week per brand, empty states that name the owner, not-dated tray count. |
-| 3 | **Plan → Requests & Shoots** | leads, agencies | Intake (Event Type → Asset Type → lookups, lane auto-derived), shoot requests, agency-originated requests marked as such. |
-| 4 | **Make → Queue** | Titus, editors | Mandated 5 columns first; lane tabs; short code column; risk chips; "auto-assigned (single preferred editor)" markers. |
-| 5 | **Make → Work item** | editors, leads | Brief **drafted from what wins** (top-3 performers of this event×asset type cited), DNA baseline, spec, sub-tasks, versions (raw/final), DNA review findings, approvals with decision lock, **Log publish** action, linked publications + live metrics. |
-| 6 | **Publish → Repository** | Gareth | The library as a table (Gareth's ask): asset, lane, versions, copy/transcript/hook/CTA/offer, publications, 7-day reach/views/leads; filters by lane/asset type/channel/campaign tag; version stack drawer. |
-| 7 | **Measure → Performance** | Glen, leads | By lane / channel / owner / campaign tag; per-editor readouts; **attribution coverage %** as a first-class number; the Monday pack (MOW) with committed figures; source badges (Perch ✓, YouTube Analytics ✓, Composio, Metabase ✓, Braze). |
-| 8 | **Learn → Insights & Knowledge inbox** | Gareth, Titus, Glen | "What's working" cards with evidence + n; proposals from all loops (clip rule, DNA rule, scoring weight, MOW learning) with approve/edit/reject; active rulebook by lane/asset type; the "AI-drafted" marker Glen asked for. |
-| 9 | **Partners** (agency workspace) | shown as capability | Rise Voice view: their requests, shoot request, uploads, status, their numbers only. |
-| 10 | **Connections & data health** | Rhythm, Glen | Each source: owned-by-app / session-only / not connected, last pull, rows, freshness; scheduler status; Airtable sunset progress per domain (canonical / mirror / archived). |
-| D1 | **Diagram: the content graph** | all | Work item → Asset → Publication → Metric → Knowledge → back into Brief/Queue. |
-| D2 | **Diagram: data flow** | all | Sources → app-owned pulls on a scheduler → sink → attribution → surfaces; Airtable as connector. |
-
-Interaction: left nav by loop stage, top role-toggle on Today, lane tabs on Queue/Repository/
-Performance, drawers for work item / version stack / proposal evidence. Every fake-able number
-carries a source badge; absent data uses the tier-1/tier-2 empty states from `DESIGN_SYSTEM.md`.
-
----
-
-## 4. After the prototype is validated — build sequence (each step shippable, portal keeps working)
-
-Not part of this plan's execution; recorded so the prototype is honest about what it implies.
-
-1. **Scheduler** — move `ticket-sync`, `perch-metrics`, `clip-learn` (+ the missing MOW pack and
-   DNA learn crons) off GitHub Actions onto Kessel cron / external cron hitting existing bearer
-   routes. No schema change. Cheap; unblocks trust in every number below.
-2. **Publication + `SocialMetric.publicationId`** — new table; backfill from `VishenVideo`,
-   `Ticket.final*`, Perch `platformPostId`; run `attributeMetrics()` once; add **Log publish** on
-   `ticketStatus → Published`. *This is the step that first makes Ticket × outcome exist as a row.*
-3. **Event coverage** — widen `TicketEvent` (`lib/tickets/write.postgres.ts`) to record
-   `queueRank`, `assigneeId`, `prioStatus` with field/from/to.
-4. **Knowledge** — generalize `DnaReviewRule` → `Knowledge` with `scope`; migrate rows in place;
-   mirror `ClipRule` in (keep pushing to Airtable via outbox); one `/learn` inbox replacing
-   `/settings/clip-rules` + the DNA rule list; first Publication×Metric proposals.
-5. **`Ticket.lane` + Asset reshape** — versions + creative record; write a version whenever
-   `final*` changes; banner/email/podcast requests are tickets with a lane.
-6. **App-side editors for reference nouns**; `REFERENCE_BACKEND` writes to PG; push via outbox.
-7. **Metabase / YouTube Analytics / Composio / Braze pulls** via `ExternalCredential`, keyed to
-   Publication by short code / utm_content / URL.
-8. **Party + agency scoping** — invitation table; `auth.config.ts` allows mindvalley.com **or**
-   invited email; `scopeFilterFor(access)` applied in `getQueueTickets`/`getRecentShipped`;
-   untagged non-mindvalley users get `[]` roles. Then open the domain.
-9. **Stop pulls** domain by domain after rebuilding the two Airtable automations app-side;
-   push-only 30 days; archive.
-
-Delete rather than migrate: `ClipSuggestion`/`ClipStrategy`/`ContentSource` (retired content
-engine), `Brief`, `Experiment`, `Performance`, `AssetPerformanceSnapshot`,
-`PerformanceAttribution`, `Dna`; orphan pages `/vishen`, `/tickets`, `content-engine/*`, dead
-`AppNav`/`Sidebar`, duplicate `ClipApprovalModal`.
+### Still open (carry into the PRD's Open Questions with owners)
+- O1 Goal-metric mapping table for each Content Pillar (who decides: Gareth?).
+- O2 Short-code convention if/when introduced (`MV-11057`?) and where it must appear (utm_content, Hootsuite tag, filename).
+- O3 Confidence threshold and UI for the image/transcript matcher's "ambiguous → confirm" queue; who confirms (social manager?).
+- O4 Event-tier ranking (open since June) — needed before scoring learns. Owner Moniek.
+- O5 Metabase/Braze/Composio app-side credentials — who owns the keys (Glen?).
+- O6 Scheduler choice (Kessel cron vs external) — Rhythm.
+- O7 Banner lane taxonomy (E14) — after Rafi 1:1.
+- O8 Agency invitation model with InfoSec (PAT sharing blocked for Rise Voice's base).
 
 ---
 
-## 5. Risks to say out loud in the walkthrough
+## 4. Product thesis — Content Studio v2 (what the PRD will say)
 
-1. **Attribution stays hollow without publish-time discipline.** Backfill fixes history; only a
-   Log-publish action / tag convention fixes the future. Hootsuite tags cover 56/329 posts today.
-   Don't promise "real-time numbers per asset" until coverage is measured on screen.
-2. **Row scoping before opening SSO** — one agency invite today would leak the whole queue.
-3. **Two Airtable automations create tickets** — rebuild before pull stops or requests vanish.
-4. **Identity is an Airtable recId** (`Employee.id`) — largest refactor; HR sync deletes rows.
-5. **YouTube CTR/AVD/retention** (Vishen's 7% benchmark) need YouTube Analytics API with channel
-   OAuth — not Composio, not Perch. Plan item for step 7.
-6. **Metabase question allowlist stays hardcoded** (31846 leads / 32044 revenue; never 31815;
-   sum distinct order_id; filter organic social; name the brand) — the generator faked revenue once.
-7. **Single-threaded data ownership** (Live Date has no owner; Ramya contracting) — the calendar
-   renders empty when data is missing, and looks broken.
-8. **14 Sep MOW commitment** runs on the current portal; the v2 build must not destabilise it.
+**One loop for every team: Plan → Make → Publish → Measure → Learn.** Lanes (video · social ·
+email · podcast · shoots; banners later) are filters, not sections. Roles adapt the home page.
 
----
+### The content graph (six nouns)
+| Noun | Built on | Rule |
+|---|---|---|
+| **Work item** | `Ticket` + `TicketEvent` (+`Approval`) | Keep `Ticket`; add `lane`. No polymorphic JSON (queue, scoring, push-map, 5-column mandate read concrete columns). `Shoot` stays its own table. |
+| **Asset** (repository) | `Asset` (0 rows → reshape) + `CreativeRecord` | Versions raw/final + tabular creative record: copy, transcript, hook, CTA, offer, cover. |
+| **Publication** (NEW) | backfill from Social *Published Link*, `VishenVideo.publishedLink`, Perch `platform_post_id`, matcher | asset × channel × account × URL × published_at × goal × tags × short code × `derivedFrom`. The missing middle between plan and observation. |
+| **Metric observation** | `SocialMetric` + `ingestSocialMetrics()` + `publicationId` FK | Lift the full Perch payload (views, saves, shares, watch time, post_type, collaborators). Sources later: YouTube Analytics, Metabase (allowlisted Q31846/Q32044), Braze, Composio. |
+| **Knowledge** | `DnaReviewRule` shape + `lib/dna-review/learn.ts`; fold in `ClipRule`, `Learning` | One propose→endorse→approve→apply store, scoped `{lane, assetType, channel, owner}`, flat schema. |
+| **Party / workspace** | `Employee`, `Contractor`, `AssetType.stakeholderEmails` | Agencies + members; invitation table; `scopeFilterFor(access)` in every read. |
 
-## 6. Decisions that need owners before any build
+### The learning engine (first loop = editor + asset-type DNA)
+Per publication at 24h and 7d: cohort = same account × same post type × same age; goal from
+pillar; readout = the asset's metrics vs cohort median with n, plus *edit signals* (watch time,
+retention) separated from *distribution signals* (collab status, reach, posting time). Aggregation
+per asset type: top vs bottom quartile on the goal metric, n≥8 both sides → `propose()` ≤3 rules
+landed inactive → editor endorses/disputes → team lead activates → rule feeds DNA review at
+`Review`, the brief draft at intake, and the clip prompt. Every proposal cites publication ids.
 
-| # | Decision | Proposed | Owner |
-|---|---|---|---|
-| P1 | Short-code convention and where it must appear (utm_content, Hootsuite tag, filename) | `MV-####` per work item; mandatory on Log publish | Glen + Gareth |
-| P2 | Which lanes ship first as tickets-with-lane | video, social, design/banners; email + podcast next | Titus + Rafi |
-| P3 | Scheduler | Kessel cron if available, else external cron → bearer routes | Rhythm |
-| P4 | App-side Metabase/Braze/Composio credentials (who owns the keys) | sealed in `external_credentials`, Glen grants | Glen |
-| P5 | Agency access model | invitation by email, Google login any domain | Rhythm + InfoSec |
-| P6 | Airtable sunset order + date for "no more editing in Airtable" | reference nouns first, tickets last | Titus + Ramya |
-| P7 | Event-tier ranking (still open since June) | needed for scoring learning | Moniek |
-| P8 | Banner lane taxonomy (E14) | after Rafi 1:1 | Rafi |
+### Data flow
+App-owned pulls (Perch today; YouTube Analytics, Metabase REST, Braze REST, Composio SDK later)
+with credentials in `external_credentials`, on a real scheduler. Every surface labels absent data.
+
+### Airtable → mirror → connector → archive (D20). Agencies (D19).
 
 ---
 
-## 7. Verification (for the prototype)
+## 5. The prototype (what gets built on approval of this plan)
 
-- Publish the Artifact; open every hash route from the nav and from in-page links (no dead ends).
-- Toggle light/dark; confirm one gold element max per screen, no raw off-brand colours.
-- Resize to ~390px: no horizontal body scroll; tables scroll inside their container.
-- Every number has a source badge; every absent number is a labelled empty state, none invented.
-- Role toggle on Today swaps Vishen / editor / lead content.
-- Diagrams legible in both themes (inline SVG, currentColor).
-- Walk the story: screen 0 → 1 → 5 → 6 → 7 → 8 tells "one identity, outcomes flow, system proposes,
-  humans approve" without narration.
+**Form:** one static, self-contained, hash-routed HTML file at
+`Context/mockups/v2/content-studio-v2.html`, published as an Artifact. **All numbers real**,
+exported at build time into an inline JSON block: `kessel db query` (read-only SELECTs, JSON
+output) + Airtable MCP reads → JSON in the scratchpad → embedded. Brand per `DESIGN_SYSTEM.md`
+(primary `#572280`, gold at most once per screen, Plus Jakarta Sans, 8/12px radii, light + dark),
+no horizontal body scroll, reflows to ~390px. Skills to load first: `artifact-design`, `dataviz`,
+`artifact-diagramming`.
+
+**Real-data export list (read-only):**
+- `social_metrics` latest capture per IG post for all MV accounts: reach, views, ER, likes, saves,
+  shares, comments, avg watch, post_type, tags, posted_at, collaborators, caption head, URL.
+- Day-1 and day-7 snapshots per post (captured_at − posted_at ∈ {1, 7}).
+- 📣 Social records with Published Link + Creative Ticket + Assigned + Content Pillar + Live Date
+  (Airtable) → the attributed set; count = attribution coverage %.
+- Tickets for those Social records (asset type, event type, dimensions, editor, brief) via PG.
+- Editors with ≥1 attributed publication → "My work" data (Yuthika is the worked example).
+- Active `DnaReviewRule`s and 🧠 Clip Rules → the Knowledge/rulebook screen; MOW `Learning`s.
+- Comms calendar week of 7–13 Sep (Airtable) → Plan screens; shoots board; clip inbox.
+- Data-health facts: per-source row counts, last capture, crons that exist vs documented.
+
+**Screens (walkthrough order):**
+| # | Screen | Shows |
+|---|---|---|
+| 0 | State of the portal | The audit: real / built-unwired / planned-only; 0/1,642 join; the views-mapper bug; why pivot. |
+| 1 | Today (role toggle Vishen · editor · lead) | Vishen: one number (labelled by brand + source), shipping today, blocked on him. Editor (Yuthika): next up + **24h/7d readouts of her last publications**. Lead: lane health, at-risk, capacity. |
+| 2 | Plan → Calendar | Week 7–13 Sep, lanes as rows, two brands, MOW per brand, owner-named empty states, not-dated tray count (221). |
+| 3 | Plan → Requests & Shoots | Intake chain; shoot requests; agency-originated marker. |
+| 4 | Make → Queue | 5 mandated columns; lane tabs (video/social/email/podcast/shoots); risk chips. |
+| 5 | Make → Work item #11057 | Brief; *derived from* source asset; DNA baseline; versions; DNA review; approvals; **Publication** with live day-1 metrics vs cohort; edit vs distribution signals; proposed learning with endorse/dispute. |
+| 6 | Publish → Repository | Table: asset, lane, versions, copy/transcript/hook/CTA/offer, publications, 7d metrics; filters; version-stack drawer. |
+| 7 | Measure → Performance | By lane/channel/campaign tag; **attribution coverage %**; source badges + freshness; Monday pack. |
+| 8 | Learn → Insights & Knowledge inbox | "What's working" with evidence + n; proposals from all loops; endorse/dispute/approve; rulebook by asset type; "AI-drafted" marker. |
+| 9 | Partners | Rise Voice workspace: own requests, shoot request, uploads, status, own numbers. |
+| 10 | Connections & data health | Per source: owned/session-only/not connected, last pull, rows; scheduler; Airtable sunset progress per domain. |
+| D1 | Diagram: content graph | Work item → Asset → Publication → Metric → Knowledge → Brief/Queue. |
+| D2 | Diagram: data flow + matcher | Sources → scheduled pulls → sink → multi-signal attribution → surfaces. |
+
+---
+
+## 6. Order of work on approval of this plan (no production code)
+
+1. Write `prd/content-studio-v2.md` (product template, 8 sections) from §3–§4; link it as
+   superseding `prd/content-production-management.md`; update `prd/index.md`. Create child epic
+   stubs: E-A Content graph & Publication · E-B Continuous learning engine (first loop) · E-C
+   Unattended data flow & scheduler · E-D Lanes & v2 IA · E-E Agencies & access · E-F Airtable
+   sunset · E-G Caption/distribution loop · E-H Campaign/offer loop.
+2. Export the real data (read-only) into the scratchpad as JSON.
+3. Build the prototype, publish the Artifact, walk it with Rhythm; iterate until approved.
+4. Save memory: "no code until approved real-data prototype"; "Perch payload has views/watch time —
+   mapper gap"; "attribution = system matches (URL→caption→transcript→image), humans confirm".
+
+---
+
+## 7. After approval — build sequence (recorded for honesty; each step shippable)
+
+1. Scheduler off GitHub Actions. 2. Lift the full Perch payload into columns (views, saves, shares,
+watch time, post_type, collaborators) — pure mapper fix. 3. `Publication` + `SocialMetric.publicationId`;
+backfill from Social Published Link + `VishenVideo` + matcher (URL → caption → transcript → image);
+Log-publish action. 4. Widen `TicketEvent` (rank/assignee/prio). 5. `Knowledge` generalizing
+`DnaReviewRule`; ticket performance band; My work; 24h Slack DM; cohort proposals with n≥8;
+endorse/dispute/approve. 6. `Ticket.lane` + Asset reshape. 7. App-side editors for reference nouns.
+8. YouTube Analytics OAuth; Metabase/Braze/Composio app-side. 9. Party + invitations + row scoping,
+then open SSO. 10. Stop pulls domain by domain after rebuilding the two Airtable automations.
+Delete: `ClipSuggestion`/`ClipStrategy`/`ContentSource`, `Brief`, `Experiment`, `Performance`,
+`AssetPerformanceSnapshot`, `PerformanceAttribution`, `Dna`; orphan pages and dead navs.
+
+## 8. Risks to say out loud
+Attribution coverage is a number on screen, never assumed · row scoping before opening SSO ·
+two Airtable automations create tickets · `Employee.id` is an Airtable recId (~430 refs) ·
+YouTube CTR/AVD need Analytics API, not Composio/Perch · Metabase allowlist stays hardcoded ·
+14 Sep MOW runs on the current portal and must not be destabilised.
+
+## 9. Verification (prototype)
+Every hash route reachable from nav and in-page links · light/dark · ≤1 gold element per screen ·
+390px no horizontal scroll · every number carries source + capture age + n · the worked example
+(#11057 / reel DdFYhV8DXTk / Yuthika) is traceable on screens 5, 6, 7, 8 with the numbers in §2 ·
+JSON block regenerates from the export queries without hand edits.
