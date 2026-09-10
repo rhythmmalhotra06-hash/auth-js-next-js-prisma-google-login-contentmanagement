@@ -165,6 +165,23 @@ export default async function WeekPackPage({
               })}
             </div>
             <p className="mt-2 max-w-prose text-2xs leading-relaxed text-text-subtle">
+              {/*
+                Say WHY this metric leads, rather than presenting it as given. The rule is S2 and
+                the signal is a link out to the Official Cal — a default a human overrides, not a
+                fact about the week.
+              */}
+              {pack.week.liveCampaign ? (
+                <>
+                  <span className="font-semibold text-text-muted">Leads leads this week</span> because
+                  a campaign is live — days this week link out to the Official Cal. A quiet week
+                  defaults to whatever the primary offer is judged on instead.{' '}
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-text-muted">No campaign is live this week</span>,
+                  so the headline falls back to leads — the one metric sourceable for any week.{' '}
+                </>
+              )}
               Revenue here is <span className="font-semibold text-text-muted">organic social only</span> —
               not App, Email or Paid, and never the Braze &ldquo;engaged revenue&rdquo; figure. The
               same Metabase question unfiltered reads about 74&times; larger and describes the whole

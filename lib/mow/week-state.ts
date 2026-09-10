@@ -22,6 +22,7 @@
 import { prisma } from '@/lib/prisma';
 import { weekStartOf } from './week';
 import { canCommitMow } from './pack';
+import { defaultSmartNumberKey } from './smart-number';
 
 export type WriteResult = { ok: true } | { ok: false; error: string };
 
@@ -50,7 +51,7 @@ function guard(email: string | null | undefined): WriteResult {
 export async function ensureWeek(
   weekOf: Date,
   brand: string,
-  fields: { message: string | null; goal: string | null },
+  fields: { message: string | null; goal: string | null; liveCampaign: boolean },
 ): Promise<{ id: string; committed: boolean }> {
   const weekStart = weekStartOf(weekOf);
 
@@ -75,8 +76,22 @@ export async function ensureWeek(
       brand,
       message: fields.message,
       goal: fields.goal,
-      // Campaign weeks default the headline to leads (S2). Revenue becomes a driver.
-      smartNumberKey: 'leads',
+      // S2, via the shared resolver rather than a hardcoded value: a live campaign week defaults
+      // the headline to leads; otherwise the primary Offer's own definition decides, and that
+      // falls back to leads too because leads is the one metric sourceable for any week.
+      //
+      // HONEST LIMIT: `offers` has 0 rows, so the non-campaign branch cannot yet resolve to
+      // anything but leads either. The detection is wired and it discriminates correctly
+      // (w/c 31 Aug false, w/c 7 Sep true), but until an Offer carries a
+      // `smartNumberDefinition` it cannot change the ANSWER — every week is leads. Worth knowing
+      // before anyone concludes the rule is working from the output alone.
+      //
+      // Set ONLY on create. A human may change the headline metric (S1) and a later page load
+      // must not quietly put it back.
+      smartNumberKey: defaultSmartNumberKey({
+        hasLiveCampaign: fields.liveCampaign,
+        offerDefinition: null,
+      }),
       generatedAt: new Date(),
     },
     select: { id: true },

@@ -230,7 +230,11 @@ export async function getWeekPack(anchor: Date): Promise<WeekPack> {
   let brandState: BrandState[] = [];
   try {
     for (const h of week.headers) {
-      await ensureWeek(anchor, h.brand, { message: h.message, goal: h.goal });
+      await ensureWeek(anchor, h.brand, {
+        message: h.message,
+        goal: h.goal,
+        liveCampaign: week.liveCampaign,
+      });
     }
     const rowsState = await getWeekState(anchor, week.headers.map((h) => h.brand));
     brandState = rowsState.map((w) => ({

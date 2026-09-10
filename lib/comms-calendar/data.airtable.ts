@@ -79,6 +79,11 @@ interface MvDay {
   emails: number;
   socials: number;
   recId: string;
+  /**
+   * Links out to 📅 Official Cal. This is the live-campaign signal (S2) — a week with any of
+   * these is a campaign week, which defaults the headline metric to leads.
+   */
+  officialCalIds: string[];
 }
 
 /**
@@ -286,7 +291,11 @@ export function assembleWeek({
     const dayGoal = str(f[COMMS_DAY.fields.theGoal]);
 
     // The whole window feeds the message resolver; only the target week builds lanes.
-    mvWindow.push({ date: day, message: dayMessage, goal: dayGoal, emails: emails.length, socials: socials.length, recId: r.id });
+    mvWindow.push({
+      date: day, message: dayMessage, goal: dayGoal,
+      emails: emails.length, socials: socials.length, recId: r.id,
+      officialCalIds: ids(f[COMMS_DAY.links.officialCal]),
+    });
     if (day < startYmd || day > endYmd) continue;
 
     const assets: CalendarAsset[] = [];
@@ -401,6 +410,8 @@ export function assembleWeek({
       unpublished: notDatedTotal - notDatedPublished,
       sharePct: vlTotal > 0 ? Math.round((notDatedTotal / vlTotal) * 100) : null,
     },
+    // S2's live-campaign signal, computed from the week's own days.
+    liveCampaign: mvWindow.some((d) => d.date >= startYmd && d.date <= endYmd && d.officialCalIds.length > 0),
     datedThrough: vlDatedThrough,
     datedAfterWeek: vlDatedAfterWeek,
     asOf: new Date().toISOString(),

@@ -112,6 +112,19 @@ export interface CalendarWeek {
    * There is no single boundary date any more, which is why the grid states the facts rather than
    * tinting everything past a hardcoded day (Y3).
    */
+  /**
+   * True when any day this week links out to 📅 Official Cal — decision S2's live-campaign test.
+   *
+   * A campaign week defaults its headline metric to LEADS rather than revenue, because a campaign
+   * is judged on the audience it builds before it is judged on what that audience buys.
+   *
+   * The signal is weaker than S2 assumed and the UI should not overstate it: on live September
+   * data every comms day links to EITHER Official Cal or ⛳ Initiatives, alternating within a
+   * week (7, 10, 11 Sep vs 8, 9, 12, 13). So this is closer to "which calendar is this day on"
+   * than to a clean campaign boundary. It does still discriminate — w/c 1 Sep has none at all —
+   * but it is a default a human overrides (S1), not a fact.
+   */
+  liveCampaign: boolean;
   datedThrough: string | null;
   /**
    * Vishen-lane assets dated AFTER this week — the honest replacement for a boundary tint.
