@@ -25,6 +25,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { ensureWeek, getWeekState } from './week-state';
+import { buildBriefing, type Briefing } from './briefing';
 // Reads the Airtable path directly, the same way app/studio/comms-calendar does — there is no
 // backend dispatcher yet and COMMS_CALENDAR_BACKEND still defaults to `airtable`. When the
 // Postgres reader lands, both call sites change together.
@@ -116,6 +117,8 @@ export interface WeekPack {
   coverage: { platform: string; posts: number; has: string[]; missing: string[] }[];
   /** Per-brand workflow state from Postgres. Empty only if the database is unreachable. */
   brandState: BrandState[];
+  /** The computed half of the Monday brief — facts only, no judgement. */
+  briefing: Briefing;
   asOf: string;
 }
 
@@ -274,6 +277,7 @@ export async function getWeekPack(anchor: Date): Promise<WeekPack> {
     postsThisWeek: rows.reduce((n: number, r: DailyRow) => n + Number(r.posts), 0),
     coverage: coverageOf(rows),
     brandState,
+    briefing: buildBriefing(week, days),
     asOf: new Date().toISOString(),
   };
 }

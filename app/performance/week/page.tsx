@@ -8,6 +8,7 @@ import { BigNumber, fmt } from '@/components/ui/BigNumber';
 import { CommitBar, type CommitTarget } from '@/components/mow/CommitBar';
 import { Learnings } from '@/components/mow/Learnings';
 import { PostGrid, type PostGridItem } from '@/components/mow/PostGrid';
+import { Briefing } from '@/components/mow/Briefing';
 import { getWeekPack } from '@/lib/mow/week-pack';
 import { canCommitMow } from '@/lib/mow/pack';
 import { auth } from '@/lib/auth';
@@ -116,6 +117,14 @@ export default async function WeekPackPage({
           <div className="grid gap-3 md:grid-cols-2">
             {pack.week.headers.map((h) => <BrandCard key={h.brand} h={h} />)}
           </div>
+
+          {/* ── The first five minutes: what happened, before any table ────── */}
+          <section>
+            <h2 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+              The first five minutes
+            </h2>
+            <Briefing briefing={pack.briefing} weekHref={toYmd(start)} />
+          </section>
 
           {/* ── The headline number, one per brand ──────────────────────────── */}
           <section>
