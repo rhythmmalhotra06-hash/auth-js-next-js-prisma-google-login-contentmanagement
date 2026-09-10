@@ -10,11 +10,24 @@
 // recIds and they must open something. The table is deliberately NOT encoded in the URL — that
 // would turn every link already in the wild into a 404.
 //
-// Both tables are queried CONCURRENTLY and whichever answers wins. The obvious cheaper design —
-// try Videos, fall back on NOT_FOUND — does not work: Airtable answers a foreign record id with
-// "Invalid permissions, or the requested model was not found", which is a 403 rather than a 404,
-// so the fallback never fired and the page threw. Racing both is one extra request on a
-// single-record view and it cannot be fooled by how the API chooses to phrase a miss.
+// ── HOW THE TABLE IS IDENTIFIED, AND WHY NOT THE OBVIOUS WAY ──────────────────────────────────
+//
+// Both tables are queried concurrently with a RECORD_ID() FILTER, not with a record GET. That
+// looks like the long way round and it is load-bearing:
+//
+//   GET /v0/{base}/{table}/{recId} IGNORES THE TABLE SEGMENT.
+//
+// Verified 10 Sep: the same id fetched through 📣 Social, 📧 Emails and 🗓️ Comms Calendar returns
+// the identical record and the identical 30 fields. So a record GET cannot tell you which table a
+// record lives in — and an Email id would have been rendered as a post, reading its fields through
+// the Social field map and quietly producing nonsense.
+//
+// `filterByFormula` IS table-scoped: the same id returns 1 record from Social and 0 from Emails.
+// That is the only reliable way to ask "does this record belong to this table".
+//
+// (An earlier attempt tried Videos first and fell back on NOT_FOUND. That failed differently:
+// Airtable answers a foreign record id with a 403, not a 404, so the fallback never fired and the
+// page threw — which is the "Could not read the asset" error seen in production.)
 //
 // WHAT THIS PAGE IS FOR. `Live Date` is the field the entire calendar hinges on and the field with
 // no owner — 204 of 442 assets lack it and 66 of those are already published. So the detail view
@@ -124,18 +137,39 @@ function selectName(v: unknown): string | null {
   return null;
 }
 
+/** Fetch a record ONLY if it genuinely belongs to this table. See the note above. */
+async function recordInTable(
+  baseId: string,
+  tableId: string,
+  recordId: string,
+): Promise<Record<string, unknown> | null> {
+  const res = await listAll(baseId, tableId, {
+    filterByFormula: `RECORD_ID()='${recordId}'`,
+    maxRecords: 1,
+  });
+  if (!res.ok) {
+    // A 403 here means the base or table is unreachable, not that the record is missing. Treat it
+    // as "not in this table" so the other lane still gets its turn; a genuinely broken token shows
+    // up as both lanes empty and the caller renders "no such asset".
+    return null;
+  }
+  return res.data.length ? (res.data[0].fields as Record<string, unknown>) : null;
+}
+
 export async function getAssetDetail(recordId: string): Promise<AssetDetail | null> {
-  const [res, socialRes] = await Promise.all([
-    getRecord(VL_VIDEOS.baseId, VL_VIDEOS.tableId, recordId),
-    getRecord(SOCIAL.baseId, SOCIAL.tableId, recordId),
+  // Airtable record ids are opaque, so both lanes are asked and the table-scoped filter decides.
+  const [videoFields, socialFields] = await Promise.all([
+    recordInTable(VL_VIDEOS.baseId, VL_VIDEOS.tableId, recordId),
+    recordInTable(SOCIAL.baseId, SOCIAL.tableId, recordId),
   ]);
 
-  if (!res.ok) {
-    if (socialRes.ok) return buildSocialDetail(recordId, socialRes.data.fields as Record<string, unknown>);
-    // Neither table has it. A deleted or mistyped id is "not found", not a crash.
-    if (res.error.type === 'NOT_FOUND' || socialRes.error.type === 'NOT_FOUND') return null;
-    throw new Error(`Could not read the asset: ${res.error.message}`);
+  if (!videoFields) {
+    if (socialFields) return buildSocialDetail(recordId, socialFields);
+    // In neither table: deleted, mistyped, or a link to a table this page does not render.
+    // A friendly "no such asset" beats an exception on a page opened in a meeting.
+    return null;
   }
+  const res = { ok: true as const, data: { id: recordId, fields: videoFields } };
 
   const f = res.data.fields as Record<string, unknown>;
   const status = selectName(f[VL_VIDEOS.fields.status]);
