@@ -849,8 +849,8 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 3 | `1a` | Week calendar, three brand states, `/studio/comms-calendar` | ✅ **done** — `08413a4` |
 | 3b | — | **Reader correctness fix** (§6C) | ✅ **done** — `a86b6eb`, verified live |
 | 4 | `2a` | Monday pack at `/performance/week` | ✅ **read layer done** — `da7d00a`. Commit bar + learnings still to come |
-| 5 | `5a` `5b` | Month · asset detail | **next** — boundary computed, not 22 Sep (Y3) |
-| 6 | `4a` `5c` | Assets table · Vishen's card | |
+| 5 | `5a` `5b` | Month · asset detail | ✅ **done** — `49cd7a1`, rendered against live data |
+| 6 | `4a` `5c` | Assets table · Vishen's card | **next** |
 | 7 | `6b` | Not-dated tray | needs Airtable rows that don't exist yet |
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
