@@ -3,7 +3,14 @@ import { AppShell } from '@/components/ui/AppShell';
 import { BrandCard } from '@/components/mow/BrandCard';
 import { DayTable } from '@/components/mow/DayTable';
 import { EmptyOwned } from '@/components/ui/Empty';
+import { StagedBlock } from '@/components/ui/StagedBlock';
+import { BigNumber, fmt } from '@/components/ui/BigNumber';
+import { CommitBar, type CommitTarget } from '@/components/mow/CommitBar';
+import { Learnings } from '@/components/mow/Learnings';
 import { getWeekPack } from '@/lib/mow/week-pack';
+import { canCommitMow } from '@/lib/mow/pack';
+import { auth } from '@/lib/auth';
+import type { SmartNumber } from '@/lib/mow/smart-number';
 import { utcDay, weekStartOf, addDays, toYmd } from '@/lib/mow/week';
 import { cn } from '@/lib/cn';
 
@@ -30,6 +37,8 @@ export default async function WeekPackPage({
 }) {
   const sp = await searchParams;
   const meeting = sp.meeting === '1';
+  const session = await auth();
+  const canCommit = canCommitMow(session?.user?.email);
 
   let anchor: Date;
   try {
@@ -107,26 +116,76 @@ export default async function WeekPackPage({
             {pack.week.headers.map((h) => <BrandCard key={h.brand} h={h} />)}
           </div>
 
-          {/* ── The headline number. Not connected, and says so once. ──────── */}
+          {/* ── The headline number, one per brand ──────────────────────────── */}
           <section>
             <h2 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
               The number
             </h2>
-            <div className="rounded-md border border-border-default bg-surface p-[18px]">
-              {/*
-                No zero, no bar, no 0%-against-a-target track. Leads and revenue come from Metabase
-                questions 31846 / 32044, and there is no app-side credential yet (S6: a scheduled
-                session-side ingest lands them first). Stating the gap is the honest render, and it
-                is what gets the credential prioritised.
-              */}
-              <EmptyOwned kind="notSet" owner="leads and revenue not connected yet" />
-              <p className="mt-2 max-w-prose text-xs leading-relaxed text-text-muted">
-                Delivered social numbers below are real. Leads and revenue are not wired into the
-                app yet, so no headline figure is shown rather than a placeholder one.
-                {' '}Glen hand-enters the YouTube figures for week one, as he does today.
-              </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {pack.week.headers.map((h) => {
+                const st = pack.brandState.find((b) => b.brand === h.brand);
+                const n = st?.smartNumber as SmartNumber | null | undefined;
+                return (
+                  <div key={h.brand} className="rounded-md border border-border-default bg-surface p-[18px]">
+                    <div className="mb-2 text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+                      {h.label}
+                    </div>
+                    {n && n.value !== null ? (
+                      <StagedBlock
+                        state={st!.smartNumberIsCommitted ? 'committed' : 'staged'}
+                        by={st!.committedBy}
+                        at={st!.smartNumberIsCommitted ? st!.committedAt : n.asOf}
+                      >
+                        <BigNumber
+                          label={n.label}
+                          value={fmt(n.value)}
+                          target={n.target === null ? null : fmt(n.target)}
+                          provenance={n.targetProvenance}
+                          targetProse={n.targetProse}
+                          source={n.source}
+                          asOf={n.asOf ? new Date(n.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null}
+                        />
+                      </StagedBlock>
+                    ) : (
+                      <>
+                        {/*
+                          No zero, no bar, no 0%-against-a-target track. The figure arrives by the
+                          weekly ingest (S6/AA5) — until it does, the gap is named rather than
+                          filled with a placeholder.
+                        */}
+                        <EmptyOwned kind="notSet" owner="no figure ingested for this week yet" />
+                        <p className="mt-2 text-xs leading-relaxed text-text-muted">
+                          Leads and revenue come from Metabase and are posted in weekly. The
+                          delivered social numbers below are already real.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+            <p className="mt-2 max-w-prose text-2xs leading-relaxed text-text-subtle">
+              Revenue here is <span className="font-semibold text-text-muted">organic social only</span> —
+              not App, Email or Paid, and never the Braze &ldquo;engaged revenue&rdquo; figure. The
+              same Metabase question unfiltered reads about 74&times; larger and describes the whole
+              business, not this team&rsquo;s work.
+            </p>
           </section>
+
+          {/* ── What we learned, per brand ──────────────────────────────────── */}
+          {!meeting ? (
+            <section className="grid gap-3 md:grid-cols-2">
+              {pack.brandState.map((st) => (
+                <Learnings
+                  key={st.weekId}
+                  weekId={st.weekId}
+                  brandLabel={pack.week.headers.find((h) => h.brand === st.brand)?.label ?? st.brand}
+                  learnings={st.learnings}
+                  canEdit={canCommit && !st.committed}
+                />
+              ))}
+            </section>
+          ) : null}
 
           {/* ── Day by day. Summary here, Glen's read one click down. ───────── */}
           <section>
@@ -182,10 +241,28 @@ export default async function WeekPackPage({
             </section>
           ) : null}
 
+          {pack.brandState.length ? (
+            <CommitBar
+              canCommit={canCommit}
+              targets={pack.brandState.map((st): CommitTarget => ({
+                weekId: st.weekId,
+                brand: st.brand,
+                label: pack.week.headers.find((h) => h.brand === st.brand)?.label ?? st.brand,
+                committed: st.committed,
+                committedBy: st.committedBy,
+                pending: [
+                  ...(st.smartNumber && !st.smartNumberIsCommitted ? ['the number'] : []),
+                  ...(st.learnings.some((l) => !l.committedAt) ? ['learnings'] : []),
+                  ...(st.summary && !st.summaryIsCommitted ? ['the summary'] : []),
+                ],
+              }))}
+            />
+          ) : null}
+
           {!meeting ? (
             <p className="max-w-prose text-2xs leading-relaxed text-text-subtle">
-              Still to come on this page: the staged→committed learnings, the per-owner blocks, and
-              the commit bar. Until they land, the message and goal are read-only from Airtable.
+              The message and goal are read-only from Airtable. Everything staged here is app state
+              and is snapshotted on commit, so a later ingest cannot rewrite what the room agreed.
             </p>
           ) : null}
         </div>

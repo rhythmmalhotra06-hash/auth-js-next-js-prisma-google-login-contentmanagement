@@ -24,7 +24,6 @@
 //    `crossPlatformTotals` is deliberately absent. Do not add one.
 
 import { prisma } from '@/lib/prisma';
-import { ensureWeek, getWeekState } from './week-state';
 // Reads the Airtable path directly, the same way app/studio/comms-calendar does — there is no
 // backend dispatcher yet and COMMS_CALENDAR_BACKEND still defaults to `airtable`. When the
 // Postgres reader lands, both call sites change together.
@@ -77,30 +76,6 @@ export interface PackDay {
   mvSlots: number;
 }
 
-/** A brand's app-owned state: the number, the summary, the learnings, the commit. */
-export interface BrandState {
-  weekId: string;
-  brand: string;
-  committed: boolean;
-  committedBy: string | null;
-  committedAt: string | null;
-  /** committed ?? staged — AA4. `isCommitted` says which, and the UI must show it. */
-  smartNumber: unknown;
-  smartNumberIsCommitted: boolean;
-  summary: string | null;
-  summaryIsCommitted: boolean;
-  learnings: {
-    id: string;
-    textStaged: string | null;
-    textCommitted: string | null;
-    leverOwner: string | null;
-    proposed: boolean;
-    committedBy: string | null;
-    committedAt: string | null;
-    createdAt: string;
-  }[];
-}
-
 export interface WeekPack {
   /** The calendar's own answer — message, goal, related beats, warnings. Reused, not recomputed. */
   week: CalendarWeek;
@@ -112,8 +87,6 @@ export interface WeekPack {
    * than hedging next to every figure (the design collapsed five hedges into one statement).
    */
   coverage: { platform: string; posts: number; has: string[]; missing: string[] }[];
-  /** Per-brand workflow state from Postgres. Empty only if the database is unreachable. */
-  brandState: BrandState[];
   asOf: string;
 }
 
@@ -220,51 +193,11 @@ export async function getWeekPack(anchor: Date): Promise<WeekPack> {
     };
   });
 
-  // ── The app-owned half ────────────────────────────────────────────────────
-  // A MowWeek row is created lazily from the Airtable-resolved header (AA3), which is what makes
-  // the ingest route usable at all — it refuses to write to a week that does not exist, and
-  // nothing else creates one while MOW_BACKEND is `airtable`.
-  //
-  // Best-effort: a database hiccup must degrade the pack to its read-only half rather than 500 a
-  // page the Monday meeting runs from.
-  let brandState: BrandState[] = [];
-  try {
-    for (const h of week.headers) {
-      await ensureWeek(anchor, h.brand, { message: h.message, goal: h.goal });
-    }
-    const rowsState = await getWeekState(anchor, week.headers.map((h) => h.brand));
-    brandState = rowsState.map((w) => ({
-      weekId: w.id,
-      brand: w.brand,
-      committed: !!w.committedAt,
-      committedBy: w.committedBy,
-      committedAt: w.committedAt?.toISOString() ?? null,
-      // AA4: the committed snapshot wins, and the page says which it is showing.
-      smartNumber: w.smartNumberCommitted ?? w.smartNumberStaged ?? null,
-      smartNumberIsCommitted: !!w.smartNumberCommitted,
-      summary: w.weekSummaryCommitted ?? w.weekSummaryStaged ?? null,
-      summaryIsCommitted: !!w.weekSummaryCommitted,
-      learnings: w.learnings.map((l) => ({
-        id: l.id,
-        textStaged: l.textStaged,
-        textCommitted: l.textCommitted,
-        leverOwner: l.leverOwner,
-        proposed: l.proposed,
-        committedBy: l.committedBy,
-        committedAt: l.committedAt?.toISOString() ?? null,
-        createdAt: l.createdAt.toISOString(),
-      })),
-    }));
-  } catch {
-    brandState = [];
-  }
-
   return {
     week,
     days,
     postsThisWeek: rows.reduce((n: number, r: DailyRow) => n + Number(r.posts), 0),
     coverage: coverageOf(rows),
-    brandState,
     asOf: new Date().toISOString(),
   };
 }

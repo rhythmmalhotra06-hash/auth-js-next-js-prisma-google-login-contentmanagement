@@ -138,28 +138,28 @@ model Dna {
 }
 
 model AssetType {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  airtableId        String?  @unique @map("airtable_id")
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId        String? @unique @map("airtable_id")
   name              String // e.g. "Masterclass Trailer"
-  fullName          String?  @map("full_name") // ← Airtable "Asset Type (Full title)": fallback when short name is blank
+  fullName          String? @map("full_name") // ← Airtable "Asset Type (Full title)": fallback when short name is blank
   category          String? // ← Airtable "Type of Asset": Print | Digital
-  creativeCategory  String?  @map("creative_category") // ← Airtable "Category": Creative Video/Brand Design/Event Design Type
-  dnaId             String?  @map("dna_id") @db.Uuid // legacy; DNA is dormant (text fields below are the live source, E9.7)
-  active            Boolean  @default(true) // ← Airtable "Status": Active | Inactive
-  loadWeight        Float?   @map("load_weight") // ← Airtable "Load Weight": capacity cost/ticket; blank → 1
-  effortNorm        Float?   @map("effort_norm") // ← Airtable "Effort Norm" (0–1): priority complexity effort
-  dnaRequirements   String?  @map("dna_requirements") // ← Airtable "DNA / Requirements" (E9.7)
-  feedbackStandards String?  @map("feedback_standards") // ← Airtable "Feedback Standards" (E9.7)
-  dnaUpdatedBy      String?  @map("dna_updated_by") // ← Airtable "DNA Updated By": last portal editor email
+  creativeCategory  String? @map("creative_category") // ← Airtable "Category": Creative Video/Brand Design/Event Design Type
+  dnaId             String? @map("dna_id") @db.Uuid // legacy; DNA is dormant (text fields below are the live source, E9.7)
+  active            Boolean @default(true) // ← Airtable "Status": Active | Inactive
+  loadWeight        Float?  @map("load_weight") // ← Airtable "Load Weight": capacity cost/ticket; blank → 1
+  effortNorm        Float?  @map("effort_norm") // ← Airtable "Effort Norm" (0–1): priority complexity effort
+  dnaRequirements   String? @map("dna_requirements") // ← Airtable "DNA / Requirements" (E9.7)
+  feedbackStandards String? @map("feedback_standards") // ← Airtable "Feedback Standards" (E9.7)
+  dnaUpdatedBy      String? @map("dna_updated_by") // ← Airtable "DNA Updated By": last portal editor email
 
   // Upstream DNA, READ-ONLY from Airtable's synced source (added 2026-09-08). The
   // portal-owned pair above wins when non-empty; otherwise these are the review baseline.
   // Precedence lives in lib/dna-review/config.ts so the two interfaces can't diverge.
-  dnaUpstream       String?  @map("dna_upstream") // ← Airtable "DNA" (72/118 populated)
-  viralityDna       String?  @map("virality_dna") // ← Airtable "Video/Virality DNA"
-  dnaLink           String?  @map("dna_link") // ← Airtable "DNA link" (url)
-  processDnaUrl     String?  @map("process_dna_url") // ← Airtable "Process DNA" (url)
-  processDnaSummary String?  @map("process_dna_summary") // ← Airtable "URL Summary (Process DNA)" (aiText)
+  dnaUpstream       String? @map("dna_upstream") // ← Airtable "DNA" (72/118 populated)
+  viralityDna       String? @map("virality_dna") // ← Airtable "Video/Virality DNA"
+  dnaLink           String? @map("dna_link") // ← Airtable "DNA link" (url)
+  processDnaUrl     String? @map("process_dna_url") // ← Airtable "Process DNA" (url)
+  processDnaSummary String? @map("process_dna_summary") // ← Airtable "URL Summary (Process DNA)" (aiText)
 
   // Work emails allowed to RAISE this asset type on the intake form, resolved from
   // Airtable's "Stakeholder" link at sync time. Stored as emails rather than a join table:
@@ -175,8 +175,8 @@ model AssetType {
   teamLeads        AssetTypeTeamLead[]
   preferredEditors AssetTypePreferredEditor[]
 
-  dimensions AssetTypeDimension[]
-  tickets    Ticket[]
+  dimensions     AssetTypeDimension[]
+  tickets        Ticket[]
   dnaReviewRules DnaReviewRule[]
 
   @@map("asset_types")
@@ -264,20 +264,20 @@ model ScoringConfigKnob {
 // 🧠 Clip Rules — editable clip-generation prompt/pillars/rules. Mirrored one-way
 // from Airtable for fast reads; edited at /settings/clip-rules (writes go to Airtable).
 model ClipRule {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  airtableId    String?  @unique @map("airtable_id")
-  name          String?
-  kind          String? // Base Prompt | Brand Pillars | Rule
-  clipType      String?  @map("clip_type") // All | Reel | Stage Talk | Short
-  content       String?
-  active        Boolean  @default(true)
-  order         Int? // sort for appended rules
-  section       String? // General | Clips | Thumbnail | Titles | Distribution
-  note          String?
-  updatedBy     String?  @map("updated_by")
-  airtableUpdatedAt String? @map("airtable_updated_at") // ← Airtable "Last Modified" string (display/sort)
-  createdTime   String?  @map("created_time") // ← Airtable createdTime (display/sort)
-  syncedAt      DateTime @default(now()) @map("synced_at") @db.Timestamptz
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId        String?  @unique @map("airtable_id")
+  name              String?
+  kind              String? // Base Prompt | Brand Pillars | Rule
+  clipType          String?  @map("clip_type") // All | Reel | Stage Talk | Short
+  content           String?
+  active            Boolean  @default(true)
+  order             Int? // sort for appended rules
+  section           String? // General | Clips | Thumbnail | Titles | Distribution
+  note              String?
+  updatedBy         String?  @map("updated_by")
+  airtableUpdatedAt String?  @map("airtable_updated_at") // ← Airtable "Last Modified" string (display/sort)
+  createdTime       String?  @map("created_time") // ← Airtable createdTime (display/sort)
+  syncedAt          DateTime @default(now()) @map("synced_at") @db.Timestamptz
 
   @@map("clip_rules")
 }
@@ -346,10 +346,10 @@ model Ticket {
   priorityScore Decimal? @map("priority_score") @db.Decimal // derived; ranks the queue
   queueRank     Int?     @map("queue_rank") // ← Airtable "Priority ranking (Manual)"
 
-  source    String    @default("app") // app | jira_migration | airtable
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-  syncedAt  DateTime? @map("synced_at") @db.Timestamptz
+  source           String    @default("app") // app | jira_migration | airtable
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  syncedAt         DateTime? @map("synced_at") @db.Timestamptz
   // Last time the app pushed this ticket to Airtable — echo-suppression window for
   // the (future) Phase 3 pull, so our own write doesn't ping-pong back.
   airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
@@ -368,7 +368,7 @@ model Ticket {
 
   clipSuggestions ClipSuggestion[] @relation("TicketClipSuggestions")
 
-  dnaReviews          DnaReview[]
+  dnaReviews           DnaReview[]
   dnaReviewRuleSources DnaReviewRule[] @relation("DnaRuleSourceTicket")
 
   performanceSnapshots AssetPerformanceSnapshot[]
@@ -521,13 +521,13 @@ model Performance {
 
 // Official Calendar (reference, synced from Airtable) — campaign start/end dates.
 model OfficialCalendar {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  airtableId  String?   @unique @map("airtable_id")
-  name        String // ← "Name of project"
-  status      String? // Proposal | Confirmed | Completed | …
-  startDate   DateTime? @map("start_date") @db.Date
-  endDate     DateTime? @map("end_date") @db.Date
-  syncedAt    DateTime  @default(now()) @map("synced_at") @db.Timestamptz
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  airtableId String?   @unique @map("airtable_id")
+  name       String // ← "Name of project"
+  status     String? // Proposal | Confirmed | Completed | …
+  startDate  DateTime? @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+  syncedAt   DateTime  @default(now()) @map("synced_at") @db.Timestamptz
 
   tickets Ticket[]
 
@@ -770,8 +770,8 @@ model DnaReviewRule {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  assetType    AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
-  sourceTicket Ticket?   @relation("DnaRuleSourceTicket", fields: [sourceTicketId], references: [id], onDelete: SetNull)
+  assetType    AssetType          @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  sourceTicket Ticket?            @relation("DnaRuleSourceTicket", fields: [sourceTicketId], references: [id], onDelete: SetNull)
   findings     DnaReviewFinding[]
 
   @@index([assetTypeId, active])
@@ -796,7 +796,7 @@ model DnaReview {
   requestedBy         String?  @map("requested_by") // email
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket   Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   findings DnaReviewFinding[]
 
   @@index([ticketId, createdAt])
@@ -870,12 +870,10 @@ model SocialMetric {
   /**
    * Hootsuite campaign/speaker tags for this post, e.g. 'Expert to Authority Summit 2026',
    * 'Weekly Masterclass', 'Vishen', 'Regan Hillyer'.
-   *
    * Perch has always returned these inside `raw.details.tags`; we stored the payload but never
    * lifted them out. This is the mechanism the social team already groups campaigns by — Glen:
    * "on Hootsuite we tag a post depending on the campaign… MCH August 2026" — so extracting it
    * gives campaign-level grouping with no new integration.
-   *
    * Coverage is partial by nature (56 of 329 posts at 10 Sep) because it depends on the team
    * tagging as they schedule. Treat an empty array as "not tagged", never as "no campaign".
    */
@@ -917,19 +915,23 @@ model SocialMetric {
 // client id/secret come from dynamic client registration, so no one has to hand-register an
 // OAuth app in the provider's console.
 model ExternalCredential {
-  provider         String    @id
-  clientId         String?   @map("client_id")
-  clientSecretEnc  String?   @map("client_secret_enc")
-  accessTokenEnc   String?   @map("access_token_enc")
-  refreshTokenEnc  String?   @map("refresh_token_enc")
-  /** When the ACCESS token expires; the refresh token outlives it. */
-  expiresAt        DateTime? @map("expires_at") @db.Timestamptz
-  scope            String?
-  /** Free-text note for the admin surface, e.g. the last refresh failure. */
-  lastError        String?   @map("last_error")
-  connectedBy      String?   @map("connected_by")
-  connectedAt      DateTime? @map("connected_at") @db.Timestamptz
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  provider        String    @id
+  clientId        String?   @map("client_id")
+  clientSecretEnc String?   @map("client_secret_enc")
+  accessTokenEnc  String?   @map("access_token_enc")
+  refreshTokenEnc String?   @map("refresh_token_enc")
+  /**
+   * When the ACCESS token expires; the refresh token outlives it.
+   */
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz
+  scope           String?
+  /**
+   * Free-text note for the admin surface, e.g. the last refresh failure.
+   */
+  lastError       String?   @map("last_error")
+  connectedBy     String?   @map("connected_by")
+  connectedAt     DateTime? @map("connected_at") @db.Timestamptz
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   @@map("external_credentials")
 }
@@ -994,21 +996,21 @@ model CommsDay {
   totalDailyRevenue   Decimal? @map("total_daily_revenue") @db.Decimal(14, 2)
 
   // Airtable link fields, stored as recId arrays.
-  officialCalIds            String[] @map("official_cal_ids") // → 📅 Official Cal; presence ⇒ a campaign is live that day (drives S2's leads default)
-  initiativeIds             String[] @map("initiative_ids")
-  emailIds                  String[] @map("email_ids")
-  socialAssetIds            String[] @map("social_asset_ids")
-  bannerIds                 String[] @map("banner_ids")
-  notificationIds           String[] @map("notification_ids")
-  blogIds                   String[] @map("blog_ids")
+  officialCalIds  String[] @map("official_cal_ids") // → 📅 Official Cal; presence ⇒ a campaign is live that day (drives S2's leads default)
+  initiativeIds   String[] @map("initiative_ids")
+  emailIds        String[] @map("email_ids")
+  socialAssetIds  String[] @map("social_asset_ids")
+  bannerIds       String[] @map("banner_ids")
+  notificationIds String[] @map("notification_ids")
+  blogIds         String[] @map("blog_ids")
 
   // READ-ONLY mirror (formula/lookup upstream). Never written back.
-  roLeadGenGoal    Decimal? @map("ro_lead_gen_goal") @db.Decimal(14, 2) // ← lookup: the campaign's lead target
-  roTargetRevenue  Decimal? @map("ro_target_revenue") @db.Decimal(14, 2)
-  roProjectName    String?  @map("ro_project_name")
-  roStatus         String?  @map("ro_status")
-  roWeekday        String?  @map("ro_weekday")
-  roNameOfComms    String?  @map("ro_name_of_comms")
+  roLeadGenGoal   Decimal? @map("ro_lead_gen_goal") @db.Decimal(14, 2) // ← lookup: the campaign's lead target
+  roTargetRevenue Decimal? @map("ro_target_revenue") @db.Decimal(14, 2)
+  roProjectName   String?  @map("ro_project_name")
+  roStatus        String?  @map("ro_status")
+  roWeekday       String?  @map("ro_weekday")
+  roNameOfComms   String?  @map("ro_name_of_comms")
 
   airtablePushedAt DateTime? @map("airtable_pushed_at") @db.Timestamptz
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -1132,17 +1134,17 @@ model MowSlot {
   weekId String  @map("week_id") @db.Uuid
   week   MowWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
 
-  day       DateTime @db.Date
-  channel   String // email | social | platform
-  brand     String?
+  day               DateTime  @db.Date
+  channel           String // email | social | platform
+  brand             String?
   // Platform comms (Sadaf) attach to the WEEK, not a day — they run >= 7 days. Those rows carry
   // channel='platform' and the week's Monday as `day` (it is NOT NULL, so there is no "no day"
   // sentinel). No source exists yet, so they render as a labelled empty state and nobody types
   // anything (S17).
-  expectedAssetType String?  @map("expected_asset_type")
-  ownerEmployeeId   String?  @map("owner_employee_id") @db.Uuid
+  expectedAssetType String?   @map("expected_asset_type")
+  ownerEmployeeId   String?   @map("owner_employee_id") @db.Uuid
   ownerEmployee     Employee? @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
-  ownerNameFallback String?  @map("owner_name_fallback") // e.g. "Editor TBC" where the transcript is unverified
+  ownerNameFallback String?   @map("owner_name_fallback") // e.g. "Editor TBC" where the transcript is unverified
 
   plannedFromSource String? @map("planned_from_source") // 'comms_calendar' | 'release_planner' | 'manual'
 
@@ -1177,16 +1179,16 @@ model Offer {
   canonicalUrl String? @map("canonical_url")
   name         String?
 
-  utmCampaignPattern String? @map("utm_campaign_pattern") // e.g. launch_eas_sep_2026
+  utmCampaignPattern    String? @map("utm_campaign_pattern") // e.g. launch_eas_sep_2026
   // Which metric this offer is judged on; supplies MowWeek's default headline outside campaign
   // weeks. 'revenue' | 'leads' | 'active_users'.
   smartNumberDefinition String? @map("smart_number_definition")
   // Curated Metabase question id. HARD-ALLOWLISTED in code to 31846 (leads) / 32044 (revenue) —
   // never point a generator at the full dashboard: Glen's did, and "it would just make shit up
   // after every two days, it would fake the revenue".
-  metabaseQueryRef String? @map("metabase_query_ref")
+  metabaseQueryRef      String? @map("metabase_query_ref")
   // Rafi's "Funnels & Experimentations" scoreboard row. Link out, don't rebuild (brief D6).
-  airtableTestRecordId String? @map("airtable_test_record_id")
+  airtableTestRecordId  String? @map("airtable_test_record_id")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -1216,12 +1218,12 @@ model DestinationLink {
   offerId    String? @map("offer_id") @db.Uuid
   offer      Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
 
-  matchConfidence Decimal? @map("match_confidence") @db.Decimal(4, 3)
-  humanLinkedBy   String?  @map("human_linked_by")
+  matchConfidence Decimal?  @map("match_confidence") @db.Decimal(4, 3)
+  humanLinkedBy   String?   @map("human_linked_by")
   humanLinkedAt   DateTime? @map("human_linked_at") @db.Timestamptz
   // True when the CTA runs through ManyChat DM rather than a clickable link: attribution there is
   // campaign-level at best, so the UI labels it that way instead of showing a blank (plan §3).
-  viaManychat Boolean @default(false) @map("via_manychat")
+  viaManychat     Boolean   @default(false) @map("via_manychat")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -1234,13 +1236,13 @@ model DestinationLink {
 // SNAPSHOTS, not a mutable current value — revenue backfills upward as late attribution lands,
 // so a figure is never final and the page must show "as of".
 model AssetPerformanceSnapshot {
-  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketId String? @map("ticket_id") @db.Uuid
-  ticket   Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
-  slotId   String? @map("slot_id") @db.Uuid
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId String?  @map("ticket_id") @db.Uuid
+  ticket   Ticket?  @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  slotId   String?  @map("slot_id") @db.Uuid
   slot     MowSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
-  offerId  String? @map("offer_id") @db.Uuid
-  offer    Offer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  offerId  String?  @map("offer_id") @db.Uuid
+  offer    Offer?   @relation(fields: [offerId], references: [id], onDelete: SetNull)
 
   channel     String?
   publishedAt DateTime? @map("published_at") @db.Timestamptz
@@ -1309,14 +1311,23 @@ model CreativeRecord {
 // <= 5 COMMITTED learnings per week, each attributed to the person who controls the lever.
 // The library is read by the agent, not browsed (brief D7) — the page is the evidence trail.
 model Learning {
-  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  weekId String  @map("week_id") @db.Uuid
-  week   MowWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  slotId String? @map("slot_id") @db.Uuid
+  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId String   @map("week_id") @db.Uuid
+  week   MowWeek  @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  slotId String?  @map("slot_id") @db.Uuid
   slot   MowSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
 
   textStaged    String? @map("text_staged")
   textCommitted String? @map("text_committed")
+
+  /// True when the SYSTEM drafted this line rather than a person (AA2). Surfaced in the UI so an
+  /// AI suggestion never reads as a colleague's judgement; editing one clears the flag, because a
+  /// human has then put their name behind the words.
+  proposed Boolean @default(false)
+
+  /// The lever this learning points at, and who owns it — free text for 14 Sep (S16).
+  /// `leverOwnerEmployee` below is the real link, and wins when both are set.
+  leverOwner String? @map("lever_owner")
 
   leverOwnerEmployeeId String?   @map("lever_owner_employee_id") @db.Uuid
   leverOwnerEmployee   Employee? @relation(fields: [leverOwnerEmployeeId], references: [id], onDelete: SetNull)
@@ -1337,10 +1348,10 @@ model Learning {
 // The pack is mostly briefs: one per slot owner, drafted from last week's evidence, committed by
 // a human. Editors also declare what they will improve in the next upload — Glen's specific ask.
 model Brief {
-  id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  weekId String  @map("week_id") @db.Uuid
-  week   MowWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  slotId String? @map("slot_id") @db.Uuid
+  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekId String   @map("week_id") @db.Uuid
+  week   MowWeek  @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  slotId String?  @map("slot_id") @db.Uuid
   slot   MowSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
 
   ownerEmployeeId String?   @map("owner_employee_id") @db.Uuid
@@ -1349,6 +1360,15 @@ model Brief {
 
   textStaged    String? @map("text_staged")
   textCommitted String? @map("text_committed")
+
+  /// True when the SYSTEM drafted this line rather than a person (AA2). Surfaced in the UI so an
+  /// AI suggestion never reads as a colleague's judgement; editing one clears the flag, because a
+  /// human has then put their name behind the words.
+  proposed Boolean @default(false)
+
+  /// The lever this learning points at, and who owns it — free text for 14 Sep (S16).
+  /// `leverOwnerEmployee` below is the real link, and wins when both are set.
+  leverOwner      String? @map("lever_owner")
   // "What am I improving in my next upload?" — one key point, owner's own words.
   nextUploadFocus String? @map("next_upload_focus")
 
