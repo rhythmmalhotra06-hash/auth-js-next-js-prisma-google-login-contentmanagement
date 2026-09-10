@@ -847,9 +847,9 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 1 | `3a` | Component layer + tokens + `/settings/components` | ✅ **done** |
 | 2 | `6a` | Dark theme — role values over the same components | ✅ **done** (incl. the real contrast bug) |
 | 3 | `1a` | Week calendar, three brand states, `/studio/comms-calendar` | ✅ **done** — `08413a4` |
-| 3b | — | **Reader correctness fix** (§6C) | **next** — blocks 4 and 5 both |
-| 4 | `2a` | Monday pack at `/performance/week` | **reordered ahead of Month** (Y4) |
-| 5 | `5a` `5b` | Month · asset detail | boundary now computed, not 22 Sep (Y3) |
+| 3b | — | **Reader correctness fix** (§6C) | ✅ **done** — `a86b6eb`, verified live |
+| 4 | `2a` | Monday pack at `/performance/week` | ✅ **read layer done** — `da7d00a`. Commit bar + learnings still to come |
+| 5 | `5a` `5b` | Month · asset detail | **next** — boundary computed, not 22 Sep (Y3) |
 | 6 | `4a` `5c` | Assets table · Vishen's card | |
 | 7 | `6b` | Not-dated tray | needs Airtable rows that don't exist yet |
 
@@ -944,6 +944,20 @@ What it can honestly show on Monday, given §0B's audit:
 | Per-platform reach/engagement | `social_metrics`, 329 posts | **real in aggregate**; per-asset impossible (`ticket_airtable_id` on 0 rows) |
 | YouTube · revenue · leads | — | labelled absent; Glen hand-enters week one (W5) |
 | Learnings, per-owner prose | Postgres `0024_mow` tables (Y5) | staged→committed, human-written |
+
+### Two further traps, found in production while building `2a`
+
+Neither is in any handoff, and both would have produced a wrong number in front of Vishen.
+
+| # | Finding | Consequence |
+|---|---|---|
+| **Y6** | **`social_metrics` holds 5.0 capture rows per post** — 1,642 rows over 329 posts, because the nightly cron re-captures each one. A naive `sum(reach)` inflates by ~5×. Every figure now comes from the latest capture per post via `distinct on`. | Same class of error as Glen's `SELECT DISTINCT order_id` rule, which has inflated a revenue figure twice — once by $6,261. His rule was about revenue; this is the same shape in the social table. |
+| **Y7** | **The platforms do not report the same metrics.** Verified on live w/c 7 Sep rows: Instagram returns reach + engagements and **no clicks**; Facebook returns clicks and **neither** reach nor engagements; TikTok returns reach alone. | A cross-platform "week reach" is an Instagram figure wearing a total's clothes. `week-pack.ts` deliberately has **no** cross-platform total, and the page states what each platform reports once at screen level. Do not add one. |
+| **Y8** | **`planned` and `delivered` count different populations.** Perch watches 10+ connected accounts including the regional ones (`mindvalley.de`, `mindvalleyenespanol`, `mindvalleybookclub`); the comms calendar plans a much smaller named set. Mon 7 Sep is **7 planned against 19 delivered**. | Presented as two facts side by side, never a ratio — as planned-vs-actual it would read as a 271% completion rate. The one sound comparison is the weak one: a planned day where nothing at all went out. |
+
+Also worth recording: the publish date is `raw.details.created_at`, **epoch seconds**, present on all
+1,642 rows. `captured_at` is when the cron ran, so it is useless for bucketing a post to the day it
+went out — which is what the day table needs.
 
 ### Verification for 3b and 4
 
