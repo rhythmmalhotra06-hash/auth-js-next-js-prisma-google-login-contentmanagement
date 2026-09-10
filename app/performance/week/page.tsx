@@ -7,6 +7,7 @@ import { StagedBlock } from '@/components/ui/StagedBlock';
 import { BigNumber, fmt } from '@/components/ui/BigNumber';
 import { CommitBar, type CommitTarget } from '@/components/mow/CommitBar';
 import { Learnings } from '@/components/mow/Learnings';
+import { PostGrid, type PostGridItem } from '@/components/mow/PostGrid';
 import { getWeekPack } from '@/lib/mow/week-pack';
 import { canCommitMow } from '@/lib/mow/pack';
 import { auth } from '@/lib/auth';
@@ -242,6 +243,19 @@ export default async function WeekPackPage({
                 They are two facts side by side, not a completion rate.
               </span>
             </p>
+          </section>
+
+          {/* ── The posts themselves. The drill-down the day table only counts. ── */}
+          <section>
+            <h2 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+              What went out
+            </h2>
+            <PostGrid
+              weekHref={toYmd(start)}
+              // From `allPosts`, NOT the day lanes: those cap at two rows per day, so building the
+              // grid from them would quietly drop the third post onward on a busy day.
+              posts={pack.week.allPosts as PostGridItem[]}
+            />
           </section>
 
           {/* ── ONE screen-level provenance statement, not a hedge per figure ── */}

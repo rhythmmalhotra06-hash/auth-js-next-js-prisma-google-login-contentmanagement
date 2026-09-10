@@ -37,6 +37,8 @@ export interface CalendarAsset {
    * Null means NOT MATCHED, never zero — see lib/comms-calendar/social-posts.ts.
    */
   results?: { reach: number | null; engagements: number | null; multiAccount: boolean } | null;
+  /** Post artwork, where the record carries an attachment (62% of them). */
+  imageUrl?: string | null;
 }
 
 /** One day in the week, both lanes. */
@@ -107,6 +109,14 @@ export interface CalendarWeek {
    * instead of claiming neither has any. Still exactly one gold element.
    */
   brandsWithoutGoal: Brand[];
+  /**
+   * EVERY Mindvalley post in the week, uncapped and carrying its date.
+   *
+   * The day lanes cap at two rows plus an overflow count, which is right for a calendar cell and
+   * wrong for a grid — building the grid from the lanes would silently drop the third post onward
+   * on a busy day, and a "what went out" view that hides posts is worse than none.
+   */
+  allPosts: (CalendarAsset & { date: string })[];
   /**
    * The not-dated tray. Its count is the nag.
    *

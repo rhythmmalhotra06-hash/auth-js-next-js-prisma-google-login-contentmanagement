@@ -332,6 +332,8 @@ export function assembleWeek({
   // rows the meeting reads as volume, so the count shows and the titles stay one click away.
   const mvByDay = new Map<string, { assets: CalendarAsset[]; overflow: number }>();
   const mvWindow: MvDay[] = [];
+  // Uncapped, for the post grid. The lanes below cap at MV_INLINE.
+  const allPosts: (CalendarAsset & { date: string })[] = [];
 
   for (const r of mvRows) {
     const f = r.fields as Record<string, unknown>;
@@ -376,12 +378,15 @@ export function assembleWeek({
         publishedUrl: p.publishedUrl,
         live: !!p.publishedUrl || !!p.results,
         platforms: p.platforms,
+        imageUrl: p.imageUrl,
         results: p.results
           ? { reach: p.results.reach, engagements: p.results.engagements, multiAccount: p.results.multiAccount }
           : null,
         ...perAsset,
       });
     }
+    for (const a of assets) if (!a.id.includes(':')) allPosts.push({ ...a, date: day });
+
     // Any social ids that did not resolve still count, so the day's volume stays honest.
     const unresolved = socials.filter((id) => !posts.has(id)).length;
     const total = assets.length + unresolved;
@@ -475,6 +480,7 @@ export function assembleWeek({
     days,
     headers,
     // The gold element. A placeholder goal counts as missing — `vcvdsv` is not a goal.
+    allPosts,
     brandsWithoutGoal: headers.filter((h) => !h.goal || h.goalIsPlaceholder).map((h) => h.brand),
     notDated: {
       total: notDatedTotal,
