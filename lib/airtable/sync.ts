@@ -132,8 +132,9 @@ export function mapAssetType(r: AirtableRecord) {
     category: str(r.fields[ASSET_TYPES.fields.category]),
     creativeCategory: str(r.fields[ASSET_TYPES.fields.creativeCategory]), // Creative Video/Brand Design/Event Design Type
     active: str(r.fields[ASSET_TYPES.fields.status]) === 'Active',
-    loadWeight: numVal(r.fields[ASSET_TYPES.fields.loadWeight]),
-    effortNorm: numVal(r.fields[ASSET_TYPES.fields.effortNorm]),
+    // `loadWeight` / `effortNorm` are NOT read from Airtable: the fields do not exist on this
+    // synced table (see the note in field-map.ts). The columns stay null and scoring uses its
+    // documented defaults, which is what has actually been happening since before 10 Sep.
     dnaRequirements: str(r.fields[ASSET_TYPES.fields.dnaRequirements]),
     feedbackStandards: str(r.fields[ASSET_TYPES.fields.feedbackStandards]),
     dnaUpdatedBy: str(r.fields[ASSET_TYPES.fields.dnaUpdatedBy]),
@@ -258,7 +259,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     for (const a of assetTypes) {
       const scalars = {
         name: a.name, fullName: a.fullName, category: a.category, creativeCategory: a.creativeCategory,
-        active: a.active, loadWeight: a.loadWeight, effortNorm: a.effortNorm,
+        active: a.active,
         dnaRequirements: a.dnaRequirements, feedbackStandards: a.feedbackStandards, dnaUpdatedBy: a.dnaUpdatedBy,
         dnaUpstream: a.dnaUpstream, viralityDna: a.viralityDna, dnaLink: a.dnaLink,
         processDnaUrl: a.processDnaUrl, processDnaSummary: a.processDnaSummary,

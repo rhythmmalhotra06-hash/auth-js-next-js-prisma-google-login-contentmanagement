@@ -234,8 +234,17 @@ export const ASSET_TYPES = {
     category: 'fld86vEJhhWbheWDU', // "Type of Asset" (Print | Digital)
     creativeCategory: 'fldmDywGRsFPjwNPb', // "Category" (Creative Video Type | Creative Brand Design Type | Creative Event Design Type)
     status: 'fldfCsqOjPO2LH9Ye', // "Status" (Active | Inactive)
-    loadWeight: 'fld7d85oMy4ELYmDi', // "Load Weight" (number) — capacity cost per ticket; blank → 1. From /settings/scoring
-    effortNorm: 'fldKEQQQnkQK9XL3q', // "Effort Norm" (number 0–1) — priority complexity effort; blank → 0.5. From /settings/scoring
+    // NO `loadWeight` / `effortNorm` here — deliberately. `fld7d85oMy4ELYmDi` and
+    // `fldKEQQQnkQK9XL3q` were mapped until 10 Sep and DO NOT EXIST on the live table (verified by
+    // `npm run doctor` against the base schema). This table is SYNCED — it carries `Sync Source` —
+    // and Airtable does not permit app-managed fields on a synced table, so they could not have
+    // survived a rebuild. A dead id does not error: the REST API just omits the key, so both read
+    // as `undefined` and fell back to defaults on all 226 rows, silently neutering the asset-type
+    // half of the load/capacity weighting. Removed rather than repointed at the real
+    // `Importance` / `Complexity` / `Hours` fields, which would change queue ranking for every
+    // ticket and revive the asset-type economics work that was dropped on 1 Sep.
+    // `AssetType.loadWeight` / `.effortNorm` remain as nullable Postgres columns: harmless, and
+    // dropping them is a migration with no benefit. See DEFAULTS in lib/tickets/scoring.ts.
     // Portal-OWNED, writable (locally-added fields on this synced table). /settings/asset-types
     // edits these. Measured 2026-09-08: populated on 0 of 118 asset types — nobody has ever
     // used the portal editor, which is why the DNA review always saw an empty baseline.

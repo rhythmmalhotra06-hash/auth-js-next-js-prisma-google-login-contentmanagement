@@ -850,7 +850,8 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 3b | — | **Reader correctness fix** (§6C) | ✅ **done** — `a86b6eb`, verified live |
 | 4 | `2a` | Monday pack at `/performance/week` | ✅ **read layer done** — `da7d00a`. Commit bar + learnings still to come |
 | 5 | `5a` `5b` | Month · asset detail | ✅ **done** — `49cd7a1`, rendered against live data |
-| 6 | `4a` `5c` | Assets table · Vishen's card | **next** |
+| 5b | — | **Data-flow audit + `npm run doctor`** (§6D) | **next** — 2 dead field ids to remove |
+| 6 | `4a` `5c` | Assets table · Vishen's card | then this, and deploy after it (Z1) |
 | 7 | `6b` | Not-dated tray | needs Airtable rows that don't exist yet |
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
@@ -984,6 +985,117 @@ after the fix:
 > InfoSec's own position (§0, change 6) is that developer PATs are not shared. **Rotate it**, and
 > put the replacement in Kessel as a secret (`kessel env secret AIRTABLE_TOKEN=…`) rather than in a
 > local file. It was passed inline for the run and written to no file in the repo.
+
+---
+
+## 6D. Data-flow and access audit — measured 10 Sep, before step 6
+
+### Context
+
+Asked before continuing to `4a`/`5c`: *is data actually flowing, and do we have access to
+everything?* Audited against live systems rather than reasoned about — Airtable schemas, the
+managed Postgres, GitHub Actions run history, Kessel env, and the OAuth credential table.
+
+Verdict: **the pipelines are healthy; the risks are one silent bug, one cadence, and the fact that
+nothing built this week is deployed.** Detail below, because the useful part is the numbers.
+
+### What is flowing
+
+| Source | State | Age when measured |
+|---|---|---|
+| Airtable → PG reference (`employees` 215, `asset_types` 226, `event_types` 63) | ✅ | 1h 48m |
+| `tickets` — 11,143 rows | ✅ | 1h 20m |
+| `social_metrics` — 1,642 rows / 329 posts | ✅ | 6h 47m (nightly Perch) |
+| All 9 scheduled workflows | ✅ every recent run `success` | — |
+| Hootsuite OAuth | ✅ refreshing (`last_error` null, `updated_at` today) | access token expires hourly by design |
+| **294 of 296 Airtable field ids** | ✅ resolve against live schemas | — |
+| Prod secrets: `AIRTABLE_TOKEN`, `ANTHROPIC_API_KEY`, `SLACK_BOT_TOKEN`, `SYNC_SECRET`, `YOUTUBE_API_KEY`, Google OAuth | ✅ all set | — |
+| `COMMS_CALENDAR_BACKEND` / `MOW_BACKEND` unset → default `airtable` | ✅ correct for Monday | — |
+
+`comms_days`, `messages_of_week` and `mow_weeks` are **0 rows, and that is correct** — both Monday
+surfaces read Airtable directly. Nothing is waiting on a reconcile.
+
+### The four real problems
+
+**Z-A · Two dead field ids, failing silently.** `ASSET_TYPES.fields.loadWeight`
+(`fld7d85oMy4ELYmDi`) and `.effortNorm` (`fldKEQQQnkQK9XL3q`) **do not exist** on the live
+`🛎️ Asset Type` table. They are read by [sync.ts:135](lib/airtable/sync.ts#L135) and
+[repository.ts:84](lib/scoring-config/repository.ts#L84).
+
+This is the project's worst failure mode: **a dead id does not error.** The REST API omits the key,
+so the value is `undefined`, and every surface here is deliberately built to render absence
+honestly — so a dead id renders as "not set", indistinguishable from a real data gap, on pages
+whose whole job is showing real data gaps. Confirmed downstream: `asset_types.load_weight` and
+`.effort_norm` are **null on all 226 rows**.
+
+The table is a **synced** table (it carries `Sync Source`), and Airtable does not allow app-managed
+fields on one — so these ids could not have survived a sync rebuild. Related trap already recorded
+in memory: the same table hides a second `EMPLOYEES` roster behind Stakeholder/Team Lead.
+
+**Z-B · The same dimension is inert from the other side too.** `EVENT_TYPES.fields.loadWeight`
+*does* resolve — and is **empty on all 63 rows**. So `loadWeightFor()` and `capacityFor()` return
+defaults for everything: the load/capacity weighting in prioritisation is currently a no-op. Two
+different causes, one identical outcome, and neither is visible anywhere.
+
+**Z-C · Scheduled sync is throttled ~4.7× slower than declared.** Measured from run history, not
+from the cron line. `reference-sync.yml` declares `0 * * * *` (hourly); actual gaps between runs
+were **4.7h, 5.1h, 4.6h, 2.4h**. `ticket-sync.yml` is the same shape. Every run succeeds — this is
+cadence, not failure, and it matches the warning already written into the workflow file.
+
+**This does not affect Monday.** Both new surfaces read Airtable live, so Ramya's Friday seeding
+appears immediately. It *does* affect `REFERENCE_BACKEND=postgres` consumers — the queue and intake
+surfaces — where an Airtable taxonomy edit can take ~5 hours to land.
+
+**Z-D · Nothing built this week is deployed.** All 11 commits sit on `mow-monday-14sep`; Kessel
+deploys from `main`, which is still at `6bf5dca`. The deployed app is healthy
+(`…cont-73a7-jdtcvngavq-as.a.run.app` returns 200) but has none of the calendar, pack, month or
+asset detail.
+
+### Where we genuinely lack access
+
+| Gap | Reality |
+|---|---|
+| **Metabase** | No `METABASE_*` in Kessel. Leads and revenue are unreachable from app code — the headline number's provenance. S6's session-side agent remains the only path. |
+| **YouTube Analytics** | `YOUTUBE_API_KEY` **is** set, but a Data API key only reaches views/likes/comments. CTR, AVD and retention need channel OAuth, so **Vishen's fixed 7% CTR benchmark is still unreachable** and Glen hand-enters it (W5). |
+| **Perch refresh token** | Single-holder and rotates, so the bus factor is one — and a revoked token would surface only at the 03:30 UTC run, as a quiet empty pull. |
+
+### Decisions
+
+| # | Decision |
+|---|---|
+| **Z1** | **Deploy after step 6**, not now. Noted risk, accepted: the first production deploy then lands Friday/Saturday with no slack, so any deploy-only surprise (region, OAuth host, a `NEXT_PUBLIC_*` needing a rebuild) has one day of margin. Mitigated by Z2 covering deploy-readiness and by prod env already being verified above. |
+| **Z2** | **Make all of this one command: `npm run doctor`.** The audit above took a dozen ad-hoc queries; it needs to be repeatable on Sunday night by someone who is tired. `scripts/doctor-airtable.mts` (written during this audit, 296 ids in one pass) becomes the first of four checks. |
+| **Z3** | **Remove the two dead references and state the default explicitly.** Changes no behaviour — they already resolve to null and fall back — but stops the field map claiming to read something that does not exist. Deliberately NOT repointed to `Importance`/`Complexity`/`Hours`, which do exist: that would change queue ranking for every ticket three days before a founder demo, and would revive work already dropped (see the asset-type-economics memory). |
+| **Z4** | **Z-B is documented, not fixed.** `Load Weight` being empty on all 63 event types is a data-entry gap owned upstream, not a code bug. `doctor` reports it as a warning so it stops being invisible; filling it is Ramya's or Jai's call after Monday. |
+
+### What `npm run doctor` checks
+
+One command, four checks, exits non-zero on anything that would render as a false data gap:
+
+1. **Airtable ids** — every `tbl`/`fld` in `lib/airtable/field-map.ts` against live base schemas
+   (`scripts/doctor-airtable.mts`, already written). Needs `schema.bases:read` on the token.
+2. **Postgres freshness** — row count and age per synced table, warning past a per-table threshold
+   (reference 12h, tickets 12h, social 36h). Runs through `kessel db query`, since the managed
+   Postgres is unreachable any other way.
+3. **Credentials** — `external_credentials` expiry and `last_error`, plus which expected Kessel env
+   keys are absent (`METABASE_*` should report as a *known* gap, not a surprise).
+4. **Reference emptiness** — fields whose id resolves but which are empty on every row (Z-B). This
+   is the check that would have caught Z-A and Z-B as one class instead of two accidents.
+
+Critical files: `scripts/doctor-airtable.mts` (exists), a new `scripts/doctor.mts` orchestrating
+the four, `package.json` (`doctor` script), and the two-line deletion in
+`lib/airtable/field-map.ts` plus its readers in `lib/airtable/sync.ts` and
+`lib/scoring-config/repository.ts`.
+
+### Verification
+
+- `npm run doctor` exits 0 on a healthy system and non-zero with the offending ids named. Re-run it
+  after the Z3 deletion and confirm the count drops from 296 ids / 2 problems to 294 / 0.
+- `npx tsc --noEmit && npm run lint && npm run build` clean; `npm run verify` still 5 suites green.
+- Confirm the Z3 change is behaviour-neutral: `capacityFor()` and `loadWeightFor()` return the same
+  values before and after, since both inputs were already null.
+- Re-run `doctor` immediately **after** the step-6 deploy, against production — the point of Z2 is
+  that a deploy is when ids and env most plausibly diverge.
 
 ---
 

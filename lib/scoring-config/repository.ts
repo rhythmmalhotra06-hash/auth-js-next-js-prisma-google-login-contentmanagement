@@ -9,7 +9,7 @@
 // can be bundled into client components and passed across the server boundary.
 
 import {
-  SCORING_CONFIG as C, EVENT_TYPES, ASSET_TYPES, EMPLOYEES, CONTRACTORS,
+  SCORING_CONFIG as C, EVENT_TYPES, EMPLOYEES, CONTRACTORS,
 } from '@/lib/airtable/field-map';
 import { listAll, updateRecord, type AirtableResult } from '@/lib/airtable/rest';
 import { referenceIsPostgres } from '@/lib/reference/backend';
@@ -76,17 +76,16 @@ async function fetchConfig(): Promise<ScoringConfig> {
     }
   }
 
-  const assets = await listAll(ASSET_TYPES.baseId, ASSET_TYPES.tableId);
-  if (assets.ok) {
-    for (const rec of assets.data) {
-      const name = str(rec.fields[ASSET_TYPES.fields.name]) ?? str(rec.fields[ASSET_TYPES.fields.fullName]);
-      if (!name) continue;
-      const w = num(rec.fields[ASSET_TYPES.fields.loadWeight]);
-      const eff = num(rec.fields[ASSET_TYPES.fields.effortNorm]);
-      if (w != null) cfg.loadWeightByAssetType[name] = w;
-      if (eff != null) cfg.effortByAssetType[name] = eff;
-    }
-  }
+  // NO asset-type pass any more. `Load Weight` and `Effort Norm` do not exist on the live
+  // 🛎️ Asset Type table (it is synced, so app-managed fields cannot be added) — the two ids this
+  // used to read were dead, returned `undefined` on all 226 rows, and produced an empty map.
+  // `cfg.loadWeightByAssetType` and `.effortByAssetType` therefore stay empty and `loadWeightFor`
+  // / the effort term fall back to DEFAULTS, which is the behaviour that was already in effect.
+  // Dropping the request also saves a full table listing on every config read.
+  //
+  // Note the event-type pass above is a DIFFERENT problem with the same symptom: its `loadWeight`
+  // id resolves fine, but the field is empty on all 63 rows, so that map is empty too. That one is
+  // a data-entry gap someone can close in Airtable; `npm run doctor` reports it.
 
   const emps = await listAll(EMPLOYEES.baseId, EMPLOYEES.tableId);
   if (emps.ok) {
@@ -194,21 +193,14 @@ export async function listEventTypeRows(): Promise<AirtableResult<TypeRow[]>> {
   return { ok: true, data: rows };
 }
 
-/** Asset-type rows with their load weight + effort (secondary). */
-export async function listAssetTypeRows(): Promise<AirtableResult<TypeRow[]>> {
-  const res = await listAll(ASSET_TYPES.baseId, ASSET_TYPES.tableId);
-  if (!res.ok) return res;
-  const rows = res.data
-    .filter((rec) => str(rec.fields[ASSET_TYPES.fields.status]) === 'Active')
-    .map((rec) => ({
-      id: rec.id,
-      name: str(rec.fields[ASSET_TYPES.fields.name]) ?? str(rec.fields[ASSET_TYPES.fields.fullName]) ?? '(unnamed)',
-      loadWeight: num(rec.fields[ASSET_TYPES.fields.loadWeight]),
-      secondary: num(rec.fields[ASSET_TYPES.fields.effortNorm]),
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  return { ok: true, data: rows };
-}
+// `listAssetTypeRows` and `updateAssetTypeScoring` used to live here, backing a
+// "Load weight by asset type" editor at /settings/scoring. Both are gone: the two fields they
+// read and wrote do not exist on the live 🛎️ Asset Type table, which is SYNCED and therefore
+// cannot carry app-managed fields at all. The read returned `undefined` on all 226 rows and the
+// WRITE would have been rejected by Airtable as an unknown field — so the editor could never have
+// worked, which fits the standing observation that it was populated on 0 of 118 asset types.
+//
+// Event-type load weight is unaffected and still edited here; its field is real (merely empty).
 
 // --- writes (admin-only; callers must guard) ------------------------------
 
@@ -224,14 +216,6 @@ export async function updateGlobalValue(recId: string, value: number, updatedBy:
 export type EventTypeField = 'loadWeight' | 'tierNorm';
 export async function updateEventTypeScoring(recId: string, field: EventTypeField, value: number | null): Promise<AirtableResult<true>> {
   const res = await updateRecord(EVENT_TYPES.baseId, EVENT_TYPES.tableId, recId, { [EVENT_TYPES.fields[field]]: value });
-  if (!res.ok) return res;
-  bustScoringConfigCache();
-  return { ok: true, data: true };
-}
-
-export type AssetTypeField = 'loadWeight' | 'effortNorm';
-export async function updateAssetTypeScoring(recId: string, field: AssetTypeField, value: number | null): Promise<AirtableResult<true>> {
-  const res = await updateRecord(ASSET_TYPES.baseId, ASSET_TYPES.tableId, recId, { [ASSET_TYPES.fields[field]]: value });
   if (!res.ok) return res;
   bustScoringConfigCache();
   return { ok: true, data: true };

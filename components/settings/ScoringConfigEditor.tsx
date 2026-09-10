@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  setGlobalValue, setEventTypeValue, setAssetTypeValue, setCapacity,
+  setGlobalValue, setEventTypeValue, setCapacity,
   type ActionResult,
 } from '@/app/settings/scoring/actions';
 
@@ -18,7 +18,6 @@ export interface PersonRow { id: string; name: string; group: 'Creatives' | 'Fre
 export interface ScoringConfigEditorProps {
   globals: GlobalRow[];
   eventTypes: TypeRow[];
-  assetTypes: TypeRow[];
   people: PersonRow[];
   defaultCapacity: number;
   canEdit: boolean;
@@ -176,7 +175,7 @@ function CapacitySection({ people, defaultCapacity, canEdit }: { people: PersonR
   );
 }
 
-export function ScoringConfigEditor({ globals, eventTypes, assetTypes, people, defaultCapacity, canEdit }: ScoringConfigEditorProps) {
+export function ScoringConfigEditor({ globals, eventTypes, people, defaultCapacity, canEdit }: ScoringConfigEditorProps) {
   const byGroup = useMemo(() => ({
     capacity: globals.filter((g) => g.group === 'Capacity'),
     priority: globals.filter((g) => g.group === 'Priority weights'),
@@ -202,7 +201,7 @@ export function ScoringConfigEditor({ globals, eventTypes, assetTypes, people, d
 
       <TypeTable
         title="Load weight by event type"
-        hint="What one ticket of this event type costs against an editor's capacity. Blank = 1. Asset-type weight (below) wins when both are set."
+        hint="What one ticket of this event type costs against an editor's capacity. Blank = 1 — and it is blank on every event type today, so capacity weighting is currently uniform."
         rows={eventTypes}
         secondaryLabel="Tier (0–1)"
         secondaryPlaceholder="0.5"
@@ -211,16 +210,12 @@ export function ScoringConfigEditor({ globals, eventTypes, assetTypes, people, d
         onSecondary={(id, raw) => setEventTypeValue(id, 'tierNorm', raw)}
       />
 
-      <TypeTable
-        title="Load weight by asset type"
-        hint="Overrides the event-type weight for tickets of this asset type. Blank = 1. Effort (0–1) feeds the priority score."
-        rows={assetTypes}
-        secondaryLabel="Effort (0–1)"
-        secondaryPlaceholder="0.5"
-        canEdit={canEdit}
-        onLoad={(id, raw) => setAssetTypeValue(id, 'loadWeight', raw)}
-        onSecondary={(id, raw) => setAssetTypeValue(id, 'effortNorm', raw)}
-      />
+      {/*
+        "Load weight by asset type" used to sit here. Removed 10 Sep: the 🛎️ Asset Type table is
+        SYNCED, so it cannot carry app-managed fields, and the two ids this table read and wrote
+        did not exist — reads came back empty on all 226 rows and writes were rejected outright.
+        It presented itself as a working control over queue order and was neither.
+      */}
 
       <GlobalSection
         title="Priority weights"

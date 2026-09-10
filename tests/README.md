@@ -40,3 +40,15 @@ choosing between multiple real rows — two messages in a week, a goal that chan
 message linked from outside the week — and each fixture had only one of each. The fixtures now
 carry the plural cases. **Run the surface against the live API before deploying it**; that is what
 caught them.
+
+## `npm run doctor`
+
+Separate from the suites above, and the thing to run before a deploy people will read numbers off:
+
+```bash
+AIRTABLE_TOKEN=pat... npm run doctor
+```
+
+It checks the four things that fail *silently* on this project — dead Airtable field ids, fields
+that resolve but nobody filled, syncs that stopped, and credentials. Errors are bugs in this repo;
+warnings belong to someone else. See the header of `scripts/doctor.mts` for why each exists.
