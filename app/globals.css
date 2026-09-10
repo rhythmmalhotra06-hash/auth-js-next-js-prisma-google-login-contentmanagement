@@ -182,13 +182,26 @@
   --mv-border:           rgba(200, 180, 230, 0.14);
   --mv-border-strong:    rgba(200, 180, 230, 0.26);
   --mv-border-muted:     rgba(200, 180, 230, 0.07);
-
-  --mv-green-soft:  #11291f;
-  --mv-blue-soft:   #14233f;
-  --mv-amber-soft:  #2e2410;
-  --mv-red-soft:    #2e1414;
-  --mv-gold-soft:   #2e2410;
-
+  /* Status hues + their ink, lifted for dark (design handoff 6a).
+     These were NEVER overridden: `-content` inherited its LIGHT value, so pill text rendered
+     e.g. #0e6742 green on a #11291f green fill — 2.23:1, well under the 4.5:1 floor. That
+     affected every Badge in the app on dark, not only the MOW surfaces. Derived by role rather
+     than inverted: inverting a light tint gives a muddy near-black that reads as a hover state. */
+  --mv-green:          #34d399;
+  --mv-green-content:  #4ade9c;
+  --mv-green-soft:     #10281f;
+  --mv-blue:          #7fa5f5;
+  --mv-blue-content:  #7fa5f5;
+  --mv-blue-soft:     #1c2136;
+  --mv-amber:          #e8a33d;
+  --mv-amber-content:  #e8a33d;
+  --mv-amber-soft:     #2e2210;
+  --mv-red:          #f87171;
+  --mv-red-content:  #f87171;
+  --mv-red-soft:     #331616;
+  /* Gold keeps its hue on dark — it is the accent. Only the ink lifts. */
+  --mv-gold-content: #f5c351;
+  --mv-gold-soft:    #2f2408;
   /* Agency palette — lifted for contrast on dark */
   --mv-ag-simplex:  #2dd4bf;
   --mv-ag-svishen:  #a5b4fc;

@@ -156,6 +156,25 @@ between everything, so a section break and a card gap looked identical.
 | "+5 social" | `OverflowCollapse` — never quieter than a single asset |
 | A missing image | `ThumbPlaceholder` — hatch **plus a stated reason**, never a broken-image icon |
 
+### Dark mode — status ink is lifted (fixed 2026-09-10)
+
+Status `-content` values were never overridden for dark, so pill text inherited its **light**
+value and rendered dark ink on a dark fill — `#0e6742` green on `#11291f` at **2.23:1**, red at
+1.87:1, against a 4.5:1 floor. That affected every `Badge` in the app on dark, not only the MOW
+surfaces. Now lifted per the handoff's `6a` role palette; measured after the fix:
+
+| Pill | Before | After |
+|---|---|---|
+| On plan | 2.23:1 | **9.08:1** |
+| Blocked | 2.30:1 | **7.20:1** |
+| Missed | 1.87:1 | **5.99:1** |
+| Email | 1.96:1 | **6.52:1** |
+
+Gold keeps its hue on dark — it is the accent and must stay recognisable; only its ink lifts.
+**Derive dark by role, never by inverting:** inverting a light tint gives a muddy near-black that
+reads as a hover state rather than a brand tint. And on dark, **elevation replaces shadow** — the
+two-layer shadow is invisible, so cards go lighter and `--mv-surface-recessed` goes darker.
+
 ### Two rules that are not stylistic
 
 1. **Never render a zero for missing data.** No `0`, no `0%`, no `NaN`, no zero-width bar, no empty
