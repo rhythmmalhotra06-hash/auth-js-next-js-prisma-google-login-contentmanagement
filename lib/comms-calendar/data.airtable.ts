@@ -47,30 +47,64 @@ const MV_INLINE = 2;
  */
 const WINDOW_WEEKS = 2;
 
+/**
+ * Short-lived cache for the full Vishen-lane scan.
+ *
+ * Every load reads all ~442 rows, because the not-dated counts and the `datedThrough` boundary are
+ * base-wide facts rather than week-scoped ones. That is five sequential pages and it dominated the
+ * page cost. In a meeting the calendar is opened and paged repeatedly within a couple of minutes,
+ * so a 60-second memo turns every load after the first into a local read.
+ *
+ * Deliberately short: the page already tells the reader it is "as of" a timestamp, and a minute of
+ * staleness on a field nobody edits mid-meeting is a fair trade for a surface that responds.
+ */
+const VL_TTL_MS = 60_000;
+let vlCache: { at: number; rows: AirtableRecord[] } | null = null;
+
+async function vlRows(): Promise<AirtableRecord[]> {
+  if (vlCache && Date.now() - vlCache.at < VL_TTL_MS) return vlCache.rows;
+  const res = await listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId, {
+    // Only the fields the calendar reads. The table is wide, and asking for all of it took 4.4s of
+    // a 5.5s page — the single biggest cost on the surface, and invisible until measured.
+    fields: [
+      VL_VIDEOS.fields.name, VL_VIDEOS.fields.liveDate, VL_VIDEOS.fields.status,
+      VL_VIDEOS.fields.medium, VL_VIDEOS.fields.source, VL_VIDEOS.fields.publishedLink,
+      VL_VIDEOS.links.messageOfWeek, VL_VIDEOS.readOnlyFields.goalFromMessage,
+    ],
+  });
+  if (!res.ok) throw new Error(`Vishen lane: ${res.error.message}`);
+  vlCache = { at: Date.now(), rows: res.data };
+  return res.data;
+}
+
 export async function getCalendarWeekFromAirtable(anchor: Date): Promise<CalendarWeek> {
-  // Every dated VL row is fetched, not just this week's: the same pass yields the not-dated
-  // counts and the `datedThrough` boundary. ~440 rows, so one cheap pass.
-  const vlRes = await listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId);
-  if (!vlRes.ok) throw new Error(`Vishen lane: ${vlRes.error.message}`);
-
-  const msgRes = await listAll(VL_MESSAGE_OF_WEEK.baseId, VL_MESSAGE_OF_WEEK.tableId);
-
   const { start, end } = weekBounds(weekStartOf(anchor));
   const from = addDays(start, -7 * WINDOW_WEEKS - 1);
   const to = addDays(end, 7 * WINDOW_WEEKS + 1);
-  const mvRes = await listAll(COMMS_DAY.baseId, COMMS_DAY.tableId, {
-    filterByFormula: `AND(IS_AFTER({Date}, "${toYmd(from)}"), IS_BEFORE({Date}, "${toYmd(to)}"))`,
-  });
+
+  // The three reads are INDEPENDENT and run together. They were sequential, which put the page at
+  // ~5s once real posts were added — too slow for something opened live in a meeting. Two of them
+  // hit a different base from the third, and `listAll` paginates within itself, so running them
+  // concurrently does not crowd Airtable's 5 req/sec-per-base budget.
+  //
+  // Every dated VL row is fetched, not just this week's: the same pass yields the not-dated counts
+  // and the `datedThrough` boundary.
+  const [vl, msgRes, mvRes] = await Promise.all([
+    vlRows(),
+    listAll(VL_MESSAGE_OF_WEEK.baseId, VL_MESSAGE_OF_WEEK.tableId),
+    listAll(COMMS_DAY.baseId, COMMS_DAY.tableId, {
+      filterByFormula: `AND(IS_AFTER({Date}, "${toYmd(from)}"), IS_BEFORE({Date}, "${toYmd(to)}"))`,
+    }),
+  ]);
   if (!mvRes.ok) throw new Error(`Mindvalley lane: ${mvRes.error.message}`);
 
   // Resolve the week's linked 📣 Social records to REAL posts (AB1). The lane used to render a
   // synthetic "Social +1" chip, which carried no information and made a populated week look empty.
   // Only the target week's ids are resolved — the ±2 week window exists for span detection, and
   // resolving all of it would be a lot of records for rows nothing renders.
-  const { start: wkStart, end: wkEnd } = weekBounds(weekStartOf(anchor));
   const inWeek = (v: unknown): boolean => {
     const d = (str(v) ?? '').slice(0, 10);
-    return !!d && d >= toYmd(wkStart) && d <= toYmd(wkEnd);
+    return !!d && d >= toYmd(start) && d <= toYmd(end);
   };
   const socialIds = mvRes.data
     .filter((r) => inWeek(r.fields[COMMS_DAY.fields.date]))
@@ -79,7 +113,7 @@ export async function getCalendarWeekFromAirtable(anchor: Date): Promise<Calenda
 
   return assembleWeek({
     anchor,
-    vlRows: vlRes.data,
+    vlRows: vl,
     msgRows: msgRes.ok ? msgRes.data : [],
     mvRows: mvRes.data,
     msgError: msgRes.ok ? null : msgRes.error.message,
