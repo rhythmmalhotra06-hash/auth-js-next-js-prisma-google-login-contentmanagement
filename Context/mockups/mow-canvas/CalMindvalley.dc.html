@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#fff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600;
+      padding:2px 7px; border-radius:8px; white-space:nowrap; }
+    .seg { display:inline-flex; border:1px solid rgba(40,20,60,.22); border-radius:8px; overflow:hidden; }
+    .seg button { font-family:inherit; font-size:12.5px; font-weight:500; padding:6px 13px; border:0;
+      background:#fff; color:#6b6478; cursor:pointer; border-right:1px solid rgba(40,20,60,.12); }
+    .seg button:last-child { border-right:0; }
+    .asset { border:1px solid rgba(40,20,60,.12); border-radius:8px; padding:8px 9px; background:#fff;
+      border-left:2px solid #572280; cursor:pointer; }
+    .gap { border:1px dashed rgba(40,20,60,.22); border-radius:8px; padding:10px 9px;
+      font-size:11.5px; color:#a59db4; text-align:center; }
+  </style>
+</helmet>
+
+<div style="padding:24px 22px; max-width:1400px; margin:0 auto">
+
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:16px">
+    <div>
+      <div class="eyebrow">Content Studio</div>
+      <h1 style="margin:5px 0 3px; font-size:23px; font-weight:700; letter-spacing:-.02em">Comms Calendar · Mindvalley</h1>
+      <div style="font-size:12.5px; color:#6b6478">Week of 7–13 September 2026 · <span style="color:#a59db4">as of 10 Sep 13:40 MYT</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:9px; flex:none">
+      <div class="seg">
+        <button>Main</button><button>Vishen's</button>
+        <button style="background:#572280; color:#fff; font-weight:600">Mindvalley</button>
+      </div>
+      <div class="seg"><button style="background:#f4f2f8; color:#1a1523; font-weight:600">Week</button><button>Month</button></div>
+    </div>
+  </div>
+
+  <!-- The populated case — deliberately the same layout as Vishen's, so the contrast is
+       purely the data and not a different design. -->
+  <div class="card" style="padding:16px 18px; margin-bottom:16px; border-left:3px solid #572280">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap">
+      <div>
+        <span class="pill" style="background:#f1eaf7; color:#3f1860">Mindvalley</span>
+        <div style="font-size:15px; font-weight:600; margin:7px 0 3px">Expert to Authority</div>
+        <div style="font-size:12.5px; color:#6b6478">
+          Spans 7–21 Sep · <span style="color:#4b4173; font-weight:600">shown in all 3 weeks it covers</span> ·
+          <em>Jim Kwik (Mention Expert to Authority)</em> sits under it as Tuesday's beat
+        </div>
+      </div>
+      <div style="font-size:12.5px; color:#6b6478; line-height:1.7; flex:none">
+        <div><strong style="color:#1a1523">1</strong> message · 1 related</div>
+        <div><strong style="color:#8a1f1f">0</strong> goals committed</div>
+        <div><strong style="color:#1a1523">21</strong> assets dated this week</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="overflow:hidden; margin-bottom:14px">
+    <div style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr))">
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+        <div style="background:{{ d.headBg }}; border-bottom:1px solid rgba(40,20,60,.12);
+          border-left:1px solid rgba(40,20,60,.12); padding:9px 11px">
+          <div style="font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:#6b6478">{{ d.dow }}</div>
+          <div style="font-size:16px; font-weight:700; letter-spacing:-.01em; color:{{ d.numColor }}">{{ d.num }}</div>
+        </div>
+      </sc-for>
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+        <div style="border-left:1px solid rgba(40,20,60,.12); padding:10px 9px; min-height:250px; background:{{ d.cellBg }}">
+          <sc-for list="{{ d.items }}" as="a" hint-placeholder-count="2">
+            <div class="asset" style="margin-bottom:8px">
+              <div style="font-size:11.5px; font-weight:600; line-height:1.35; margin-bottom:6px">{{ a.title }}</div>
+              <span class="pill" style="background:{{ a.chBg }}; color:{{ a.chFg }}">{{ a.channel }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ d.more }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px; color:#6b6478; padding:2px">{{ d.more }}</div>
+          </sc-if>
+          <sc-if value="{{ d.empty }}" hint-placeholder-val="{{ false }}">
+            <div class="gap">{{ d.emptyLabel }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="card" style="padding:13px 16px">
+    <div style="font-size:12.5px; color:#6b6478">
+      <strong style="color:#1a1523">Nothing undated on this lane.</strong>
+      MV assets carry a date through the comms calendar itself, which is why the not-dated tray is a
+      Vishen-lane problem rather than a shared one — and why 221 undated VL assets is the number that matters.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "$preview": {"width":1440,"height":900}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    const E = { channel: 'Email', chBg: '#ebf2ff', chFg: '#1c3bd4' };
+    const S = { chBg: '#f1eaf7', chFg: '#3f1860', channel: 'Social' };
+    return {
+      days: [
+        { dow: 'Mon', num: '7', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff', empty: false, emptyLabel: '', more: '+4 social',
+          items: [{ title: 'Email 1 — Summit Announcement', ...E },
+                  { title: 'Stage Talk — Make Money with 2 Hours a Week', ...S }] },
+        { dow: 'Tue', num: '8', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff', empty: false, emptyLabel: '', more: '+4 social',
+          items: [{ title: 'Text on B-Roll — The FAST Method', ...S }] },
+        { dow: 'Wed', num: '9', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff', empty: false, emptyLabel: '', more: '+2 social',
+          items: [{ title: "Vishen's Newsletter", ...E },
+                  { title: 'Stage Talk — Manifest Love', ...S }] },
+        { dow: 'Thu', num: '10', headBg: '#f1eaf7', numColor: '#572280', cellBg: '#fdfcfe', empty: false, emptyLabel: '', more: '+4 social',
+          items: [{ title: "Email 2 — Vishen's Story + Social Proof", ...E },
+                  { title: 'E2A Summit 2026 — Why Mindvalley (Vishen)', ...S }] },
+        { dow: 'Fri', num: '11', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff', empty: false, emptyLabel: '', more: '+2 social',
+          items: [{ title: 'The Gift — 5-Minute Visualization', ...S }] },
+        { dow: 'Sat', num: '12', headBg: '#f4f2f8', numColor: '#a59db4', cellBg: '#faf9fc', empty: true, emptyLabel: 'no email day', more: '', items: [] },
+        { dow: 'Sun', num: '13', headBg: '#f4f2f8', numColor: '#a59db4', cellBg: '#faf9fc', empty: true, emptyLabel: 'no email day', more: '', items: [] },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

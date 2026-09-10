@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#fff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
+      padding:3px 8px; border-radius:8px; white-space:nowrap; }
+    .dot { width:6px; height:6px; border-radius:9999px; flex:none; }
+    .btn { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; line-height:1;
+      padding:8px 13px; border-radius:8px; border:1px solid rgba(40,20,60,.22); background:#fff; color:#1a1523; cursor:pointer; }
+    .btn:hover { background:#f4f2f8; }
+  </style>
+</helmet>
+
+<div style="padding:26px; max-width:940px; margin:0 auto">
+
+  <div class="eyebrow" style="margin-bottom:4px">Studio · Vishen</div>
+  <div style="font-size:13px; color:#6b6478; margin-bottom:18px">
+    Top of <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:12px">/studio</span> — the blocker comes first, because it is the only part he can unblock.
+  </div>
+
+  <!-- ── WAITING ON YOU — gold, and the one attention element on the page ── -->
+  <div style="border:1px solid #f5b000; border-radius:12px; background:linear-gradient(180deg,#fff6e0,#ffffff 70%);
+    padding:18px; margin-bottom:16px">
+    <div style="display:flex; align-items:center; gap:9px; margin-bottom:13px">
+      <svg viewBox="0 0 20 20" fill="none" stroke="#6b4e00" stroke-width="1.7" style="width:17px;height:17px">
+        <path d="M10 3.5v7"/><circle cx="10" cy="14.5" r=".9" fill="#6b4e00" stroke="none"/>
+        <path d="M10 1.8 1.6 16.4h16.8L10 1.8Z"/>
+      </svg>
+      <span style="font-size:14px; font-weight:700; letter-spacing:-.01em; color:#6b4e00">Waiting on you · 2 items</span>
+    </div>
+
+    <sc-for list="{{ blockers }}" as="b" hint-placeholder-count="2">
+      <div style="display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-top:1px solid rgba(245,176,0,.35)">
+        <span class="pill" style="background:#fff; color:#7a5600; border:1px solid #f5b000; flex:none">{{ b.when }}</span>
+        <div style="flex-grow:1">
+          <div style="font-size:13.5px; font-weight:600">{{ b.what }}</div>
+          <div style="font-size:12.5px; color:#6b6478; margin-top:2px">{{ b.detail }}</div>
+        </div>
+        <button class="btn" style="flex:none; font-size:12.5px; padding:6px 11px">{{ b.action }}</button>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ── The week, compressed to what he asked for: message + one number ── -->
+  <div class="card" style="padding:18px">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px">
+      <div>
+        <div class="eyebrow">Message of the week · 7–13 September</div>
+        <div style="font-size:18px; font-weight:700; letter-spacing:-.015em; margin-top:4px">Expert to Authority</div>
+      </div>
+      <a href="#" style="font-size:12.5px; font-weight:600; flex:none; white-space:nowrap">Open the week →</a>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px">
+      <sc-for list="{{ brands }}" as="b" hint-placeholder-count="2">
+        <div style="background:#faf9fc; border:1px solid rgba(40,20,60,.12); border-radius:8px; padding:14px">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px">
+            <span class="pill" style="background:#f1eaf7; color:#3f1860"><span class="dot" style="background:#572280"></span>{{ b.brand }}</span>
+            <span class="pill" style="background:#ffe4e4; color:#8a1f1f">Sample</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:8px">
+            <span style="font-size:26px; font-weight:700; letter-spacing:-.02em; line-height:1.05; font-variant-numeric:tabular-nums">{{ b.value }}</span>
+            <span style="font-size:13px; color:#6b6478">of {{ b.target }}</span>
+          </div>
+          <div style="font-size:11.5px; color:#a59db4; margin-top:3px">{{ b.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:16px; padding-top:14px; border-top:1px solid rgba(40,20,60,.12)">
+      <sc-for list="{{ facts }}" as="f" hint-placeholder-count="3">
+        <div style="display:flex; align-items:baseline; gap:6px">
+          <span style="font-size:14px; font-weight:700; font-variant-numeric:tabular-nums">{{ f.v }}</span>
+          <span style="font-size:12px; color:#6b6478">{{ f.k }}</span>
+        </div>
+      </sc-for>
+      <span style="font-size:11.5px; color:#a59db4; margin-left:auto">as of Mon 7 Sep 07:40 MYT</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "$preview": {"width":1000,"height":760}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      // The standing weekly blocker Gareth named: "did Vishen record the content for
+      // Monday, Tuesday, Wednesday's release? And that's always going to be a blocker."
+      blockers: [
+        { when: 'Fri 11 Sep', what: 'The Gift — intro not recorded',
+          detail: 'Friday’s release is held on your voiceover. Glen and Vidura are ready to cut.', action: 'Record' },
+        { when: 'Thu 10 Sep', what: 'Summit VO — not recorded',
+          detail: 'Email 2 ships Thursday; the social cut needs the same VO to run alongside it.', action: 'Record' },
+      ],
+      brands: [
+        { brand: 'Mindvalley', value: '18,240', target: '~35,000', label: 'Leads to summit · target inferred from the week’s goal' },
+        { brand: 'Vishen Lakhiani Media', value: '2,910', target: 'no target set', label: 'Leads to summit · all channels' },
+      ],
+      facts: [
+        { v: '5 of 7', k: 'pillars landed last week' },
+        { v: '1', k: 'missed · Fri newsletter' },
+        { v: '2', k: 'blocked on you' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

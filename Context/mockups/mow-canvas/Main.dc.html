@@ -1,0 +1,459 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#ffffff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .val { font-size:29px; font-weight:700; letter-spacing:-.02em; line-height:1.05; font-variant-numeric:tabular-nums; }
+    .th { font-size:11.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:#6b6478;
+      background:#f4f2f8; padding:10px; text-align:left; }
+    .td { font-size:13px; padding:11px 10px; border-top:1px solid rgba(40,20,60,.12); vertical-align:middle; }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
+      padding:3px 8px; border-radius:8px; white-space:nowrap; }
+    .dot { width:6px; height:6px; border-radius:9999px; flex:none; }
+    .btn { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; line-height:1;
+      padding:8px 13px; border-radius:8px; border:1px solid rgba(40,20,60,.22); background:#fff; color:#1a1523; cursor:pointer; }
+    .btn:hover { background:#f4f2f8; }
+    .row:hover { background:#f4f2f8; cursor:pointer; }
+    /* PROPOSED TOKEN --mv-staged: provisional content awaiting a human commit.
+       Deliberately not gold (gold is attention-only, and a pack has many staged items)
+       and not a status colour. Violet-slate, harmonised with the purple-tinted neutrals. */
+    .staged-rule { border-left:2px dashed #7b6ea8; padding-left:12px; }
+    .commit-rule { border-left:2px solid #159f65; padding-left:12px; }
+  </style>
+</helmet>
+
+<div style="padding:28px 26px 22px; max-width:1180px; margin:0 auto">
+
+  <!-- ── MASTHEAD ───────────────────────────────────────────────────────── -->
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:22px">
+    <div>
+      <div class="eyebrow">Message of the Week · Content Studio</div>
+      <h1 style="margin:6px 0 4px; font-size:26px; font-weight:700; letter-spacing:-.02em; line-height:1.15">Week 37 · 7–13 September</h1>
+      <div style="font-size:13px; color:#6b6478">
+        Generated Mon 7 Sep 08:00 MYT from the comms calendar + overnight metrics ·
+        <span style="color:#4b4173; font-weight:600">4 items to commit</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; flex:none">
+      <button class="btn" onClick="{{ toggleMode }}" style="border-color:{{ mode.border }}; background:{{ mode.bg }}; color:{{ mode.fg }}">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" style="width:15px;height:15px">
+          <rect x="2.5" y="4" width="15" height="11" rx="1.5"/><path d="M7 18h6"/>
+        </svg>
+        Meeting mode
+      </button>
+    </div>
+  </div>
+
+  <!-- ── THIS WEEK: one MOW per brand (decision S3) ─────────────────────── -->
+  <div class="eyebrow" style="margin-bottom:9px">This week set</div>
+  <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; margin-bottom:16px">
+
+    <sc-for list="{{ brands }}" as="b" hint-placeholder-count="2">
+      <div class="card" style="padding:18px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px">
+          <span class="pill" style="background:#f1eaf7; color:#3f1860"><span class="dot" style="background:#572280"></span>{{ b.brand }}</span>
+          <div style="display:flex; gap:6px">
+            <span class="pill" style="background:#f2f0f9; color:#4b4173">Staged</span>
+            <span class="pill" style="background:#ffe4e4; color:#8a1f1f">Sample figure</span>
+          </div>
+        </div>
+
+        <div style="font-size:17px; font-weight:600; letter-spacing:-.01em; margin-bottom:3px">{{ b.message }}</div>
+        <div style="font-size:13px; color:#6b6478; margin-bottom:16px">{{ b.goal }}</div>
+
+        <!-- THE one number. A single object, never an array (S1). -->
+        <div style="padding-top:14px; border-top:1px solid rgba(40,20,60,.12)">
+          <div style="font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4">{{ b.metricLabel }}</div>
+          <div style="display:flex; align-items:baseline; gap:9px; margin-top:4px">
+            <span class="val">{{ b.value }}</span>
+            <span style="font-size:14px; color:#6b6478">of {{ b.target }}</span>
+          </div>
+          <!-- Target provenance (finding F8): 'inferred' is never presented as authoritative. -->
+          <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center">
+            <span class="pill" style="background:{{ b.provBg }}; color:{{ b.provFg }}">{{ b.provLabel }}</span>
+            <span style="font-size:11.5px; color:#a59db4">{{ b.source }}</span>
+          </div>
+          <sc-if value="{{ b.targetProse }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:8px; font-size:11.5px; color:#6b6478; background:#f4f2f8; border-radius:8px; padding:7px 9px">
+              Parsed from the week's goal: “{{ b.targetProse }}”
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="font-size:12px; color:#8a1f1f; background:#ffe4e4; border-radius:8px; padding:8px 11px; margin-bottom:14px">
+    <strong>This week's figures are sample values.</strong> Metabase is not wired yet, so a live week has no
+    numbers. Last week's day-by-day below is real — Glen's actual report. The messages, goals, owners and
+    dates are from the live comms calendar.
+  </div>
+
+  <!-- Drivers — demoted, never promoted to a second headline (S1) -->
+  <div class="card" style="padding:13px 16px; margin-bottom:26px; display:flex; flex-wrap:wrap; align-items:center; gap:22px">
+    <span class="eyebrow" style="flex:none">Contributing drivers</span>
+    <sc-for list="{{ drivers }}" as="d" hint-placeholder-count="2">
+      <div style="display:flex; align-items:baseline; gap:7px">
+        <span style="font-size:16px; font-weight:700; letter-spacing:-.01em; font-variant-numeric:tabular-nums">{{ d.value }}</span>
+        <span style="font-size:12.5px; color:#6b6478">{{ d.label }}</span>
+        <sc-if value="{{ d.caveat }}" hint-placeholder-val="{{ true }}">
+          <span class="pill" style="background:#fff4d9; color:#7a5600">{{ d.caveat }}</span>
+        </sc-if>
+      </div>
+    </sc-for>
+    <span style="font-size:11.5px; color:#a59db4; margin-left:auto">as of Mon 7 Sep 07:40 MYT</span>
+  </div>
+
+  <!-- ── LAST WEEK CLOSED — the day-by-day (U4) ─────────────────────────── -->
+  <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:9px">
+    <div class="eyebrow">Last week closed · 31 Aug – 6 Sep</div>
+    <div style="font-size:11.5px; color:#a59db4">Weekdays are UTC calendar days · click a row for the full read</div>
+  </div>
+
+  <div class="card" style="overflow:hidden; margin-bottom:26px">
+    <table style="width:100%; border-collapse:collapse">
+      <thead>
+        <tr>
+          <th class="th" style="width:74px">Day</th>
+          <th class="th" style="width:132px">Planned</th>
+          <th class="th">What shipped</th>
+          <th class="th" style="width:112px">Owner</th>
+          <th class="th" style="width:96px">Status</th>
+          <th class="th" style="width:210px">Learning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+          <tr class="row" onClick="{{ d.toggle }}">
+            <td class="td" style="font-weight:600; white-space:nowrap">{{ d.day }}</td>
+            <td class="td" style="color:#6b6478">{{ d.planned }}</td>
+            <td class="td">
+              <div style="display:flex; align-items:center; gap:8px">
+                <svg viewBox="0 0 20 20" fill="none" stroke="#a59db4" stroke-width="1.8" style="width:13px;height:13px;flex:none; transform:rotate({{ d.caret }}deg)"><path d="M7 4l6 6-6 6"/></svg>
+                <span>{{ d.shipped }}</span>
+              </div>
+            </td>
+            <td class="td" style="color:#6b6478">{{ d.owner }}</td>
+            <td class="td"><span class="pill" style="background:{{ d.stBg }}; color:{{ d.stFg }}"><span class="dot" style="background:{{ d.stDot }}"></span>{{ d.status }}</span></td>
+            <td class="td" style="color:#6b6478">{{ d.learning }}</td>
+          </tr>
+
+          <!-- Expanded read — Glen's analysis, one click down, never on the first screen -->
+          <sc-if value="{{ d.open }}" hint-placeholder-val="{{ false }}">
+            <tr>
+              <td class="td" colspan="6" style="background:#faf9fc; padding:18px">
+                <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-bottom:16px">
+
+                  <div class="card" style="padding:15px">
+                    <div class="eyebrow" style="margin-bottom:11px">{{ d.aName }}</div>
+                    <div style="display:flex; gap:26px">
+                      <sc-for list="{{ d.aStats }}" as="s" hint-placeholder-count="3">
+                        <div>
+                          <div class="val" style="font-size:22px">{{ s.v }}</div>
+                          <div style="font-size:11.5px; color:#a59db4; margin-top:2px">{{ s.k }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+
+                  <div class="card" style="padding:15px">
+                    <div class="eyebrow" style="margin-bottom:11px">{{ d.bName }}</div>
+                    <!-- CTR against Vishen's FIXED 7% target, not the channel average -->
+                    <div style="display:flex; align-items:baseline; gap:9px">
+                      <span class="val" style="font-size:22px">{{ d.ctr }}</span>
+                      <span style="font-size:12.5px; color:#8a1f1f; font-weight:600">{{ d.ctrGap }}</span>
+                    </div>
+                    <div style="height:7px; border-radius:9999px; background:#f4f2f8; margin:9px 0 5px; position:relative; overflow:hidden">
+                      <div style="position:absolute; left:0; top:0; bottom:0; width:{{ d.ctrPct }}%; background:#c9801a; border-radius:9999px"></div>
+                      <div style="position:absolute; left:100%; top:-3px; bottom:-3px; width:2px; background:#1a1523; transform:translateX(-2px)"></div>
+                    </div>
+                    <div style="font-size:11.5px; color:#a59db4; margin-bottom:12px">7% target (fixed, set by Vishen — not the channel average)</div>
+                    <div style="display:flex; gap:22px">
+                      <sc-for list="{{ d.bStats }}" as="s" hint-placeholder-count="3">
+                        <div>
+                          <div style="font-size:15px; font-weight:700; font-variant-numeric:tabular-nums">{{ s.v }}</div>
+                          <div style="font-size:11.5px; color:#a59db4; margin-top:1px">{{ s.k }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px">
+                  <div>
+                    <div class="pill" style="background:#e8f9f1; color:#0e6742; margin-bottom:8px">What's working</div>
+                    <sc-for list="{{ d.working }}" as="x" hint-placeholder-count="2">
+                      <div style="font-size:12.5px; color:#1a1523; margin-bottom:7px; line-height:1.45">{{ x }}</div>
+                    </sc-for>
+                  </div>
+                  <div>
+                    <div class="pill" style="background:#fff4d9; color:#7a5600; margin-bottom:8px">Needs attention</div>
+                    <sc-for list="{{ d.attention }}" as="x" hint-placeholder-count="2">
+                      <div style="font-size:12.5px; color:#1a1523; margin-bottom:7px; line-height:1.45">{{ x }}</div>
+                    </sc-for>
+                  </div>
+                  <div>
+                    <div class="pill" style="background:#ebf2ff; color:#1c3bd4; margin-bottom:8px">Recommendations</div>
+                    <sc-for list="{{ d.recs }}" as="x" hint-placeholder-count="2">
+                      <div style="font-size:12.5px; color:#1a1523; margin-bottom:7px; line-height:1.45">{{ x }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </sc-if>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── WHAT WE LEARNED — lever → owner (U7: store all, show five) ─────── -->
+  <sc-if value="{{ showProse }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:9px">
+      <div class="eyebrow">What we learned</div>
+      <div style="font-size:11.5px; color:#a59db4">5 of 7 committed · from 11 assets</div>
+    </div>
+    <div class="card" style="padding:18px; margin-bottom:26px">
+      <sc-for list="{{ learnings }}" as="l" hint-placeholder-count="3">
+        <div style="padding:13px 0; border-top:1px solid rgba(40,20,60,.12)">
+          <div style="display:flex; gap:12px; align-items:flex-start">
+            <span style="font-size:12.5px; font-weight:700; color:#a59db4; width:16px; flex:none; padding-top:2px">{{ l.n }}</span>
+            <div style="flex-grow:1">
+              <div style="font-size:14px; font-weight:600; letter-spacing:-.01em; margin-bottom:3px">{{ l.title }}</div>
+              <div style="font-size:12.5px; color:#6b6478; line-height:1.5">{{ l.detail }}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:9px">
+                <sc-for list="{{ l.levers }}" as="v" hint-placeholder-count="2">
+                  <span class="pill" style="background:#f4f2f8; color:#463f54">{{ v }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <span class="pill" style="background:{{ l.stateBg }}; color:{{ l.stateFg }}; flex:none">{{ l.state }}</span>
+          </div>
+        </div>
+      </sc-for>
+      <button class="btn" style="margin-top:14px">Show all 7</button>
+    </div>
+
+    <!-- ── BLOCKERS — upstream, and deliberately NOT "misses" ───────────── -->
+    <div class="eyebrow" style="margin-bottom:9px">Blockers · upstream, shown so they don't read as editor problems</div>
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-bottom:26px">
+      <div class="card" style="padding:15px; border-color:#c9801a">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px">
+          <span class="pill" style="background:#fff4d9; color:#7a5600"><span class="dot" style="background:#c9801a"></span>Blocked</span>
+          <span style="font-size:12.5px; color:#6b6478">Fri 11 Sep · The Gift</span>
+        </div>
+        <div style="font-size:13.5px; line-height:1.5">Vishen hasn't recorded the intro for Friday's release. Standing weekly blocker — waiting on him, not on the editor.</div>
+        <div style="font-size:11.5px; color:#a59db4; margin-top:8px">Owner · Vishen · raised by Gareth</div>
+      </div>
+      <div class="card" style="padding:15px; border-color:#dc2626">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px">
+          <span class="pill" style="background:#ffe4e4; color:#8a1f1f"><span class="dot" style="background:#dc2626"></span>Missed</span>
+          <span style="font-size:12.5px; color:#6b6478">Fri 4 Sep · Newsletter carousel</span>
+        </div>
+        <div style="font-size:13.5px; line-height:1.5">Nothing published at all — not even a substitute post. The only fully dark weekday last week.</div>
+        <div style="font-size:11.5px; color:#a59db4; margin-top:8px">Owner · Ramya · confirm queued before next Friday</div>
+      </div>
+    </div>
+
+    <!-- ── THIS WEEK'S BRIEFS — per-owner, editable by the named owner ───── -->
+    <div class="eyebrow" style="margin-bottom:9px">This week's briefs · drafted, each owner commits their own</div>
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; margin-bottom:26px">
+      <sc-for list="{{ briefs }}" as="br" hint-placeholder-count="3">
+        <div class="card" style="padding:16px">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:11px">
+            <span style="font-size:12.5px; font-weight:600">{{ br.who }}</span>
+            <span class="pill" style="background:{{ br.stateBg }}; color:{{ br.stateFg }}">{{ br.state }}</span>
+          </div>
+          <div style="font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; margin-bottom:5px">{{ br.slot }}</div>
+          <div class="{{ br.rule }}" style="font-size:12.5px; line-height:1.5; color:#1a1523; margin-bottom:12px">{{ br.text }}</div>
+          <div style="font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; margin-bottom:4px">Improving next upload</div>
+          <div style="font-size:12.5px; line-height:1.5; color:#6b6478">{{ br.next }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <!-- ── COMMIT BAR — the single gold element on the page (U1) ──────────── -->
+  <div style="border:1px solid #f5b000; border-radius:12px; background:linear-gradient(180deg,#fff6e0,#ffffff 62%);
+    padding:16px 18px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap">
+    <div>
+      <div style="font-size:14px; font-weight:600; letter-spacing:-.01em">4 items to commit</div>
+      <div style="font-size:12.5px; color:#6b4e00; margin-top:2px">
+        The smart number, 2 learnings and Marwah's brief are staged. AI drafts; a named human commits.
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px">
+      <span style="font-size:11.5px; color:#6b6478">Gareth, Glen or Ramya may commit</span>
+      <button class="btn" style="background:#f5b000; border-color:#f5b000; color:#3b2a00; font-weight:600">Commit as Gareth</button>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "meetingMode": {"editor":"boolean","default":false,"section":"View"},
+  "stagedTint":  {"editor":"color","default":"#7b6ea8","options":["#7b6ea8","#6b7280","#8b6f47","#5b7c99"],"section":"Proposed token"},
+  "$preview": {"width":1440,"height":2160}
+}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // Wed 2 Sep — the stage talk — opens by default so the expanded read is visible at a glance.
+    this.state = { open: 'Wed 2' };
+  }
+
+  renderVals() {
+    const meeting = this.props.meetingMode ?? false;
+    const staged  = this.props.stagedTint ?? '#7b6ea8';
+
+    // Status vocabulary — five states. `blocked` is upstream and NOT `missed`.
+    const ST = {
+      shipped: { status: 'On plan', stBg: '#e8f9f1', stFg: '#0e6742', stDot: '#159f65' },
+      offplan: { status: 'Off plan', stBg: '#ebf2ff', stFg: '#1c3bd4', stDot: '#2563cf' },
+      missed:  { status: 'Missed',   stBg: '#ffe4e4', stFg: '#8a1f1f', stDot: '#dc2626' },
+      blocked: { status: 'Blocked',  stBg: '#fff4d9', stFg: '#7a5600', stDot: '#c9801a' },
+      nopost:  { status: 'No post',  stBg: '#f4f2f8', stFg: '#6b6478', stDot: '#a59db4' },
+    };
+
+    const rows = [
+      { day: 'Mon 31', planned: 'Quest snippet', shipped: "Vanessa Van Edwards — vocal confidence Reel", owner: 'Editor TBC', s: 'shipped',
+        learning: 'ER 1.21% — the softest CTA of the week',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '14.1K', k: 'Views' }, { v: '11.0K', k: 'Reach' }, { v: '1.21%', k: 'ER' }],
+        bName: 'No YouTube counterpart', ctr: '—', ctrGap: '', ctrPct: 0, bStats: [{ v: '—', k: 'Not cross-posted' }],
+        working: ['On-brand educational tip, consistent with the quest-snippet format.'],
+        attention: ['Lowest engagement rate of any post that landed on plan.', 'No Hootsuite planner record — composed on a partner account, so no thumbnail and no clean attribution.'],
+        recs: ['One sharper, higher-value CTA in place of the quiz.', 'Tag the pillar in Hootsuite’s own composer going forward.'] },
+
+      { day: 'Tue 1', planned: 'Meditation', shipped: 'Paul McKenna — 12-min guided meditation', owner: 'Marwah', s: 'shipped',
+        learning: '40.2% retention holds; thumbnail is the ceiling',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '14.1K', k: 'Views' }, { v: '11.2K', k: 'Reach' }, { v: '2.27%', k: 'ER' }],
+        bName: 'YouTube · Mindvalley', ctr: '4.3% CTR', ctrGap: '−2.7 pts', ctrPct: 61,
+        bStats: [{ v: '7,942', k: 'Views' }, { v: '40.2%', k: 'Retention' }, { v: '5:44', k: 'AVD returning' }],
+        working: ['A 4-hour head start drove 43% of traffic from Home / Up Next before the Reel teaser went live.', 'Returning viewers watch far longer than new ones — 5:44 vs 3:59.'],
+        attention: ['CTR 2.7 points under the 7% target — the thumbnail is under-converting impressions.', 'Views-to-reach 1.26× and ER 2.27% are both merely average; no rewatch signal.'],
+        recs: ['A/B test the thumbnail — Paul more prominent. The single biggest lever to 7%.', 'Publish the Reel and the upload simultaneously rather than four hours apart.'] },
+
+      { day: 'Wed 2', planned: 'Stage talk', shipped: 'Regan Hillyer — the manifestation shift', owner: 'Kuhan · Glen', s: 'shipped',
+        learning: '91.7K IG · 2.15× replay — the week’s standout',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '91.7K', k: 'Views' }, { v: '42.7K', k: 'Reach' }, { v: '37.8%', k: 'ER' }],
+        bName: 'YouTube · Mindvalley Talks', ctr: '5.1% CTR', ctrGap: '−1.9 pts', ctrPct: 73,
+        bStats: [{ v: '10,994', k: 'Views' }, { v: '10:40', k: 'AVD of 43:35' }, { v: '+67', k: 'New subs' }],
+        working: ['The week’s standout on every measure — views, reach, engagement and rate.', 'A 2.15× views-to-reach ratio means people are replaying it, not scrolling past.', '58% of YouTube views came from recommendations, and the full talk converted +67 subscribers.'],
+        attention: ['CTR 1.9 points under target — the better of the two videos, but headroom remains.', 'Only 11.0K of 91.7K Reel viewers reached the full talk. The teaser-to-long-form funnel is leaky.'],
+        recs: ['Stronger link-in-bio CTA on the Reel to convert more of that 91.7K.', 'Pin a comment prompting the manifestation viewers are “all in” on.'] },
+
+      { day: 'Thu 3', planned: 'Photo collage', shipped: 'Jim Kwik — Limitless Daily carousel', owner: 'Chee Ling', s: 'shipped',
+        learning: 'Best reach of the week’s photo content; ER thin',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '39.1K', k: 'Views' }, { v: '15.4K', k: 'Reach' }, { v: '1.60%', k: 'ER' }],
+        bName: 'No YouTube counterpart', ctr: '—', ctrGap: '', ctrPct: 0, bStats: [{ v: '—', k: 'Not cross-posted' }],
+        working: ['Best reach among the week’s photo content, and its highest views-to-reach ratio at 2.54×.'],
+        attention: ['Carousel “views” count slide-swipes, not rewatches — not comparable to a Reel’s ratio.', 'Second-lowest ER of any landed pillar: reach was strong, interaction was thin.'],
+        recs: ['A stronger final-slide CTA to convert swipes into saves.'] },
+
+      { day: 'Fri 4', planned: 'Newsletter carousel', shipped: 'Nothing published at all', owner: 'Ramya', s: 'missed',
+        learning: 'The only fully dark weekday',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '0', k: 'Posts' }, { v: '—', k: 'Reach' }, { v: '—', k: 'ER' }],
+        bName: 'No YouTube counterpart', ctr: '—', ctrGap: '', ctrPct: 0, bStats: [{ v: '—', k: 'Nothing shipped' }],
+        working: [],
+        attention: ['Not just a missing carousel — no substitute post ran either, on either platform.'],
+        recs: ['Confirm next Friday’s carousel is queued, and reschedule this week’s miss rather than skip it.'] },
+
+      { day: 'Sat 5', planned: '—', shipped: 'Nothing scheduled', owner: '—', s: 'nopost', learning: '—',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '—', k: 'Reach' }], bName: '—', ctr: '—', ctrGap: '', ctrPct: 0, bStats: [{ v: '—', k: '—' }],
+        working: [], attention: [], recs: [] },
+
+      { day: 'Sun 6', planned: 'MVU after-movie', shipped: 'Mindvalley University Porto 2027 announcement', owner: 'Kuhan', s: 'shipped',
+        learning: '106 comments reading as real purchase intent',
+        aName: 'Instagram · @mindvalley', aStats: [{ v: '21.8K', k: 'Views' }, { v: '15.0K', k: 'Reach' }, { v: '3.66%', k: 'ER' }],
+        bName: 'No YouTube counterpart', ctr: '—', ctrGap: '', ctrPct: 0, bStats: [{ v: '—', k: 'Not cross-posted' }],
+        working: ['Second-highest ER of the week, and 106 comments that read as genuine pre-sale intent.'],
+        attention: ['106 people asked for the link in comments — the comment-to-DM flow adds friction.'],
+        recs: ['Pin a comment carrying the direct pre-sale link.'] },
+    ];
+
+    const days = rows.map((r) => ({
+      ...r, ...ST[r.s],
+      open: this.state.open === r.day,
+      caret: this.state.open === r.day ? 90 : 0,
+      toggle: () => this.setState({ open: this.state.open === r.day ? null : r.day }),
+    }));
+
+    return {
+      mode: meeting
+        ? { bg: '#572280', border: '#572280', fg: '#ffffff' }
+        : { bg: '#ffffff', border: 'rgba(40,20,60,.22)', fg: '#1a1523' },
+      showProse: !meeting,
+
+      brands: [
+        { brand: 'Mindvalley', message: 'Expert to Authority',
+          goal: 'Summit 18 Sep · owner JD · 35k leads this week, 35k next',
+          metricLabel: 'Leads · to summit, all channels', value: '18,240', target: '~35,000',
+          provLabel: 'Target inferred', provBg: staged + '22', provFg: '#4b4173',
+          source: 'session:metabase · q31846',
+          targetProse: 'To achieve 35k leads to expert to authority summit' },
+        { brand: 'Vishen Lakhiani Media', message: 'Jim Kwik podcast — episode 1',
+          goal: 'Launch Tue 8 Sep on YouTube + trailer · supports Limitless Daily · owner Gareth',
+          metricLabel: 'Leads · to summit, all channels', value: '2,910', target: 'No target set',
+          provLabel: 'No target', provBg: '#f4f2f8', provFg: '#6b6478',
+          source: 'session:metabase · q31846', targetProse: null },
+      ],
+
+      drivers: [
+        { value: '$42,011', label: 'Revenue · organic social', caveat: 'sample' },
+        { value: '+1,240', label: 'Active users gained', caveat: 'sample' },
+        { value: '$85K', label: 'Braze', caveat: 'engaged revenue' },
+        { value: '~6,000', label: 'Email sessions', caveat: 'unreconciled' },
+      ],
+
+      days,
+
+      learnings: [
+        { n: '1', title: 'Stage talks win on selection, not thumbnails.',
+          detail: "Regan's full talk: 91.7K IG, 10:40 average view, 58% organic. Let it breathe two weeks before retargeting.",
+          levers: ['Selection → Kuhan', 'Packaging → Glen'], state: 'Committed', stateBg: '#e8f9f1', stateFg: '#0e6742' },
+        { n: '2', title: 'Meditation content holds; packaging is the ceiling.',
+          detail: '40.2% retention and 43% organic — but thumbnail CTR sits 2.7 points under the 7% target.',
+          levers: ['Retention → Marwah', 'CTR → Glen'], state: 'Committed', stateBg: '#e8f9f1', stateFg: '#0e6742' },
+        { n: '3', title: 'Email and the Reel pointed at the same page with different messages.',
+          detail: 'The email sold the library and converted; the Reel sold one meditation and did not route. Same destination, unaligned copy.',
+          levers: ['Message → Ramya', 'Asset → Marwah'], state: 'Staged', stateBg: staged + '22', stateFg: '#4b4173' },
+        { n: '4', title: 'Long-form newsletters out-click video newsletters by ~38%.',
+          detail: 'Alternate them week by week rather than choosing one.',
+          levers: ['Message → Ramya'], state: 'Committed', stateBg: '#e8f9f1', stateFg: '#0e6742' },
+        { n: '5', title: 'The MVU after-movie drew 106 buy-intent comments with no CTA.',
+          detail: 'Next time it runs inside the ticket launch, with a pinned link.',
+          levers: ['Distribution → Kuhan', 'Offer → Gareth'], state: 'Staged', stateBg: staged + '22', stateFg: '#4b4173' },
+      ],
+
+      briefs: [
+        { who: 'Marwah', slot: 'Tue 8 · Meditation', state: 'Staged', stateBg: staged + '22', stateFg: '#4b4173', rule: 'staged-rule',
+          text: 'Lead with the library — “one of 1,400 meditations across hypnosis, guided, breath and sound”. The email that sold breadth converted; the Reel that sold one track did not route.',
+          next: 'Face-forward, high-contrast thumbnail against the author banner. Read after 7 days.' },
+        { who: 'Kuhan · Glen', slot: 'Wed 9 · Stage talk', state: 'Committed', stateBg: '#e8f9f1', stateFg: '#0e6742', rule: 'commit-rule',
+          text: 'Keep the on-stage cold open — it beat a designed thumbnail. Tighten the Reel-to-long-form CTA: only 12% of Reel viewers reached the full talk.',
+          next: 'Pin a comment with a timestamp to the activation section.' },
+        { who: 'Ramya', slot: 'Thu 10 · Email 2', state: 'Committed', stateBg: '#e8f9f1', stateFg: '#0e6742', rule: 'commit-rule',
+          text: "Vishen's story plus social proof. Carry the same destination as Thursday's social so the smart number attributes cleanly.",
+          next: 'Long-form this week; video next. Alternating out-clicks either alone.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

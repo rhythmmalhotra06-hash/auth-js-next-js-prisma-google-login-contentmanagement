@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#fff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600;
+      padding:2px 7px; border-radius:8px; white-space:nowrap; }
+    .dot { width:6px; height:6px; border-radius:9999px; flex:none; }
+    .seg { display:inline-flex; border:1px solid rgba(40,20,60,.22); border-radius:8px; overflow:hidden; }
+    .seg button { font-family:inherit; font-size:12.5px; font-weight:500; padding:6px 13px; border:0;
+      background:#fff; color:#6b6478; cursor:pointer; border-right:1px solid rgba(40,20,60,.12); }
+    .seg button:last-child { border-right:0; }
+    .asset { border:1px solid rgba(40,20,60,.12); border-radius:8px; padding:8px 9px; background:#fff;
+      cursor:pointer; transition:border-color .12s, box-shadow .12s; }
+    .asset:hover { border-color:#c9b4dd; box-shadow:0 1px 2px 0 rgba(40,20,60,.06); }
+    /* An empty cell states WHICH gap it is. Never a blank, never a zero. */
+    .gap { border:1px dashed rgba(40,20,60,.22); border-radius:8px; padding:8px 9px;
+      font-size:11.5px; color:#a59db4; text-align:center; }
+  </style>
+</helmet>
+
+<div style="padding:24px 22px; max-width:1400px; margin:0 auto">
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:16px">
+    <div>
+      <div class="eyebrow">Content Studio</div>
+      <h1 style="margin:5px 0 3px; font-size:23px; font-weight:700; letter-spacing:-.02em">Comms Calendar</h1>
+      <div style="font-size:12.5px; color:#6b6478">
+        Week of 7–13 September 2026 · <span style="color:#a59db4">as of 10 Sep 13:40 MYT</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:9px; flex:none">
+      <div class="seg">
+        <button style="background:#572280; color:#fff; font-weight:600">Main</button>
+        <button>Vishen's</button>
+        <button>Mindvalley</button>
+      </div>
+      <div class="seg">
+        <button style="background:#f4f2f8; color:#1a1523; font-weight:600">Week</button>
+        <button>Month</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WEEK HEADER — each brand's message and goal, side by side ───────
+       Never borrow one brand's message to fill the other's gap: that was Ramya's
+       first objection to v1, and it is what makes this "Mindvalley's calendar". -->
+  <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)) auto; gap:14px; margin-bottom:16px; align-items:stretch">
+    <sc-for list="{{ brands }}" as="b" hint-placeholder-count="2">
+      <div class="card" style="padding:14px 16px; border-left:3px solid {{ b.accent }}">
+        <span class="pill" style="background:{{ b.chipBg }}; color:{{ b.chipFg }}">{{ b.label }}</span>
+        <div style="font-size:15px; font-weight:600; letter-spacing:-.01em; margin:7px 0 3px; color:{{ b.msgColor }}">{{ b.message }}</div>
+        <div style="font-size:12.5px; color:#6b6478">{{ b.goal }}</div>
+      </div>
+    </sc-for>
+    <div class="card" style="padding:14px 16px; min-width:186px">
+      <div class="eyebrow" style="margin-bottom:7px">This week</div>
+      <div style="font-size:12.5px; color:#6b6478; line-height:1.7">
+        <div><strong style="color:#1a1523">1</strong> of 2 messages set</div>
+        <div><strong style="color:#8a1f1f">0</strong> goals committed</div>
+        <div><strong style="color:#1a1523">27</strong> assets dated</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── THE GRID — 7 day columns, two lanes ────────────────────────────── -->
+  <div class="card" style="overflow:hidden; margin-bottom:14px">
+
+    <div style="display:grid; grid-template-columns:64px repeat(7, minmax(0,1fr))">
+      <!-- day header row -->
+      <div style="background:#f4f2f8; border-bottom:1px solid rgba(40,20,60,.12)"></div>
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+        <div style="background:{{ d.headBg }}; border-bottom:1px solid rgba(40,20,60,.12);
+          border-left:1px solid rgba(40,20,60,.12); padding:9px 10px">
+          <div style="font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:#6b6478">{{ d.dow }}</div>
+          <div style="font-size:15px; font-weight:700; letter-spacing:-.01em; color:{{ d.numColor }}">{{ d.num }}</div>
+        </div>
+      </sc-for>
+
+      <!-- VL lane -->
+      <div style="background:#faf9fc; border-bottom:1px solid rgba(40,20,60,.12); padding:12px 8px;
+        display:flex; align-items:center; justify-content:center">
+        <div style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#0d9488;
+          writing-mode:vertical-rl; transform:rotate(180deg)">VISHEN</div>
+      </div>
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+        <div style="border-bottom:1px solid rgba(40,20,60,.12); border-left:1px solid rgba(40,20,60,.12);
+          padding:9px 8px; min-height:174px; background:{{ d.cellBg }}">
+          <sc-for list="{{ d.vl }}" as="a" hint-placeholder-count="1">
+            <div class="asset" style="margin-bottom:7px; border-left:2px solid #0d9488">
+              <div style="font-size:11.5px; font-weight:600; line-height:1.35; margin-bottom:5px">{{ a.title }}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:4px">
+                <span class="pill" style="background:#e4f2f1; color:#0F6E6E">{{ a.channel }}</span>
+                <sc-if value="{{ a.live }}" hint-placeholder-val="{{ true }}">
+                  <span class="pill" style="background:#e8f9f1; color:#0e6742"><span class="dot" style="background:#159f65"></span>live</span>
+                </sc-if>
+                <sc-if value="{{ a.noGoal }}" hint-placeholder-val="{{ false }}">
+                  <span class="pill" style="background:#f2f0f9; color:#4b4173">no goal</span>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ d.vlEmpty }}" hint-placeholder-val="{{ false }}">
+            <div class="gap">{{ d.vlEmptyLabel }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <!-- MV lane -->
+      <div style="background:#faf9fc; padding:12px 8px; display:flex; align-items:center; justify-content:center">
+        <div style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#572280;
+          writing-mode:vertical-rl; transform:rotate(180deg)">MINDVALLEY</div>
+      </div>
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+        <div style="border-left:1px solid rgba(40,20,60,.12); padding:9px 8px; min-height:174px; background:{{ d.cellBg }}">
+          <sc-for list="{{ d.mv }}" as="a" hint-placeholder-count="1">
+            <div class="asset" style="margin-bottom:7px; border-left:2px solid #572280">
+              <div style="font-size:11.5px; font-weight:600; line-height:1.35; margin-bottom:5px">{{ a.title }}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:4px">
+                <span class="pill" style="background:{{ a.chBg }}; color:{{ a.chFg }}">{{ a.channel }}</span>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ d.mvMore }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px; color:#6b6478; padding:3px 2px">{{ d.mvMore }}</div>
+          </sc-if>
+          <sc-if value="{{ d.mvEmpty }}" hint-placeholder-val="{{ false }}">
+            <div class="gap">{{ d.mvEmptyLabel }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ── NOT DATED — the count is the nag (finding F9) ───────────────────── -->
+  <div class="card" style="padding:13px 16px; border-color:#c9801a; background:linear-gradient(180deg,#fff4d9,#ffffff 70%)">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+      <svg viewBox="0 0 20 20" fill="none" stroke="#7a5600" stroke-width="1.7" style="width:16px;height:16px;flex:none">
+        <rect x="2.5" y="4" width="15" height="13" rx="1.6"/><path d="M2.5 8h15M7 2.5v3M13 2.5v3"/>
+      </svg>
+      <div style="flex-grow:1">
+        <div style="font-size:13.5px; font-weight:600; color:#7a5600">
+          Not dated · 221 assets, 66 of them already published
+        </div>
+        <div style="font-size:12px; color:#6b6478; margin-top:2px">
+          More than half the VL workflow has no Live Date, so the calendar cannot place it.
+          Mostly <strong>VL IG: Risevoice</strong>. Nothing here is dropped — it is just not on a day yet.
+        </div>
+      </div>
+      <button style="font-family:inherit; font-size:12.5px; font-weight:500; padding:7px 13px; border-radius:8px;
+        border:1px solid #c9801a; background:#fff; color:#7a5600; cursor:pointer; flex:none">Show all 221</button>
+    </div>
+  </div>
+
+  <div style="font-size:11.5px; color:#a59db4; margin-top:12px">
+    Read-only. The portal proposes; humans commit in Airtable. Inbound sync runs on a schedule —
+    an Airtable edit can take hours to appear here.
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "$preview": {"width":1440,"height":980}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Every asset below is real, read from the live bases on 10 Sep.
+    const T = { bg: '#e4f2f1', fg: '#0F6E6E' };   // VL channel chip
+    const E = { chBg: '#ebf2ff', chFg: '#1c3bd4' }; // MV email
+    const S = { chBg: '#f1eaf7', chFg: '#3f1860' }; // MV social
+
+    return {
+      brands: [
+        { label: 'Mindvalley', accent: '#572280', chipBg: '#f1eaf7', chipFg: '#3f1860',
+          message: 'Expert to Authority', msgColor: '#1a1523',
+          goal: 'Goal not set — the lookup resolves to nothing' },
+        // VL has no message committed for this week. It renders as an explicit gap, and
+        // deliberately does NOT borrow Mindvalley's.
+        { label: 'Vishen Lakhiani Media', accent: '#0d9488', chipBg: '#e4f2f1', chipFg: '#0F6E6E',
+          message: 'No message committed', msgColor: '#a59db4',
+          goal: 'Nothing to inherit — a brand’s gap is never filled with the other’s' },
+      ],
+
+      days: [
+        { dow: 'Mon', num: '7', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff',
+          vl: [{ title: 'A mentor once stopped me mid-sentence with four words.', channel: 'LinkedIn', live: true, noGoal: false }],
+          vlEmpty: false, vlEmptyLabel: '',
+          mv: [{ title: 'Email 1 — Summit Announcement', channel: 'Email', ...E }],
+          mvMore: '+5 social', mvEmpty: false, mvEmptyLabel: '' },
+
+        { dow: 'Tue', num: '8', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff',
+          vl: [
+            { title: 'Vishen × Jim Kwik — World #1 Brain Coach', channel: 'YouTube', live: true, noGoal: false },
+            { title: '(IG repurpose) MVU Reel', channel: 'LinkedIn', live: true, noGoal: false },
+          ],
+          vlEmpty: false, vlEmptyLabel: '',
+          mv: [{ title: 'Jim Kwik Book Launch', channel: 'Social', ...S }],
+          mvMore: '+4 social', mvEmpty: false, mvEmptyLabel: '' },
+
+        { dow: 'Wed', num: '9', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff',
+          vl: [
+            { title: 'When a killer whale grandmother dies…', channel: 'LinkedIn', live: true, noGoal: false },
+            { title: '(IG repurpose) Being good at what you do', channel: 'LinkedIn', live: true, noGoal: false },
+          ],
+          vlEmpty: false, vlEmptyLabel: '',
+          mv: [{ title: "Vishen's Newsletter", channel: 'Email', ...E }],
+          mvMore: '+3 social', mvEmpty: false, mvEmptyLabel: '' },
+
+        // Today. The one VL asset carrying a message link — and that message is named "test".
+        { dow: 'Thu', num: '10', headBg: '#f1eaf7', numColor: '#572280', cellBg: '#fdfcfe',
+          vl: [{ title: 'I visualised the trophy for years and wondered why nothing ever moved.', channel: 'LinkedIn', live: false, noGoal: true }],
+          vlEmpty: false, vlEmptyLabel: '',
+          mv: [{ title: "Email 2 — Vishen's Story + Social Proof", channel: 'Email', ...E },
+               { title: 'E2A Summit — Why Mindvalley', channel: 'Social', ...S }],
+          mvMore: '+5 social', mvEmpty: false, mvEmptyLabel: '' },
+
+        { dow: 'Fri', num: '11', headBg: '#f4f2f8', numColor: '#1a1523', cellBg: '#fff',
+          vl: [], vlEmpty: true, vlEmptyLabel: 'nothing dated',
+          mv: [{ title: 'The Gift', channel: 'Social', ...S }],
+          mvMore: '+2 social', mvEmpty: false, mvEmptyLabel: '' },
+
+        { dow: 'Sat', num: '12', headBg: '#f4f2f8', numColor: '#a59db4', cellBg: '#faf9fc',
+          vl: [], vlEmpty: true, vlEmptyLabel: 'nothing dated',
+          mv: [], mvMore: '', mvEmpty: true, mvEmptyLabel: 'no email day' },
+
+        { dow: 'Sun', num: '13', headBg: '#f4f2f8', numColor: '#a59db4', cellBg: '#faf9fc',
+          vl: [], vlEmpty: true, vlEmptyLabel: 'nothing dated',
+          mv: [], mvMore: '', mvEmpty: true, mvEmptyLabel: 'no email day' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

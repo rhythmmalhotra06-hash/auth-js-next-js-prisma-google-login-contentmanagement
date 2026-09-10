@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin:0; background:#faf9fc; color:#1a1523;
+      font-family:"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:#572280; text-decoration:none; } a:hover { color:#6d34a0; text-decoration:underline; }
+    * { box-sizing:border-box; }
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#a59db4; }
+    .card { background:#fff; border:1px solid rgba(40,20,60,.12); border-radius:12px;
+      box-shadow:0 1px 2px 0 rgba(40,20,60,.06), 0 4px 12px 0 rgba(40,20,60,.05); }
+    .th { font-size:11.5px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:#6b6478;
+      background:#f4f2f8; padding:10px; text-align:left; }
+    .td { font-size:13px; padding:11px 10px; border-top:1px solid rgba(40,20,60,.12); vertical-align:middle; }
+    .pill { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600;
+      padding:3px 8px; border-radius:8px; white-space:nowrap; }
+    .dot { width:6px; height:6px; border-radius:9999px; flex:none; }
+    /* A missing thumbnail is a stated reason, never a broken-image icon. */
+    .noimg { width:44px; height:44px; border-radius:8px; flex:none; border:1px solid rgba(40,20,60,.12);
+      background-image:repeating-linear-gradient(45deg,#f4f2f8 0 5px,#ece9f1 5px 10px); }
+    .thumb { width:44px; height:44px; border-radius:8px; flex:none; border:1px solid rgba(40,20,60,.12); }
+  </style>
+</helmet>
+
+<div style="padding:28px 26px; max-width:1180px; margin:0 auto">
+
+  <div style="margin-bottom:20px">
+    <div class="eyebrow">Message of the Week · Content Studio</div>
+    <h1 style="margin:6px 0 4px; font-size:24px; font-weight:700; letter-spacing:-.02em">Assets · week of 31 Aug – 6 Sep</h1>
+    <div style="font-size:13px; color:#6b6478">
+      Every owner's released work and its 24-hour read, grouped by owner. This doubles as the meeting roll-up.
+    </div>
+  </div>
+
+  <sc-for list="{{ owners }}" as="o" hint-placeholder-count="3">
+    <div style="margin-bottom:22px">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:9px">
+        <span style="font-size:15px; font-weight:700; letter-spacing:-.01em">{{ o.name }}</span>
+        <span class="pill" style="background:#f4f2f8; color:#6b6478">{{ o.role }}</span>
+        <span style="font-size:12px; color:#a59db4">{{ o.count }}</span>
+      </div>
+
+      <!-- Ticket-bearing table: the mandated 5-column header applies here.
+           Title · Priority · Assigned · Ticket Status · Priority Status, then the read. -->
+      <div class="card" style="overflow:hidden">
+        <table style="width:100%; border-collapse:collapse">
+          <thead>
+            <tr>
+              <th class="th">Title</th>
+              <th class="th" style="width:78px">Priority</th>
+              <th class="th" style="width:110px">Assigned</th>
+              <th class="th" style="width:104px">Ticket status</th>
+              <th class="th" style="width:112px">Priority status</th>
+              <th class="th" style="width:270px">24-hour read</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ o.assets }}" as="a" hint-placeholder-count="2">
+              <tr>
+                <td class="td">
+                  <div style="display:flex; align-items:center; gap:10px">
+                    <sc-if value="{{ a.hasThumb }}" hint-placeholder-val="{{ true }}">
+                      <div class="thumb" style="background:{{ a.thumbFill }}"></div>
+                    </sc-if>
+                    <sc-if value="{{ a.noThumb }}" hint-placeholder-val="{{ false }}">
+                      <div class="noimg" title="{{ a.noThumbWhy }}"></div>
+                    </sc-if>
+                    <div>
+                      <div style="font-weight:600">{{ a.title }}</div>
+                      <div style="font-size:11.5px; color:#a59db4; margin-top:1px">{{ a.meta }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="td"><span class="pill" style="background:{{ a.prioBg }}; color:{{ a.prioFg }}">{{ a.prio }}</span></td>
+                <td class="td" style="color:#6b6478">{{ a.owner }}</td>
+                <td class="td"><span class="pill" style="background:#e8f9f1; color:#0e6742"><span class="dot" style="background:#159f65"></span>{{ a.tstatus }}</span></td>
+                <td class="td"><span class="pill" style="background:#f4f2f8; color:#6b6478">{{ a.pstatus }}</span></td>
+                <td class="td">
+                  <div style="display:flex; gap:16px; margin-bottom:5px">
+                    <sc-for list="{{ a.stats }}" as="s" hint-placeholder-count="3">
+                      <div>
+                        <div style="font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.15">{{ s.v }}</div>
+                        <div style="font-size:10.5px; color:#a59db4">{{ s.k }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size:12px; color:#6b6478; line-height:1.4">{{ a.read }}</div>
+                  <sc-if value="{{ a.gap }}" hint-placeholder-val="{{ false }}">
+                    <div class="pill" style="background:#fff4d9; color:#7a5600; margin-top:5px">{{ a.gap }}</div>
+                  </sc-if>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </sc-for>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{
+  "$preview": {"width":1440,"height":1320}
+}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = {
+      high: { prio: 'High', prioBg: '#ffe4e4', prioFg: '#8a1f1f' },
+      mid:  { prio: 'Mid',  prioBg: '#fff4d9', prioFg: '#7a5600' },
+      soc:  { prio: 'Soc',  prioBg: '#ebf2ff', prioFg: '#1c3bd4' },
+    };
+    return {
+      owners: [
+        { name: 'Marwah', role: 'Meditations', count: '1 released · 1 in production',
+          assets: [
+            { title: 'Paul McKenna — 12-min guided meditation', meta: 'YouTube full + IG snippet · Tue 1 Sep',
+              hasThumb: true, noThumb: false, thumbFill: '#e3d4f0', ...P.mid,
+              owner: 'Marwah', tstatus: 'Published', pstatus: 'In queue',
+              stats: [{ v: '7,942', k: 'YT views' }, { v: '40.2%', k: 'retention' }, { v: '4.3%', k: 'CTR' }],
+              read: 'Content held — retention near 40% and returning viewers watching 5:44 vs 3:59. The thumbnail is the ceiling, 2.7 points under the 7% target.',
+              gap: null },
+          ] },
+        { name: 'Kuhan · Glen', role: 'Stage talks', count: '1 released',
+          assets: [
+            { title: 'Regan Hillyer — the manifestation shift', meta: 'Mindvalley Talks + IG Reel · Wed 2 Sep',
+              hasThumb: true, noThumb: false, thumbFill: '#f1eaf7', ...P.high,
+              owner: 'Kuhan', tstatus: 'Published', pstatus: 'In queue',
+              stats: [{ v: '91.7K', k: 'IG views' }, { v: '37.8%', k: 'ER' }, { v: '+67', k: 'subs' }],
+              read: 'The week’s standout by every measure, and a 2.15× replay ratio. But only 11.0K of 91.7K Reel viewers reached the full talk — the funnel is leaky.',
+              gap: null },
+          ] },
+        { name: 'Chee Ling', role: 'Design · collage', count: '1 released',
+          assets: [
+            { title: 'Jim Kwik — Limitless Daily carousel', meta: 'Instagram only · Thu 3 Sep',
+              hasThumb: true, noThumb: false, thumbFill: '#fff6e0', ...P.soc,
+              owner: 'Chee Ling', tstatus: 'Published', pstatus: 'In queue',
+              stats: [{ v: '39.1K', k: 'views' }, { v: '15.4K', k: 'reach' }, { v: '1.60%', k: 'ER' }],
+              read: 'Best reach of the week’s photo content. Carousel “views” count slide-swipes, not rewatches — not comparable to a Reel’s ratio.',
+              gap: null },
+          ] },
+        { name: 'Editor TBC', role: 'Quest snippet', count: '1 released · owner unverified',
+          assets: [
+            { title: 'Vanessa Van Edwards — vocal confidence Reel', meta: 'Instagram only · Mon 31 Aug',
+              hasThumb: false, noThumb: true, thumbFill: '', ...P.soc,
+              noThumbWhy: 'Composed on a partner account and cross-tagged — no Hootsuite planner record, so no thumbnail.',
+              owner: 'Editor TBC', tstatus: 'Published', pstatus: 'In queue',
+              stats: [{ v: '14.1K', k: 'views' }, { v: '11.0K', k: 'reach' }, { v: '1.21%', k: 'ER' }],
+              read: 'Lowest ER of any post that landed on plan. The “comment quiz” CTA is soft next to Wednesday’s direct offer.',
+              gap: 'No publish link recorded · Glen' },
+          ] },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
