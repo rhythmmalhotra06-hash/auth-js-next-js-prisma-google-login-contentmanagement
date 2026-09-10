@@ -559,6 +559,175 @@ export const COMMS_OFFICIAL_CAL = {
   },
 } as const;
 
+// ---------------------------------------------------------------------------
+// MESSAGE OF THE WEEK (E-MOW). Added 2026-09-09 for the Monday MOW pack.
+// Plan: plans/ref-to-sep-call-zazzy-moth.md · brief: Sep Calls/Handoff/MOW-HANDOFF.md
+// ---------------------------------------------------------------------------
+
+// 🗓️ Comms Calendar — the DAY-LEVEL comms calendar: one row per date, carrying the message of
+// the week, the goal, and links out to everything that shipped that day. This is the upstream
+// for MowSlot.
+//
+// NOT to be confused with COMMS_OFFICIAL_CAL above (📅 Official Cal, one row per *project*).
+// The `CommsCalendar` Prisma model has historically mirrored Official Cal despite its name —
+// it is being renamed `OfficialCalCC`, and this table gets the new `CommsDay` model.
+//
+// TWO-WAY (PG system-of-record + outbox drain) but only over the WRITABLE subset: Airtable
+// rejects writes to formula / rollup / lookup / createdTime / lastModifiedTime fields, which is
+// 31 of this table's 75. The read-only ones we deliberately mirror for display are listed under
+// `readOnlyFields` so the push map can never accidentally include them.
+export const COMMS_DAY = {
+  baseId: BASES.contentComms,
+  tableId: 'tblUUVMKdSrLVhTx8',
+  fields: {
+    // ── the MOW-critical writable fields ──────────────────────────────────
+    date: 'fldJEUAl8MtDtOfLP', // "Date" (date) — the row's identity; one row per day
+    messageOfWeek: 'fldsG98VipLb929E9', // "Message of the week" (singleLineText) — transitional; becomes a link once the master table lands Thu 10 Sep
+    theGoal: 'fldq3xyH9EMuUuFup', // "The Goal" (singleLineText) — transitional, same
+    phase: 'fldcjUoFXmb4P5skk', // "Phase" (singleSelect)
+    coreMessage: 'fldKnoaBxDygDQuzL', // "Core Message" (checkbox)
+    internalNote: 'fld61vdM1ve79kTLu', // "Internal Note" (multilineText)
+    score: 'fldmCpz5GKMHulAjc', // "Score" (singleSelect)
+    campaignType: 'fldwOTlwm6eKabKKt', // "📯 Campaign Type" (singleLineText)
+    noOfEmails: 'fldxH7omb9gvJug3j', // "No. of Emails" (number)
+    // ── actuals the day-cards read ────────────────────────────────────────
+    landingPageSessions: 'fld1PyZyHXZRuunc5', // "Landing Page sessions" (number)
+    sublist: 'fldK7lVHCBDzYWbDN', // "Sublist" (number)
+    attendees: 'fldf7hkmXGugHzJXg', // "Attendees" (number)
+    spSessions: 'fldRE9SswqqzkIdJW', // "SP Sessions" (number)
+    sales: 'fldbTKtDFkZyBsmWx', // "Sales" (number)
+    totalDailyRevenue: 'fldy1R0rmdT8LAJaJ', // "Total Daily Revenue" (currency)
+  },
+  links: {
+    officialCal: 'fldsX0IJbmlR4L47R', // → 📅 Official Cal (COMMS_OFFICIAL_CAL) — how we detect a live campaign week
+    initiative: 'fldQFGIglIrDrIDYi', // → ⛳ Initiatives
+    emails: 'fldkAsvk5fbPx3IjP', // → 📧 Emails
+    socialAllAssets: 'fldI5e7ZUz1GYGiZF', // → 📣 Social (every asset that shipped that day)
+    featureBanner: 'fldiAGjmODJeefZl3', // → 🖌️ Banners
+    marketingNotifications: 'fldVoE7LmZE7I6PJx', // → 🔔 Marketing Notifications
+    blog: 'fldHueqUhHhlrMYYE', // → 👓 Blog
+  },
+  // Mirrored for display, NEVER written. Airtable rejects writes to all of these.
+  readOnlyFields: {
+    year: 'fldR9lQVDMQOMJXrP', // formula
+    weekday: 'fldRVBvU5plk7NcWT', // formula
+    nameOfComms: 'fldcuV0LcWfbTPVCF', // formula (primary)
+    leadGenGoal: 'fldomnhLm48bxcdgv', // lookup ← Official Cal — the campaign's lead target (S2: campaign weeks default the headline to leads against this)
+    targetRevenue: 'fldEd8WAXNE8ORxcW', // lookup ← Official Cal
+    pctAchievedRevenue: 'fldB43uQLVf5otnKB', // formula
+    leadGenTargetAchievedPct: 'fldwEEv5aB9XLSTec', // formula
+    status: 'fldB2LJagKeBR75Eu', // lookup ← Official Cal
+    projectName: 'fldyBVu5fBn7B4PIC', // lookup ← Official Cal ("Name of project")
+    lastModified: 'fldFGu7r22gvQi2qW', // lastModifiedTime — inbound pull cursor
+  },
+  // Inbound-pull cursor.
+  lastModified: 'fldFGu7r22gvQi2qW',
+} as const;
+
+// 🗓️ Message of the Week — the master MOW table Ramya started on 2026-09-09.
+//
+// SHAPE IS NOT FINAL. The 12:30 KL workshop on Thu 10 Sep settles it (plan §0.3). Today the
+// table has no Brand, no week date and no Active flag; per decision S3 it needs `Brand`
+// (multiSelect — it is singleSelect on the sibling "copy" table today), `Week starting` (date)
+// and `Active` (checkbox), because MowWeek is keyed on (weekStart, brand). Two sibling tables
+// must die in the same session: "Message of the week copy" (tbl3NPxLDApiIyobS) and the stray
+// "MV MOW TEST (DEL)" link field on COMMS_DAY (fldc6CL5Trm9R8kZT).
+//
+// Until then only the fields below are safe to read. Anything added Thursday goes in here.
+export const MESSAGE_OF_WEEK = {
+  baseId: BASES.contentComms,
+  tableId: 'tbl3NPxLDApiIyobS',
+  fields: {
+    name: 'fldNGE5u4OhCV1CQE', // "Name" (singleLineText, primary) — the message itself
+    brand: 'fld3eGQEIbiZ1kWDp', // "Brand" (SINGLE select: 'Mindalley' [sic] | 'VL')
+    goal: 'fld1kb123Ha0FI2yh', // "Goal" (richText) — EMPTY on all 6 real records as of 10 Sep
+    // TODO(after the Airtable fixes land): weekStarting (date), smartNumber (number),
+    // smartNumberDefinition (text), committedBy. Read the ids off the base — never guess them.
+  },
+  links: {
+    // → 🗓️ Comms Calendar (COMMS_DAY). This is where an MV message's DATES come from, and the
+    // reason the week is derivable before `Week starting` exists: 'Expert to Authority' links
+    // Sep 7–21, 'Meditations & Manifesting' links Sep 1–6.
+    commsCalendar: 'fldFUiQFmoz96tnEz',
+  },
+  /**
+   * Brand values as they exist in Airtable RIGHT NOW. 'Mindalley' is a live misspelling on 6 of
+   * the 7 records.
+   *
+   * DO NOT normalise it in application code. Reference data is read-only in the app; the fix
+   * belongs in Airtable followed by a reference reconcile. Normalising here would bake the
+   * misspelling into grouping logic permanently and hide the fact that it needs fixing —
+   * `MOW-HANDOFF-10SEP.md` §3.4 is explicit about this.
+   *
+   * Keep both spellings recognised so the surface keeps working the moment Ramya fixes it.
+   */
+  brandValues: {
+    mindvalley: ['Mindvalley', 'Mindalley'],
+    vl: ['VL'],
+  },
+} as const;
+
+// 🗓️ Message of the week — the SYNCED, read-only copy inside Vishen's base, created during the
+// 10 Sep call. One-way from MESSAGE_OF_WEEK above; the write path stays in Content & Comms
+// (two-way is how the two brand lists drift apart — 10 Sep handoff §7).
+//
+// There is no date or week field here. Dates exist only as a lookup from the linked assets.
+export const VL_MESSAGE_OF_WEEK = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblylfz4aTT75TsYU',
+  fields: {
+    name: 'fldYees1mlphKJsKJ', // primary
+    brand: 'fldU78NjB6BmwJ6OL', // single select: 'Mindalley' [sic] | 'VL'
+    goal: 'fld0z458mmq6sR7di', // richText — empty on all 6 real records
+    commsCalendarText: 'fldPTqb0anBgXsa2V', // synced text of the MV comms-calendar link
+  },
+  links: {
+    videos: 'fldK8I3IhpOa4qxji', // → VL_VIDEOS
+  },
+  readOnlyFields: {
+    liveDateFromVideos: 'fld9HB0MZSUT1LCSp', // lookup — the ONLY date on this table
+  },
+} as const;
+
+// 📺 Videos — despite the name, this is the **VL content workflow**: LinkedIn, YouTube, community
+// posts and email. Its own Airtable description now says "This is VL Content". Not the video
+// table (that's Major Videos) and not the clip repository (that's 🎞️ Clips).
+//
+// The comms calendar's Vishen lane reads this and groups by `liveDate`. 219 rows are dated;
+// nothing is dated past 22 Sep, and `Live Date` has no owner — see the plan's §0 risk note.
+export const VL_VIDEOS = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblcqpctTr76RQsQT',
+  fields: {
+    name: 'fldKDeSFvDMcbQ1cD', // primary
+    liveDate: 'fldbdCEjsTMrQYRN7', // "Live Date" (date) — THE calendar's only date key
+    publishedLink: 'fldrym088lQmqfhGg', // populated for live LinkedIn / YouTube
+    data24h: 'flduZSKFfHMDwMp9U', // "24h Data" (free text) — EMPTY on every published asset.
+    // Renders as "not filled", NEVER 0 (10 Sep handoff §6.5).
+    medium: 'fld7DTNjp6neU9bUH', // Video Long | Podcast | …
+    source: 'fldxt25kQecgDdQvR', // includes Rise Voice, Talking Heads, Mindvalley
+    status: 'fldGv5rhXeoIHUxBN', // '1. Idea' … '7. Published'
+    approval: 'fldGvNhEyTN1rfd9O', // Ramya/Vishen owned
+    pipelineCategory: 'fldnLvsYbPqfnPomQ',
+    // Existing inbound cursor for the vishen-videos domain — DO NOT repurpose or write to it.
+    lastModified: 'fld4wVqxMStdAyNAg',
+  },
+  links: {
+    messageOfWeek: 'fldHHmhpYShR8BKH3', // → VL_MESSAGE_OF_WEEK · created 10 Sep
+    channels: 'fldgM2xzF0LJkgyYu',
+  },
+  readOnlyFields: {
+    goalFromMessage: 'fldJgpePucy0D5X0a', // lookup ← the message's Goal · created 10 Sep
+  },
+} as const;
+
+// 🎯 Vishen's Newsletters — the VL lane's second dated source. 109 dated rows.
+export const VL_NEWSLETTERS = {
+  baseId: BASES.vishenContent,
+  tableId: 'tblmIvbHzlX72crb0',
+  fields: { liveDate: 'fldq66GeXITUglmFe' },
+} as const;
+
 // 🎬 Clips — Vishen's own clip list in his content base, linked to Major Videos via Source.
 // Two-way synced with 🎬 Clip Suggestions (see plans/vishen-two-way-sync.md). App-generated clips
 // are mirrored here (App Clip ID set); clips Vishen adds by hand flow back into Clip Suggestions.

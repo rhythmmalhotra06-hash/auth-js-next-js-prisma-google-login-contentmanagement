@@ -196,10 +196,6 @@ const URL_KEYS = ['permalink', 'permalinkUrl', 'postUrl', 'url', 'link', 'shareU
 // `unique_id` is Perch's real per-post key ("<sourceId>_<postId>") and is stable, so it
 // leads. The rest are fallbacks for providers that shape entries differently.
 const ID_KEYS = ['unique_id', 'platformPostId', 'postId', 'messageId', 'socialPostId', 'contentId', 'externalId', 'id'];
-const METRIC_KEYS = ['impressions', 'impressionCount', 'views', 'videoViews', 'viewCount', 'plays',
-  'reach', 'uniqueReach', 'engagements', 'engagement', 'totalEngagements', 'interactions',
-  'engagementRate', 'engagementPct', 'engagementPercent', 'clicks', 'linkClicks', 'postClicks'];
-
 /** Perch metric id → the column a bare `value` on its entries belongs in. */
 const METRIC_ID_FIELD: Array<[RegExp, 'impressions' | 'views' | 'reach' | 'engagements' | 'clicks' | 'engagementRate']> = [
   [/impression/i, 'impressions'],
@@ -224,6 +220,38 @@ function flattenLeaves(value: unknown, out: Json = {}, depth = 0): Json {
     else if (!(k in out)) out[k] = v;
   }
   return out;
+}
+
+/**
+ * Hootsuite campaign/speaker tags for an entry.
+ *
+ * They sit at `details.tags` as `[{id, label, group_name}]` — verified in production, where
+ * 56 of 329 posts carry at least one ('Expert to Authority Summit 2026', 'Weekly Masterclass',
+ * 'MVU 2027', plus speakers like 'Vishen' and 'Regan Hillyer'). This is the mechanism the social
+ * team already groups campaigns by, so it needs no new integration — only lifting out of the
+ * payload we were already storing.
+ *
+ * Searched rather than read at a fixed path, for the same reason the metrics are: Perch's entry
+ * shape varies by provider and a fixed path cost an entire pull to discover once already.
+ */
+export function tagLabels(entry: unknown, depth = 0): string[] {
+  if (depth > 6 || entry === null || typeof entry !== 'object') return [];
+  if (Array.isArray(entry)) return [...new Set(entry.flatMap((v) => tagLabels(v, depth + 1)))];
+  const out: string[] = [];
+  for (const [k, v] of Object.entries(entry as Json)) {
+    if (k.toLowerCase() === 'tags' && Array.isArray(v)) {
+      for (const t of v) {
+        if (typeof t === 'string' && t.trim()) out.push(t.trim());
+        else if (t && typeof t === 'object') {
+          const label = (t as Json).label ?? (t as Json).name;
+          if (typeof label === 'string' && label.trim()) out.push(label.trim());
+        }
+      }
+    } else if (v !== null && typeof v === 'object') {
+      out.push(...tagLabels(v, depth + 1));
+    }
+  }
+  return [...new Set(out)];
 }
 
 /** The first plausible post permalink anywhere in an entry. */
@@ -336,6 +364,7 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
         publishedUrl: url,
         platformPostId: id === undefined ? null : String(id),
         channel: typeof entryChannel === 'string' ? entryChannel : channel,
+        tags: tagLabels(entry),
         impressions,
         views,
         reach,
@@ -365,6 +394,9 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
       clicks: prev.clicks ?? r.clicks,
       publishedUrl: prev.publishedUrl ?? r.publishedUrl,
       channel: prev.channel ?? r.channel,
+      // Tags are a SET across a post's several metric entries — union, not last-write-wins,
+      // because a given entry may carry them while another doesn't.
+      tags: [...new Set([...(prev.tags ?? []), ...(r.tags ?? [])])],
     });
   }
   return { rows: [...merged.values()], unmappedMetricIds: [...unmapped] };

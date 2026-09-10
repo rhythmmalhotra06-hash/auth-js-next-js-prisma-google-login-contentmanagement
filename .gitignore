@@ -46,3 +46,20 @@ next-env.d.ts
 
 # Airtable raw schema dumps (bulky + regenerable via context/export-airtable-schema.js; summaries are committed)
 Context/airtable-schema/*.raw.json
+
+# ── Meeting source material (added 2026-09-10) ───────────────────────────────
+# Gemini transcripts, recordings and handoff bundles. Kept out of git for two reasons:
+# they are ~40MB of .docx/.zip/.pdf, and they carry verbatim meeting content about named
+# people. The plan file references them by path; they live on the build machine.
+Sep Calls/
+Calls Aug/
+Clip Cover Generator/
+AutoEditingAgent*.zip
+.shotkit/
+
+# ── Generated design-canvas output ───────────────────────────────────────────
+# The .dc.html artboards, canvas.json and build-export.mjs ARE source and are committed.
+# These two are produced from them (2.5MB seeded payload + the flattened export), so they
+# are regenerated rather than tracked — see Context/mockups/mow-canvas/build-export.mjs.
+Context/mockups/mow-canvas/message-of-the-week.html
+Context/mockups/mow-canvas/export/

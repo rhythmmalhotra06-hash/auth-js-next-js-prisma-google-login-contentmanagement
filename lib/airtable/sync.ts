@@ -83,7 +83,7 @@ export function mapScoringKnob(r: AirtableRecord) {
   };
 }
 
-export function mapCommsCalendar(r: AirtableRecord) {
+export function mapOfficialCalCC(r: AirtableRecord) {
   return {
     airtableId: r.id,
     name: str(r.fields[COMMS_OFFICIAL_CAL.fields.name]) ?? '(untitled)',
@@ -175,7 +175,7 @@ export function mapAuthor(r: AirtableRecord) {
 
 export interface SyncReport {
   dryRun: boolean;
-  counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number; contractors: number; scoringKnobs: number; clipRules: number; commsCalendars: number };
+  counts: { employees: number; dimensions: number; eventTypes: number; assetTypes: number; officialCalendars: number; authors: number; contractors: number; scoringKnobs: number; clipRules: number; officialCalsCC: number };
   // Rows deactivated because they no longer exist in Airtable (self-heal; see pass 3).
   deactivated: { employees: number; eventTypes: number; assetTypes: number; contractors: number };
   linkEdges: { eventTypes: number; teamLeads: number; stakeholders: number; stakeholderEmails: number; preferredEditors: number; dimensions: number };
@@ -215,7 +215,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
   const contractors = conRecs.map(mapContractor);
   const scoringKnobs = scRecs.map(mapScoringKnob);
   const clipRules = crRecs.map(mapClipRule);
-  const commsCalendars = ccRecs.map(mapCommsCalendar);
+  const officialCalsCC = ccRecs.map(mapOfficialCalCC);
 
   const linkEdges = {
     eventTypes: assetTypes.reduce((n, a) => n + a.links.eventTypes.length, 0),
@@ -286,8 +286,8 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
     for (const cr of clipRules) {
       await prisma.clipRule.upsert({ where: { airtableId: cr.airtableId }, create: cr, update: { name: cr.name, kind: cr.kind, clipType: cr.clipType, content: cr.content, active: cr.active, order: cr.order, section: cr.section, note: cr.note, updatedBy: cr.updatedBy, airtableUpdatedAt: cr.airtableUpdatedAt, createdTime: cr.createdTime, syncedAt: new Date() } });
     }
-    for (const cc of commsCalendars) {
-      await prisma.commsCalendar.upsert({ where: { airtableId: cc.airtableId }, create: cc, update: { name: cc.name, status: cc.status, startDate: cc.startDate, endDate: cc.endDate, syncedAt: new Date() } });
+    for (const cc of officialCalsCC) {
+      await prisma.officialCalCC.upsert({ where: { airtableId: cc.airtableId }, create: cc, update: { name: cc.name, status: cc.status, startDate: cc.startDate, endDate: cc.endDate, syncedAt: new Date() } });
     }
 
     // Build airtable_id → our uuid maps for link resolution.
@@ -349,7 +349,7 @@ export async function syncReference(opts: { dryRun?: boolean } = {}): Promise<Sy
 
   return {
     dryRun,
-    counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length, officialCalendars: officialCalendars.length, authors: authors.length, contractors: contractors.length, scoringKnobs: scoringKnobs.length, clipRules: clipRules.length, commsCalendars: commsCalendars.length },
+    counts: { employees: employees.length, dimensions: dimensions.length, eventTypes: eventTypes.length, assetTypes: assetTypes.length, officialCalendars: officialCalendars.length, authors: authors.length, contractors: contractors.length, scoringKnobs: scoringKnobs.length, clipRules: clipRules.length, officialCalsCC: officialCalsCC.length },
     deactivated,
     linkEdges,
     samples: { employee: employees[0]?.name, eventType: eventTypes[0]?.name, assetType: assetTypes[0]?.name },
