@@ -848,11 +848,13 @@ caused an outage on 2026-08-31. Commit before the next deploy, on a branch rathe
 | 2 | `6a` | Dark theme — role values over the same components | ✅ **done** (incl. the real contrast bug) |
 | 3 | `1a` | Week calendar, three brand states, `/studio/comms-calendar` | ✅ **done** — `08413a4` |
 | 3b | — | **Reader correctness fix** (§6C) | ✅ **done** — `a86b6eb`, verified live |
-| 4 | `2a` | Monday pack at `/performance/week` | ✅ **read layer done** — `da7d00a`. Commit bar + learnings still to come |
+| 4 | `2a` | Monday pack at `/performance/week` | ✅ **read layer done** — `da7d00a`. Commit bar + learnings in §6E |
 | 5 | `5a` `5b` | Month · asset detail | ✅ **done** — `49cd7a1`, rendered against live data |
 | 5b | — | **Data-flow audit + `npm run doctor`** (§6D) | ✅ **done** — `4b869a1`. 294 ids, 0 errors, 1 warning |
 | 6 | `4a` `5c` | Assets table · Vishen's card | ✅ **done** — `bb26776` |
 | 7 | `6b` | Not-dated tray | ✅ **done** — data existed after all; 204 assets listed |
+| — | — | **Merged to `main` and deployed** — `40db344`, deploy success | ✅ |
+| 8 | — | **Commit bar · staged learnings · the headline number** (§6E) | **next** |
 
 Definition of done is the handoff's own checklist — no literal `0` anywhere, at most one gold
 element per screen, red only on `missed`, VL teal on every surface, nine canonical empty strings,
@@ -1096,6 +1098,102 @@ the four, `package.json` (`doctor` script), and the two-line deletion in
   values before and after, since both inputs were already null.
 - Re-run `doctor` immediately **after** the step-6 deploy, against production — the point of Z2 is
   that a deploy is when ids and env most plausibly diverge.
+
+---
+
+## 6E. The commit bar, staged learnings, and where the headline number comes from
+
+### Context
+
+The pack shipped with its centrepiece empty: no headline number, no commit bar, no learnings. All
+three are the human half of the surface — the number is what the meeting is about, and the commit
+is what makes the pack a record rather than a report. This section closes them.
+
+The headline question — *how do we actually collect it?* — is now **answered and tested**, not
+theorised. The Metabase connector was used this session to pull the real figures.
+
+### The number: proven, with two traps
+
+**Leads — question 31846.** Returns 883 for 7–10 Sep. Already filtered to `Organic Social` (all
+10,000 rows carry it), so Glen's organic-only rule is baked into the question itself.
+
+**Revenue — question 32044. This is where it nearly went wrong.**
+
+| | w/c 7 Sep, to date |
+|---|---|
+| Unfiltered, as the question returns it | **$504,747.91** across 4,599 orders |
+| `unified_traffic_channel = 'Organic Social'` | **$6,854.74** across 56 orders |
+
+**The unfiltered figure overstates our number by 98.6%.** Question 32044 is *not* channel-filtered
+— it carries Paid Social (3,302 rows), Email (1,372), App (1,137), Paid Search (1,104) and twelve
+more. Organic Social is 87 rows of 10,000. Glen's rule — *"organic social ONLY — not App, Email or
+Paid"* — is the difference between $6.9k and half a million dollars in front of the founder, and
+nothing in the question's name or output warns you.
+
+**Two more guards, both verified rather than assumed:**
+
+- **`SELECT DISTINCT order_id`.** In this week's slice the naive row-sum and the distinct-order sum
+  happen to agree, so the join is not duplicating *today*. The rule still holds — it has inflated
+  figures twice before, once by $6,261 — and the code must not rely on the join staying clean.
+- **Both questions cap at 10,000 rows and sort DESCENDING.** So the truncation bites the *old* end
+  and the current week is complete. That is luck, not design: revenue returned 10,000 rows covering
+  11 days (~900/day), so a single week is ~6,300 and safe, but **the ingesting agent must check
+  that the earliest returned timestamp precedes the week start** and refuse to report a figure if
+  it does not. Silently reporting a truncated week is exactly the failure this pack exists to stop.
+
+### The architecture gap that blocks all of it
+
+`POST /api/mow/metrics/ingest` already exists, is guarded, and is correct — it writes
+`smartNumberStaged` onto `MowWeek` rows and refuses to touch a committed week. **It is confirmed
+live in production** (returns 401 rather than 404 unauthenticated).
+
+But it 404s in practice, because **`mow_weeks` has 0 rows** and nothing creates them:
+
+- `generatePack()` would create them, but it calls `resolveBrandsForWeek()` which reads
+  `prisma.messageOfWeek` and `prisma.commsDay` — both **0 rows**, because `MOW_BACKEND` defaults to
+  `airtable` and the reconcile has never run.
+- Meanwhile `/performance/week` reads Airtable live and never touches `MowWeek` at all.
+
+So the two halves are disconnected: the write path expects Postgres reference data that does not
+exist, and the read path bypasses Postgres entirely.
+
+### Decisions
+
+| # | Decision |
+|---|---|
+| **AA1** | **The pack shows organic-social revenue only, labelled as such.** $6,855, never $504,748. The all-channel figure does not appear anywhere on the page — it is the number that gets screenshotted, and it credits social for revenue it did not drive. Leads stays the campaign-week headline (S2) and revenue is a driver. |
+| **AA2** | **Learnings carry both AI drafts and human drafts, visually distinguished, and only a human commits.** An AI-proposed learning renders in the staged violet with an explicit `proposed` marker; a human draft renders as an ordinary staged block. Glen's condition — *"if efficiency is a recommendation and that's not true, it might derail everything"* — is honoured by the commit gate and by never letting a model-written line reach the committed column without a name against it. **No AI-written text goes near the headline number**; that stays figures-only (his literal condition). |
+| **AA3** | **Create the `MowWeek` row lazily from the Airtable-resolved header, not via `generatePack`.** A small `ensureWeek(weekStart, brand, {message, goal})` upsert called by the pack page. This is decision Y5 made concrete: Airtable stays the source for message and goal, Postgres holds only app-owned workflow state. It takes the reconcile off the critical path entirely, and `generatePack` remains for when `MOW_BACKEND` flips. |
+| **AA4** | **The pack reads `smartNumberCommitted ?? smartNumberStaged`,** and says which it is. A staged number renders in the provisional palette with `drafted <when>`; a committed one renders solid with `committed by <name>`. Never the reverse — a staged number that looks committed is worse than no number. |
+| **AA5** | **Delivery is a scheduled Claude agent, weekly, Sunday night KL** (S6), POSTing to the existing route with `source: 'session:metabase'`. Its instructions carry the three guards above verbatim. When IT delivers `METABASE_URL`, `lib/metabase/client.ts` swaps in and `source` becomes `app:metabase` — the page never changes. |
+
+### Build
+
+1. **`lib/mow/week-state.ts`** — `ensureWeek()` upsert (AA3), plus `commitWeek()`,
+   `stageLearning()`, `commitLearning()`, `setWeekSummary()`. Every write goes through the existing
+   `canCommitMow()` allowlist in [pack.ts:155](lib/mow/pack.ts#L155) — Gareth, Glen, Ramya (S4).
+2. **`components/ui/StagedBlock.tsx`** — the staged/committed wrapper promised in §6 and never
+   built: dashed rule + `Staged` badge + `drafted Mon 08:00`, versus solid rule + `Committed by
+   Glen`. Reused by the number, the summary and every learning, so the three cannot drift apart.
+3. **`components/mow/CommitBar.tsx`** — the page's ONE gold element. Shows what is uncommitted,
+   names who may commit, and is disabled with a reason for everyone else.
+4. **`components/mow/Learnings.tsx`** — staged/committed list, top five by rank with the rest behind
+   "show all" (U7), each carrying its lever → owner as free text (S16).
+5. **Wire `/performance/week`** to read the `MowWeek` row and render the number from it (AA4),
+   replacing the current "not connected" gap.
+6. **`scripts/mow-ingest-agent.md`** — the scheduled agent's instructions, carrying the organic-
+   social filter, the DISTINCT rule, the truncation guard, and the exact `curl`.
+
+### Verification
+
+- Post the real figures at the deployed app and confirm they land staged, not committed:
+  `{"weekOf":"2026-09-08","figures":{"leads":883,"revenue":6854.74},"source":"session:metabase"}`
+- Re-post with different figures on a **committed** week and confirm it is refused (`skippedCommitted`).
+- Commit as `ramya@mindvalley.com` → succeeds; as an editor → refused by `canCommitMow`, with the
+  refusal visible in the UI rather than a silent no-op.
+- Confirm exactly one gold element on `/performance/week` once the commit bar exists (it currently
+  has none), by counting `border-gold` in the rendered DOM as with `5c`.
+- `npm run verify` stays green; add a suite covering `ensureWeek` idempotency and the commit guard.
 
 ---
 

@@ -27,8 +27,7 @@
 | [E9.8 · Multi-asset campaign requests](content-production-management/portal-feedback-round-1/multi-asset-requests.md) | feature | deferred | 4/7 | 2026-06-29 |
 | [E9.9 · Studio bento redesign](content-production-management/portal-feedback-round-1/studio-bento-redesign.md) | feature | discovery | 7/7 | 2026-06-30 |
 | [E10 · Editor Tasks](content-production-management/editor-tasks.md) | epic | discovery | 6/7 | 2026-08-20 |
-| [E11 · Prioritisation & the Content Engine](content-production-management/prioritisation-content-engine.md) | epic | resolved | 7/7 | 2026-08-29 |
-| [E11.A · Asset-type economics](content-production-management/prioritisation-content-engine/asset-type-economics.md) | feature | resolved | 7/7 | 2026-08-27 |
+| E11 · Prioritisation & the Content Engine † | epic | resolved | — | 2026-08-29 |
 | [E12 · Transcript-Based Auto-Editing Agent](content-production-management/auto-editing-agent.md) | epic | discovery | 6/7 | 2026-09-01 |
 | [E12.1 · EDL Brain Service](content-production-management/auto-editing-agent/edl-brain-service.md) | feature | discovery | 5/7 | 2026-08-31 |
 | [E12.2 · Remotion Renderer](content-production-management/auto-editing-agent/remotion-renderer.md) | feature | discovery | 5/7 | 2026-09-01 |
@@ -42,4 +41,14 @@
 | [E13.3 · Performance-Driven Post-Learning Summary](content-production-management/dna-feedback/performance-post-learning-summary.md) | feature | discovery | 6/7 | 2026-09-02 |
 | └ [Technical Design](content-production-management/dna-feedback/technical-design.md) | technical-design | discovery | — | 2026-09-07 |
 
-_Total: 39 documents, 200/260 sections resolved (77%). E9.8 superseded by E11.C (campaign requests)._
+_Total: 37 documents, 186/246 sections resolved (76%). E9.8 superseded by E11.C (campaign requests)._
+
+† **E11 has no PRD document.** The epic is real and shipped, but its doc was never committed — the
+index row added in `6a2daa4` pointed at `prioritisation-content-engine.md`, which has never existed
+in git history. The row is kept unlinked so the epic stays in the ledger; recreate the doc with
+`/prd` if it's needed. Two things to know before doing so: the Content Engine surface itself was
+**retired** (`/content-engine` now redirects to `/media`, decision in `plans/content-portal-ux.md`),
+and E11's cadence decisions (10/8/3) were **reversed** — the Comms Calendar in Airtable owns cadence,
+so there is no `CadencePlan` model. **E11.A · Asset-type economics** was removed from this index
+deliberately: the feature was deleted on 2026-09-01 after breaking login twice, and is not pending
+work.

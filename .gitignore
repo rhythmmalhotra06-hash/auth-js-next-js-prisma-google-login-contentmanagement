@@ -63,3 +63,15 @@ AutoEditingAgent*.zip
 # are regenerated rather than tracked — see Context/mockups/mow-canvas/build-export.mjs.
 Context/mockups/mow-canvas/message-of-the-week.html
 Context/mockups/mow-canvas/export/
+
+# File-sync duplicates. This repo lives in a synced folder, and the sync client resolves
+# conflicts by writing "name 2.ext" / "name 3.ext" next to the original. Thirty of them had been
+# committed by 10 Sep, including one inside app/ and five under tests/ — the test runner globbed
+# the copies and ran every suite twice, and a migration runner globbing loosely would have applied
+# some migrations twice. They are never intentional.
+*\ [0-9].ts
+*\ [0-9].tsx
+*\ [0-9].mts
+*\ [0-9].sql
+*\ [0-9].json
+*\ [0-9].md
