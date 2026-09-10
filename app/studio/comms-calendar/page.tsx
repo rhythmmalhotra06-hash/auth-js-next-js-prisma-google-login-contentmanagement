@@ -6,7 +6,7 @@ import { getCalendarWeekFromAirtable } from '@/lib/comms-calendar/data.airtable'
 import { getCalendarMonthFromAirtable } from '@/lib/comms-calendar/month';
 import { commsCalendarIsPostgres } from '@/lib/comms-calendar/backend';
 import { utcDay, weekStartOf, addDays, toYmd } from '@/lib/mow/week';
-import { cn } from '@/lib/cn';
+import { Segmented } from '@/components/ui/Segmented';
 import type { BrandState } from '@/lib/comms-calendar/types';
 
 // /studio/comms-calendar — ONE route, three brand states via ?brand=main|vl|mv, two grains via
@@ -33,51 +33,6 @@ const STATES: { key: BrandState; label: string }[] = [
   { key: 'vl', label: "Vishen's" },
   { key: 'mv', label: 'Mindvalley' },
 ];
-
-function Segmented({ current, week, view }: { current: BrandState; week: string; view: 'week' | 'month' }) {
-  return (
-    <div className="inline-flex overflow-hidden rounded-sm border border-border-strong">
-      {STATES.map((s, i) => (
-        <Link
-          key={s.key}
-          href={`/studio/comms-calendar?brand=${s.key}&week=${week}&view=${view}`}
-          className={cn(
-            'px-3.5 py-1.5 text-[12.5px] font-medium transition-colors',
-            i > 0 && 'border-l border-border-default',
-            s.key === current
-              ? s.key === 'vl'
-                ? 'bg-vishen font-semibold text-white'
-                : 'bg-brand font-semibold text-white'
-              : 'bg-surface text-text-muted hover:bg-bg-subtle',
-          )}
-        >
-          {s.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-/** Week / Month. The grain toggle, kept beside the brand toggle so both read as view controls. */
-function ViewToggle({ current, brand, week }: { current: 'week' | 'month'; brand: BrandState; week: string }) {
-  return (
-    <div className="inline-flex overflow-hidden rounded-sm border border-border-strong">
-      {(['week', 'month'] as const).map((v, i) => (
-        <Link
-          key={v}
-          href={`/studio/comms-calendar?brand=${brand}&week=${week}&view=${v}`}
-          className={cn(
-            'px-3.5 py-1.5 text-[12.5px] font-medium capitalize transition-colors',
-            i > 0 && 'border-l border-border-default',
-            v === current ? 'bg-text font-semibold text-surface' : 'bg-surface text-text-muted hover:bg-bg-subtle',
-          )}
-        >
-          {v}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 export default async function CommsCalendarPage({
   searchParams,
@@ -132,8 +87,26 @@ export default async function CommsCalendarPage({
       subtitle={month ? month.label : week ? `Week of ${range}` : undefined}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <ViewToggle current={view} brand={brand} week={toYmd(start)} />
-          <Segmented current={brand} week={toYmd(start)} view={view} />
+          {/* Secondary: which LENS. Primary: whose DATA. Two weights, so a stacked pair reads as
+              a hierarchy rather than as two controls fighting. */}
+          <Segmented
+            current={view}
+            options={(['week', 'month'] as const).map((v) => ({
+              key: v,
+              label: v === 'week' ? 'Week' : 'Month',
+              href: `/studio/comms-calendar?brand=${brand}&week=${toYmd(start)}&view=${v}`,
+            }))}
+          />
+          <Segmented
+            weight="primary"
+            current={brand}
+            options={STATES.map((s) => ({
+              key: s.key,
+              label: s.label,
+              href: `/studio/comms-calendar?brand=${s.key}&week=${toYmd(start)}&view=${view}`,
+              tone: s.key === 'vl' ? ('vishen' as const) : ('brand' as const),
+            }))}
+          />
         </div>
       }
     >

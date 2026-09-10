@@ -1,21 +1,35 @@
 // One asset's detail — artboard `5b`.
 //
-// Vishen-lane only, and that is a data fact rather than a scoping decision: a Mindvalley "asset" on
-// this calendar is a synthetic row (`recXXX:email`) standing for a comms-day's link count, because
-// resolving every linked Email and Social title would be a round-trip per row for something the
-// meeting reads as volume. There is no MV record to open, so nothing links to one.
+// TWO KINDS OF RECORD land here, and the id alone does not say which:
+//
+//   Vishen's lane      -> a `Videos` row in the VL base
+//   Mindvalley's lane  -> a `📣 Social` row in the Content & Comms base
+//
+// The Mindvalley case is new. That lane used to emit synthetic `recXXX:email` placeholders that
+// linked nowhere, so this page was Vishen-only by construction; now it carries real 📣 Social
+// recIds and they must open something. The table is deliberately NOT encoded in the URL — that
+// would turn every link already in the wild into a 404.
+//
+// Both tables are queried CONCURRENTLY and whichever answers wins. The obvious cheaper design —
+// try Videos, fall back on NOT_FOUND — does not work: Airtable answers a foreign record id with
+// "Invalid permissions, or the requested model was not found", which is a 403 rather than a 404,
+// so the fallback never fired and the page threw. Racing both is one extra request on a
+// single-record view and it cannot be fooled by how the API chooses to phrase a miss.
 //
 // WHAT THIS PAGE IS FOR. `Live Date` is the field the entire calendar hinges on and the field with
 // no owner — 204 of 442 assets lack it and 66 of those are already published. So the detail view
 // promotes it rather than tucking it in a corner, and every absence here names who closes it.
 
 import { getRecord, listAll } from '@/lib/airtable/rest';
-import { VL_VIDEOS, VL_MESSAGE_OF_WEEK } from '@/lib/airtable/field-map';
+import { VL_VIDEOS, VL_MESSAGE_OF_WEEK, SOCIAL } from '@/lib/airtable/field-map';
+import { getSocialPosts } from './social-posts';
 import { meaningful } from '@/lib/mow/coverage';
 import { splitJammedName, normaliseBrand, BRAND_LABEL } from '@/lib/mow/derive-week';
 
 export interface AssetDetail {
   id: string;
+  /** Which lane this record came from — the two carry genuinely different fields. */
+  kind: 'video' | 'social';
   title: string;
   /** THE field. Null is the common case and is the point of the page, not an error. */
   liveDate: string | null;
@@ -45,6 +59,58 @@ export interface AssetDetail {
   brandLabel: string | null;
   /** Other assets carrying the same message. Empty is ordinary — one asset in the base is linked. */
   siblings: { id: string; title: string; liveDate: string | null; published: boolean }[];
+
+  // ── Mindvalley-lane only. Null on a Videos record rather than absent, so the page can render
+  //    one shape and let each field speak for itself.
+  imageUrl: string | null;
+  /** From the linked Creative Request. The answer to "who made this". */
+  editor: string | null;
+  ticketId: string | null;
+  ticketStatus: string | null;
+  assetLink: string | null;
+  /** Perch results, when the caption matched (57% inside its window). Null means NOT MATCHED. */
+  results: { reach: number | null; engagements: number | null; multiAccount: boolean } | null;
+}
+
+/**
+ * A Mindvalley post's detail, from 📣 Social.
+ *
+ * This is where the creative ticket and the editor surface — the linked `Creative Request` carries
+ * `Assigned Creative`, `Ticket Status` and the asset link as lookups, so one record answers "who
+ * made this and where is it" without a cross-base hop.
+ *
+ * Measured 10 Sep across 8,564 records, because the page must not promise what the base rarely
+ * holds: Title 100% · Channels 89% · image 62% · Creative Request 1% overall but 15% since July ·
+ * ► Editor 10% (1% since July). So the ticket and editor are shown when present and named as gaps
+ * when not, rather than being quietly omitted.
+ */
+async function buildSocialDetail(recordId: string, f: Record<string, unknown>): Promise<AssetDetail> {
+  const posts = await getSocialPosts([recordId]);
+  const p = posts.get(recordId);
+
+  return {
+    id: recordId,
+    kind: 'social',
+    title: p?.title ?? str(f[SOCIAL.fields.title]) ?? '(untitled)',
+    liveDate: p?.liveDate ?? null,
+    status: p?.status ?? null,
+    published: !!p?.publishedUrl || !!p?.results,
+    channel: p?.channels.join(' · ') ?? null,
+    source: null,
+    publishedUrl: p?.publishedUrl ?? null,
+    read24h: null,
+    approval: null,
+    messageName: null,
+    goal: null,
+    brandLabel: 'Mindvalley',
+    siblings: [],
+    imageUrl: p?.imageUrl ?? null,
+    editor: p?.editor ?? null,
+    ticketId: p?.ticketId ?? null,
+    ticketStatus: p?.ticketStatus ?? null,
+    assetLink: p?.assetLink ?? null,
+    results: p?.results ?? null,
+  };
 }
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
@@ -59,11 +125,15 @@ function selectName(v: unknown): string | null {
 }
 
 export async function getAssetDetail(recordId: string): Promise<AssetDetail | null> {
-  const res = await getRecord(VL_VIDEOS.baseId, VL_VIDEOS.tableId, recordId);
+  const [res, socialRes] = await Promise.all([
+    getRecord(VL_VIDEOS.baseId, VL_VIDEOS.tableId, recordId),
+    getRecord(SOCIAL.baseId, SOCIAL.tableId, recordId),
+  ]);
+
   if (!res.ok) {
-    // A deleted or mistyped id is "not found", not a crash — the caller renders a friendly page.
-    // Uses the REST layer's own typed discriminant rather than a raw status code.
-    if (res.error.type === 'NOT_FOUND') return null;
+    if (socialRes.ok) return buildSocialDetail(recordId, socialRes.data.fields as Record<string, unknown>);
+    // Neither table has it. A deleted or mistyped id is "not found", not a crash.
+    if (res.error.type === 'NOT_FOUND' || socialRes.error.type === 'NOT_FOUND') return null;
     throw new Error(`Could not read the asset: ${res.error.message}`);
   }
 
@@ -90,6 +160,7 @@ export async function getAssetDetail(recordId: string): Promise<AssetDetail | nu
 
   return {
     id: res.data.id,
+    kind: 'video',
     title: str(f[VL_VIDEOS.fields.name]) ?? '(untitled)',
     liveDate: str(f[VL_VIDEOS.fields.liveDate])?.slice(0, 10) ?? null,
     status,
@@ -103,6 +174,13 @@ export async function getAssetDetail(recordId: string): Promise<AssetDetail | nu
     goal,
     brandLabel,
     siblings,
+    // Videos rows have no post-level equivalents; the page renders them only for social records.
+    imageUrl: null,
+    editor: null,
+    ticketId: null,
+    ticketStatus: null,
+    assetLink: null,
+    results: null,
   };
 }
 

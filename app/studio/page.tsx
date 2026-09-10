@@ -55,7 +55,7 @@ export default async function StudioPage() {
             weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
           })
         : null,
-      href: '/studio/sign-off',
+      href: '/studio/shoots/sign-off',
       actionLabel: 'Review',
     })),
     // Clips collapse to ONE row rather than sixteen: the ask is identical for all of them, and a

@@ -10,6 +10,7 @@
 
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
+import { Segmented } from '@/components/ui/Segmented';
 import { EmptyFine } from '@/components/ui/Empty';
 import { cn } from '@/lib/cn';
 import type { NotDatedTray as Tray, TrayGrouping } from '@/lib/comms-calendar/not-dated';
@@ -93,23 +94,10 @@ export function NotDatedTray({ tray, hrefFor }: { tray: Tray; hrefFor: (g: TrayG
       {/* ── Grouping ──────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">Group by</span>
-        <div className="inline-flex overflow-hidden rounded-sm border border-border-strong">
-          {GROUPINGS.map((g, i) => (
-            <Link
-              key={g.key}
-              href={hrefFor(g.key)}
-              className={cn(
-                'px-3.5 py-1.5 text-[12.5px] font-medium transition-colors',
-                i > 0 && 'border-l border-border-default',
-                g.key === tray.grouping
-                  ? 'bg-text font-semibold text-surface'
-                  : 'bg-surface text-text-muted hover:bg-bg-subtle',
-              )}
-            >
-              {g.label}
-            </Link>
-          ))}
-        </div>
+        <Segmented
+          current={tray.grouping}
+          options={GROUPINGS.map((g) => ({ key: g.key, label: g.label, href: hrefFor(g.key) }))}
+        />
         <span className="text-2xs text-text-subtle">
           published first — those are losing attribution every day they sit here
         </span>

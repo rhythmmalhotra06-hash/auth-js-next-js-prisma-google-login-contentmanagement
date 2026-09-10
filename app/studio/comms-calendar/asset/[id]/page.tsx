@@ -132,6 +132,102 @@ export default async function AssetDetailPage({
               </div>
             </div>
 
+            {/* ── Who made it, and how it did. Mindvalley-lane records only. ── */}
+            {asset.kind === 'social' ? (
+              <section>
+                <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+                  Who made it
+                </h3>
+                <div className="rounded-md border border-border-default bg-surface p-[18px]">
+                  <div className="flex flex-wrap gap-5">
+                    {asset.imageUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element --
+                         Airtable attachment URLs are signed and expire within hours. Next's
+                         optimiser would cache the fetched bytes against a URL that soon 403s, so
+                         a plain img that simply re-requests is the correct trade here. */
+                      <img
+                        src={asset.imageUrl}
+                        alt=""
+                        className="h-28 w-28 flex-none rounded-sm border border-border-default object-cover"
+                      />
+                    ) : null}
+
+                    <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+                      <Field
+                        label="Editor"
+                        value={asset.editor}
+                        owner="not recorded on the post"
+                      />
+                      <div>
+                        <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+                          Creative ticket
+                        </div>
+                        <div className="mt-1">
+                          {asset.ticketId ? (
+                            <span className="inline-flex flex-wrap items-baseline gap-2">
+                              <span className="text-[13px] font-medium">{asset.ticketId}</span>
+                              {asset.ticketStatus ? (
+                                <Badge tone="neutral" dot={false}>{asset.ticketStatus}</Badge>
+                              ) : null}
+                            </span>
+                          ) : (
+                            // 15% of recent posts carry one, so absence is the common case and
+                            // saying who closes it is more useful than a blank.
+                            <EmptyOwned kind="notSet" owner="no ticket raised for this post" />
+                          )}
+                        </div>
+                      </div>
+                      <Field label="Delivered asset" value={asset.assetLink} owner="no asset link" />
+                    </div>
+                  </div>
+
+                  {/* Results, from Perch. Absence means NOT MATCHED, never zero. */}
+                  <div className="mt-4 border-t border-border-default pt-3.5">
+                    <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+                      How it did
+                    </div>
+                    {asset.results && (asset.results.reach || asset.results.engagements) ? (
+                      <>
+                        <div className="mt-1.5 flex flex-wrap gap-8">
+                          {asset.results.reach ? (
+                            <div>
+                              <div className="font-display text-[22px] font-bold tabular-nums">
+                                {asset.results.reach.toLocaleString('en-US')}
+                              </div>
+                              <div className="text-2xs text-text-subtle">reach</div>
+                            </div>
+                          ) : null}
+                          {asset.results.engagements ? (
+                            <div>
+                              <div className="font-display text-[22px] font-bold tabular-nums">
+                                {asset.results.engagements.toLocaleString('en-US')}
+                              </div>
+                              <div className="text-2xs text-text-subtle">engagements</div>
+                            </div>
+                          ) : null}
+                        </div>
+                        <p className="mt-2 text-2xs leading-relaxed text-text-subtle">
+                          Hootsuite Perch, matched to this post by its published caption.
+                          {asset.results.multiAccount
+                            ? ' Several accounts published this copy — the figures are the total across them, not one post.'
+                            : ''}
+                        </p>
+                      </>
+                    ) : (
+                      <div className="mt-1.5">
+                        <EmptyOwned kind="notSet" owner="no published post matched this record" />
+                        <p className="mt-1 max-w-prose text-2xs leading-relaxed text-text-subtle">
+                          Results are matched from Hootsuite by caption. About 57% of posts inside
+                          Perch&rsquo;s window match; the rest usually hold a briefing note in the
+                          caption field rather than the copy that went out.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
             {/* ── The week's message it inherits ──────────────────────────── */}
             <section>
               <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
