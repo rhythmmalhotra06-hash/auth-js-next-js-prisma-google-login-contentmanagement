@@ -640,6 +640,10 @@ model VishenVideo {
   approval         String? // Vishen's sign-off (app writes)
   publishedLink    String?   @map("published_link")
   liveDate         String?   @map("live_date")
+  /// Who set the Live Date from the portal, and when. The portal writes this ONE field on this
+  /// table (AB4); everything else here is team-maintained and read-only to the app.
+  liveDateSetBy    String?   @map("live_date_set_by")
+  liveDateSetAt    DateTime? @map("live_date_set_at") @db.Timestamptz
   rating           Int? // 1–5 (app writes)
   views24h         String?   @map("views_24h") // team-logged 24h perf (app writes)
   createdTime      String?   @map("created_time")

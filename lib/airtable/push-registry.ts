@@ -169,13 +169,13 @@ const socialHandler: PushHandler = {
   },
 };
 
-// ── Vishen Video handler (writes only approval/rating/views24h) ──────────────
+// ── Vishen Video handler (writes only approval/rating/views24h/liveDate) ─────
 
 const vishenVideoHandler: PushHandler = {
   baseId: VISHEN_VIDEOS.baseId,
   tableId: VISHEN_VIDEOS.tableId,
   async load(id) {
-    const v = await prisma.vishenVideo.findUnique({ where: { id }, select: { airtableId: true, approval: true, rating: true, views24h: true } });
+    const v = await prisma.vishenVideo.findUnique({ where: { id }, select: { airtableId: true, approval: true, rating: true, views24h: true, liveDate: true } });
     if (!v) return null;
     const { airtableId, ...rest } = v;
     return { recId: airtableId, fields: vishenVideoToAirtableFields(rest) };

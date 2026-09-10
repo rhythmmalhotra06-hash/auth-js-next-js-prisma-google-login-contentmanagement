@@ -8,7 +8,11 @@
 // single change that empties this tray and fills the calendar — so it gets the page's attention
 // colour, and nothing else does.
 
+'use client';
+
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { setLiveDateAction } from '@/app/studio/comms-calendar/not-dated/actions';
 import { Badge } from '@/components/ui/Badge';
 import { Segmented } from '@/components/ui/Segmented';
 import { EmptyFine } from '@/components/ui/Empty';
@@ -45,6 +49,53 @@ function Count({
   );
 }
 
+/**
+ * Set the Live Date, in place.
+ *
+ * The field is written straight through to Airtable via the outbox, so the asset leaves this tray
+ * on the next read. Deliberately the ONLY thing editable here — status belongs to the team.
+ */
+function SetDate({ id }: { id: string }) {
+  const [value, setValue] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  const save = (date: string) => {
+    setValue(date);
+    setError(null);
+    start(async () => {
+      const res = await setLiveDateAction(id, date);
+      if (res.ok) setSaved(true);
+      else setError(res.error ?? 'Could not save.');
+    });
+  };
+
+  if (saved) {
+    // It stays visible until the next read rather than vanishing — a row disappearing under the
+    // cursor reads as a mistake, even when it is the intended outcome.
+    return (
+      <span className="w-[168px] flex-none text-right text-2xs text-success-content">
+        dated · leaves on refresh
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex w-[168px] flex-none items-center justify-end gap-2">
+      <input
+        type="date"
+        value={value}
+        disabled={pending}
+        onChange={(e) => e.target.value && save(e.target.value)}
+        aria-label="Set the live date"
+        className="rounded-sm border border-border-strong bg-surface px-2 py-1 text-2xs text-text disabled:opacity-50"
+      />
+      {error ? <span className="text-2xs text-danger-content" title={error}>!</span> : null}
+    </span>
+  );
+}
+
 export function NotDatedTray({ tray, hrefFor }: { tray: Tray; hrefFor: (g: TrayGrouping) => string }) {
   const { counts } = tray;
 
@@ -77,8 +128,9 @@ export function NotDatedTray({ tray, hrefFor }: { tray: Tray; hrefFor: (g: TrayG
         </svg>
         <span className="text-[13.5px] font-semibold text-gold-content">Live Date has no owner</span>
         <span className="min-w-0 flex-1 text-xs text-text-muted">
-          One person filling this field empties this tray and fills the calendar. It is the single
-          highest-leverage change in the whole system, and it is nobody&rsquo;s job today.
+          One person filling this field empties this tray and fills the calendar — the single
+          highest-leverage change in the system, and nobody&rsquo;s job today. You can set it here:
+          it writes straight back to Airtable.
         </span>
       </div>
 
@@ -146,7 +198,7 @@ export function NotDatedTray({ tray, hrefFor }: { tray: Tray; hrefFor: (g: TrayG
                     <EmptyFine>no status</EmptyFine>
                   )}
 
-                  <span className="w-[150px] flex-none text-right text-2xs">
+                  <span className="w-[132px] flex-none text-right text-2xs">
                     {a.publishedUrl ? (
                       <a href={a.publishedUrl} target="_blank" rel="noreferrer" className="text-brand hover:underline">
                         published link ↗
@@ -157,6 +209,9 @@ export function NotDatedTray({ tray, hrefFor }: { tray: Tray; hrefFor: (g: TrayG
                       <EmptyFine>&mdash;</EmptyFine>
                     )}
                   </span>
+
+                  {/* The whole point of the tray: fix it here rather than going to Airtable. */}
+                  <SetDate id={a.id} />
                 </div>
               ))}
             </div>
