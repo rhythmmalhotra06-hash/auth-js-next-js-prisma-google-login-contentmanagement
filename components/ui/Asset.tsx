@@ -9,6 +9,7 @@
 // Resting (`null`) is not an error and gets no colour — a plain hairline. An asset with no state
 // recorded yet is the normal case, not a problem.
 
+import Link from 'next/link';
 import { cn } from '@/lib/cn';
 
 export type AssetState = 'live' | 'blocked' | 'missed' | null;
@@ -29,6 +30,14 @@ export interface AssetLike {
   /** Max TWO. The third is metadata and belongs on the meta line. */
   pills?: React.ReactNode;
   onClick?: () => void;
+  /**
+   * Navigate instead of calling back.
+   *
+   * Both exist because the callers differ: the week and month grids are SERVER components, and
+   * requiring `onClick` would have forced them client-side just to open a detail page. `href`
+   * wins when both are passed.
+   */
+  href?: string;
 }
 
 /**
@@ -38,18 +47,15 @@ export interface AssetLike {
  * two-line title from orphaning its last word. In row layouts titles fit on one line and do not
  * truncate, which is why the overflow collapse can be dropped entirely there.
  */
-export function AssetRow({ title, meta, state = null, pills, onClick, className }: AssetLike & { className?: string }) {
-  const Tag = onClick ? 'button' : 'div';
-  return (
-    <Tag
-      {...(onClick ? { type: 'button' as const, onClick } : {})}
-      className={cn(
-        'flex w-full items-center gap-3 border-l-2 pl-2.5 text-left',
-        edgeClass(state),
-        onClick && 'cursor-pointer rounded-r-sm transition-colors hover:bg-bg-subtle',
-        className,
-      )}
-    >
+export function AssetRow({ title, meta, state = null, pills, onClick, href, className }: AssetLike & { className?: string }) {
+  const cls = cn(
+    'flex w-full items-center gap-3 border-l-2 pl-2.5 text-left',
+    edgeClass(state),
+    (href || onClick) && 'cursor-pointer rounded-r-sm transition-colors hover:bg-bg-subtle',
+    className,
+  );
+  const inner = (
+    <>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-semibold leading-snug tracking-[-.01em] text-pretty">
           {title}
@@ -57,28 +63,35 @@ export function AssetRow({ title, meta, state = null, pills, onClick, className 
         {meta ? <span className="mt-0.5 block text-2xs text-text-muted">{meta}</span> : null}
       </span>
       {pills ? <span className="flex flex-none items-center gap-1.5">{pills}</span> : null}
-    </Tag>
+    </>
   );
+
+  // Branched rather than a polymorphic `Tag`: a single element variable makes the prop union
+  // untypable, and each of the three really does take different props.
+  if (href) return <Link href={href} className={cls}>{inner}</Link>;
+  if (onClick) return <button type="button" onClick={onClick} className={cls}>{inner}</button>;
+  return <div className={cls}>{inner}</div>;
 }
 
 /** Card density — 186px columns, month, compact grids. */
-export function AssetCard({ title, meta, state = null, pills, onClick, className }: AssetLike & { className?: string }) {
-  const Tag = onClick ? 'button' : 'div';
-  return (
-    <Tag
-      {...(onClick ? { type: 'button' as const, onClick } : {})}
-      className={cn(
-        'block w-full rounded-sm border border-border-default border-l-2 bg-surface px-2.5 py-2 text-left',
-        edgeClass(state),
-        onClick && 'cursor-pointer transition-colors hover:border-brand-border',
-        className,
-      )}
-    >
+export function AssetCard({ title, meta, state = null, pills, onClick, href, className }: AssetLike & { className?: string }) {
+  const cls = cn(
+    'block w-full rounded-sm border border-border-default border-l-2 bg-surface px-2.5 py-2 text-left',
+    edgeClass(state),
+    (href || onClick) && 'cursor-pointer transition-colors hover:border-brand-border',
+    className,
+  );
+  const inner = (
+    <>
       <span className="block text-xs font-semibold leading-[1.4] tracking-[-.01em] text-pretty">{title}</span>
       {meta ? <span className="mt-1.5 block text-2xs text-text-muted">{meta}</span> : null}
       {pills ? <span className="mt-1.5 flex flex-wrap gap-1">{pills}</span> : null}
-    </Tag>
+    </>
   );
+
+  if (href) return <Link href={href} className={cls}>{inner}</Link>;
+  if (onClick) return <button type="button" onClick={onClick} className={cls}>{inner}</button>;
+  return <div className={cls}>{inner}</div>;
 }
 
 /**

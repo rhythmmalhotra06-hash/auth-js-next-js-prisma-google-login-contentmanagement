@@ -90,11 +90,17 @@ function LaneCell({
   overflow,
   brand,
   emptyLabel,
+  assetHref,
 }: {
   assets: CalendarDay['vl'];
   overflow: number;
   brand: 'VL' | 'MV';
   emptyLabel: 'gap' | 'fine';
+  /**
+   * Opens the asset detail (`5b`). Only the Vishen lane gets one: a Mindvalley row here is a
+   * synthetic `recXXX:email` standing for a link count, so there is no record to open.
+   */
+  assetHref?: (id: string) => string;
 }) {
   if (!assets.length && !overflow) {
     return (
@@ -113,6 +119,7 @@ function LaneCell({
         <AssetRow
           key={a.id}
           title={a.title}
+          href={assetHref && brand === 'VL' ? assetHref(a.id) : undefined}
           state={a.live ? 'live' : null}
           meta={[a.channel, a.status].filter(Boolean).join(' · ') || undefined}
           pills={
@@ -137,7 +144,15 @@ function LaneCell({
   );
 }
 
-export function WeekGrid({ week, state }: { week: CalendarWeek; state: BrandState }) {
+export function WeekGrid({
+  week,
+  state,
+  assetHref,
+}: {
+  week: CalendarWeek;
+  state: BrandState;
+  assetHref?: (id: string) => string;
+}) {
   const headers = week.headers.filter((h) => shows(state, h.brand));
   const weekdays = week.days.filter((d) => !d.isWeekend);
   const weekend = week.days.filter((d) => d.isWeekend);
@@ -208,6 +223,7 @@ export function WeekGrid({ week, state }: { week: CalendarWeek; state: BrandStat
                 overflow={h.brand === 'VL' ? d.vlOverflow : d.mvOverflow}
                 brand={h.brand}
                 emptyLabel="gap"
+                assetHref={assetHref}
               />
             </div>
           ))}
@@ -229,7 +245,12 @@ export function WeekGrid({ week, state }: { week: CalendarWeek; state: BrandStat
               <div key={h.brand} className="min-h-[52px] border-l border-border-default px-[18px] py-3">
                 {any ? (
                   weekend.flatMap((d) => (h.brand === 'VL' ? d.vl : d.mv)).map((a) => (
-                    <AssetRow key={a.id} title={a.title} state={a.live ? 'live' : null} />
+                    <AssetRow
+                      key={a.id}
+                      title={a.title}
+                      href={assetHref && h.brand === 'VL' ? assetHref(a.id) : undefined}
+                      state={a.live ? 'live' : null}
+                    />
                   ))
                 ) : h.brand === 'MV' ? (
                   <EmptyFine>{TIER2.noEmailDay}</EmptyFine>
