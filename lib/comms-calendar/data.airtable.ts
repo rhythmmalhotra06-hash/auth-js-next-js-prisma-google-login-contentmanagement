@@ -20,6 +20,7 @@ import { COMMS_DAY, VL_VIDEOS, VL_MESSAGE_OF_WEEK } from '@/lib/airtable/field-m
 import { weekBounds, weekStartOf, toYmd, weekdayName, addDays } from '@/lib/mow/week';
 import { pickByCoverage, pickGoal, isPlaceholder, meaningful, type CoverageEntry } from '@/lib/mow/coverage';
 import { splitJammedName } from '@/lib/mow/derive-week';
+import { getSocialPosts, type SocialPost } from './social-posts';
 import type { BrandWeekHeader, CalendarAsset, CalendarDay, CalendarWeek } from './types';
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
@@ -62,12 +63,27 @@ export async function getCalendarWeekFromAirtable(anchor: Date): Promise<Calenda
   });
   if (!mvRes.ok) throw new Error(`Mindvalley lane: ${mvRes.error.message}`);
 
+  // Resolve the week's linked 📣 Social records to REAL posts (AB1). The lane used to render a
+  // synthetic "Social +1" chip, which carried no information and made a populated week look empty.
+  // Only the target week's ids are resolved — the ±2 week window exists for span detection, and
+  // resolving all of it would be a lot of records for rows nothing renders.
+  const { start: wkStart, end: wkEnd } = weekBounds(weekStartOf(anchor));
+  const inWeek = (v: unknown): boolean => {
+    const d = (str(v) ?? '').slice(0, 10);
+    return !!d && d >= toYmd(wkStart) && d <= toYmd(wkEnd);
+  };
+  const socialIds = mvRes.data
+    .filter((r) => inWeek(r.fields[COMMS_DAY.fields.date]))
+    .flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets]));
+  const posts = await getSocialPosts(socialIds).catch(() => new Map<string, SocialPost>());
+
   return assembleWeek({
     anchor,
     vlRows: vlRes.data,
     msgRows: msgRes.ok ? msgRes.data : [],
     mvRows: mvRes.data,
     msgError: msgRes.ok ? null : msgRes.error.message,
+    posts,
   });
 }
 
@@ -191,12 +207,15 @@ export function assembleWeek({
   msgRows,
   mvRows,
   msgError = null,
+  posts = new Map(),
 }: {
   anchor: Date;
   vlRows: AirtableRecord[];
   msgRows: AirtableRecord[];
   mvRows: AirtableRecord[];
   msgError?: string | null;
+  /** Resolved 📣 Social records, keyed by recId. Empty in tests that only exercise shapes. */
+  posts?: Map<string, SocialPost>;
 }): CalendarWeek {
   const weekStart = weekStartOf(anchor);
   const { start, end } = weekBounds(weekStart);
@@ -309,14 +328,33 @@ export function assembleWeek({
         status: null, source: null, publishedUrl: null, live: false, ...perAsset,
       });
     }
-    if (socials.length) {
+    // Real posts, one row each — title, platform, and results where Perch matched.
+    for (const id of socials) {
+      const p = posts.get(id);
+      if (!p) continue;
       assets.push({
-        id: `${r.id}:social`, title: 'Social', brand: 'MV', channel: 'Social',
-        status: null, source: null, publishedUrl: null, live: false, ...perAsset,
+        id: p.id,
+        title: p.title,
+        brand: 'MV',
+        channel: p.platforms.join(' · ') || null,
+        status: p.status,
+        source: null,
+        publishedUrl: p.publishedUrl,
+        live: !!p.publishedUrl || !!p.results,
+        platforms: p.platforms,
+        results: p.results
+          ? { reach: p.results.reach, engagements: p.results.engagements, multiAccount: p.results.multiAccount }
+          : null,
+        ...perAsset,
       });
     }
-    const total = emails.length + socials.length;
-    mvByDay.set(day, { assets: assets.slice(0, MV_INLINE), overflow: Math.max(0, total - assets.length) });
+    // Any social ids that did not resolve still count, so the day's volume stays honest.
+    const unresolved = socials.filter((id) => !posts.has(id)).length;
+    const total = assets.length + unresolved;
+    mvByDay.set(day, {
+      assets: assets.slice(0, MV_INLINE),
+      overflow: Math.max(0, total - Math.min(assets.length, MV_INLINE)),
+    });
   }
 
   // ── Assemble the seven days ───────────────────────────────────────────────

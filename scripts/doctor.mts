@@ -47,7 +47,10 @@ function head(n: number, title: string) {
 interface SchemaField { id: string; name: string; type: string }
 interface SchemaTable { id: string; name: string; fields: SchemaField[] }
 
-const FIELD_GROUPS = ['fields', 'links', 'readOnlyFields', 'writableFields'] as const;
+// Every group that can hold a `fld…` id. `published` was added on 10 Sep and was invisible to the
+// doctor until this line was updated — a new group is itself a silent-failure risk, so this list
+// must grow whenever field-map.ts gains one.
+const FIELD_GROUPS = ['fields', 'links', 'readOnlyFields', 'writableFields', 'published'] as const;
 
 interface MapEntry { baseId?: string; tableId?: string; [k: string]: unknown }
 

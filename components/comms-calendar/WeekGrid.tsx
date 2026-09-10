@@ -120,7 +120,9 @@ function LaneCell({
         <AssetRow
           key={a.id}
           title={a.title}
-          href={assetHref && brand === 'VL' ? assetHref(a.id) : undefined}
+          // Both lanes link now: the Mindvalley lane carries real 📣 Social recIds rather than
+          // the synthetic `recXXX:email` placeholders it used to emit.
+          href={assetHref && !a.id.includes(':') ? assetHref(a.id) : undefined}
           state={a.live ? 'live' : null}
           meta={[a.channel, a.status].filter(Boolean).join(' · ') || undefined}
           pills={
@@ -128,8 +130,17 @@ function LaneCell({
               {a.channel ? (
                 <Badge tone="neutral" dot={false}>{a.channel}</Badge>
               ) : null}
-              {/* Max two pills. A missing goal is the second, because it is what the meeting is about. */}
-              {!a.goal ? <Badge tone="staged" dot={false}>no goal</Badge> : null}
+              {/*
+                Max two pills. Delivered numbers win the second slot when we have them — that is
+                what the meeting is looking for — and a missing goal takes it otherwise.
+              */}
+              {a.results?.reach ? (
+                <Badge tone="success" dot={false}>
+                  {a.results.reach.toLocaleString('en-US')} reach
+                </Badge>
+              ) : !a.goal ? (
+                <Badge tone="staged" dot={false}>no goal</Badge>
+              ) : null}
             </>
           }
         />

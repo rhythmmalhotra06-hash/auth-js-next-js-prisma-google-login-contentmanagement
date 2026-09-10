@@ -531,8 +531,30 @@ export const SOCIAL = {
     // 'YYYY-MM-DD HH:mm:ss') UTC, watches all fields. Created via MCP 2026-07-09.
     lastModified: 'fldyYNCIzWdMNtys5',
   },
+  // Fields the PUBLISHED-POST view needs, as opposed to the clip engine's own. Resolved against
+  // the live schema 2026-09-10 (86 fields on this table). Population rates measured the same day
+  // across all 8,564 records, because they decide what a post grid can honestly show:
+  //   Title 100% · Channels 89% · any image 62% · Creative Request 1% (15% since July)
+  //   Final Published Link 3% · Engagement 1% · ► Editor 10% (1% since July)
+  // So titles, channels and images are real; links and results must come from Perch instead.
+  published: {
+    liveDate: 'fld4mTSTU1RworpfE', // "Live Date" (date)
+    channels: 'fldI9xtr5vzIzaGBW', // "🏳️‍🌈 Channels" (multipleSelects): FB: MV | IG: VL | LI: MV | …
+    editor: 'fldQOzsF2Yb6wt4T0', // "► Editor" (lookup)
+    finalPublishedLink: 'fldyP6817YNWfiMQR', // "Final Published Link" (url)
+    instagramPublishedLink: 'fldTVU4jMZW3JNswX', // "Instagram Published Link" (url)
+    engagement: 'fldzGwLZSXysymWgl', // "Engagement" (number)
+    engagementRate: 'fldgH8UhJtdbYcdqx', // "Engagement Rate" (number)
+    assignedCreative: 'fld14fMuJKBy3q75v', // "Assigned Creative (from Creative Request)" (lookup)
+    ticketStatusLookup: 'fldUGnlpLFdtiJ7L1', // "Ticket Status (from Creative Request)" (lookup)
+    prioStatusLookup: 'fld64iay3SwDuZ3hY', // "Prio. Status (from Creative Request)" (lookup)
+    assetLinkLookup: 'fldul5ssC2XaZ8FRL', // "🔗 Asset Link (from Creative Request)" (lookup)
+    reference: 'fldq6Q1ZGUJ0EiRkk', // "Reference" (attachments) — the post image
+    assetsReferences: 'fld36Go1x7PZ2U7iR', // "Assets/References" (attachments)
+  },
   links: {
     shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)
+    creativeRequest: 'flddCgrgYAcBMFcs9', // → synced mirror of the Creative Services Prio table
     officialCal: 'fld0cCEUWfE3G4iNX', // → 📅 Official Cal (same base, COMMS_OFFICIAL_CAL). Writing it
     // auto-fills the "Name of project (from 📅 Official Cal)" lookup on the row.
     // NOTE: the "Creative Request" link (flddCgrgYAcBMFcs9) points at a synced mirror of the

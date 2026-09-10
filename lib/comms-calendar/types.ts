@@ -27,6 +27,16 @@ export interface CalendarAsset {
   /** The message it inherits, if any — and whether that message has a goal. */
   messageName: string | null;
   goal: string | null;
+  /**
+   * Coarse platforms this went to — Facebook, Instagram, LinkedIn. Empty for lanes that have no
+   * channel concept. Drives the per-platform filter on the post grid.
+   */
+  platforms?: string[];
+  /**
+   * Delivered numbers, when a Perch caption matched (57% of posts inside Perch's window).
+   * Null means NOT MATCHED, never zero — see lib/comms-calendar/social-posts.ts.
+   */
+  results?: { reach: number | null; engagements: number | null; multiAccount: boolean } | null;
 }
 
 /** One day in the week, both lanes. */

@@ -78,7 +78,21 @@ const mvRows = [
     [C.fields.theGoal]: 'Signups for the masterclass' } },
 ];
 
-const w = assembleWeek({ anchor: utcDay('2026-09-09'), vlRows, msgRows, mvRows });
+// Resolved 📣 Social posts, shaped exactly as lib/comms-calendar/social-posts.ts returns them.
+// Thursday's six social ids resolve to two real posts and four that do not — the honest mix, since
+// a resolve can fail and the day's volume must stay correct anyway.
+const posts = new Map<string, import('@/lib/comms-calendar/social-posts').SocialPost>([
+  ['a', { id: 'a', title: 'Regan Hillyer — the manifesting shift', channels: ['IG: MV', 'FB: MV'],
+          platforms: ['Instagram', 'Facebook'], status: null, liveDate: '2026-09-10', imageUrl: null,
+          publishedUrl: 'https://instagram.com/p/x', editor: 'Yuthika Peiris', ticketId: 'recTKT1',
+          ticketStatus: 'Done', assetLink: null,
+          results: { reach: 91700, engagements: 34600, posts: 1, multiAccount: false } }],
+  ['b', { id: 'b', title: 'Paul McKenna — BLISS reel', channels: ['IG: MV'], platforms: ['Instagram'],
+          status: null, liveDate: '2026-09-10', imageUrl: null, publishedUrl: null, editor: null,
+          ticketId: null, ticketStatus: null, assetLink: null, results: null }],
+]);
+
+const w = assembleWeek({ anchor: utcDay('2026-09-09'), vlRows, msgRows, mvRows, posts });
 
 console.log('\n1. The week itself');
 ck('starts Monday 7 Sep', w.weekStart === '2026-09-07', w.weekStart);
@@ -145,10 +159,22 @@ ck('fires for Vishen only — MV has a real goal', JSON.stringify(w.brandsWithou
 ck('MV goal is the real one from the comms calendar', mv.goal?.includes('25k leads') === true, String(mv.goal));
 ck('a placeholder goal counts as missing', vl.goalIsPlaceholder && w.brandsWithoutGoal.includes('VL'));
 
-console.log('\n8. Mindvalley overflow — the count, not a footnote');
+console.log('\n8. The Mindvalley lane shows REAL POSTS, not a count (AB1)');
 const thu = w.days.find(d => d.date === '2026-09-10')!;
-ck('Thu shows 2 inline + 5 overflow (1 email + 6 social)', thu.mv.length === 2 && thu.mvOverflow === 5,
-   `${thu.mv.length} inline / ${thu.mvOverflow} overflow`);
+// Thursday links 1 email + 6 social; two of those social ids resolve to real posts.
+ck('two rows render inline', thu.mv.length === 2, `${thu.mv.length} inline`);
+ck('a real post title reaches the lane',
+   thu.mv.some((a) => a.title.startsWith('Regan Hillyer')), thu.mv.map((a) => a.title).join(' | '));
+ck('and it carries its platforms', thu.mv.some((a) => (a.platforms ?? []).includes('Instagram')));
+ck('delivered numbers ride along when Perch matched',
+   thu.mv.some((a) => a.results?.reach === 91700));
+ck('a post with no Perch match has results NULL, not zero',
+   posts.get('b')!.results === null);
+// 1 email + 2 resolved + 4 unresolved = 7; two render, five collapse.
+ck('unresolved ids still count, so the day volume stays honest', thu.mvOverflow === 5,
+   `${thu.mvOverflow} overflow`);
+ck('the lane no longer emits synthetic recXXX:social rows',
+   !thu.mv.some((a) => a.id.endsWith(':social')));
 const sat = w.days.find(d => d.date === '2026-09-12')!;
 ck('Sat has nothing either lane', sat.mv.length === 0 && sat.vl.length === 0 && sat.mvOverflow === 0);
 ck('weekend flagged', sat.isWeekend);
