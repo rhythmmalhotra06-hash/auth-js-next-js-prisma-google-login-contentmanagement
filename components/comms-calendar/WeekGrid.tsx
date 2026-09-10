@@ -8,6 +8,7 @@
 //
 // Week is a schedule; Month keeps the calendar shape. A deliberate split, not an inconsistency.
 
+import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { AssetRow, OverflowCollapse } from '@/components/ui/Asset';
 import { EmptyOwned, EmptyFine, TIER2 } from '@/components/ui/Empty';
@@ -294,7 +295,7 @@ export function WeekGrid({
  * 204 against 238, making the sentence quietly false. A number that moves weekly does not belong
  * in a hardcoded phrase.
  */
-export function NotDatedBar({ notDated }: { notDated: CalendarWeek['notDated'] }) {
+export function NotDatedBar({ notDated, href }: { notDated: CalendarWeek['notDated']; href?: string }) {
   if (!notDated.total) return null;
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-md border border-warning bg-warning-soft px-4 py-3">
@@ -310,6 +311,14 @@ export function NotDatedBar({ notDated }: { notDated: CalendarWeek['notDated'] }
           calendar cannot place it. Nothing here is dropped — it is just not on a day yet.
         </div>
       </div>
+      {href ? (
+        <Link
+          href={href}
+          className="flex-none rounded-sm border border-warning bg-surface px-3 py-1.5 text-2xs font-semibold text-warning-content hover:bg-warning-soft"
+        >
+          Open the tray
+        </Link>
+      ) : null}
     </div>
   );
 }

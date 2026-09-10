@@ -248,7 +248,10 @@ export function MonthGrid({
             A further <span className="font-semibold text-text">{month.notDated.total}</span> assets
             {month.notDated.sharePct !== null ? ` (${month.notDated.sharePct}% of the lane)` : ''} have no
             Live Date at all, so no month can place them —{' '}
-            <span className="font-semibold text-warning-content">{month.notDated.published} already published.</span>
+            <span className="font-semibold text-warning-content">{month.notDated.published} already published.</span>{' '}
+            <Link href="/studio/comms-calendar/not-dated" className="font-semibold text-brand hover:underline">
+              Open the tray →
+            </Link>
           </div>
         ) : null}
       </div>

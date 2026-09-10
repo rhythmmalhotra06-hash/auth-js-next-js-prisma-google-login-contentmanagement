@@ -212,7 +212,10 @@ export default async function CommsCalendarPage({
             state={brand}
             assetHref={(id) => `/studio/comms-calendar/asset/${id}?brand=${brand}&week=${toYmd(start)}`}
           />
-          <NotDatedBar notDated={week.notDated} />
+          <NotDatedBar
+            notDated={week.notDated}
+            href={`/studio/comms-calendar/not-dated?brand=${brand}&week=${toYmd(start)}`}
+          />
 
           {week.warnings.length ? (
             <ul className="flex flex-col gap-1 text-2xs text-text-subtle">

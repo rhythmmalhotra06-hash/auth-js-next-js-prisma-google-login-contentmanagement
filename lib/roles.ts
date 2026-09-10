@@ -97,6 +97,7 @@ export function canSeeNav(roles: readonly string[] | null | undefined, isAdmin: 
     case '/shoots':
       return true; // anyone can submit/track a shoot request
     case '/studio/comms-calendar':
+    case '/studio/comms-calendar/not-dated':
     case '/performance/week':
     case '/performance/week/assets':
       // Read-only, and their primary readers are Vishen, Ramya and Glen. The calendar is
