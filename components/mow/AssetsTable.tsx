@@ -114,7 +114,12 @@ export function AssetsTable({ week }: { week: WeekAssets }) {
                       href={a.deliveryUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex max-w-full items-baseline gap-1.5 text-brand hover:underline"
+                      className={cn(
+                        'inline-flex max-w-full items-baseline gap-1.5 hover:underline',
+                        // A review link is not a deliverable. It still gets a link, because it is
+                        // useful, but it must not read as "here is the finished file".
+                        a.reviewOnly ? 'text-warning-content' : 'text-brand',
+                      )}
                     >
                       <span className="truncate">{a.deliveryLabel}</span>
                       <span aria-hidden className="flex-none text-2xs">↗</span>
@@ -155,10 +160,17 @@ export function AssetsFootnotes({ week }: { week: WeekAssets }) {
       {week.missingDelivery > 0 ? (
         <p>
           <span className="font-semibold text-warning-content">
-            {week.missingDelivery} of {week.total} have no delivery link recorded
+            {week.missingDelivery} of {week.total} have no finished file recorded
           </span>{' '}
-          — so the work exists and nobody can point at where it went. That is the single field that
-          would make this page answer &ldquo;where is it&rdquo; as well as &ldquo;who made it&rdquo;.
+          — the work exists and nobody can point at where it went.
+          {week.reviewOnly > 0 ? (
+            <>
+              {' '}
+              {week.reviewOnly} of those carry only a Dropbox Replay <em>review</em> link, which is
+              where feedback happened rather than where the deliverable is. The delivery folder is
+              the field that would close this.
+            </>
+          ) : null}
         </p>
       ) : null}
 

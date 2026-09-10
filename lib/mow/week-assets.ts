@@ -42,9 +42,17 @@ export interface DeliveredAsset {
   prioStatus: string | null;
   assetType: string | null;
   eventType: string | null;
-  /** Where the output actually is. Null on ~half of them — a named gap, not a blank (U8). */
+  /** Where the output actually is. Null on 12 of 55 — a named gap, not a blank (U8). */
   deliveryUrl: string | null;
   deliveryLabel: string | null;
+  /**
+   * True when the only link on the ticket is a Dropbox Replay REVIEW link.
+   *
+   * A review link is not a deliverable — it is where feedback happened. Presenting one as the
+   * output is how "where is the finished file" gets answered wrongly, so it is labelled as what
+   * it is. Five of this week's delivered tickets are in exactly this state.
+   */
+  reviewOnly: boolean;
 }
 
 export interface OwnerGroup {
@@ -60,8 +68,10 @@ export interface WeekAssets {
   weekEnd: string;
   groups: OwnerGroup[];
   total: number;
-  /** Delivered items with nowhere recorded to find the output. The nag on this page. */
+  /** Delivered items with no deliverable recorded — review links do not count. The page's nag. */
   missingDelivery: number;
+  /** Of those, the ones that have a review link and nothing else. */
+  reviewOnly: number;
   /**
    * Distinct Priority Status values present.
    *
@@ -74,27 +84,42 @@ export interface WeekAssets {
   asOf: string;
 }
 
-/** First non-empty delivery link, with a label saying which kind it is. */
+/**
+ * Where the finished file actually is.
+ *
+ * FIELD NAMES HAVE DRIFTED FROM WHAT THE APP CALLS THEM, and getting this wrong means labelling
+ * the wrong URL as the deliverable. Per the audit recorded in lib/airtable/field-map.ts:
+ *
+ *   • `workingFiles`    is live-named **"Final Output Folder Link"** — 7,266 populated base-wide,
+ *                       35 of this week's 55. THIS is the delivery folder, and an earlier version
+ *                       of this function omitted it entirely.
+ *   • `assetFolderLink` is live-named **"Feedback Link"** and holds `replay.dropbox.com/share/…`
+ *                       REVIEW links. Verified by sampling. Not a deliverable, so it is offered
+ *                       last and flagged rather than presented as the output.
+ *   • `folder16x9` and `downloadLink` were DELETED from Airtable on 2026-08-28 and read 0 on
+ *                       every row, so they are not in the chain at all.
+ */
 function delivery(t: {
+  workingFiles: string | null;
   final16x9: string | null;
-  folder16x9: string | null;
   final9x16: string | null;
   final4x5: string | null;
   assetFolderLink: string | null;
-  downloadLink: string | null;
-}): { url: string | null; label: string | null } {
-  const candidates: [string | null, string][] = [
+}): { url: string | null; label: string | null; reviewOnly: boolean } {
+  const deliverables: [string | null, string][] = [
+    [t.workingFiles, 'Final output folder'],
     [t.final16x9, 'Final 16:9'],
     [t.final9x16, 'Final 9:16'],
     [t.final4x5, 'Final 4:5'],
-    [t.folder16x9, 'Folder 16:9'],
-    [t.assetFolderLink, 'Asset folder'],
-    [t.downloadLink, 'Download'],
   ];
-  for (const [url, label] of candidates) {
-    if (url && url.trim()) return { url: url.trim(), label };
+  for (const [url, label] of deliverables) {
+    if (url && url.trim()) return { url: url.trim(), label, reviewOnly: false };
   }
-  return { url: null, label: null };
+  // Nothing delivered, but feedback happened somewhere. Say which it is.
+  if (t.assetFolderLink && t.assetFolderLink.trim()) {
+    return { url: t.assetFolderLink.trim(), label: 'Review link only', reviewOnly: true };
+  }
+  return { url: null, label: null, reviewOnly: false };
 }
 
 export async function getWeekAssets(anchor: Date): Promise<WeekAssets> {
@@ -113,8 +138,8 @@ export async function getWeekAssets(anchor: Date): Promise<WeekAssets> {
       assignee: { select: { name: true, active: true } },
       assetType: { select: { name: true } },
       eventType: { select: { name: true } },
-      final16x9: true, folder16x9: true, final9x16: true, final4x5: true,
-      assetFolderLink: true, downloadLink: true,
+      workingFiles: true, final16x9: true, final9x16: true, final4x5: true,
+      assetFolderLink: true,
     },
     orderBy: [{ priorityScore: 'desc' }, { title: 'asc' }],
   });
@@ -131,7 +156,8 @@ export async function getWeekAssets(anchor: Date): Promise<WeekAssets> {
     const key = name ?? '(unassigned)';
 
     const d = delivery(t);
-    if (!d.url) missingDelivery++;
+    // A review-only ticket counts as missing a deliverable, because it is.
+    if (!d.url || d.reviewOnly) missingDelivery++;
     prioCounts.set(t.prioStatus ?? '(not set)', (prioCounts.get(t.prioStatus ?? '(not set)') ?? 0) + 1);
 
     const bucket = byOwner.get(key) ?? { exTeam, assets: [] };
@@ -147,6 +173,7 @@ export async function getWeekAssets(anchor: Date): Promise<WeekAssets> {
       eventType: t.eventType?.name ?? null,
       deliveryUrl: d.url,
       deliveryLabel: d.label,
+      reviewOnly: d.reviewOnly,
     });
     byOwner.set(key, bucket);
   }
@@ -170,6 +197,7 @@ export async function getWeekAssets(anchor: Date): Promise<WeekAssets> {
     groups,
     total: rows.length,
     missingDelivery,
+    reviewOnly: [...byOwner.values()].reduce((n, v) => n + v.assets.filter((a) => a.reviewOnly).length, 0),
     prioStatusSpread: [...prioCounts.entries()]
       .map(([value, count]) => ({ value, count }))
       .sort((a, b) => b.count - a.count),
