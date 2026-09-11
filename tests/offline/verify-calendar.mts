@@ -203,5 +203,24 @@ const mv3 = w3.headers.find(h => h.brand === 'MV')!;
 ck('MV takes only its own half of the jam', mv3.message === 'Be Extraordinary', String(mv3.message));
 ck('and VL does not inherit the other half', w3.headers.find(h => h.brand === 'VL')!.message === null);
 
+// ── 9. An email day is an email day even when nobody linked the record ──────────────────────
+// Verbatim shapes from w/c 31 Aug: Tue/Thu/Fri carry `No. of Emails = 1` and NO link; Wed has the
+// link. Reading the link alone painted three real email days as "No email day — as planned".
+console.log('\n9. No. of Emails counts when the 📧 link is empty');
+const mvAug = [
+  { id: 'recCbyYWfK6Y3qcWW', createdTime: '', fields: { [C.fields.date]: '2026-08-31' } },
+  { id: 'recXzfm8BBxg1kUvv', createdTime: '', fields: { [C.fields.date]: '2026-09-01', [C.fields.messageOfWeek]: 'Meditations & Manifesting', [C.fields.noOfEmails]: 1 } },
+  { id: 'recQac91S1Z70qGMI', createdTime: '', fields: { [C.fields.date]: '2026-09-02', [C.fields.messageOfWeek]: 'Meditations & Manifesting', [C.fields.noOfEmails]: 1, [C.links.emails]: ['recBH9JJo9vOiCB4l'] } },
+  { id: 'recSgYUDtff9HtubV', createdTime: '', fields: { [C.fields.date]: '2026-09-03', [C.fields.messageOfWeek]: 'Meditations & Manifesting', [C.fields.noOfEmails]: 1 } },
+  { id: 'recsbIJypGcpKaJt8', createdTime: '', fields: { [C.fields.date]: '2026-09-05', [C.fields.messageOfWeek]: 'Meditations & Manifesting' } },
+];
+const w9 = assembleWeek({ anchor: utcDay('2026-08-31'), vlRows: [], msgRows, mvRows: mvAug });
+const day = (d: string) => w9.days.find(x => x.date === d)!;
+ck('Tue (count only) carries an Email slot', day('2026-09-01').mv.length === 1 && day('2026-09-01').mv[0].title === 'Email');
+ck('Wed (linked) carries exactly one, not two', day('2026-09-02').mv.length === 1);
+ck('Thu (count only) carries an Email slot', day('2026-09-03').mv.length === 1);
+ck('Sat (neither) is a genuine no-email day', day('2026-09-05').mv.length === 0);
+ck('Mon (no message, no count) is empty', day('2026-08-31').mv.length === 0);
+
 console.log(`\n${fails === 0 ? 'ALL PASS' : fails + ' FAILURE(S)'}`);
 process.exit(fails === 0 ? 0 : 1);

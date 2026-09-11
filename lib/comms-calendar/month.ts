@@ -25,7 +25,7 @@
 
 import type { AirtableRecord } from '@/lib/airtable/rest';
 import { COMMS_DAY, VL_VIDEOS, VL_MESSAGE_OF_WEEK } from '@/lib/airtable/field-map';
-import { vlRows, mowRows, commsDaysBetween } from './data.airtable';
+import { vlRows, mowRows, commsDaysBetween, emailCount } from './data.airtable';
 import { toYmd, addDays, weekdayName } from '@/lib/mow/week';
 import { meaningful } from '@/lib/mow/coverage';
 import { splitJammedName } from '@/lib/mow/derive-week';
@@ -162,7 +162,7 @@ export async function getCalendarMonthFromAirtable(anchor: Date): Promise<Calend
     const f = r.fields as Record<string, unknown>;
     const day = (str(f[COMMS_DAY.fields.date]) ?? '').slice(0, 10);
     if (!day || day < startYmd || day > endYmd) continue;
-    mvPerDay.set(day, ids(f[COMMS_DAY.links.emails]).length + ids(f[COMMS_DAY.links.socialAllAssets]).length);
+    mvPerDay.set(day, emailCount(f) + ids(f[COMMS_DAY.links.socialAllAssets]).length);
     mvMsgPerDay.set(day, meaningful(splitJammedName(str(f[COMMS_DAY.fields.messageOfWeek]), 'MV')));
   }
 

@@ -36,6 +36,23 @@ function selectName(v: unknown): string | null {
 }
 const firstLookup = (v: unknown): string | null => (Array.isArray(v) ? str(v[0]) : str(v));
 
+/**
+ * How many emails a comms day carries.
+ *
+ * Two fields say so and they disagree in practice: the 📧 Emails LINK names the record that went
+ * out, while "No. of Emails" is a number the team types in. Live for w/c 31 Aug: Tue, Wed, Thu
+ * and Fri all carry `No. of Emails = 1`, and only Wednesday has the link. Reading the link alone
+ * painted three real email days as "No email day — as planned", which the team read as the
+ * calendar being wrong — correctly. The link wins when present (it is the more specific fact);
+ * the count is the fallback, never the other way round.
+ */
+export function emailCount(f: Record<string, unknown>): number {
+  const linked = ids(f[COMMS_DAY.links.emails]).length;
+  if (linked) return linked;
+  const n = f[COMMS_DAY.fields.noOfEmails];
+  return typeof n === 'number' && n > 0 ? Math.round(n) : 0;
+}
+
 /** How many individual assets a lane renders before collapsing the rest. */
 const MV_INLINE = 2;
 
@@ -374,7 +391,7 @@ export function assembleWeek({
     const day = (str(f[COMMS_DAY.fields.date]) ?? '').slice(0, 10);
     if (!day) continue;
 
-    const emails = ids(f[COMMS_DAY.links.emails]);
+    const emails = emailCount(f);
     const socials = ids(f[COMMS_DAY.links.socialAllAssets]);
     const dayMessage = str(f[COMMS_DAY.fields.messageOfWeek]);
     const dayGoal = str(f[COMMS_DAY.fields.theGoal]);
@@ -382,7 +399,7 @@ export function assembleWeek({
     // The whole window feeds the message resolver; only the target week builds lanes.
     mvWindow.push({
       date: day, message: dayMessage, goal: dayGoal,
-      emails: emails.length, socials: socials.length, recId: r.id,
+      emails, socials: socials.length, recId: r.id,
       officialCalIds: ids(f[COMMS_DAY.links.officialCal]),
     });
     if (day < startYmd || day > endYmd) continue;
@@ -392,9 +409,9 @@ export function assembleWeek({
     // Jim Kwik beat) must say so rather than inheriting the week's leader.
     const perAsset = { messageName: meaningful(dayMessage), goal: meaningful(dayGoal) };
 
-    if (emails.length) {
+    if (emails) {
       assets.push({
-        id: `${r.id}:email`, title: 'Email', brand: 'MV', channel: 'Email',
+        id: `${r.id}:email`, title: emails > 1 ? `${emails} emails` : 'Email', brand: 'MV', channel: 'Email',
         status: null, source: null, publishedUrl: null, live: false, ...perAsset,
       });
     }
