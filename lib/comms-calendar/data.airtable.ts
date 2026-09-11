@@ -23,6 +23,7 @@ import { weekBounds, weekStartOf, toYmd, weekdayName, addDays } from '@/lib/mow/
 import { pickByCoverage, pickGoal, isPlaceholder, meaningful, type CoverageEntry } from '@/lib/mow/coverage';
 import { splitJammedName } from '@/lib/mow/derive-week';
 import { getSocialPosts, type SocialPost } from './social-posts';
+import { deriveChannel } from '@/lib/media/vishen-videos';
 import type { BrandWeekHeader, CalendarAsset, CalendarDay, CalendarWeek } from './types';
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
@@ -35,6 +36,26 @@ function selectName(v: unknown): string | null {
   return null;
 }
 const firstLookup = (v: unknown): string | null => (Array.isArray(v) ? str(v[0]) : str(v));
+const selectNames = (v: unknown): string[] =>
+  Array.isArray(v) ? v.map(selectName).filter((x): x is string => !!x) : selectName(v) ? [selectName(v)!] : [];
+
+/**
+ * A Vishen-lane asset's channel — LinkedIn, YouTube, Instagram, Email — or null.
+ *
+ * Shared with /studio/media through `deriveChannel`, so the two surfaces reading this table
+ * agree. It used to read the `Medium` select alone, which is empty on 18 of the 19 assets
+ * published since 24 Aug — so nearly every live LinkedIn post showed no channel at all, while
+ * its published link said `lnkd.in/…` in the next column. `Web` is the helper's "nothing
+ * matched" and is a real bucket for the media board; here it is simply absence.
+ */
+export function vlChannelOf(f: Record<string, unknown>): string | null {
+  const ch = deriveChannel(
+    str(f[VL_VIDEOS.fields.publishedLink]),
+    selectName(f[VL_VIDEOS.fields.medium]),
+    selectNames(f[VL_VIDEOS.fields.source]),
+  );
+  return ch === 'Web' ? null : ch;
+}
 
 /**
  * How many emails a comms day carries.
@@ -360,13 +381,16 @@ export function assembleWeek({
     }
 
     const msg = msgById.get(ids(f[VL_VIDEOS.links.messageOfWeek])[0] ?? '');
+    const channel = vlChannelOf(f);
     vlByDay.set(day, [
       ...(vlByDay.get(day) ?? []),
       {
         id: r.id,
         title: str(f[VL_VIDEOS.fields.name]) ?? '(untitled)',
         brand: 'VL',
-        channel: selectName(f[VL_VIDEOS.fields.medium]),
+        channel,
+        // So the message page can badge and group a VL asset the way it does an MV post.
+        platforms: channel ? [channel] : [],
         status,
         source: selectName(f[VL_VIDEOS.fields.source]),
         publishedUrl: str(f[VL_VIDEOS.fields.publishedLink]),

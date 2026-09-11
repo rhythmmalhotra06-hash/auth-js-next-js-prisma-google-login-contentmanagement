@@ -18,7 +18,7 @@
 // export could not see this; the live data can.
 
 import { VL_VIDEOS } from '@/lib/airtable/field-map';
-import { vlRows } from './data.airtable';
+import { vlRows, vlChannelOf } from './data.airtable';
 
 export type TrayGrouping = 'source' | 'status' | 'channel';
 
@@ -95,7 +95,7 @@ export async function getNotDatedTray(grouping: TrayGrouping = 'source'): Promis
       title: str(f[VL_VIDEOS.fields.name]) ?? '(untitled)',
       status,
       source: selectName(f[VL_VIDEOS.fields.source]),
-      channel: selectName(f[VL_VIDEOS.fields.medium]),
+      channel: vlChannelOf(f),
       publishedUrl: str(f[VL_VIDEOS.fields.publishedLink]),
       published: !!status && status.startsWith('7'),
       retired: !!status && RETIRED.has(status.trim().toLowerCase()),

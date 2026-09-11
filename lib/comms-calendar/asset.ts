@@ -34,7 +34,7 @@
 // promotes it rather than tucking it in a corner, and every absence here names who closes it.
 
 import { getRecord, listAll, type AirtableRecord } from '@/lib/airtable/rest';
-import { vlRows } from './data.airtable';
+import { vlRows, vlChannelOf } from './data.airtable';
 import { VL_VIDEOS, VL_MESSAGE_OF_WEEK, SOCIAL } from '@/lib/airtable/field-map';
 import { getSocialPosts } from './social-posts';
 import { meaningful } from '@/lib/mow/coverage';
@@ -49,7 +49,10 @@ export interface AssetDetail {
   liveDate: string | null;
   status: string | null;
   published: boolean;
+  /** Where it went — derived from the published link first (see `vlChannelOf`). */
   channel: string | null;
+  /** The team's own `Medium` tag (Podcast, Video Long…), kept as its own fact beside `channel`. */
+  medium: string | null;
   source: string | null;
   publishedUrl: string | null;
   /**
@@ -110,6 +113,7 @@ async function buildSocialDetail(recordId: string, f: Record<string, unknown>): 
     status: p?.status ?? null,
     published: !!p?.publishedUrl || !!p?.results,
     channel: p?.channels.join(' · ') ?? null,
+    medium: null,
     source: null,
     publishedUrl: p?.publishedUrl ?? null,
     read24h: null,
@@ -200,7 +204,8 @@ export async function getAssetDetail(recordId: string): Promise<AssetDetail | nu
     liveDate: str(f[VL_VIDEOS.fields.liveDate])?.slice(0, 10) ?? null,
     status,
     published: !!status && status.startsWith('7'),
-    channel: selectName(f[VL_VIDEOS.fields.medium]),
+    channel: vlChannelOf(f),
+    medium: selectName(f[VL_VIDEOS.fields.medium]),
     source: selectName(f[VL_VIDEOS.fields.source]),
     publishedUrl: str(f[VL_VIDEOS.fields.publishedLink]),
     read24h: meaningful(str(f[VL_VIDEOS.fields.data24h])),

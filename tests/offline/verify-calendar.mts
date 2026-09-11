@@ -108,6 +108,15 @@ ck('Thu 10 — the trophy post', byDay['2026-09-10']?.[0]?.includes('I visualise
 ck('Fri 11 empty (real)', (byDay['2026-09-11'] ?? []).length === 0);
 ck('the 22 Sep asset is NOT in this week', !JSON.stringify(byDay).includes('5 Stages'));
 
+console.log('\n2b. Vishen channel — from the published link, not the empty Medium select');
+// Live: Medium is empty on 18 of the 19 assets published since 24 Aug. The link is always there.
+const vlAsset = (d: string) => w.days.find(x => x.date === d)!.vl[0]!;
+ck('lnkd.in shortener + Source, no Medium → LinkedIn', vlAsset('2026-09-07').channel === 'LinkedIn', String(vlAsset('2026-09-07').channel));
+ck('youtube.com link beats Medium=Podcast → YouTube (as /studio/media)', vlAsset('2026-09-08').channel === 'YouTube', String(vlAsset('2026-09-08').channel));
+ck('no link, no Medium, no Source → null, not "Web"', vlAsset('2026-09-09').channel === null, String(vlAsset('2026-09-09').channel));
+ck('platforms mirrors the channel for the message page', JSON.stringify(vlAsset('2026-09-07').platforms) === '["LinkedIn"]');
+ck('and is empty when there is none', JSON.stringify(vlAsset('2026-09-09').platforms) === '[]');
+
 console.log('\n3. Undated assets counted, never dropped');
 ck('3 undated', w.notDated.total === 3, String(w.notDated.total));
 ck('2 of them published', w.notDated.published === 2, String(w.notDated.published));
@@ -206,7 +215,7 @@ ck('and VL does not inherit the other half', w3.headers.find(h => h.brand === 'V
 // ── 9. An email day is an email day even when nobody linked the record ──────────────────────
 // Verbatim shapes from w/c 31 Aug: Tue/Thu/Fri carry `No. of Emails = 1` and NO link; Wed has the
 // link. Reading the link alone painted three real email days as "No email day — as planned".
-console.log('\n9. No. of Emails counts when the 📧 link is empty');
+console.log('\n11. No. of Emails counts when the 📧 link is empty');
 const mvAug = [
   { id: 'recCbyYWfK6Y3qcWW', createdTime: '', fields: { [C.fields.date]: '2026-08-31' } },
   { id: 'recXzfm8BBxg1kUvv', createdTime: '', fields: { [C.fields.date]: '2026-09-01', [C.fields.messageOfWeek]: 'Meditations & Manifesting', [C.fields.noOfEmails]: 1 } },

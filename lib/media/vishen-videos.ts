@@ -55,10 +55,26 @@ export function stageOf(status: string | null): VideoStage {
   return 'other';
 }
 
-/** Channel from the published-link domain first, falling back to the Medium select. */
-export function deriveChannel(publishedLink: string | null, medium: string | null): VideoChannel {
-  const u = (publishedLink ?? '').toLowerCase();
-  if (u.includes('linkedin.')) return 'LinkedIn';
+/**
+ * Channel from the published-link domain first, then the Medium select, then the Source tag.
+ *
+ * URL first, because it is the one fact that cannot be wrong about where a post went. Measured
+ * on the live table (19 published assets since 24 Aug): `Medium` is empty on 18 of them, while
+ * every one carries a published link — 12 of those through LinkedIn's `lnkd.in` shortener,
+ * which the first version of this function did not recognise and filed under "Web".
+ *
+ * Shared by /studio/media and the comms calendar, so the two surfaces that read this table
+ * cannot disagree about an asset's channel. `source` is optional: the multi-select on the VL
+ * table (`VL LI: Two Comma PR`, `VL YT: Talking Heads`, `VL IG: Risevoice`) names the account
+ * that posted, which is the channel by another route.
+ */
+export function deriveChannel(
+  publishedLink: string | null,
+  medium: string | null,
+  source?: readonly string[] | string | null,
+): VideoChannel {
+  const u = (publishedLink ?? '').trim().toLowerCase();
+  if (u.includes('linkedin.') || u.includes('lnkd.in')) return 'LinkedIn';
   if (u.includes('youtube.') || u.includes('youtu.be')) return 'YouTube';
   if (u.includes('instagram.')) return 'Instagram';
   const m = (medium ?? '').toLowerCase();
@@ -66,6 +82,10 @@ export function deriveChannel(publishedLink: string | null, medium: string | nul
   if (m.includes('email')) return 'Email';
   if (m.includes('insta')) return 'Instagram';
   if (m.includes('video') || m.includes('talk')) return 'YouTube';
+  const s = (Array.isArray(source) ? source : source ? [source] : []).join(' ').toUpperCase();
+  if (/\bVL LI\b/.test(s)) return 'LinkedIn';
+  if (/\bVL YT\b/.test(s)) return 'YouTube';
+  if (/\bVL IG\b/.test(s)) return 'Instagram';
   return 'Web';
 }
 
