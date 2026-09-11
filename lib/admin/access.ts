@@ -1,4 +1,5 @@
-import { auth } from '@/lib/auth';
+import { cache } from 'react';
+import { getSession } from '@/lib/auth';
 import { getEmployeeForSession } from '@/lib/employee';
 import { ADMIN_ROLE, hasRole } from '@/lib/roles';
 
@@ -22,8 +23,10 @@ export interface AdminAccess {
   division: string | null; // org division from the Employees record (e.g. "Marketing")
 }
 
-export async function getAdminAccess(): Promise<AdminAccess> {
-  const session = await auth();
+// Per-request memo: every route guard AND `AppShell` call this on the same render. Before the
+// memo that was two employee lookups and four session decrypts per page, for one answer.
+export const getAdminAccess = cache(async (): Promise<AdminAccess> => {
+  const session = await getSession();
 
   // Dev-login override: roles come from the local dev login, not Airtable. Inert
   // in production (devRoles is never set on the session there — see auth.config).
@@ -41,4 +44,4 @@ export async function getAdminAccess(): Promise<AdminAccess> {
   const byRole = hasRole(employee?.roles, ADMIN_ROLE);
   const byBootstrap = !!email && bootstrapEmails().includes(email.toLowerCase());
   return { email, isAdmin: byRole || byBootstrap, roles: employee?.roles ?? [], division: employee?.division ?? null };
-}
+});
