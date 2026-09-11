@@ -47,3 +47,35 @@ export function FormSkeleton() {
     </>
   );
 }
+
+/**
+ * The Monday pack (/performance/week): two brand cards, a briefing, two number cards, the day
+ * table, a post grid. Mirrors the section rhythm of the real page so the swap does not jump.
+ */
+export function WeekPackSkeleton() {
+  return (
+    <div className="flex flex-col gap-[22px]">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Skel height={132} />
+        <Skel height={132} />
+      </div>
+      <Skel height={96} />
+      <div className="grid gap-3 md:grid-cols-2">
+        <Skel height={168} />
+        <Skel height={168} />
+      </div>
+      <Skel height={300} />
+      <Skel height={220} />
+    </div>
+  );
+}
+
+/** The comms calendar (/studio/comms-calendar): pager row, then the grid. */
+export function CalendarSkeleton({ view = 'week' }: { view?: 'week' | 'month' }) {
+  return (
+    <div className="flex flex-col gap-[14px]">
+      <Skel height={32} width={180} />
+      <Skel height={view === 'month' ? 560 : 420} />
+    </div>
+  );
+}

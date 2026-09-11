@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
 import { BrandCard } from '@/components/mow/BrandCard';
@@ -9,11 +10,12 @@ import { CommitBar, type CommitTarget } from '@/components/mow/CommitBar';
 import { Learnings } from '@/components/mow/Learnings';
 import { PostGrid, type PostGridItem } from '@/components/mow/PostGrid';
 import { Briefing } from '@/components/mow/Briefing';
+import { WeekPackSkeleton } from '@/components/ui/Skeletons';
 import { getWeekPack } from '@/lib/mow/week-pack';
 import { canCommitMow } from '@/lib/mow/pack';
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import type { SmartNumber } from '@/lib/mow/smart-number';
-import { utcDay, weekStartOf, addDays, toYmd } from '@/lib/mow/week';
+import { utcDay, weekStartOf, weekBounds, addDays, toYmd } from '@/lib/mow/week';
 import { cn } from '@/lib/cn';
 
 // /performance/week — THE MONDAY PACK. The surface the 08:00 MYT meeting runs from.
@@ -29,6 +31,11 @@ import { cn } from '@/lib/cn';
 // NOT BUILT YET, and visible as labelled gaps rather than hidden: the headline number (no app-side
 // Metabase credential — decision S6 puts it session-side first), the staged→committed learnings and
 // per-owner prose, and the commit bar. The page is honest about each; see §6C of the plan.
+//
+// STREAMED. The shell, the title, the pager and the meeting-mode toggle depend only on the URL, so
+// they render at once; everything that needs Airtable or Postgres lives in `<WeekPackBody>` under
+// a Suspense boundary and arrives when the pack does. Opened live in a meeting, the difference
+// between "a page appeared" and "the spinner is still going" is most of the perceived speed.
 
 export const dynamic = 'force-dynamic';
 
@@ -39,8 +46,6 @@ export default async function WeekPackPage({
 }) {
   const sp = await searchParams;
   const meeting = sp.meeting === '1';
-  const session = await auth();
-  const canCommit = canCommitMow(session?.user?.email);
 
   let anchor: Date;
   try {
@@ -52,22 +57,14 @@ export default async function WeekPackPage({
   const prev = toYmd(addDays(start, -7));
   const next = toYmd(addDays(start, 7));
 
-  let pack: Awaited<ReturnType<typeof getWeekPack>> | null = null;
-  let error: string | null = null;
-  try {
-    pack = await getWeekPack(anchor);
-  } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
-  }
-
-  const range = pack
-    ? `${new Date(`${pack.week.weekStart}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' })}–${new Date(`${pack.week.weekEnd}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' })}`
-    : '';
+  // The range is a fact about the URL, not the data — `assembleWeek` derives its bounds the same way.
+  const { end } = weekBounds(start);
+  const range = `${start.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' })}–${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' })}`;
 
   return (
     <AppShell
       title="The week"
-      subtitle={pack ? range : undefined}
+      subtitle={range}
       actions={
         <Link
           href={`/performance/week?week=${toYmd(start)}${meeting ? '' : '&meeting=1'}`}
@@ -82,13 +79,7 @@ export default async function WeekPackPage({
         </Link>
       }
     >
-      {error ? (
-        <div className="rounded-md border border-danger bg-danger-soft px-4 py-3">
-          <div className="text-[13.5px] font-semibold text-danger-content">Could not build the pack</div>
-          <div className="mt-1 text-xs text-text-muted">{error}</div>
-        </div>
-      ) : pack ? (
-        <div className="flex flex-col gap-[22px]">
+      <div className="flex flex-col gap-[22px]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Link href={`/performance/week?week=${prev}${meeting ? '&meeting=1' : ''}`}
@@ -108,6 +99,40 @@ export default async function WeekPackPage({
                 Open the calendar →
               </Link>
             </div>
+          </div>
+
+        <Suspense fallback={<WeekPackSkeleton />}>
+          <WeekPackBody anchor={anchor} start={start} meeting={meeting} />
+        </Suspense>
+      </div>
+    </AppShell>
+  );
+}
+
+/** Everything that waits on data. Rendered inside the Suspense boundary above. */
+async function WeekPackBody({ anchor, start, meeting }: { anchor: Date; start: Date; meeting: boolean }) {
+  const [session, packResult] = await Promise.all([
+    getSession(),
+    getWeekPack(anchor).then(
+      (pack) => ({ pack, error: null as string | null }),
+      (err: unknown) => ({ pack: null, error: err instanceof Error ? err.message : String(err) }),
+    ),
+  ]);
+  const canCommit = canCommitMow(session?.user?.email);
+  const { pack, error } = packResult;
+
+  if (error || !pack) {
+    return (
+      <div className="rounded-md border border-danger bg-danger-soft px-4 py-3">
+        <div className="text-[13.5px] font-semibold text-danger-content">Could not build the pack</div>
+        <div className="mt-1 text-xs text-text-muted">{error ?? 'No pack was produced.'}</div>
+      </div>
+    );
+  }
+
+  return (
+        <div className="flex flex-col gap-[22px]">
+          <div className="flex justify-end">
             <span className="text-2xs text-text-subtle">
               as of {new Date(pack.asOf).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </span>
@@ -329,7 +354,5 @@ export default async function WeekPackPage({
             </p>
           ) : null}
         </div>
-      ) : null}
-    </AppShell>
   );
 }

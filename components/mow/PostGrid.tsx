@@ -33,10 +33,20 @@ const ALL = 'All';
 
 function Thumb({ url, title }: { url: string | null | undefined; title: string }) {
   if (url) {
-    /* eslint-disable-next-line @next/next/no-img-element --
-       Airtable attachment URLs are signed and expire within hours; Next's optimiser would cache
+    /* Airtable attachment URLs are signed and expire within hours; Next's optimiser would cache
        bytes against a URL that soon 403s. A plain img that re-requests is correct here. */
-    return <img src={url} alt="" className="h-32 w-full rounded-t-sm border-b border-border-default object-cover" />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        // Lazy + async: a busy week is thirty-odd Airtable-CDN fetches, and eager-loading all of
+        // them competed with the page's own paint. The fixed height above already reserves the box.
+        loading="lazy"
+        decoding="async"
+        className="h-32 w-full rounded-t-sm border-b border-border-default object-cover"
+      />
+    );
   }
   return (
     <span
