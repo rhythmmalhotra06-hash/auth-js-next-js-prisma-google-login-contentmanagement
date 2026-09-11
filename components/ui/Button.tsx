@@ -27,3 +27,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export function Button({ variant = 'primary', size = 'md', className, ...props }: ButtonProps) {
   return <button className={cn(base, VARIANTS[variant], SIZES[size], className)} {...props} />;
 }
+
+/** The button's classes for an `<a>` — an external "open the live post" link that should look like an action. */
+export function buttonClass(variant: Variant = 'secondary', size: Size = 'sm', className?: string): string {
+  return cn(base, VARIANTS[variant], SIZES[size], className);
+}

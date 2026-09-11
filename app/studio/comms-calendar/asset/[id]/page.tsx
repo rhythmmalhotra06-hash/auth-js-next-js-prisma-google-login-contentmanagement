@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
 import { Badge } from '@/components/ui/Badge';
+import { buttonClass } from '@/components/ui/Button';
 import { EmptyOwned, EmptyFine } from '@/components/ui/Empty';
 import { getAssetDetail } from '@/lib/comms-calendar/asset';
 import { cn } from '@/lib/cn';
@@ -100,6 +101,17 @@ export default async function AssetDetailPage({
               <h2 className="mt-3 font-display text-xl font-bold leading-[1.25] tracking-[-.02em] text-pretty">
                 {asset.title}
               </h2>
+
+              {/* The live post, as an action rather than a URL three sections down. Only when a
+                  link exists — a published asset without one keeps its owned gap below (U8). */}
+              {asset.publishedUrl ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <a href={asset.publishedUrl} target="_blank" rel="noreferrer" className={buttonClass('primary', 'sm')}>
+                    View live post ↗
+                  </a>
+                  {asset.channel ? <span className="text-xs text-text-muted">on {asset.channel}</span> : null}
+                </div>
+              ) : null}
 
               {/* ── THE promoted field ──────────────────────────────────────── */}
               <div
@@ -246,6 +258,7 @@ export default async function AssetDetailPage({
               </h3>
               <div className="grid gap-4 rounded-md border border-border-default bg-surface p-[18px] sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="Channel" value={asset.channel} fine />
+                <Field label="Format" value={asset.medium} fine />
                 <Field label="Source" value={asset.source} fine />
                 <Field label="Approval" value={asset.approval} owner="Ramya or Vishen" />
                 <div>

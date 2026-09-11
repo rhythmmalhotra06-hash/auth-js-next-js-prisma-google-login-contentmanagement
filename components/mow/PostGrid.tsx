@@ -110,25 +110,42 @@ export function PostGrid({ posts, weekHref }: { posts: PostGridItem[]; weekHref:
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {shown.map((p) => (
-          <Link
+          // A div, not a Link: the tile holds TWO destinations — the asset detail (the whole
+          // face) and the live post (↗). An anchor inside an anchor is not valid HTML, so the
+          // detail link wraps the face and the live link sits beside the badges as a sibling.
+          <div
             key={p.id}
-            href={`/studio/comms-calendar/asset/${p.id}?brand=main&week=${weekHref}`}
             className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-surface transition-colors hover:border-brand-border"
           >
-            <Thumb url={p.imageUrl} title={p.title} />
+            <Link href={`/studio/comms-calendar/asset/${p.id}?brand=main&week=${weekHref}`} className="flex flex-1 flex-col">
+              <Thumb url={p.imageUrl} title={p.title} />
 
-            <span className="flex min-w-0 flex-1 flex-col gap-1.5 p-2.5">
-              <span className="text-2xs text-text-subtle">
-                {new Date(`${p.date}T00:00:00Z`).toLocaleDateString('en-GB', {
-                  weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
-                })}
+              <span className="flex min-w-0 flex-1 flex-col gap-1.5 p-2.5 pb-0">
+                <span className="text-2xs text-text-subtle">
+                  {new Date(`${p.date}T00:00:00Z`).toLocaleDateString('en-GB', {
+                    weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
+                  })}
+                </span>
+                <span className="line-clamp-3 text-xs font-semibold leading-snug text-pretty">{p.title}</span>
               </span>
-              <span className="line-clamp-3 text-xs font-semibold leading-snug text-pretty">{p.title}</span>
+            </Link>
 
-              <span className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="flex flex-col gap-1.5 p-2.5 pt-1">
+              <span className="flex flex-wrap items-center gap-1.5">
                 {(p.platforms ?? []).map((pl) => (
                   <Badge key={pl} tone="neutral" dot={false}>{pl}</Badge>
                 ))}
+                {p.publishedUrl ? (
+                  <a
+                    href={p.publishedUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-auto text-2xs font-medium text-brand hover:underline"
+                    title="Open the live post"
+                  >
+                    Live ↗
+                  </a>
+                ) : null}
               </span>
 
               {p.results?.reach ? (
@@ -146,7 +163,7 @@ export function PostGrid({ posts, weekHref }: { posts: PostGridItem[]; weekHref:
                 </span>
               )}
             </span>
-          </Link>
+          </div>
         ))}
       </div>
     </div>
