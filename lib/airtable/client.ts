@@ -4,6 +4,9 @@
 // are spaced and 429s are backed off. Fields come back keyed by FIELD ID
 // (returnFieldsByFieldId=true) for rename stability.
 
+import { acquire, baseOf } from './limiter';
+import { perfLog } from '@/lib/perf/timed';
+
 const API = 'https://api.airtable.com/v0';
 
 export interface AirtableRecord {
@@ -21,32 +24,43 @@ function token(): string {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Stay under ~5 req/s per base.
-const MIN_INTERVAL_MS = 220;
 const MAX_429_RETRIES = 5;
 
 /**
  * Single Airtable request with 429 backoff. Returns the parsed JSON body.
  * Shared by all read/write helpers so the rate-limit handling lives in one place.
+ *
+ * Pacing is the shared per-base limiter in `limiter.ts` — the same one `rest.ts` uses — so this
+ * lane and that one draw on ONE 5 req/s budget per base. It used to sleep 220ms after every call
+ * instead, which both under-used the budget and could not see the other client's traffic.
  */
 async function request<T>(url: string | URL, init?: RequestInit): Promise<T> {
+  const href = String(url);
+  const base = baseOf(href);
   let retries = 0;
   for (;;) {
-    const res = await fetch(url, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${token()}`,
-        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-        ...init?.headers,
-      },
-    });
-    if (res.status === 429) {
-      if (++retries > MAX_429_RETRIES) throw new Error(`${url}: rate-limited after ${MAX_429_RETRIES} retries`);
-      await sleep(Math.min(1000 * 2 ** retries, 10000)); // exponential backoff
-      continue;
+    const release = await acquire(base);
+    const t0 = performance.now();
+    try {
+      const res = await fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${token()}`,
+          ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+          ...init?.headers,
+        },
+      });
+      if (res.status === 429) {
+        if (++retries > MAX_429_RETRIES) throw new Error(`${url}: rate-limited after ${MAX_429_RETRIES} retries`);
+        await sleep(Math.min(1000 * 2 ** retries, 10000)); // exponential backoff
+        continue;
+      }
+      if (!res.ok) throw new Error(`${url}: ${res.status} ${await res.text()}`);
+      return (await res.json()) as T;
+    } finally {
+      release();
+      perfLog(`airtable ${href.replace(/^https:\/\/[^/]+\/v0\//, '').replace(/\?.*$/, '')}`, performance.now() - t0);
     }
-    if (!res.ok) throw new Error(`${url}: ${res.status} ${await res.text()}`);
-    return (await res.json()) as T;
   }
 }
 
@@ -64,7 +78,6 @@ export async function listRecords(baseId: string, tableId: string): Promise<Airt
     const json = await request<{ records: AirtableRecord[]; offset?: string }>(url);
     out.push(...json.records);
     offset = json.offset;
-    await sleep(MIN_INTERVAL_MS);
   } while (offset);
 
   return out;
@@ -75,7 +88,6 @@ export async function getRecord(baseId: string, tableId: string, recordId: strin
   const url = new URL(`${API}/${baseId}/${tableId}/${recordId}`);
   url.searchParams.set('returnFieldsByFieldId', 'true');
   const rec = await request<AirtableRecord>(url);
-  await sleep(MIN_INTERVAL_MS);
   return rec;
 }
 
@@ -107,7 +119,6 @@ export async function createRecords(baseId: string, tableId: string, records: Ne
       body: JSON.stringify({ records: batch }),
     });
     out.push(...json.records);
-    await sleep(MIN_INTERVAL_MS);
   }
   return out;
 }
@@ -134,7 +145,6 @@ export async function uploadAttachment(
     method: 'POST',
     body: JSON.stringify({ contentType: file.contentType, file: file.base64, filename: file.filename }),
   });
-  await sleep(MIN_INTERVAL_MS);
   return json;
 }
 
@@ -149,7 +159,6 @@ export async function updateRecords(baseId: string, tableId: string, records: Re
       body: JSON.stringify({ records: batch }),
     });
     out.push(...json.records);
-    await sleep(MIN_INTERVAL_MS);
   }
   return out;
 }

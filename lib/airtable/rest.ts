@@ -1,11 +1,13 @@
 // Airtable REST client (vendor-portal pattern) — the canonical data layer for the
-// Airtable-direct architecture. Global rate-limit queue (5 req/s), 429/5xx retry,
-// and discriminated-union results so callers handle failures explicitly.
+// Airtable-direct architecture. Per-base rate limiting (5 req/s, concurrent — see
+// `limiter.ts` for what it replaced), 429/5xx retry, and discriminated-union results so
+// callers handle failures explicitly.
 // Field keys are always returned by field ID (returnFieldsByFieldId=true).
 
+import { acquire, baseOf, currentInflight } from './limiter';
+import { perfLog } from '@/lib/perf/timed';
+
 const API = 'https://api.airtable.com/v0';
-const MAX_RPS = 5;
-const INTERVAL_MS = Math.ceil(1000 / MAX_RPS); // 200ms
 const MAX_RETRIES = 3;
 
 export interface AirtableRecord<T = Record<string, unknown>> {
@@ -26,46 +28,30 @@ export type AirtableResult<T> = { ok: true; data: T } | { ok: false; error: Airt
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-class RequestQueue {
-  private queue: Array<() => Promise<void>> = [];
-  private running = false;
-  private last = 0;
-  enqueue<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.queue.push(async () => {
-        try { resolve(await fn()); } catch (e) { reject(e); }
-      });
-      this.drain();
-    });
-  }
-  private async drain() {
-    if (this.running) return;
-    this.running = true;
-    while (this.queue.length) {
-      const elapsed = Date.now() - this.last;
-      if (elapsed < INTERVAL_MS) await sleep(INTERVAL_MS - elapsed);
-      const task = this.queue.shift()!;
-      this.last = Date.now();
-      await task();
-    }
-    this.running = false;
-  }
-}
-const queue = new RequestQueue();
-
 function token(): string | null {
   return process.env.AIRTABLE_TOKEN ?? process.env.AIRTABLE_API_KEY ?? null;
+}
+
+/** `base/table[/record]` for the perf line — enough to recognise the call, never the query. */
+function labelOf(url: string): string {
+  const m = /\/v0\/([^/?]+)\/([^/?]+)(?:\/([^/?]+))?/.exec(url);
+  return m ? `${m[1]}/${m[2]}${m[3] ? '/rec' : ''}` : 'airtable';
 }
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<AirtableResult<T>> {
   const key = token();
   if (!key) return { ok: false, error: { type: 'UNAUTHORIZED', message: 'AIRTABLE_API_KEY/AIRTABLE_TOKEN not set' } };
 
-  return queue.enqueue(async () => {
-    let lastError: AirtableError | null = null;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      if (attempt > 0) await sleep(Math.pow(2, attempt) * 500);
-      let res: Response;
+  const base = baseOf(url);
+  const t0 = performance.now();
+  let lastError: AirtableError | null = null;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) await sleep(Math.pow(2, attempt) * 500);
+    // Each attempt takes its own slot, so a 429 retry is spaced by the limiter too.
+    const release = await acquire(base);
+    const started = currentInflight();
+    let res: Response;
+    try {
       try {
         res = await fetch(url, {
           ...options,
@@ -92,9 +78,14 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<Airta
         return { ok: false, error: { type: 'UNKNOWN', message, status: res.status } };
       }
       return { ok: true, data: (await res.json()) as T };
+    } finally {
+      release();
+      perfLog(`airtable ${labelOf(url)}`, performance.now() - t0, `inflight=${started}${attempt ? ` attempt=${attempt + 1}` : ''}`);
     }
-    return { ok: false, error: lastError ?? { type: 'UNKNOWN', message: 'max retries exceeded' } };
-  });
+  }
+  // Out of retries. A 429 here means the limiter's model of the budget is wrong — say so loudly.
+  if (lastError?.type === 'RATE_LIMIT') console.warn(`[airtable] 429 exhausted retries on ${labelOf(url)}`);
+  return { ok: false, error: lastError ?? { type: 'UNKNOWN', message: 'max retries exceeded' } };
 }
 
 export interface ListParams {
