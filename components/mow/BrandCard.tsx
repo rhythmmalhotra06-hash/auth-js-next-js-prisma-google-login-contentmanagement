@@ -10,11 +10,19 @@
 // replaces carried Staged + Sample figure + Target inferred + a session id + a parsed sentence on
 // every card — honest, but the hedging read louder than the values did.
 
+import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyOwned } from '@/components/ui/Empty';
 import type { BrandWeekHeader } from '@/lib/comms-calendar/types';
 
-export function BrandCard({ h }: { h: BrandWeekHeader }) {
+/**
+ * @param weekHref  YYYY-MM-DD of the week start. When given, the message (and each related beat)
+ *                  links to that message's week — every post, email and asset under it, with
+ *                  results. The calendar's header renders the same card without the link.
+ */
+export function BrandCard({ h, weekHref }: { h: BrandWeekHeader; weekHref?: string }) {
+  const messageHref = (name: string) =>
+    weekHref ? `/performance/week/message/${encodeURIComponent(name)}?week=${weekHref}` : null;
   return (
     <div className="flex min-w-0 flex-col rounded-md border border-border-default bg-surface p-[18px]">
       {/* VL is teal on EVERY surface. It was Mindvalley purple here while being teal on the
@@ -32,7 +40,13 @@ export function BrandCard({ h }: { h: BrandWeekHeader }) {
           </>
         ) : (
           <div className="font-display text-lg font-bold leading-[1.25] tracking-[-.02em]">
-            {h.message}
+            {messageHref(h.message) ? (
+              <Link href={messageHref(h.message)!} className="hover:text-brand hover:underline" title="Everything under this message this week">
+                {h.message}
+              </Link>
+            ) : (
+              h.message
+            )}
           </div>
         )}
       </div>
@@ -41,7 +55,12 @@ export function BrandCard({ h }: { h: BrandWeekHeader }) {
         <div className="mt-2 flex flex-col gap-0.5">
           {h.related.map((r) => (
             <div key={r.name} className="text-xs text-text-muted">
-              {r.name} <span className="text-text-subtle">· {r.days === 1 ? '1 day' : `${r.days} days`}</span>
+              {messageHref(r.name) ? (
+                <Link href={messageHref(r.name)!} className="hover:text-brand hover:underline">{r.name}</Link>
+              ) : (
+                r.name
+              )}{' '}
+              <span className="text-text-subtle">· {r.days === 1 ? '1 day' : `${r.days} days`}</span>
             </div>
           ))}
         </div>

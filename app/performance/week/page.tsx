@@ -140,7 +140,7 @@ async function WeekPackBody({ anchor, start, meeting }: { anchor: Date; start: D
 
           {/* ── The two brand weeks, deliberately different shapes ─────────── */}
           <div className="grid gap-3 md:grid-cols-2">
-            {pack.week.headers.map((h) => <BrandCard key={h.brand} h={h} />)}
+            {pack.week.headers.map((h) => <BrandCard key={h.brand} h={h} weekHref={toYmd(start)} />)}
           </div>
 
           {/* ── The first five minutes: what happened, before any table ────── */}
