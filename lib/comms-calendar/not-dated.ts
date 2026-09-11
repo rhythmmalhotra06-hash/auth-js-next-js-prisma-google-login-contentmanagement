@@ -17,8 +17,8 @@
 // which is the fastest way to get a number ignored. So they are split out as a fourth count. The
 // export could not see this; the live data can.
 
-import { listAll } from '@/lib/airtable/rest';
 import { VL_VIDEOS } from '@/lib/airtable/field-map';
+import { vlRows } from './data.airtable';
 
 export type TrayGrouping = 'source' | 'status' | 'channel';
 
@@ -80,11 +80,12 @@ function selectName(v: unknown): string | null {
 const RETIRED = new Set(['rejected', 'parked for later']);
 
 export async function getNotDatedTray(grouping: TrayGrouping = 'source'): Promise<NotDatedTray> {
-  const res = await listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId);
-  if (!res.ok) throw new Error(`Could not read the Vishen lane: ${res.error.message}`);
+  // The shared, projected, memoised VL scan — see `vlRows` in data.airtable.ts. This used to be
+  // its own five-page read of every column on every open of the tray.
+  const rows = await vlRows();
 
   const assets: UndatedAsset[] = [];
-  for (const r of res.data) {
+  for (const r of rows) {
     const f = r.fields as Record<string, unknown>;
     if (str(f[VL_VIDEOS.fields.liveDate])) continue;
 
@@ -127,7 +128,7 @@ export async function getNotDatedTray(grouping: TrayGrouping = 'source'): Promis
     grouping,
     groups,
     counts: {
-      laneTotal: res.data.length,
+      laneTotal: rows.length,
       undated: assets.length,
       published: published.length,
       inFlight: assets.filter((a) => !a.published && !a.retired).length,

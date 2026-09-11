@@ -16,6 +16,8 @@
 // `Goal` is empty on all six real messages, and the only VL message is named `test`.
 
 import { listAll, type AirtableRecord } from '@/lib/airtable/rest';
+import { swr, invalidate } from '@/lib/cache/swr';
+import { timed } from '@/lib/perf/timed';
 import { COMMS_DAY, VL_VIDEOS, VL_MESSAGE_OF_WEEK } from '@/lib/airtable/field-map';
 import { weekBounds, weekStartOf, toYmd, weekdayName, addDays } from '@/lib/mow/week';
 import { pickByCoverage, pickGoal, isPlaceholder, meaningful, type CoverageEntry } from '@/lib/mow/coverage';
@@ -47,76 +49,108 @@ const MV_INLINE = 2;
  */
 const WINDOW_WEEKS = 2;
 
-/**
- * Short-lived cache for the full Vishen-lane scan.
- *
- * Every load reads all ~442 rows, because the not-dated counts and the `datedThrough` boundary are
- * base-wide facts rather than week-scoped ones. That is five sequential pages and it dominated the
- * page cost. In a meeting the calendar is opened and paged repeatedly within a couple of minutes,
- * so a 60-second memo turns every load after the first into a local read.
- *
- * Deliberately short: the page already tells the reader it is "as of" a timestamp, and a minute of
- * staleness on a field nobody edits mid-meeting is a fair trade for a surface that responds.
- */
-const VL_TTL_MS = 60_000;
-let vlCache: { at: number; rows: AirtableRecord[] } | null = null;
+// ── The reads, each memoised with stale-while-revalidate ──────────────────────────────────────
+//
+// Every load used to re-read all ~442 Vishen-lane rows (five sequential pages), because the
+// not-dated counts and the `datedThrough` boundary are base-wide facts. That dominated the page
+// cost and was invisible until measured — and three sibling readers (month, not-dated, asset
+// detail) each repeated the same scan with every column and no cache at all. They now all share
+// `vlRows()`. The field projection matters as much as the memo: asking for the whole wide table
+// took 4.4s of a 5.5s page.
+//
+// Staleness: `swr` returns a value up to five minutes old and refreshes it behind the reader.
+// The one writer, the not-dated tray's Live Date action, calls `invalidateCalendarCaches()`.
+// See lib/cache/swr.ts for the trade.
 
-async function vlRows(): Promise<AirtableRecord[]> {
-  if (vlCache && Date.now() - vlCache.at < VL_TTL_MS) return vlCache.rows;
-  const res = await listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId, {
-    // Only the fields the calendar reads. The table is wide, and asking for all of it took 4.4s of
-    // a 5.5s page — the single biggest cost on the surface, and invisible until measured.
-    fields: [
-      VL_VIDEOS.fields.name, VL_VIDEOS.fields.liveDate, VL_VIDEOS.fields.status,
-      VL_VIDEOS.fields.medium, VL_VIDEOS.fields.source, VL_VIDEOS.fields.publishedLink,
-      VL_VIDEOS.links.messageOfWeek, VL_VIDEOS.readOnlyFields.goalFromMessage,
-    ],
+const VL_FIELDS = [
+  VL_VIDEOS.fields.name, VL_VIDEOS.fields.liveDate, VL_VIDEOS.fields.status,
+  VL_VIDEOS.fields.medium, VL_VIDEOS.fields.source, VL_VIDEOS.fields.publishedLink,
+  VL_VIDEOS.links.messageOfWeek, VL_VIDEOS.readOnlyFields.goalFromMessage,
+];
+
+/** Every VL Videos row, projected to the calendar's fields. Shared by all four calendar readers. */
+export function vlRows(): Promise<AirtableRecord[]> {
+  return swr('vl:rows', async () => {
+    const res = await listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId, { fields: VL_FIELDS });
+    if (!res.ok) throw new Error(`Vishen lane: ${res.error.message}`);
+    return res.data;
   });
-  if (!res.ok) throw new Error(`Vishen lane: ${res.error.message}`);
-  vlCache = { at: Date.now(), rows: res.data };
-  return res.data;
 }
 
-export async function getCalendarWeekFromAirtable(anchor: Date): Promise<CalendarWeek> {
-  const { start, end } = weekBounds(weekStartOf(anchor));
+/** The VL Message of the Week table — a handful of rows, edited rarely. */
+export function mowRows(): Promise<AirtableRecord[]> {
+  return swr('vl:mow', async () => {
+    const res = await listAll(VL_MESSAGE_OF_WEEK.baseId, VL_MESSAGE_OF_WEEK.tableId);
+    if (!res.ok) throw new Error(`Message of the Week: ${res.error.message}`);
+    return res.data;
+  });
+}
+
+/** Comms-day rows with `Date` strictly between `afterYmd` and `beforeYmd` (Airtable's IS_AFTER/IS_BEFORE). */
+export function commsDaysBetween(afterYmd: string, beforeYmd: string): Promise<AirtableRecord[]> {
+  return swr(`calendar:days:${afterYmd}:${beforeYmd}`, async () => {
+    const res = await listAll(COMMS_DAY.baseId, COMMS_DAY.tableId, {
+      filterByFormula: `AND(IS_AFTER({Date}, "${afterYmd}"), IS_BEFORE({Date}, "${beforeYmd}"))`,
+    });
+    if (!res.ok) throw new Error(`Mindvalley lane: ${res.error.message}`);
+    return res.data;
+  });
+}
+
+/** Call after any write to VL Videos, the comms days, or 📣 Social — from the server action, before `revalidatePath`. */
+export function invalidateCalendarCaches(): void {
+  invalidate('vl:');
+  invalidate('calendar:');
+  invalidate('social:');
+}
+
+/**
+ * The week, assembled. Memoised per week start so the pack, the calendar, `/studio` and the
+ * ingest route — which all ask for the same week within the same minutes — assemble it once.
+ */
+export function getCalendarWeekFromAirtable(anchor: Date): Promise<CalendarWeek> {
+  const weekStart = weekStartOf(anchor);
+  return swr(`calendar:week:${toYmd(weekStart)}`, () => timed('calendar.week', () => buildWeek(weekStart)));
+}
+
+async function buildWeek(weekStart: Date): Promise<CalendarWeek> {
+  const { start, end } = weekBounds(weekStart);
   const from = addDays(start, -7 * WINDOW_WEEKS - 1);
   const to = addDays(end, 7 * WINDOW_WEEKS + 1);
 
-  // The three reads are INDEPENDENT and run together. They were sequential, which put the page at
-  // ~5s once real posts were added — too slow for something opened live in a meeting. Two of them
-  // hit a different base from the third, and `listAll` paginates within itself, so running them
-  // concurrently does not crowd Airtable's 5 req/sec-per-base budget.
+  // Three independent reads, genuinely concurrent now that the Airtable client has a per-base
+  // limiter rather than a serial queue. Two hit the VL base and one the comms base, so they do
+  // not even share a budget.
   //
-  // Every dated VL row is fetched, not just this week's: the same pass yields the not-dated counts
-  // and the `datedThrough` boundary.
-  const [vl, msgRes, mvRes] = await Promise.all([
-    vlRows(),
-    listAll(VL_MESSAGE_OF_WEEK.baseId, VL_MESSAGE_OF_WEEK.tableId),
-    listAll(COMMS_DAY.baseId, COMMS_DAY.tableId, {
-      filterByFormula: `AND(IS_AFTER({Date}, "${toYmd(from)}"), IS_BEFORE({Date}, "${toYmd(to)}"))`,
-    }),
-  ]);
-  if (!mvRes.ok) throw new Error(`Mindvalley lane: ${mvRes.error.message}`);
-
-  // Resolve the week's linked 📣 Social records to REAL posts (AB1). The lane used to render a
-  // synthetic "Social +1" chip, which carried no information and made a populated week look empty.
-  // Only the target week's ids are resolved — the ±2 week window exists for span detection, and
-  // resolving all of it would be a lot of records for rows nothing renders.
+  // The 📣 Social resolution depends only on the comms-day rows, so it starts the moment those
+  // land rather than after the slowest of the three — that alone was a full round trip of
+  // avoidable waiting. Only the target week's ids are resolved: the ±2-week window exists for
+  // span detection, and resolving all of it would be a lot of records for rows nothing renders.
   const inWeek = (v: unknown): boolean => {
     const d = (str(v) ?? '').slice(0, 10);
     return !!d && d >= toYmd(start) && d <= toYmd(end);
   };
-  const socialIds = mvRes.data
-    .filter((r) => inWeek(r.fields[COMMS_DAY.fields.date]))
-    .flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets]));
-  const posts = await getSocialPosts(socialIds).catch(() => new Map<string, SocialPost>());
+  const mvPromise = commsDaysBetween(toYmd(from), toYmd(to));
+  const postsPromise = mvPromise.then((mvRows) => {
+    const socialIds = mvRows
+      .filter((r) => inWeek(r.fields[COMMS_DAY.fields.date]))
+      .flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets]));
+    return getSocialPosts(socialIds).catch(() => new Map<string, SocialPost>());
+  });
+
+  const [vl, msg, mvRows, posts] = await Promise.all([
+    vlRows(),
+    mowRows().then((rows) => ({ rows, error: null as string | null }), (err: unknown) => ({ rows: [] as AirtableRecord[], error: err instanceof Error ? err.message : String(err) })),
+    mvPromise,
+    postsPromise,
+  ]);
 
   return assembleWeek({
-    anchor,
+    anchor: weekStart,
     vlRows: vl,
-    msgRows: msgRes.ok ? msgRes.data : [],
-    mvRows: mvRes.data,
-    msgError: msgRes.ok ? null : msgRes.error.message,
+    msgRows: msg.rows,
+    mvRows,
+    msgError: msg.error,
     posts,
   });
 }

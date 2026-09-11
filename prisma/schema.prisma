@@ -898,6 +898,7 @@ model SocialMetric {
   updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([publishedUrl, capturedAt], map: "idx_social_metrics_url")
+  @@index([platformPostId, capturedAt(sort: Desc)], map: "idx_social_metrics_post_capture")
   @@index([vishenVideoId, capturedAt], map: "idx_social_metrics_video")
   @@index([ticketAirtableId, capturedAt], map: "idx_social_metrics_ticket")
   @@index([tags], map: "idx_social_metrics_tags", type: Gin)

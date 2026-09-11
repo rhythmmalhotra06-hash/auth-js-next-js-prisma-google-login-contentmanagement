@@ -40,6 +40,8 @@
 import { listAll, type AirtableRecord } from '@/lib/airtable/rest';
 import { SOCIAL } from '@/lib/airtable/field-map';
 import { prisma } from '@/lib/prisma';
+import { swr } from '@/lib/cache/swr';
+import { timed } from '@/lib/perf/timed';
 
 export interface SocialPost {
   id: string;
@@ -116,44 +118,62 @@ const MATCH_LEN = 45;
 
 interface PerchRow { caption: string; reach: bigint | null; eng: bigint | null }
 
+interface PerchHit { reach: number; eng: number; posts: number }
+
+/**
+ * The caption index: exact-prefix lookup plus the ordered key list the fallback scans.
+ *
+ * The fallback used to be `[...perch.entries()].find(...)` — materialising the whole map into an
+ * array for every post that missed the exact prefix, up to three times per post. Precomputing
+ * the keys once makes that a plain array scan.
+ */
+interface PerchIndex { byPrefix: Map<string, PerchHit>; keys: string[] }
+
 /**
  * Delivered numbers per post, keyed by a normalised caption prefix.
  *
  * One query for the whole window rather than one per post. Latest capture per post — there are
  * ~5 capture rows each, and summing across them inflates every figure by about 5×.
+ *
+ * Memoised for five minutes: Perch is captured nightly, so recomputing this scan on every page
+ * load (it was) can never show anything new between two loads in the same meeting.
  */
-async function perchByCaption(): Promise<Map<string, { reach: number; eng: number; posts: number }>> {
-  const rows = await prisma.$queryRaw<PerchRow[]>`
-    with latest as (
-      select distinct on (platform_post_id)
-        platform_post_id,
-        raw->'details'->'content'->>'body' as caption,
-        reach, engagements
-      from social_metrics
-      where platform_post_id is not null
-        and raw->'details'->'content'->>'body' is not null
-      order by platform_post_id, captured_at desc
-    )
-    select caption, sum(reach)::bigint as reach, sum(engagements)::bigint as eng
-    from latest group by caption
-  `;
+function perchByCaption(): Promise<PerchIndex> {
+  return swr('perch:captions', () => timed('perch.captions', async () => {
+    const rows = await prisma.$queryRaw<PerchRow[]>`
+      with latest as (
+        select distinct on (platform_post_id)
+          platform_post_id,
+          raw->'details'->'content'->>'body' as caption,
+          reach, engagements
+        from social_metrics
+        where platform_post_id is not null
+          and raw->'details'->'content'->>'body' is not null
+        order by platform_post_id, captured_at desc
+      )
+      select caption, sum(reach)::bigint as reach, sum(engagements)::bigint as eng
+      from latest group by caption
+    `;
 
-  const out = new Map<string, { reach: number; eng: number; posts: number }>();
-  for (const r of rows) {
-    const key = norm(r.caption).slice(0, MATCH_LEN);
-    if (key.length < 25) continue;
-    const cur = out.get(key) ?? { reach: 0, eng: 0, posts: 0 };
-    out.set(key, {
-      reach: cur.reach + Number(r.reach ?? 0),
-      eng: cur.eng + Number(r.eng ?? 0),
-      posts: cur.posts + 1,
-    });
-  }
-  return out;
+    const byPrefix = new Map<string, PerchHit>();
+    for (const r of rows) {
+      const key = norm(r.caption).slice(0, MATCH_LEN);
+      if (key.length < 25) continue;
+      const cur = byPrefix.get(key) ?? { reach: 0, eng: 0, posts: 0 };
+      byPrefix.set(key, {
+        reach: cur.reach + Number(r.reach ?? 0),
+        eng: cur.eng + Number(r.eng ?? 0),
+        posts: cur.posts + 1,
+      });
+    }
+    return { byPrefix, keys: [...byPrefix.keys()] };
+  }), { fresh: 5 * 60_000, stale: 15 * 60_000 });
 }
 
+const EMPTY_INDEX: PerchIndex = { byPrefix: new Map(), keys: [] };
+
 /** Map one Airtable record, attaching Perch results when a caption matches. */
-function toPost(r: AirtableRecord, perch: Map<string, { reach: number; eng: number; posts: number }>): SocialPost {
+function toPost(r: AirtableRecord, perch: PerchIndex): SocialPost {
   const f = r.fields as Record<string, unknown>;
   const P = SOCIAL.published;
   const channels = strs(f[P.channels]);
@@ -164,7 +184,11 @@ function toPost(r: AirtableRecord, perch: Map<string, { reach: number; eng: numb
   for (const raw of [f[SOCIAL.fields.captions], f[SOCIAL.fields.title], f[SOCIAL.fields.notes]]) {
     const v = typeof raw === 'string' ? norm(raw) : '';
     if (v.length < 25) continue;
-    const hit = perch.get(v.slice(0, MATCH_LEN)) ?? [...perch.entries()].find(([k]) => v.includes(k))?.[1];
+    let hit = perch.byPrefix.get(v.slice(0, MATCH_LEN));
+    if (!hit) {
+      const k = perch.keys.find((key) => v.includes(key));
+      if (k) hit = perch.byPrefix.get(k);
+    }
     if (hit) {
       results = {
         reach: hit.reach || null,
@@ -202,7 +226,7 @@ const ID_BATCH = 40;
  * Fetched BY ID rather than by scanning the table. The table is ~8,564 rows, which `listAll`
  * pages at 100 a time — 86 sequential requests against a 5 req/sec budget, so about seventeen
  * seconds on a page load that has to feel instant in a meeting. A week links a few dozen posts,
- * so one or two filtered requests cover it.
+ * so one or two filtered requests cover it, and with the per-base limiter they run concurrently.
  */
 export async function getSocialPosts(ids: string[]): Promise<Map<string, SocialPost>> {
   const wanted = [...new Set(ids)];
@@ -212,7 +236,7 @@ export async function getSocialPosts(ids: string[]): Promise<Map<string, SocialP
   for (let i = 0; i < wanted.length; i += ID_BATCH) batches.push(wanted.slice(i, i + ID_BATCH));
 
   const [perch, ...results] = await Promise.all([
-    perchByCaption().catch(() => new Map<string, { reach: number; eng: number; posts: number }>()),
+    perchByCaption().catch(() => EMPTY_INDEX),
     ...batches.map((b) =>
       listAll(SOCIAL.baseId, SOCIAL.tableId, {
         filterByFormula: `OR(${b.map((id) => `RECORD_ID()='${id}'`).join(',')})`,

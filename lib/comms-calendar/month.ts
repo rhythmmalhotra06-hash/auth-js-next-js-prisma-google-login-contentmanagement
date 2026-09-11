@@ -23,8 +23,9 @@
 //     boundary is COMPUTED (Y3): the handoff was written when the last VL date was 22 Sep, it is
 //     now 30 Sep and sparse, so a constant would already be wrong.
 
-import { listAll } from '@/lib/airtable/rest';
+import type { AirtableRecord } from '@/lib/airtable/rest';
 import { COMMS_DAY, VL_VIDEOS, VL_MESSAGE_OF_WEEK } from '@/lib/airtable/field-map';
+import { vlRows, mowRows, commsDaysBetween } from './data.airtable';
 import { toYmd, addDays, weekdayName } from '@/lib/mow/week';
 import { meaningful } from '@/lib/mow/coverage';
 import { splitJammedName } from '@/lib/mow/derive-week';
@@ -101,25 +102,22 @@ export async function getCalendarMonthFromAirtable(anchor: Date): Promise<Calend
   const startYmd = toYmd(start);
   const endYmd = toYmd(end);
 
-  const [vlRes, msgRes, mvRes] = await Promise.all([
-    listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId),
-    listAll(VL_MESSAGE_OF_WEEK.baseId, VL_MESSAGE_OF_WEEK.tableId),
-    listAll(COMMS_DAY.baseId, COMMS_DAY.tableId, {
-      filterByFormula: `AND(IS_AFTER({Date}, "${toYmd(addDays(start, -1))}"), IS_BEFORE({Date}, "${toYmd(addDays(end, 1))}"))`,
-    }),
-  ]);
-  if (!vlRes.ok) throw new Error(`Vishen lane: ${vlRes.error.message}`);
-  if (!mvRes.ok) throw new Error(`Mindvalley lane: ${mvRes.error.message}`);
-
+  // The same memoised reads the week view uses (`vlRows` is the projected, cached VL scan —
+  // this used to re-read every column of the table uncached, five pages per month load).
   const warnings: string[] = [];
-  if (!msgRes.ok) warnings.push(`Could not read the Message of the Week table: ${msgRes.error.message}`);
+  const [vl, msgRows, mvRows] = await Promise.all([
+    vlRows(),
+    mowRows().catch((err: unknown) => {
+      warnings.push(`Could not read the Message of the Week table: ${err instanceof Error ? err.message : String(err)}`);
+      return [] as AirtableRecord[];
+    }),
+    commsDaysBetween(toYmd(addDays(start, -1)), toYmd(addDays(end, 1))),
+  ]);
 
   // Message names, for the Vishen bands.
   const msgName = new Map<string, string | null>();
-  if (msgRes.ok) {
-    for (const m of msgRes.data) {
-      msgName.set(m.id, meaningful(splitJammedName(str(m.fields[VL_MESSAGE_OF_WEEK.fields.name]), 'VL')));
-    }
+  for (const m of msgRows) {
+    msgName.set(m.id, meaningful(splitJammedName(str(m.fields[VL_MESSAGE_OF_WEEK.fields.name]), 'VL')));
   }
 
   // Vishen lane: counts per day, message per day, and the base-wide totals.
@@ -132,7 +130,7 @@ export async function getCalendarMonthFromAirtable(anchor: Date): Promise<Calend
   let notDatedPublished = 0;
   let vlTotal = 0;
 
-  for (const r of vlRes.data) {
+  for (const r of vl) {
     const f = r.fields as Record<string, unknown>;
     vlTotal++;
     const live = str(f[VL_VIDEOS.fields.liveDate]);
@@ -160,7 +158,7 @@ export async function getCalendarMonthFromAirtable(anchor: Date): Promise<Calend
   // Mindvalley lane: counts and message per day, straight off the comms days.
   const mvPerDay = new Map<string, number>();
   const mvMsgPerDay = new Map<string, string | null>();
-  for (const r of mvRes.data) {
+  for (const r of mvRows) {
     const f = r.fields as Record<string, unknown>;
     const day = (str(f[COMMS_DAY.fields.date]) ?? '').slice(0, 10);
     if (!day || day < startYmd || day > endYmd) continue;

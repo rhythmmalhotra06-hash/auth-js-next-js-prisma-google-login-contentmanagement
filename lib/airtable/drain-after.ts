@@ -35,12 +35,17 @@ import { drainOutbox } from './push';
  *
  * Safe to call from anywhere a write happens. Outside a request scope (the cron's own pull, a
  * script) `after()` throws, and we swallow it — those paths already drain explicitly.
+ *
+ * `onDrained` fires after a successful drain — e.g. to invalidate an Airtable-backed read cache.
  */
-export function scheduleOutboxDrain(): void {
+export function scheduleOutboxDrain(onDrained?: () => void): void {
   try {
     after(async () => {
       try {
         await drainOutbox();
+        // Runs only once Airtable holds the value — the moment a read cache built from Airtable
+        // is genuinely out of date. The caller uses this to drop that cache.
+        onDrained?.();
       } catch {
         // A push failure is already recorded on the outbox row (status/attempts/last_error) and
         // retried by the drainer. Nothing useful to add here, and throwing inside after() would

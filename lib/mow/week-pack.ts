@@ -26,9 +26,11 @@
 import { prisma } from '@/lib/prisma';
 import { ensureWeek, getWeekState } from './week-state';
 import { buildBriefing, type Briefing } from './briefing';
+import { timed } from '@/lib/perf/timed';
 // Reads the Airtable path directly, the same way app/studio/comms-calendar does — there is no
 // backend dispatcher yet and COMMS_CALENDAR_BACKEND still defaults to `airtable`. When the
-// Postgres reader lands, both call sites change together.
+// Postgres reader lands, both call sites change together. The read is memoised per week
+// (stale-while-revalidate, lib/cache/swr.ts), so the pack and the calendar share one assembly.
 import { getCalendarWeekFromAirtable } from '@/lib/comms-calendar/data.airtable';
 import { weekBounds, weekStartOf, toYmd } from './week';
 import type { CalendarAsset, CalendarWeek } from '@/lib/comms-calendar/types';
@@ -144,6 +146,9 @@ const num = (v: bigint | number | null): number | null =>
  * `socialprofile` on every row and is useless for this.
  */
 async function dailyPlatformReads(fromYmd: string, toYmd_: string): Promise<DailyRow[]> {
+  // The date bound sits INSIDE the `distinct on` CTE. The publish date is a property of the post
+  // and identical on every capture row of it, so filtering before the dedupe changes nothing about
+  // which row wins — it only stops the sort from walking the whole table, which grows nightly.
   return prisma.$queryRaw<DailyRow[]>`
     with latest as (
       select distinct on (platform_post_id)
@@ -159,6 +164,8 @@ async function dailyPlatformReads(fromYmd: string, toYmd_: string): Promise<Dail
       from social_metrics
       where platform_post_id is not null
         and raw->'details' ? 'created_at'
+        and to_timestamp((raw->'details'->>'created_at')::bigint)::date
+              between ${fromYmd}::date and ${toYmd_}::date
       order by platform_post_id, captured_at desc
     )
     select pub_date, platform,
@@ -167,21 +174,30 @@ async function dailyPlatformReads(fromYmd: string, toYmd_: string): Promise<Dail
            sum(engagements)::bigint  as eng,
            sum(clicks)::bigint       as clicks
     from latest
-    where pub_date between ${fromYmd}::date and ${toYmd_}::date
     group by 1, 2
     order by 1, 2
   `;
 }
 
-export async function getWeekPack(anchor: Date): Promise<WeekPack> {
+export function getWeekPack(anchor: Date): Promise<WeekPack> {
+  return timed('week.pack', () => buildWeekPack(anchor));
+}
+
+async function buildWeekPack(anchor: Date): Promise<WeekPack> {
   const weekStart = weekStartOf(anchor);
   const { start, end } = weekBounds(weekStart);
   const startYmd = toYmd(start);
   const endYmd = toYmd(end);
 
-  const [week, rows] = await Promise.all([
-    getCalendarWeekFromAirtable(anchor),
+  // Airtable and Postgres in one wave. The app-owned half needs the Airtable header (message,
+  // goal) to create the MowWeek rows, so it chains off the calendar read — but it chains off
+  // THAT alone, not off the Perch query too, and the two brands' upserts run together.
+  const weekPromise = getCalendarWeekFromAirtable(anchor);
+  const brandStatePromise = weekPromise.then((week) => loadBrandState(anchor, week));
+  const [week, rows, brandState] = await Promise.all([
+    weekPromise,
     dailyPlatformReads(startYmd, endYmd).catch(() => [] as DailyRow[]),
+    brandStatePromise,
   ]);
 
   const byDay = new Map<string, PlatformRead[]>();
@@ -225,24 +241,36 @@ export async function getWeekPack(anchor: Date): Promise<WeekPack> {
     };
   });
 
-  // ── The app-owned half ────────────────────────────────────────────────────
-  // A MowWeek row is created lazily from the Airtable-resolved header (AA3), which is what makes
-  // the ingest route usable at all — it refuses to write to a week that does not exist, and
-  // nothing else creates one while MOW_BACKEND is `airtable`.
-  //
-  // Best-effort: a database hiccup must degrade the pack to its read-only half rather than 500 a
-  // page the Monday meeting runs from.
-  let brandState: BrandState[] = [];
+  return {
+    week,
+    days,
+    postsThisWeek: rows.reduce((n: number, r: DailyRow) => n + Number(r.posts), 0),
+    coverage: coverageOf(rows),
+    brandState,
+    briefing: buildBriefing(week, days),
+    asOf: new Date().toISOString(),
+  };
+}
+
+/**
+ * The app-owned half.
+ *
+ * A MowWeek row is created lazily from the Airtable-resolved header (AA3), which is what makes
+ * the ingest route usable at all — it refuses to write to a week that does not exist, and
+ * nothing else creates one while MOW_BACKEND is `airtable`.
+ *
+ * Best-effort: a database hiccup must degrade the pack to its read-only half rather than 500 a
+ * page the Monday meeting runs from.
+ */
+async function loadBrandState(anchor: Date, week: CalendarWeek): Promise<BrandState[]> {
   try {
-    for (const h of week.headers) {
-      await ensureWeek(anchor, h.brand, {
-        message: h.message,
-        goal: h.goal,
-        liveCampaign: week.liveCampaign,
-      });
-    }
+    await Promise.all(
+      week.headers.map((h) =>
+        ensureWeek(anchor, h.brand, { message: h.message, goal: h.goal, liveCampaign: week.liveCampaign }),
+      ),
+    );
     const rowsState = await getWeekState(anchor, week.headers.map((h) => h.brand));
-    brandState = rowsState.map((w) => ({
+    return rowsState.map((w) => ({
       weekId: w.id,
       brand: w.brand,
       committed: !!w.committedAt,
@@ -268,18 +296,8 @@ export async function getWeekPack(anchor: Date): Promise<WeekPack> {
       })),
     }));
   } catch {
-    brandState = [];
+    return [];
   }
-
-  return {
-    week,
-    days,
-    postsThisWeek: rows.reduce((n: number, r: DailyRow) => n + Number(r.posts), 0),
-    coverage: coverageOf(rows),
-    brandState,
-    briefing: buildBriefing(week, days),
-    asOf: new Date().toISOString(),
-  };
 }
 
 /**

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { scheduleOutboxDrain } from '@/lib/airtable/drain-after';
+import { invalidateCalendarCaches } from '@/lib/comms-calendar/data.airtable';
 
 // Setting a Live Date from the not-dated tray — the one field the portal writes on the Vishen
 // Videos table (decision AB4).
@@ -55,8 +56,13 @@ export async function setLiveDateAction(airtableId: string, date: string): Promi
     }),
   ]);
 
-  scheduleOutboxDrain();
+  // The calendar readers memoise their Airtable reads (lib/cache/swr.ts). Drop them now, so the
+  // next render does not serve a pre-write snapshot, and AGAIN once the drain has actually landed
+  // the value in Airtable — until then a fresh read still returns the old Live Date.
+  invalidateCalendarCaches();
+  scheduleOutboxDrain(invalidateCalendarCaches);
   revalidatePath('/studio/comms-calendar/not-dated');
   revalidatePath('/studio/comms-calendar');
+  revalidatePath('/performance/week');
   return { ok: true };
 }

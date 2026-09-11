@@ -33,7 +33,8 @@
 // no owner — 204 of 442 assets lack it and 66 of those are already published. So the detail view
 // promotes it rather than tucking it in a corner, and every absence here names who closes it.
 
-import { getRecord, listAll } from '@/lib/airtable/rest';
+import { getRecord, listAll, type AirtableRecord } from '@/lib/airtable/rest';
+import { vlRows } from './data.airtable';
 import { VL_VIDEOS, VL_MESSAGE_OF_WEEK, SOCIAL } from '@/lib/airtable/field-map';
 import { getSocialPosts } from './social-posts';
 import { meaningful } from '@/lib/mow/coverage';
@@ -228,10 +229,9 @@ export async function getAssetDetail(recordId: string): Promise<AssetDetail | nu
  * being subtly wrong.
  */
 async function siblingsOf(messageId: string, excludeId: string): Promise<AssetDetail['siblings']> {
-  const res = await listAll(VL_VIDEOS.baseId, VL_VIDEOS.tableId);
-  if (!res.ok) return [];
+  const rows = await vlRows().catch(() => [] as AirtableRecord[]);
 
-  return res.data
+  return rows
     .filter((r) => r.id !== excludeId && ids((r.fields as Record<string, unknown>)[VL_VIDEOS.links.messageOfWeek]).includes(messageId))
     .map((r) => {
       const f = r.fields as Record<string, unknown>;

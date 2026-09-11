@@ -55,48 +55,32 @@ export async function ensureWeek(
 ): Promise<{ id: string; committed: boolean }> {
   const weekStart = weekStartOf(weekOf);
 
-  const existing = await prisma.mowWeek.findUnique({
-    where: { weekStart_brand: { weekStart, brand } },
-    select: { id: true, committedAt: true },
-  });
-
-  if (existing) {
-    if (!existing.committedAt) {
-      await prisma.mowWeek.update({
-        where: { id: existing.id },
-        data: { message: fields.message, goal: fields.goal },
-      });
-    }
-    return { id: existing.id, committed: !!existing.committedAt };
-  }
-
-  const created = await prisma.mowWeek.create({
-    data: {
-      weekStart,
-      brand,
-      message: fields.message,
-      goal: fields.goal,
-      // S2, via the shared resolver rather than a hardcoded value: a live campaign week defaults
-      // the headline to leads; otherwise the primary Offer's own definition decides, and that
-      // falls back to leads too because leads is the one metric sourceable for any week.
-      //
-      // HONEST LIMIT: `offers` has 0 rows, so the non-campaign branch cannot yet resolve to
-      // anything but leads either. The detection is wired and it discriminates correctly
-      // (w/c 31 Aug false, w/c 7 Sep true), but until an Offer carries a
-      // `smartNumberDefinition` it cannot change the ANSWER — every week is leads. Worth knowing
-      // before anyone concludes the rule is working from the output alone.
-      //
-      // Set ONLY on create. A human may change the headline metric (S1) and a later page load
-      // must not quietly put it back.
-      smartNumberKey: defaultSmartNumberKey({
-        hasLiveCampaign: fields.liveCampaign,
-        offerDefinition: null,
-      }),
-      generatedAt: new Date(),
-    },
-    select: { id: true },
-  });
-  return { id: created.id, committed: false };
+  // ONE round trip, where this was three (find, then update or create). The page calls this once
+  // per brand on every load, so the difference was two brands × two extra Cloud SQL hops before
+  // the pack could render. The "never rewrite a committed week" rule lives in the CASE.
+  //
+  // `smart_number_key` and `generated_at` are set on INSERT only — a human may change the
+  // headline metric (S1) and a later page load must not quietly put it back. S2: a live campaign
+  // week defaults the headline to leads; otherwise the primary Offer's own definition decides,
+  // and that falls back to leads too because leads is the one metric sourceable for any week.
+  //
+  // HONEST LIMIT: `offers` has 0 rows, so the non-campaign branch cannot yet resolve to anything
+  // but leads either. The detection is wired and discriminates correctly (w/c 31 Aug false,
+  // w/c 7 Sep true), but until an Offer carries a `smartNumberDefinition` it cannot change the
+  // ANSWER — every week is leads. Worth knowing before anyone concludes the rule is working from
+  // the output alone.
+  const smartNumberKey = defaultSmartNumberKey({ hasLiveCampaign: fields.liveCampaign, offerDefinition: null });
+  const rows = await prisma.$queryRaw<{ id: string; committed_at: Date | null }[]>`
+    insert into mow_weeks (week_start, brand, message, goal, smart_number_key, generated_at)
+    values (${weekStart}::date, ${brand}, ${fields.message}, ${fields.goal}, ${smartNumberKey}, now())
+    on conflict (week_start, brand) do update set
+      message    = case when mow_weeks.committed_at is null then excluded.message else mow_weeks.message end,
+      goal       = case when mow_weeks.committed_at is null then excluded.goal    else mow_weeks.goal    end,
+      updated_at = case when mow_weeks.committed_at is null then now()            else mow_weeks.updated_at end
+    returning id, committed_at
+  `;
+  const row = rows[0];
+  return { id: row.id, committed: !!row.committed_at };
 }
 
 /** The week as the page needs it: state, number, summary, learnings. */
