@@ -172,6 +172,17 @@ interface PerchIndex { byPrefix: Map<string, PerchHit>; keys: string[] }
  *
  * Memoised for five minutes: Perch is captured nightly, so recomputing this scan on every page
  * load (it was) can never show anything new between two loads in the same meeting.
+ *
+ * ── VIEWS COME OUT OF `raw`, NOT OUT OF THE COLUMN ────────────────────────────────────────────
+ *
+ * The `views` column is populated on 30 of 2,343 rows — the TikTok ones. Instagram's view count
+ * has always arrived as `raw.details.metrics.instagram_metrics.post_views`, on all 1,702 IG rows,
+ * and the ingest mapper never lifted it out. Reading the column alone would have shown "no views"
+ * on every Instagram post in the base while the number sat one key away in a payload we already
+ * store. Facebook genuinely reports no view metric, so it stays null rather than zero.
+ *
+ * The coalesce is the read-side half. The mapper should fill the column too, and then this keeps
+ * working unchanged because the column wins.
  */
 function perchByCaption(): Promise<PerchIndex> {
   return swr('perch:captions', () => timed('perch.captions', async () => {
@@ -180,7 +191,12 @@ function perchByCaption(): Promise<PerchIndex> {
         select distinct on (platform_post_id)
           platform_post_id,
           raw->'details'->'content'->>'body' as caption,
-          reach, engagements
+          reach, engagements,
+          coalesce(
+            views,
+            nullif(raw->'details'->'metrics'->'instagram_metrics'->>'post_views', '')::int,
+            nullif(raw->'details'->'metrics'->'tiktokbusiness_metrics'->>'video_views', '')::int
+          ) as views
         from social_metrics
         where platform_post_id is not null
           and raw->'details'->'content'->>'body' is not null
@@ -207,6 +223,25 @@ function perchByCaption(): Promise<PerchIndex> {
 }
 
 const EMPTY_INDEX: PerchIndex = { byPrefix: new Map(), keys: [] };
+
+/**
+ * The index, or an empty one — and SAY SO when it is empty because the query failed.
+ *
+ * Both call sites used to write `.catch(() => EMPTY_INDEX)` inline, which is this project's worst
+ * failure mode wearing a different hat: a broken query became "no post matched" on every surface,
+ * and every surface here is deliberately built to render an unmatched post honestly — so a crash
+ * was indistinguishable from a real data gap, on pages whose entire job is showing real data
+ * gaps. It shipped that way, and the calendar quietly lost every delivered number.
+ *
+ * Degrading is still right: the pack must render in a meeting whether or not Postgres answers.
+ * But it has to be loud in the runtime logs rather than silent.
+ */
+function perchIndex(): Promise<PerchIndex> {
+  return perchByCaption().catch((err) => {
+    console.error('[perch] caption index unavailable — every post will read as unmatched', err);
+    return EMPTY_INDEX;
+  });
+}
 
 /** Map one Airtable record, attaching Perch results when a caption matches. */
 function toPost(r: AirtableRecord, perch: PerchIndex): SocialPost {
@@ -292,7 +327,7 @@ export async function getSocialPostsForWeek(
   const linked = new Set(linkedIds);
 
   const [perch, res] = await Promise.all([
-    perchByCaption().catch(() => EMPTY_INDEX),
+    perchIndex(),
     listAll(SOCIAL.baseId, SOCIAL.tableId, {
       // IS_AFTER/IS_BEFORE are exclusive, so widen by a day at each end to make the range inclusive.
       filterByFormula:
@@ -330,7 +365,7 @@ export async function getSocialPosts(ids: string[]): Promise<Map<string, SocialP
   for (let i = 0; i < wanted.length; i += ID_BATCH) batches.push(wanted.slice(i, i + ID_BATCH));
 
   const [perch, ...results] = await Promise.all([
-    perchByCaption().catch(() => EMPTY_INDEX),
+    perchIndex(),
     ...batches.map((b) =>
       listAll(SOCIAL.baseId, SOCIAL.tableId, {
         filterByFormula: `OR(${b.map((id) => `RECORD_ID()='${id}'`).join(',')})`,

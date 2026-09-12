@@ -3,6 +3,7 @@ import { AppShell } from '@/components/ui/AppShell';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyOwned, EmptyFine, type Tier1Key } from '@/components/ui/Empty';
 import { getAssetDetail } from '@/lib/comms-calendar/asset';
+import { getBenchmarks, compareAsset, type AssetComparison } from '@/lib/comms-calendar/benchmark';
 import { cn } from '@/lib/cn';
 
 // Asset detail — artboard `5b`, rebuilt to the approved prototype.
@@ -93,6 +94,54 @@ function Stat({ value, label }: { value: number | null; label: string }) {
   );
 }
 
+/**
+ * How it did AGAINST WHAT — the thing the page was missing.
+ *
+ * Three numbers with no denominator are decoration: nobody in the meeting holds the distribution
+ * of 195 Instagram posts in their head, so 1.36M views read the same as 12,000. Every line here
+ * is a rank and a median over posts Perch actually captured, never a model's sentence about them,
+ * and it names the platform and the count so a reader can check it.
+ */
+function Compare({ c }: { c: AssetComparison }) {
+  return (
+    <div className="mt-3 border-t border-border-default pt-3">
+      <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+        How it compares
+      </div>
+      <ul className="mt-1.5 flex flex-col gap-1">
+        {c.lines.map((l) => (
+          <li key={l.metric} className="text-[13px] leading-snug">
+            <span className="font-semibold tabular-nums">{l.value}</span>{' '}
+            <span className="text-text-muted">{l.metric}</span>
+            {' — '}
+            <span className={cn('font-medium', l.rank <= 3 ? 'text-success-content' : undefined)}>
+              {l.rank === 1 ? 'the highest' : `${ordinal(l.rank)} highest`} of {l.of}
+            </span>
+            <span className="text-text-muted">
+              {' '}
+              {c.platform} post{l.of === 1 ? '' : 's'} captured. Median {l.median}
+              {l.multiple ? ` — this did ${l.multiple.toFixed(1)}×` : ''}.
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 max-w-prose text-2xs leading-relaxed text-text-subtle">
+        {c.posts} {c.platform} posts{c.since ? `, captured since ${c.since}` : ''}. Compared within
+        one platform only — Facebook reports no reach or views, so a cross-platform median would be
+        an Instagram figure wearing a total&rsquo;s clothes.
+        {c.perPost ? ' Ranked per post, since this record matched several.' : ''}
+      </p>
+    </div>
+  );
+}
+
+/** 1st, 2nd, 3rd, 4th… — a rank reads as a rank, not as a bare integer. */
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
 export default async function AssetDetailPage({
   params,
   searchParams,
@@ -111,6 +160,18 @@ export default async function AssetDetailPage({
     asset = await getAssetDetail(id);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
+  }
+
+  // The benchmark is a nice-to-have on a page whose job is the record: if Postgres is slow or
+  // down, the fields and the figures still render and only the comparison is missing.
+  let comparison: AssetComparison | null = null;
+  if (asset?.results) {
+    comparison = await getBenchmarks()
+      .then((b) => compareAsset(asset!.results!, asset!.platforms, b))
+      .catch((err) => {
+        console.error('[benchmark] unavailable', err);
+        return null;
+      });
   }
 
   // The structured field first, the brief second. Both are the live post; only the provenance
@@ -257,9 +318,11 @@ export default async function AssetDetailPage({
                       Hootsuite Perch, matched to this post by its published caption. Figures move
                       as attribution lands, so this is a read, not a final number.
                       {asset.results.multiAccount
-                        ? ' Several accounts published this copy — these are the totals across them, not one post.'
+                        ? ` Several accounts published this copy — these are the totals across ${asset.results.posts} posts, not one.`
                         : ''}
                     </p>
+
+                    {comparison ? <Compare c={comparison} /> : null}
                   </>
                 ) : (
                   <div className="mt-2">

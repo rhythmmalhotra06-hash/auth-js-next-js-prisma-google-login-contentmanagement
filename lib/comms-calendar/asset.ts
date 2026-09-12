@@ -85,8 +85,22 @@ export interface AssetDetail {
   ticketId: string | null;
   ticketStatus: string | null;
   assetLink: string | null;
-  /** Perch results, when the caption matched (57% inside its window). Null means NOT MATCHED. */
-  results: { reach: number | null; engagements: number | null; views: number | null; multiAccount: boolean } | null;
+  /**
+   * Perch results, when the caption matched (63 of 110 inside its window). Null means NOT MATCHED.
+   *
+   * `posts` is how many Perch posts were behind the totals — 1 normally, more when regional
+   * accounts reposted translated copy. It is carried because a sum of four posts must not be
+   * ranked against single posts (see `compareAsset`).
+   */
+  results: {
+    reach: number | null;
+    engagements: number | null;
+    views: number | null;
+    posts: number;
+    multiAccount: boolean;
+  } | null;
+  /** Coarse platforms — Instagram | Facebook | LinkedIn | … — the benchmark's peer set. */
+  platforms: string[];
   /** `Created By` — who put it into the system. The only reliable per-post person (100%). */
   owner: string | null;
   /** `💿 Social Format` (91%) and `🧭 Purpose` (75%) — the prototype's MEDIUM / CHANNEL row. */
@@ -150,8 +164,15 @@ async function buildSocialDetail(recordId: string, f: Record<string, unknown>): 
     ticketStatus: p?.ticketStatus ?? null,
     assetLink: p?.assetLink ?? null,
     results: p?.results
-      ? { reach: p.results.reach, engagements: p.results.engagements, views: p.results.views ?? null, multiAccount: p.results.multiAccount }
+      ? {
+          reach: p.results.reach,
+          engagements: p.results.engagements,
+          views: p.results.views ?? null,
+          posts: p.results.posts,
+          multiAccount: p.results.multiAccount,
+        }
       : null,
+    platforms: p?.platforms ?? [],
     owner: p?.owner ?? null,
     format: p?.format ?? null,
     purpose: p?.purpose ?? null,
@@ -263,6 +284,7 @@ export async function getAssetDetail(recordId: string): Promise<AssetDetail | nu
     ticketStatus: null,
     assetLink: null,
     results: null,
+    platforms: [],
     owner: null,
     format: null,
     purpose: null,
