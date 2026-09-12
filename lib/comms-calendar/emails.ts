@@ -131,11 +131,28 @@ export function toPlannedEmail(r: AirtableRecord): PlannedEmail {
 const ID_BATCH = 40;
 
 /**
+ * One batch of ids, fetched BY ID rather than by scanning the table — same reasoning as
+ * `getSocialPosts`: a week links a handful of emails and the table holds years of them.
+ * Memoised through the shared SWR memo so the calendar, the pack and the message page share one
+ * read of the same batch.
+ */
+function fetchBatch(b: string[]): Promise<AirtableRecord[]> {
+  return swr(`emails:${b.join(',')}`, async () => {
+    const res = await listAll(EMAILS.baseId, EMAILS.tableId, {
+      filterByFormula: `OR(${b.map((id) => `RECORD_ID()='${id}'`).join(',')})`,
+    });
+    if (!res.ok) throw new Error(`📧 Emails: ${res.error.message}`);
+    return res.data;
+  });
+}
+
+/**
  * Resolve a set of 📧 Emails record ids.
  *
- * By id, not by scanning: same reasoning as `getSocialPosts` — a week links a handful of emails
- * and the table holds years of them. Memoised through the shared SWR memo so the calendar, the
- * pack and the message page share one read.
+ * SWALLOWS a read failure, deliberately: this feeds the calendar lane, where one unreachable
+ * batch must not take down a week that also has posts, messages and Vishen's lane in it. The
+ * day falls back to its count. Callers that need the difference between "could not read" and
+ * "not there" use `getPlannedEmail` below, which does not swallow.
  */
 export async function getPlannedEmails(ids: string[]): Promise<Map<string, PlannedEmail>> {
   const wanted = [...new Set(ids)].filter(Boolean);
@@ -144,24 +161,22 @@ export async function getPlannedEmails(ids: string[]): Promise<Map<string, Plann
   const batches: string[][] = [];
   for (let i = 0; i < wanted.length; i += ID_BATCH) batches.push(wanted.slice(i, i + ID_BATCH));
 
-  const results = await Promise.all(
-    batches.map((b) =>
-      swr(`emails:${b.join(',')}`, async () => {
-        const res = await listAll(EMAILS.baseId, EMAILS.tableId, {
-          filterByFormula: `OR(${b.map((id) => `RECORD_ID()='${id}'`).join(',')})`,
-        });
-        if (!res.ok) throw new Error(`📧 Emails: ${res.error.message}`);
-        return res.data;
-      }).catch(() => [] as AirtableRecord[]),
-    ),
-  );
+  const results = await Promise.all(batches.map((b) => fetchBatch(b).catch(() => [] as AirtableRecord[])));
 
   const out = new Map<string, PlannedEmail>();
   for (const rows of results) for (const r of rows) out.set(r.id, toPlannedEmail(r));
   return out;
 }
 
-/** One email by id, for the detail page. */
+/**
+ * One email by id, for the detail page. THROWS when the read fails.
+ *
+ * A missing token and a deleted record are different facts and the page says different things
+ * about them; swallowing here made an expired token read as "No such email", which sends whoever
+ * sees it to look in Airtable for a record that is sitting right there.
+ */
 export async function getPlannedEmail(id: string): Promise<PlannedEmail | null> {
-  return (await getPlannedEmails([id])).get(id) ?? null;
+  const rows = await fetchBatch([id]);
+  const rec = rows.find((r) => r.id === id);
+  return rec ? toPlannedEmail(rec) : null;
 }
