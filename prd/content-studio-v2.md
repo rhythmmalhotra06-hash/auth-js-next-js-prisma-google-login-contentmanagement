@@ -392,7 +392,12 @@ and latency per agent [D74].
 
 **In production** [D82]: no LLM in observe — deterministic SQL/TS over the graph; Haiku phrases
 drafts with numbers fixed [D37]; one scheduled runner per agent on the real scheduler (O6); Signals
-persisted in a `Signal` table. **In the UI** [D78]: a "Your agent" block on every desk (signals ·
+persisted in a `Signal` table, whose `kind` is a **closed vocabulary of seven** — `learning`,
+`anomaly`, `blocker`, `chore`, `watch`, `gap`, `suggestion` — so that adding a kind is a schema
+change, deliberately [D120]; a re-run **updates** an open Signal on its natural key rather than
+duplicating it, a Signal auto-closes when its condition stops holding, and a dismissal needs a
+reason and suppresses that check on that subject for 30 days [D103]. **In the UI** [D78]: a "Your
+agent" block on every desk (signals ·
 drafts awaiting you · nudges · acceptance · cost); no Agents registry screen and no Ask box in v1;
 agent→agent hand-offs are visible inside item threads. The three hand-offs to prove on real data:
 Social finding → Video brief change · Production "not filmed" → Planning blocker · Email cadence →
@@ -504,7 +509,7 @@ use, not a date.
 
 **The PRD runs in parallel** [D129]. The nine epics predate D101–D128; a subagent transcribes the
 decisions into the right epics **while the build runs**. That is writing, not deciding: `/prd`'s
-discovery conversation is not re-run, only its conventions are — template sections, `[UNRESOLVED]`
+discovery conversation is not re-run, only its conventions are — template sections, unresolved
 markers, resolution counts, and `prd/index.md`. The O-table below belongs to Gareth, Glen, Moniek,
 Nadir, Rafi and InfoSec, not to this build.
 
@@ -563,24 +568,36 @@ Each criterion is phrased so a query or a test can verify it.
 
 ## Open Questions
 
-Carried from the discovery record with owners. Listed explicitly so none lurks unstated.
+The list below is plan §5d's closing table, **verbatim and with its owners** — "nothing else is
+assumed" [D129]. The numbering is the plan's, which is why it skips O6 and O10.
 
-| # | Question | Owner | Blocks |
-|---|---|---|---|
-| O1 | Goal-metric map (D36) confirmation — Educate → saves + watch, Inspire/Entertain → shares + reach, Convert/gated CTA → comments, Announce → reach. | Gareth | The goal metric used in every readout and proposal (E-B). Until confirmed, D36 is applied as written. |
-| O2 | Short-code convention if/when introduced (`MV-11057`?) and where it must appear (`utm_content`, Hootsuite tag, filename). | Rhythm (with Gareth/Glen) | Per-post revenue/leads (E-H); the strongest attribution signal after URL (E-A). |
-| O3 | Image-similarity method and threshold for the PROPOSE tier (perceptual hash vs embedding). | Engineering spike | The fourth attribution signal (E-A). The first three signals ship without it. |
-| O4 | Event-tier ranking (open since June) — needed before queue scoring can learn. | Moniek | Capability #3 learning; not the first loop. |
-| O5 | App-side credentials for Metabase / Braze / Composio — who owns the keys (Glen?). | Glen (to confirm) | Unattended Metabase week figure, email metrics, Composio coverage (E-C, E-H). |
-| O6 | Scheduler choice — Kessel cron vs an external scheduler — to replace GitHub Actions (slipping 3–11h). | Rhythm | Everything time-windowed: day-1 capture in 18–36h [D35], the Sunday proposal run [D38], the 24h DM [D47] (E-C). |
-| O7 | Banner lane taxonomy (E14). | Rhythm, after the Rafi 1:1 | Adding the sixth lane (E-D). |
-| O8 | Agency invitation model with InfoSec — PAT sharing is blocked for Rise Voice's base. | Rhythm with InfoSec | Opening SSO to invited Google accounts (E-E). Row scoping proceeds regardless. |
-| O9 | YouTube Analytics channel OAuth timing — who authorises the channel(s), and when. 0 rows today; CTR/AVD show "needs YouTube Analytics OAuth" until done [D28, D46]. | Rhythm (channel owners TBC) | YouTube retention metrics for VL and podcast lanes (E-C, v1.1). |
-| O10 | Braze connector authorisation — app-side REST access to send/open/click data for the email lane. Email metrics show "not connected" until then [D51]. | Glen / Rhythm | Email-lane performance (E-C, E-D). |
-| O11 | Signal `kind` taxonomy — the closed list agents subscribe on — and the retention period of Signal rows (decision log forever vs archive after N days) [D71, D82]. | TBC (Rhythm) | Subscriptions and the thread as decision log (E-I). |
-| O12 | Agent cost budgets — a token/latency ceiling per agent per month and who is paged when exceeded; D74 makes cost visible but sets no budget [D74]. | TBC | Running six scheduled runners in production (E-I, E-C). |
-| O13 | Whether a PROPOSE-tier (transcript- or image-only) matcher sighting flips a Publication *Scheduled → Live*, or *Live* waits for the human confirm [D43 vs D76]. | Rhythm with Glen | Went-live automation (E-D) and readout timing (E-B). |
-| O14 | Which agent the "Your agent" block represents on an agency desk — D78 puts the block on every desk, D70 defines no agency agent. | Rhythm | Agency desks in the prototype and E-E. |
+| # | Question | Owner |
+|---|---|---|
+| O1 | Goal-metric map (D36) confirmation | Gareth |
+| O2 | Short-code convention and where it must appear (utm_content, Hootsuite tag, filename) | Glen + Gareth |
+| O3 | Image-similarity method and threshold for the PROPOSE tier | engineering spike |
+| O4 | Event-tier ranking (open since June) — blocks prioritisation learning | Moniek |
+| O5 | Metabase / Braze / Composio app-side credentials | Glen |
+| O7 | Banner lane taxonomy (E14, held) | Rafi |
+| O8 | Agency invitation model with InfoSec (PAT sharing blocked for Rise Voice's base) | Rhythm + InfoSec |
+| O9 | YouTube Analytics OAuth — the only route to Vishen's 7% CTR benchmark | Glen + Ramya |
+| O11 | Footage-risk threshold (how late is "at risk") | Nadir |
+| O12 | Attribution-coverage threshold that triggers a chore Signal | Glen |
+| O13 | Does a PROPOSE-tier match flip *Scheduled → Live*? (D43 vs D76) | Rhythm |
+| O14 | Vidura is a named confirmer and half the Social agent's ownership but is not one of the ten personas | Rhythm |
+| O15 | Signal retention period (Signals are cheap; threads are the audit trail) | Rhythm |
+| O16 | Second builder, if and when | Rhythm |
+
+**Two numbers this list retires, and two it renumbers.** **O6** (scheduler choice) is **closed** by
+D117: an external cron service on the existing bearer-gated routes, added alongside GitHub Actions.
+**O10** (Braze authorisation) is not carried forward as its own row; Braze app-side credentials sit
+inside O5. The O11–O14 of the 2026-09-11 revision of this PRD were different questions and have been
+**superseded by the plan's numbering**: the old O11 (Signal kinds + retention) is answered on the
+kinds half by D120 and survives on the retention half as the new **O15**; the old O12 (agent cost
+budget) is closed by D88 (≤ $5 per agent per week, hard stop, "budget reached" Signal to Rhythm);
+the old O13 is the new **O13** unchanged; the old O14 (which agent a *desk* shows for an agency) is
+**not** the new O14 (which is about Vidura) and is carried as an open marker in E-I's Features
+instead.
 
 Two internal tensions in the source plan were resolved in favour of the later, more specific
 decision and are recorded here so nobody re-opens them by accident: D40 (rules do not feed the
@@ -599,18 +616,35 @@ figures (−27% views, +52% comments, n=24) and its §2 proof-point figures (~40
 export, never hand-reconciled; hand-off 2 counts 15 shoots *To Film* past their date where D67
 counts 13 *To Film* in total — the same rule applies.
 
+From the 2026-09-12 pass, the same way. **The hard rule (D13, D23, D27) versus the build (D104,
+D121):** the later decision governs — the ask changed on 12 Sep, and the build is confined to one
+slice on a branch behind a preview URL with `main` untouched; the prototype and its sign-off are not
+cancelled, they simply stopped being the gate on *this* slice. **D104's "no new UI" versus D127's
+two `/v2` surfaces:** D127 is later and wins — slice 1 ships `/v2/work-item/[id]` and
+`/v2/connections`, and nothing else. **D69's "no localisation lane" versus D109's locales:** not a
+conflict — there is no lane; D109 only says how a locale cut is modelled *if* one exists (its own
+Asset, its own peers, its own asset type's learnings). **D75's copy stage versus where copy lives:**
+resolved by D109 — caption on the Publication (per account, per language), hook/transcript/offer/CTA
+on the Asset. **D86's "stuck" versus D93's finding:** there is no transition graph to measure
+against, so "stuck" is time since the last `TicketEvent`, never a missing transition. **The old
+O11 / O12 / O14 of this PRD versus the plan's:** the numbers were reused for different questions —
+see the note under the table; never cite an O-number without its date.
+
 ## Epics
 
 Nine epics. Dependency order: **E-C and E-A first** (the scheduler and Publication unblock
 everything), **then E-B**, **then E-D and E-I** (E-I needs Publication, Knowledge and the scheduler,
 and lands its Signals in E-D's threads and desks), **then E-E, E-G and E-H** in parallel, with **E-F
-running domain by domain throughout**. Nothing starts until the prototype is approved [D23].
+running domain by domain throughout**. **Slice 1** cuts across the first three: E-C's scheduler and
+mapper, E-A's `Publication`, matcher and backfill, and E-B/E-I's deterministic checks and `Signal`
+table — shipped to a preview link, not to the team [D104, D127, D121]. Everything beyond that slice
+still waits on the prototype's approval [D23].
 
 | # | Epic | Purpose (one sentence) | Depends on |
 |---|---|---|---|
 | E-A | [Content graph & Publication](content-studio-v2/content-graph-and-publication.md) | Introduce the `Publication` noun, reshape `Asset`, widen `TicketEvent`, and ship the four-signal attribution matcher with confirm/unticketed inboxes so every published thing links to the work item that made it. | E-C (scheduler for the matcher and capture windows) |
 | E-B | [Continuous learning engine — first loop: editor + asset-type DNA](content-studio-v2/continuous-learning-engine.md) | Turn confirmed publications into 24h/7d readouts vs cohort, weekly deterministic proposals (≤ 3 per asset type, n ≥ 8), editor endorse/dispute, lead activation, and rule application in DNA review and the brief draft. | E-A, E-C, O1 |
-| E-C | [Unattended data flow & scheduler](content-studio-v2/unattended-data-flow-and-scheduler.md) | Replace GitHub Actions with a real scheduler, lift the full Perch payload, hold credentials app-side, and bring YouTube public stats, Metabase, Braze and Composio in as scheduled pulls with honest "not connected" states. | O5, O6 |
+| E-C | [Unattended data flow & scheduler](content-studio-v2/unattended-data-flow-and-scheduler.md) | Replace GitHub Actions with a real scheduler, lift the full Perch payload, hold credentials app-side, and bring YouTube public stats, Metabase, Braze and Composio in as scheduled pulls with honest "not connected" states. | O5 (O6 closed by D117) |
 | E-D | [Lanes & the v2 IA](content-studio-v2/lanes-and-v2-ia.md) | Ship the Plan → Make → Publish → Measure → Learn information architecture behind `/v2` with five lanes as real queues, persona desks, the 5-column mandate across lanes, and the missing workflow pieces — copy stage, scheduling & went-live, threads, the podcast Episode tree, sub-tasks [D69, D75–D80]. | E-A (`Ticket.lane`, matcher for *Live*), E-B (the Learn and Measure screens) |
 | E-E | [Agencies & access](content-studio-v2/agencies-and-access.md) | Row-scoped workspaces for invited agencies (Rise Voice first) to request, deliver by link, comment, and see their own numbers, then open SSO by invitation. | E-A (Party/workspace, `Comment`), E-D, O8 |
 | E-F | [Airtable sunset](content-studio-v2/airtable-sunset.md) | Retire Airtable as the editing surface domain by domain — reference nouns, then calendar/MOW, then tickets — leaving it a read-only mirror and then an archive. | E-D (app-side editors), rebuild of the two ticket-creating automations; runs throughout |
