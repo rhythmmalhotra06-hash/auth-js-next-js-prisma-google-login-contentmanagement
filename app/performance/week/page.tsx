@@ -300,8 +300,9 @@ async function WeekPackBody({ anchor, start, meeting }: { anchor: Date; start: D
               </h2>
               <div className="rounded-md border border-staged bg-staged-soft p-[18px]">
                 <p className="text-xs leading-relaxed text-staged-content">
-                  Hootsuite Perch, pulled nightly, deduped to the latest capture per post. The
-                  platforms do not report the same things, so nothing here is totalled across them:
+                  Social from Hootsuite Perch, email from Braze, both pulled nightly and deduped
+                  to the latest capture. The sources do not report the same things, so nothing
+                  here is totalled across them:
                 </p>
                 <ul className="mt-2 flex flex-col gap-1">
                   {pack.coverage.map((c) => (

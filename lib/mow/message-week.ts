@@ -22,11 +22,14 @@
 
 import { splitJammedName } from './derive-week';
 import type { CalendarAsset, CalendarWeek } from '@/lib/comms-calendar/types';
+import type { EmailResults } from '@/lib/braze/results';
 import type { PackDay } from './week-pack';
 
 export interface MessageWeekItem extends CalendarAsset {
   date: string;
   kind: 'post' | 'email' | 'vl';
+  /** Braze numbers for an email row, when a campaign matched. Attached by the page, not here. */
+  emailResults?: EmailResults | null;
 }
 
 export interface MessageWeekDay {
@@ -58,6 +61,25 @@ export function sameMessage(a: string | null | undefined, b: string | null | und
   const ca = candidates(a);
   for (const x of candidates(b)) if (ca.has(x)) return true;
   return false;
+}
+
+/** Every email row in a built week, as match targets for the Braze reader. */
+export function emailTargets(mw: MessageWeek): { id: string; title: string; subject: string | null; liveDate: string | null; audiences: string[] }[] {
+  return mw.days
+    .flatMap((d) => d.items.filter((i) => i.kind === 'email' && i.emailId))
+    .map((i) => ({ id: i.emailId!, title: i.title, subject: i.subject ?? null, liveDate: i.date, audiences: i.audiences ?? [] }));
+}
+
+/** Attach Braze results to the email rows, in place of a second pass through the tree. */
+export function withEmailResults(mw: MessageWeek, results: Map<string, EmailResults>): MessageWeek {
+  if (!results.size) return mw;
+  return {
+    ...mw,
+    days: mw.days.map((d) => ({
+      ...d,
+      items: d.items.map((i) => (i.kind === 'email' && i.emailId ? { ...i, emailResults: results.get(i.emailId) ?? null } : i)),
+    })),
+  };
 }
 
 export function messageWeek(week: CalendarWeek, name: string, packDays: PackDay[] = []): MessageWeek {

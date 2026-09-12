@@ -40,14 +40,26 @@ function PlatformLine({ p }: { p: PlatformRead }) {
   const reach = fmt(p.reach);
   const eng = fmt(p.engagements);
   const clicks = fmt(p.clicks);
-  if (reach !== null) parts.push(`${reach} reach`);
-  if (eng !== null) parts.push(`${eng} engagements`);
-  if (clicks !== null) parts.push(`${clicks} clicks`);
+  // Email speaks a different language and gets its own words: it has no reach, its engagement is
+  // an OPEN, and the volume unit is a send to a list rather than a post. Same row, own vocabulary.
+  const isEmail = p.platform === 'Email';
+  if (isEmail) {
+    const sent = fmt(p.sent ?? null);
+    if (sent !== null) parts.push(`${sent} sent`);
+    if (eng !== null) parts.push(`${eng} opens`);
+    if (clicks !== null) parts.push(`${clicks} clicks`);
+  } else {
+    if (reach !== null) parts.push(`${reach} reach`);
+    if (eng !== null) parts.push(`${eng} engagements`);
+    if (clicks !== null) parts.push(`${clicks} clicks`);
+  }
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
       <span className="min-w-[76px] text-xs font-semibold">{p.platform}</span>
-      <span className="text-2xs text-text-muted">{p.posts} {p.posts === 1 ? 'post' : 'posts'}</span>
+      <span className="text-2xs text-text-muted">
+        {p.posts} {isEmail ? (p.posts === 1 ? 'list' : 'lists') : p.posts === 1 ? 'post' : 'posts'}
+      </span>
       {parts.length ? (
         <span className="text-xs tabular-nums text-text">{parts.join(' · ')}</span>
       ) : (

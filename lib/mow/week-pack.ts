@@ -26,6 +26,7 @@
 import { prisma } from '@/lib/prisma';
 import { ensureWeek, getWeekState } from './week-state';
 import { buildBriefing, type Briefing } from './briefing';
+import { dailyEmailReads } from './email-reads';
 import { timed } from '@/lib/perf/timed';
 // Reads the Airtable path directly, the same way app/studio/comms-calendar does — there is no
 // backend dispatcher yet and COMMS_CALENDAR_BACKEND still defaults to `airtable`. When the
@@ -42,6 +43,8 @@ export interface PlatformRead {
   reach: number | null;
   engagements: number | null;
   clicks: number | null;
+  /** Email only — how many addresses it went to. Social has no equivalent, so it stays null. */
+  sent?: number | null;
 }
 
 /** The five states, and `blocked` is NOT `missed` — two conditions, two colours. */
@@ -194,9 +197,12 @@ async function buildWeekPack(anchor: Date): Promise<WeekPack> {
   // THAT alone, not off the Perch query too, and the two brands' upserts run together.
   const weekPromise = getCalendarWeekFromAirtable(anchor);
   const brandStatePromise = weekPromise.then((week) => loadBrandState(anchor, week));
-  const [week, rows, brandState] = await Promise.all([
+  const [week, rows, emailByDay, brandState] = await Promise.all([
     weekPromise,
     dailyPlatformReads(startYmd, endYmd).catch(() => [] as DailyRow[]),
+    // Email is a fourth "platform" on the day table, from a different source and never summed
+    // with the other three — see lib/mow/email-reads.ts.
+    dailyEmailReads(startYmd, endYmd).catch(() => new Map()),
     brandStatePromise,
   ]);
 
@@ -218,12 +224,16 @@ async function buildWeekPack(anchor: Date): Promise<WeekPack> {
   const today = toYmd(new Date());
 
   const days: PackDay[] = week.days.map((d): PackDay => {
-    const platforms = byDay.get(d.date) ?? [];
+    const email = emailByDay.get(d.date);
+    const platforms = [...(byDay.get(d.date) ?? []), ...(email ? [email] : [])];
     const vlPlanned = d.vl.length;
     const mvSlots = d.mv.length + d.mvOverflow;
     const planned = vlPlanned + mvSlots;
     const vlLive = d.vl.filter((a: CalendarAsset) => a.live).length;
-    const delivered = vlLive + platforms.reduce((n, p) => n + p.posts, 0);
+    // Email is deliberately OUT of `delivered`. That figure is compared against `planned`, and
+    // an email that went to eight lists is eight campaigns but one planned slot — counting them
+    // would inflate the day eightfold for one email.
+    const delivered = vlLive + (byDay.get(d.date) ?? []).reduce((n, p) => n + p.posts, 0);
     const isFuture = d.date > today;
 
     return {
@@ -245,7 +255,7 @@ async function buildWeekPack(anchor: Date): Promise<WeekPack> {
     week,
     days,
     postsThisWeek: rows.reduce((n: number, r: DailyRow) => n + Number(r.posts), 0),
-    coverage: coverageOf(rows),
+    coverage: coverageOf(rows, emailByDay),
     brandState,
     briefing: buildBriefing(week, days),
     asOf: new Date().toISOString(),
@@ -321,7 +331,7 @@ function slotState({ isFuture, planned, delivered }: { isFuture: boolean; planne
  * This is what lets the page make ONE screen-level statement about provenance instead of a hedge
  * beside every number — and it stays true if Perch starts returning a field it currently doesn't.
  */
-function coverageOf(rows: DailyRow[]): WeekPack['coverage'] {
+function coverageOf(rows: DailyRow[], emailByDay?: Map<string, PlatformRead>): WeekPack['coverage'] {
   const acc = new Map<string, { posts: number; reach: boolean; eng: boolean; clicks: boolean }>();
   for (const r of rows) {
     const cur = acc.get(r.platform) ?? { posts: 0, reach: false, eng: false, clicks: false };
@@ -332,7 +342,7 @@ function coverageOf(rows: DailyRow[]): WeekPack['coverage'] {
       clicks: cur.clicks || r.clicks !== null,
     });
   }
-  return [...acc.entries()]
+  const out = [...acc.entries()]
     .map(([platform, v]) => {
       const has: string[] = [];
       const missing: string[] = [];
@@ -342,4 +352,18 @@ function coverageOf(rows: DailyRow[]): WeekPack['coverage'] {
       return { platform, posts: v.posts, has, missing };
     })
     .sort((a, b) => b.posts - a.posts);
+
+  // Email last and stated in its own words. It is a different source (Braze, not Perch) and a
+  // different vocabulary — "opens" is not "engagements" and there is no reach at all — so the
+  // provenance line has to say so rather than let it pass as a fourth platform.
+  const emails = [...(emailByDay?.values() ?? [])];
+  if (emails.length) {
+    out.push({
+      platform: 'Email',
+      posts: emails.reduce((n, e) => n + e.posts, 0),
+      has: ['sends', 'opens', 'clicks'],
+      missing: ['reach'],
+    });
+  }
+  return out;
 }

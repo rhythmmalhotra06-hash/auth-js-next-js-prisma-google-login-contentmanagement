@@ -92,16 +92,16 @@ function LaneCell({
   brand,
   emptyLabel,
   assetHref,
+  emailHref,
 }: {
   assets: CalendarDay['vl'];
   overflow: number;
   brand: 'VL' | 'MV';
   emptyLabel: 'gap' | 'fine';
-  /**
-   * Opens the asset detail (`5b`). Only the Vishen lane gets one: a Mindvalley row here is a
-   * synthetic `recXXX:email` standing for a link count, so there is no record to open.
-   */
+  /** Opens the asset detail (`5b`) for a VL asset or a 📣 Social post. */
   assetHref?: (id: string) => string;
+  /** Opens the email detail. Separate because an email is a different record in a different table. */
+  emailHref?: (id: string) => string;
 }) {
   if (!assets.length && !overflow) {
     return (
@@ -120,9 +120,15 @@ function LaneCell({
         <AssetRow
           key={a.id}
           title={a.title}
-          // Both lanes link now: the Mindvalley lane carries real 📣 Social recIds rather than
-          // the synthetic `recXXX:email` placeholders it used to emit.
-          href={assetHref && !a.id.includes(':') ? assetHref(a.id) : undefined}
+          // Everything with a record behind it links now. The exception that remains is a day
+          // that declares emails by a bare count with nothing linked — there is nothing to open.
+          href={
+            a.emailId
+              ? emailHref?.(a.emailId)
+              : assetHref && !a.id.includes(':')
+                ? assetHref(a.id)
+                : undefined
+          }
           state={a.live ? 'live' : null}
           meta={[a.channel, a.status].filter(Boolean).join(' · ') || undefined}
           pills={
@@ -160,10 +166,12 @@ export function WeekGrid({
   week,
   state,
   assetHref,
+  emailHref,
 }: {
   week: CalendarWeek;
   state: BrandState;
   assetHref?: (id: string) => string;
+  emailHref?: (id: string) => string;
 }) {
   const headers = week.headers.filter((h) => shows(state, h.brand));
   const weekdays = week.days.filter((d) => !d.isWeekend);
@@ -236,6 +244,7 @@ export function WeekGrid({
                 brand={h.brand}
                 emptyLabel="gap"
                 assetHref={assetHref}
+                emailHref={emailHref}
               />
             </div>
           ))}

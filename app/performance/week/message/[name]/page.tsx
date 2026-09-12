@@ -4,7 +4,8 @@ import { AppShell } from '@/components/ui/AppShell';
 import { Skel } from '@/components/ui/Skeletons';
 import { MessageWeekView } from '@/components/mow/MessageWeek';
 import { getWeekPack } from '@/lib/mow/week-pack';
-import { messageWeek } from '@/lib/mow/message-week';
+import { messageWeek, emailTargets, withEmailResults } from '@/lib/mow/message-week';
+import { getEmailResults } from '@/lib/braze/results';
 import { utcDay, weekStartOf, weekBounds, toYmd } from '@/lib/mow/week';
 
 // /performance/week/message/[name] — one message's week.
@@ -74,6 +75,15 @@ async function Body({ anchor, name, weekHref }: { anchor: Date; name: string; we
   try {
     const pack = await getWeekPack(anchor);
     data = messageWeek(pack.week, name, pack.days);
+    // Braze numbers for the email rows. Best-effort and separate from the pack: an empty
+    // `email_metrics` (no key yet, or a week before the pull started) leaves the rows reading
+    // "no Braze campaign matched", which is what they said before this existed.
+    const targets = emailTargets(data);
+    if (targets.length) {
+      const results = await getEmailResults(targets, { from: pack.week.weekStart, to: pack.week.weekEnd })
+        .catch(() => new Map());
+      data = withEmailResults(data, results);
+    }
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }

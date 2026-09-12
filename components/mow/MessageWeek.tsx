@@ -32,8 +32,50 @@ function LiveLink({ url }: { url: string | null }) {
   );
 }
 
+const pct = (v: number | null): string | null => (typeof v === 'number' ? `${v.toFixed(1)}%` : null);
+const num = (v: number | null | undefined): string | null =>
+  typeof v === 'number' ? v.toLocaleString('en-US') : null;
+
+/** An email's numbers, rolled up across its lists. Rates come from summed counts, never averaged. */
+function EmailResult({ item }: { item: MessageWeekItem }) {
+  const r = item.emailResults;
+  // Not matched is not zero. Until the Braze pull has a key, or for an email whose subject the
+  // team changed in Braze after planning it, this is the honest line.
+  if (!r || !r.total) return <EmptyFine>no Braze campaign matched</EmptyFine>;
+  const t = r.total;
+  const unconfident = r.perAudience.some((a) => !a.confident);
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <span className="flex items-baseline gap-1.5">
+          <span className="font-display text-[15px] font-bold tabular-nums">{num(t.sent)}</span>
+          <span className="text-2xs text-text-subtle">sent</span>
+        </span>
+        {pct(t.openRate) ? (
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-display text-[15px] font-bold tabular-nums">{pct(t.openRate)}</span>
+            <span className="text-2xs text-text-subtle">opened</span>
+          </span>
+        ) : null}
+        {pct(t.ctor) ? <span className="text-2xs text-text-subtle">{pct(t.ctor)} CTOR</span> : null}
+        {t.unsubscribes ? <span className="text-2xs text-text-subtle">{num(t.unsubscribes)} unsub</span> : null}
+      </span>
+      <span className="flex flex-wrap gap-x-2 text-2xs text-text-subtle">
+        <span>
+          {r.perAudience.length === 1 ? '1 list' : `${r.perAudience.length} lists`}
+          {r.perAudience.length ? `: ${r.perAudience.map((a) => a.audience ?? 'untagged').join(', ')}` : ''}
+        </span>
+        {/* Opens keep arriving for days — say so rather than presenting a verdict. */}
+        {r.maturing ? <span className="text-staged-content">· day 1, still counting</span> : null}
+        {unconfident ? <span>· matched by name, not subject</span> : null}
+        {r.unmatchedAudiences.length ? <span>· no campaign found for {r.unmatchedAudiences.join(', ')}</span> : null}
+      </span>
+    </span>
+  );
+}
+
 function Result({ item }: { item: MessageWeekItem }) {
-  if (item.kind === 'email') return <EmptyFine>results live in Braze</EmptyFine>;
+  if (item.kind === 'email') return <EmailResult item={item} />;
   if (item.results?.reach) {
     return (
       <span className="flex items-baseline gap-1.5">
@@ -54,7 +96,8 @@ function Result({ item }: { item: MessageWeekItem }) {
 
 function Row({ item, weekHref }: { item: MessageWeekItem; weekHref: string }) {
   const detailHref = item.kind === 'email'
-    ? null
+    // A count-only email day has no record behind it, so there is nothing to open.
+    ? (item.emailId ? `/studio/comms-calendar/email/${item.emailId}?week=${weekHref}` : null)
     : `/studio/comms-calendar/asset/${item.id}?brand=${item.brand === 'VL' ? 'vl' : 'main'}&week=${weekHref}`;
   const title = detailHref ? (
     <Link href={detailHref} className="hover:underline">{item.title}</Link>

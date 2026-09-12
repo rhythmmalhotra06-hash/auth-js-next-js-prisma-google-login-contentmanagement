@@ -145,5 +145,17 @@ ck('push-only is not ours', !isEmailCampaign(['push'], { m: { channel: 'push' } 
 ck('subject comes from the first email variant that has one',
   subjectOf({ a: { channel: 'push' }, b: { channel: 'email', subject: 'The real subject' } }) === 'The real subject');
 
+// ── 6. The rollup: rates from summed counts, never averaged ──────────────────────────────────
+console.log('\n6. Rolling several lists into one headline');
+// A large list at a poor rate and a small one at a great rate. The mean of the two RATES is
+// 40%; the truth, weighted by size, is 21.8%. Getting this wrong flatters every launch email.
+const big = { sent: 800_000, delivered: 700_000, uniqueOpens: 140_000 };
+const small = { sent: 30_000, delivered: 29_000, uniqueOpens: 20_000 };
+const summedRate = ((big.uniqueOpens + small.uniqueOpens) / (big.delivered + small.delivered)) * 100;
+const meanOfRates = (((big.uniqueOpens / big.delivered) + (small.uniqueOpens / small.delivered)) / 2) * 100;
+ck('the weighted figure is ~21.9%', Math.abs(summedRate - 21.92) < 0.05, summedRate.toFixed(2));
+ck('…and the mean of rates would have said ~44.5%', Math.abs(meanOfRates - 44.48) < 0.1, meanOfRates.toFixed(2));
+ck('they are not close — which is why results.ts sums counts first', Math.abs(summedRate - meanOfRates) > 20);
+
 console.log(`\n${fails === 0 ? 'ALL PASS' : fails + ' FAILURE(S)'}`);
 process.exit(fails === 0 ? 0 : 1);

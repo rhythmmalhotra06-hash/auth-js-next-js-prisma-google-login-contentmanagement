@@ -14,7 +14,6 @@
 import { prisma } from '@/lib/prisma';
 import { timed } from '@/lib/perf/timed';
 import { matchEmail, MATCH_CONFIDENT, type MatchCandidate, type MatchTarget } from './match';
-import type { PlannedEmail } from '@/lib/comms-calendar/emails';
 
 /** Opens keep arriving for days; below this the figure is still counting and must say so. */
 const MATURITY_HOURS = 48;
@@ -116,7 +115,7 @@ async function latestCaptures(fromYmd: string, toYmd: string, windowDays: number
  * matched", which is the same thing they showed before this feature existed.
  */
 export async function getEmailResults(
-  emails: PlannedEmail[],
+  emails: MatchTarget[],
   range: { from: string; to: string },
   opts: { windowDays?: number | null } = {},
 ): Promise<Map<string, EmailResults>> {
@@ -141,19 +140,23 @@ export async function getEmailResults(
   const byId = new Map(rows.map((r) => [r.braze_campaign_id, r]));
   const now = Date.now();
 
+  // One campaign belongs to at most one email: the strongest claim wins, so a shared subject
+  // prefix across a sequence cannot attach the same send to two different days.
+  const claimed = new Map<string, { emailId: string; score: number }>();
   for (const email of emails) {
-    const target: MatchTarget = {
-      id: email.id,
-      title: email.title,
-      subject: email.subject,
-      liveDate: email.liveDate,
-      audiences: email.audiences,
-    };
-    const matches = matchEmail(target, candidates);
+    for (const m of matchEmail(email, candidates)) {
+      const prior = claimed.get(m.candidate.brazeCampaignId);
+      if (!prior || m.score > prior.score) claimed.set(m.candidate.brazeCampaignId, { emailId: email.id, score: m.score });
+    }
+  }
+
+  for (const email of emails) {
+    const target = email;
+    const matches = matchEmail(target, candidates).filter(
+      (m) => claimed.get(m.candidate.brazeCampaignId)?.emailId === email.id,
+    );
     if (!matches.length) continue;
 
-    // One campaign can only belong to one email — the best claim wins, so a shared subject
-    // prefix across a sequence cannot attach the same send to two days.
     const perAudience: AudienceResult[] = [];
     for (const m of matches) {
       const r = byId.get(m.candidate.brazeCampaignId);

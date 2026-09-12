@@ -206,6 +206,7 @@ async function CalendarBody({
             week={week}
             state={brand}
             assetHref={(id) => `/studio/comms-calendar/asset/${id}?brand=${brand}&week=${toYmd(start)}`}
+            emailHref={(id) => `/studio/comms-calendar/email/${id}?week=${toYmd(start)}`}
           />
           <NotDatedBar
             notDated={week.notDated}
