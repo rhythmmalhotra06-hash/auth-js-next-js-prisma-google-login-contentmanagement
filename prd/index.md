@@ -40,30 +40,38 @@
 | [E13.2 · Multimodal Video Review](content-production-management/dna-feedback/multimodal-video-review.md) | feature | discovery | 6/7 | 2026-09-07 |
 | [E13.3 · Performance-Driven Post-Learning Summary](content-production-management/dna-feedback/performance-post-learning-summary.md) | feature | discovery | 6/7 | 2026-09-02 |
 | └ [Technical Design](content-production-management/dna-feedback/technical-design.md) | technical-design | discovery | — | 2026-09-07 |
-| [Content Studio v2](content-studio-v2.md) ‡ | product | discovery | 8/8 | 2026-09-11 |
-| [E-A · Content graph & Publication](content-studio-v2/content-graph-and-publication.md) | epic | discovery | 6/7 | 2026-09-10 |
-| [E-B · Continuous learning engine — first loop](content-studio-v2/continuous-learning-engine.md) § | epic | discovery | 6/7 | 2026-09-11 |
-| [E-C · Unattended data flow & scheduler](content-studio-v2/unattended-data-flow-and-scheduler.md) | epic | discovery | 5/7 | 2026-09-10 |
-| [E-D · Lanes & the v2 IA](content-studio-v2/lanes-and-v2-ia.md) | epic | discovery | 6/7 | 2026-09-11 |
-| [E-E · Agencies & access](content-studio-v2/agencies-and-access.md) | epic | discovery | 5/7 | 2026-09-10 |
+| [Content Studio v2](content-studio-v2.md) ‡ | product | discovery | 8/9 | 2026-09-12 |
+| [E-A · Content graph & Publication](content-studio-v2/content-graph-and-publication.md) | epic | discovery | 6/7 | 2026-09-12 |
+| [E-B · Continuous learning engine — first loop](content-studio-v2/continuous-learning-engine.md) § | epic | resolved | 7/7 | 2026-09-12 |
+| [E-C · Unattended data flow & scheduler](content-studio-v2/unattended-data-flow-and-scheduler.md) | epic | discovery | 5/7 | 2026-09-12 |
+| [E-D · Lanes & the v2 IA](content-studio-v2/lanes-and-v2-ia.md) | epic | discovery | 6/7 | 2026-09-12 |
+| [E-E · Agencies & access](content-studio-v2/agencies-and-access.md) | epic | discovery | 5/7 | 2026-09-12 |
 | [E-F · Airtable sunset](content-studio-v2/airtable-sunset.md) | epic | discovery | 6/7 | 2026-09-10 |
 | [E-G · Caption / distribution loop](content-studio-v2/caption-distribution-loop.md) | epic | discovery | 4/7 | 2026-09-10 |
 | [E-H · Campaign / offer loop](content-studio-v2/campaign-offer-loop.md) | epic | discovery | 4/7 | 2026-09-10 |
-| [E-I · Team agents & the Signal bus](content-studio-v2/team-agents-and-signal-bus.md) | epic | discovery | 4/7 | 2026-09-11 |
+| [E-I · Team agents & the Signal bus](content-studio-v2/team-agents-and-signal-bus.md) | epic | discovery | 5/7 | 2026-09-12 |
 
-_Total: 47 documents, 240/317 sections resolved (76%). E9.8 superseded by E11.C (campaign requests)._
+_Total: 47 documents, 242/318 sections resolved (76%). E9.8 superseded by E11.C (campaign requests)._
 
 ‡ **Content Studio v2 supersedes the Content Production & Management System PRD** for product
 direction (2026-09-10). The June PRD and its epics stay in the index as the record of those
-decisions; its workflow decisions are inherited by v2. v2 is held at `status: discovery` despite
-8/8 because nothing in it may be built until Rhythm approves the real-data prototype (D13, D23).
-On 2026-09-11 the second discovery pass (D56–D84) added **E-I · Team agents & the Signal bus** and
-extended E-B and E-D with the missing workflow pieces and proactive intelligence.
+decisions; its workflow decisions are inherited by v2. On 2026-09-11 the second discovery pass
+(D56–D84) added **E-I · Team agents & the Signal bus** and extended E-B and E-D with the missing
+workflow pieces and proactive intelligence. **On 2026-09-12 the product went from 8/8 to 8/9**: a
+new **Delivery** section (D104, D116, D117, D121–D126, D129 — how slice 1 ships to a `kessel preview`
+link on `v2/slice-1-publication` with `main` untouched) resolved on arrival, while **Users** picked
+up an `[UNRESOLVED]` for O14 (Vidura is a named confirmer and half the Social agent's ownership but
+is not one of D56's ten personas). The Open Questions section now carries plan §5d's O1–O16 table
+verbatim, which is why O6 (closed by D117) and O10 (folded into O5) no longer appear. v2 stays at
+`status: discovery`: the prototype gate (D13, D23) still governs everything outside slice 1.
 
-§ **E-B went from 7/7 `resolved` back to 6/7 `discovery` on 2026-09-11** — not a regression in the
-decided material but an honest recount: the D81 extension (24h anomaly nudge, next-week suggestions)
-added Features whose thresholds and slot cohort the plan does not define. The seven original
-decisions stand unchanged.
+§ **E-B went 7/7 `resolved` → 6/7 `discovery` on 2026-09-11 → 7/7 `resolved` again on 2026-09-12.**
+The 2026-09-11 drop was an honest recount, not a regression: the D81 extension (24h anomaly nudge,
+next-week suggestions) added Features whose anomaly threshold and slot cohort were undefined. Both
+are now defined by decisions taken in the same plan — **D86** (anomaly = goal metric < 50% of the
+same-age cohort median at day 1, n ≥ 8) and the Planning agent's check **L4** (slot = weekday ×
+post type × pillar, n ≥ 3) — so the marker is cleared on the evidence rather than on a new decision.
+D105, D106, D115, D127 and D128 were transcribed into the same epic on 2026-09-12.
 
 † **E11 has no PRD document.** The epic is real and shipped, but its doc was never committed — the
 index row added in `6a2daa4` pointed at `prioritisation-content-engine.md`, which has never existed
