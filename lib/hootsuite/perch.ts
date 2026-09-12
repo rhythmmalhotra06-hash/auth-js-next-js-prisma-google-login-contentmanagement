@@ -358,11 +358,21 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
       let engagements = num(pick(flat, ['engagements', 'engagement', 'totalEngagements', 'interactions']));
       let impressions = num(pick(flat, ['impressions', 'impressionCount']));
       // `post_views` is the Instagram key and it normalises to `postviews`, which never
-      // matched `views` — the single reason `views` was null on all 1,642 stored rows while
-      // `raw` carried the number on 869 of them. Verified 11 Sep 2026 against production.
-      let views = num(pick(flat, ['views', 'post_views', 'video_views', 'videoViews', 'viewCount', 'plays', 'plays_count']));
+      // matched `views` — the reason `views` was null on all 1,642 stored rows while `raw`
+      // carried the number on 869 of them. Verified 11 Sep 2026 against production.
+      //
+      // The key list is deliberately NOT widened here. `reachOf()` is
+      // `views ?? impressions ?? reach`, so persisting the Instagram number into this column
+      // moves every headline on /performance and /studio — that is exactly what migration
+      // 0035 reverted. Widening it would quietly undo the revert one nightly pull at a time.
+      // The number is kept where it already lives, in `raw`, and v2 reads it with viewsOf()
+      // in lib/publications/repository.ts. The day a read path stops preferring the column,
+      // add the keys back here and re-run 0032's UPDATE.
+      let views = num(pick(flat, ['views', 'videoViews', 'viewCount', 'plays']));
       let reach = num(pick(flat, ['reach', 'uniqueReach']));
-      let clicks = num(pick(flat, ['clicks', 'linkClicks', 'postClicks', 'post_clicks']));
+      // `post_clicks` left out for the same reason: components/mow/DayTable.tsx prints clicks
+      // on Vishen's Monday pack, so filling the column on more rows changes that page.
+      let clicks = num(pick(flat, ['clicks', 'linkClicks', 'postClicks']));
 
       // A metric answering with a bare `value` tells us the field via the metric id.
       const bare = num(pick(flat, ['value', 'total', 'count']));
