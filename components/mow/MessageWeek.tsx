@@ -39,9 +39,14 @@ const num = (v: number | null | undefined): string | null =>
 /** An email's numbers, rolled up across its lists. Rates come from summed counts, never averaged. */
 function EmailResult({ item }: { item: MessageWeekItem }) {
   const r = item.emailResults;
-  // Not matched is not zero. Until the Braze pull has a key, or for an email whose subject the
-  // team changed in Braze after planning it, this is the honest line.
-  if (!r || !r.total) return <EmptyFine>no Braze campaign matched</EmptyFine>;
+  // Not matched is not zero — and WHY it is not matched matters. "No campaign matched" claims we
+  // looked and failed; with no key set we never looked, and saying so is the difference between
+  // the reader chasing a subject-line mismatch and the reader asking for a key.
+  if (!r || !r.total) {
+    if (item.emailState === 'not-connected') return <EmptyFine>Braze not connected — no email results yet</EmptyFine>;
+    if (item.emailState === 'no-captures') return <EmptyFine>nothing pulled from Braze for this week yet</EmptyFine>;
+    return <EmptyFine>no Braze campaign matched</EmptyFine>;
+  }
   const t = r.total;
   const unconfident = r.perAudience.some((a) => !a.confident);
   return (

@@ -1,6 +1,6 @@
 # Content Studio v2 — the pivot: review, discovery record, and real-data prototype
 
-**Status:** rev 3 published 11 Sep; **rev 4 planned 12 Sep (§5c): agent contracts + as-is workflow map as documents** → https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079 (awaiting Rhythm's approval). PRD written: `prd/content-studio-v2.md` + 8 epics. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
+**Status:** rev 3 prototype published 11 Sep; **rev 4 planned 12 Sep — §5c agent contracts + as-is workflow map, §5d the twenty decisions that remove developer guesswork** → https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079 (awaiting Rhythm's approval). PRD written: `prd/content-studio-v2.md` + 8 epics. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
 prototype built on REAL data is approved by Rhythm.** This plan's only outputs are (1) the product PRD
 `prd/content-studio-v2.md` (via the `/prd` protocol, discovery already run below), (2) a static
 clickable HTML prototype fed by real Postgres/Airtable exports, published as an Artifact.
@@ -474,11 +474,83 @@ Twelve sections, each a table **state → next · actor · trigger · side effec
 12. **Schedulers** — nine GitHub workflows with real cadences (5-min ticket sync slipping 3–11h; hourly discover/convert/reference; nightly metrics 03:00 and Perch 03:30; Monday clip-learn 03:00, digests Mon/Wed 04:00; manual MOW figures/backfills) + two live Airtable automations + five retired ones still to be disabled.
 Closing section: **the delta** — each v2 desk block / agent check mapped to the as-is row it changes, so nothing in v2 is built on an assumed workflow.
 
-## 6. Order of work on approval (documents only — no code)
-1. Write `Context/workflows-as-is.md` from the twelve sections above (cite every row to file / field id; include the two Airtable automations and the schedule table; end with the delta).
-2. Write the six agent contracts into `prd/content-studio-v2/team-agents-and-signal-bus.md` as Features, using the template — every row filled; thresholds D86 as defaults; footage/coverage thresholds `[UNRESOLVED]` with owners; D93–D100 consequences embedded in the relevant agent. Update the epic's Workflows/Boundaries/Success Criteria; recount.
-3. Update `prd/content-studio-v2.md` Open Questions (footage threshold — Nadir; coverage threshold — Glen; Signal kinds taxonomy proposed: learning · anomaly · blocker · chore · watch · gap · suggestion) and `prd/index.md`.
-4. Plan file: mark rev 4 docs done. No prototype change in this revision.
+## 5d. REV 4 — the twenty decisions that remove the developer's guesswork (12 Sep)
+
+Asked as "what would a developer still have to assume?" and answered. These are binding; anything
+not here and not in §3/§5b/§5c is genuinely open (list at the end).
+
+### The graph
+| # | Decision |
+|---|---|
+| D101 | **Publication identity.** One row per **(account × platform post)**. Key = `platform_post_id`, else the normalized URL. A cross-post to Facebook is its **own row**, never a channel array (IG reports reach, FB clicks, TikTok views — summing inflates ~5×). Stories get rows but are **excluded from cohorts** (ephemeral). A Publication with **no asset** is legal — the 100 unticketed posts — and stays a cohort peer. A post deleted from the platform keeps its last observation, flagged *removed from platform*. |
+| D102 | **Agency scoping** = union of three: the producer/`Source` field names the agency **OR** an agency member created the record **OR** the item was explicitly shared with them. They never see another agency's items; cohort medians reach them anonymised. Implemented once as `scopeFilterFor(access)` and applied in every read. |
+| D109 | **Locales are derived assets.** A DE or ES cut is its own Asset with `derivedFrom → source`, its own ticket and its own publications; it is compared with `@mindvalley.de` peers, never with English, and its learnings attach to its own asset type. **The caption lives on the Publication** (per account, per language) — that is what the editor writes and the social manager polishes; **hook, transcript, offer and CTA live on the Asset**. This resolves the D75 tension the PRD flagged. |
+| D113 | **Identity: add `Party` keyed by email; never refactor `Employee.id`.** Party is the person for access, scoping, ownership, agents and threads (email is already how sessions resolve). `Employee` stays exactly as it is — the Airtable mirror, recId primary key, ~430 references untouched — with a Party link. An offboarded employee's Party survives, so their history, authored threads and learnings do not vanish. |
+| D119 | **Metric retention.** Keep day-1, day-7 and day-30 snapshots **forever**; thin everything else to weekly after 90 days. Raw Perch payloads are kept on retained rows only (they carry the caption, tags and collaborators the matcher needs). |
+
+### The agents
+| # | Decision |
+|---|---|
+| D103 | **Signal lifecycle.** Natural key = `agent + check id + subject node (+ period)`. A re-run **updates** the open Signal, never duplicates it. A Signal **auto-closes** when its condition stops holding (logged as *resolved by data*). Dismissal requires a reason and suppresses that check on that subject for **30 days**. Agents act as a **system actor**, not an `Employee` row. |
+| D120 | **Signal kinds — closed vocabulary of seven**: `learning` (a pattern, n≥8) · `anomaly` (one item far off its cohort) · `blocker` (work cannot proceed) · `chore` (data a human must supply) · `watch` (might be fine, might not) · `gap` (a missing capability — no DNA, no metric source) · `suggestion` (a drafted item for a plan). Adding a kind is a schema change, deliberately. |
+| D105 | **Cohort rules**: exclude the post **itself** from its own median · **organic only** (boosted/paid excluded by Hootsuite tag or ad-account origin, so an editor is never measured against spend) · **rolling 90 days** from that post's own publish date · **no median at all under n=3**, not even a fallback. |
+| D106 | **Rule lifecycle**: activation is **forward-only** (no retroactive flags on tickets already at Review) · editing an active rule creates **version n+1**, the old version retained so past reviews still cite what they applied · two active rules whose evidence points opposite ways surface as a **conflict** on the asset type for the lead · a **contested** rule nobody acts on for **4 weeks auto-archives** with its evidence. |
+| D108 | **Staleness**: always show capture time; **amber after one missed run (>36h)**, **red + "not current" after two (>60h)**. The number stays visible but labelled, and the label propagates into any Signal or Slack DM computed from it. |
+
+### Workflow behaviour
+| # | Decision |
+|---|---|
+| D107 | **Replace the two ticket-creating Airtable automations with a webhook → app endpoint.** The checkboxes stay (the team keeps its habit); the app owns creation, which also fixes a live defect — portal-raised tickets use *Video Team – Non Campaign* while the Airtable script uses *Campaign [Events, etc]*. Idempotent on the source record id. Inbound pull cannot stop until this ships. |
+| D111 | **Sub-tasks are advisory**: unchecked items appear as *missing* in the DNA review's deterministic section (where deliverable-completeness already lives), never block a status change, and are **not synced to Airtable**. |
+| D112 | **Threads**: notify **@mentions + the item's owner**; entries editable for **15 minutes then immutable**; approvals, sends-back and agent Signals are **never** editable — the thread is the decision log. **No sync** to Airtable record comments. Agencies and internal people see the same thread on shared items. |
+| D114 | **Internal visibility = open by default, three exceptions**: per-editor readouts (editor + their asset-type leads + managers/admins, D50) · agency commercial terms (Marisha) · anything inside an agency's scope. `/stakeholder` gets a **real requester filter** with an "All requests" toggle — today it is titled "My requests" and shows the whole company. |
+| D110 | **First cut**: pilot is **Podcast Snippets only** (where the DNA gap and the Jim Kwik thread already sit; Vishen's channels stay barred until proven) · output written back to **the ticket's existing Dropbox folder**, no new storage layer · render cost on the app's Kessel project with a **monthly cap** and an alert. |
+
+### Delivery
+| # | Decision |
+|---|---|
+| D104 | **Rhythm builds alone. Slice 1 = scheduler + Perch mapper + `Publication` + attribution backfill — no new UI.** It puts the join underneath the portal that exists, so every later surface has real data on day one. |
+| D117 | **Scheduler = an external cron service** (cron-job.org or similar) hitting the existing bearer-gated routes. Zero new infra, minute-level accuracy, works today. Kessel's own scheduler can replace it later without touching app code. |
+| D118 | **Backfill everything with a real key, no date floor**: every Perch post (27 Aug onward — all Perch holds), every `VishenVideo` with a published link (185), every Social record with a link, plus caption matches across all released Social records. The repository is useful on day one instead of starting empty. |
+| D115 | **Measurement**: stamp `linkedAt` + `linkTier` on every Publication; nightly coverage snapshot; both 60-day numbers shown on **Connections & data health** with the baseline captured the day slice 1 ships. "Within 24h" = `linkedAt − posted_at ≤ 24h`, measured only on posts that have a Social record. Rule acceptance comes from the Knowledge status history. |
+| D116 | **Cutover, surface by surface**: the v2 route goes live behind the flag; the v1 route redirects **the week after each of that surface's owners has used v2 for a full cycle** — for MOW, after Gareth, Glen and Ramya have each committed once from v2. Both read the same tables throughout, so no data fork. |
+
+### Still open — with owners (nothing else is assumed)
+| # | Question | Owner |
+|---|---|---|
+| O1 | Goal-metric map (D36) confirmation | Gareth |
+| O2 | Short-code convention and where it must appear (utm_content, Hootsuite tag, filename) | Glen + Gareth |
+| O3 | Image-similarity method and threshold for the PROPOSE tier | engineering spike |
+| O4 | Event-tier ranking (open since June) — blocks prioritisation learning | Moniek |
+| O5 | Metabase / Braze / Composio app-side credentials | Glen |
+| O7 | Banner lane taxonomy (E14, held) | Rafi |
+| O8 | Agency invitation model with InfoSec (PAT sharing blocked for Rise Voice's base) | Rhythm + InfoSec |
+| O9 | YouTube Analytics OAuth — the only route to Vishen's 7% CTR benchmark | Glen + Ramya |
+| O11 | Footage-risk threshold (how late is "at risk") | Nadir |
+| O12 | Attribution-coverage threshold that triggers a chore Signal | Glen |
+| O13 | Does a PROPOSE-tier match flip *Scheduled → Live* (D43 vs D76)? | Rhythm |
+| O14 | Vidura is a named confirmer and half the Social agent's ownership but is not one of the ten personas | Rhythm |
+| O15 | Signal retention period (Signals are cheap; threads are the audit trail) | Rhythm |
+| O16 | Second builder, if and when | Rhythm |
+
+## 6. Order of work on approval (documents only — no production code)
+
+1. **`Context/workflows-as-is.md`** — the twelve workflow sections in §5c, each row citing a file path
+   or Airtable field id, plus the schedule table and the two live Airtable automations, ending with
+   the delta (every v2 desk block mapped to the as-is row it changes).
+2. **`prd/content-studio-v2/team-agents-and-signal-bus.md`** — six agent contracts as Features using
+   the §5c template, every row filled or explicitly `n/a`; thresholds D86; Signal kinds D120;
+   lifecycle D103; cadence D89; nudges D87; cost D88; the D93–D100 as-is consequences embedded where
+   they bite. Recount resolution per the skill.
+3. **`prd/content-studio-v2.md` + child epics** — fold in D101–D120: Publication identity and
+   retention into E-A; cohorts, rule lifecycle and measurement into E-B; automations, locales,
+   sub-tasks, threads and visibility into E-D; Party, scoping and invitations into E-E; first-cut
+   pilot into the E12 reference; cutover D116 into the product PRD's Boundaries. Open Questions
+   become the O-table in §5d verbatim, with owners. Update `prd/index.md` totals.
+4. **Plan file** — mark rev 4 documents done. No prototype change in this revision.
+
+The first code slice (D104: scheduler → Perch mapper → `Publication` → attribution backfill) starts
+only after Rhythm approves the prototype. §7 remains the honest sequence behind it.
 
 ---
 
@@ -502,4 +574,15 @@ YouTube CTR/AVD need Analytics API, not Composio/Perch · Metabase allowlist sta
 14 Sep MOW runs on the current portal and must not be destabilised.
 
 ## 9. Verification (rev 4 — documents)
-`Context/workflows-as-is.md`: every state row cites a file path or Airtable field id; the twelve workflows are present; the schedule table matches `.github/workflows/*` cadences; the delta section maps every v2 desk block to an as-is row · the E-I epic: six Features, each with all twelve contract rows filled (or `n/a`), thresholds D86 present, footage/coverage `[UNRESOLVED]` with owners, D93–D100 referenced where they bite; resolution recounted per the skill · `prd/index.md` totals recomputed · no file outside `Context/` and `prd/` touched.
+
+- `Context/workflows-as-is.md`: twelve workflows present; every state row cites a file path or
+  Airtable field id; the schedule table matches `.github/workflows/*`; the delta section maps each
+  v2 desk block to an as-is row.
+- E-I epic: six Features, each with all twelve contract rows answered (or `n/a`); D86 thresholds
+  present; footage and coverage thresholds carry `[UNRESOLVED]` + owner; D93–D100 referenced.
+- Every decision D101–D120 appears in exactly one epic, and the §5d open-questions table matches the
+  product PRD's Open Questions line for line (owners included).
+- `prd/index.md` totals recomputed; nothing written outside `Context/` and `prd/`.
+- Read-back test: a developer opening only `Context/workflows-as-is.md` + the E-I epic can answer,
+  without asking — what creates a ticket, who may change each status, what a Publication's key is,
+  when an agent runs, what it may write, what it must never do, and what happens when a source is stale.

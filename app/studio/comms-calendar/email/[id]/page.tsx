@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyFine, EmptyOwned } from '@/components/ui/Empty';
 import { Skel } from '@/components/ui/Skeletons';
 import { getPlannedEmail } from '@/lib/comms-calendar/emails';
-import { getEmailResults, type AudienceResult, type EmailResults } from '@/lib/braze/results';
+import { getEmailResults, type AudienceResult, type EmailResults, type EmailResultsState } from '@/lib/braze/results';
 
 // Email detail — the counterpart to the asset detail, for the other half of the Mindvalley lane.
 //
@@ -85,9 +85,16 @@ async function Body({ id }: { id: string }) {
   // The send day bounds the search: a campaign is only this email's if it went out around when
   // this email was planned. See lib/braze/match.ts for why the date is a gate, not a score.
   const day = email.liveDate;
-  const results = day
-    ? (await getEmailResults([{ id: email.id, title: email.title, subject: email.subject, liveDate: day, audiences: email.audiences }], { from: day, to: day }).catch(() => new Map())).get(email.id) ?? null
+  const read = day
+    ? await getEmailResults(
+        [{ id: email.id, title: email.title, subject: email.subject, liveDate: day, audiences: email.audiences }],
+        { from: day, to: day },
+      ).catch(() => null)
     : null;
+  const results = read?.byEmail.get(email.id) ?? null;
+  // An undated email was never sent, so there is nothing to look for — a different fact again
+  // from "we looked and found nothing".
+  const state: EmailResultsState = !day ? 'no-captures' : read?.state ?? 'no-captures';
 
   return (
     <>
@@ -147,7 +154,7 @@ async function Body({ id }: { id: string }) {
         </div>
       </div>
 
-      <ResultsSection results={results} planned={email.audiences} />
+      <ResultsSection results={results} planned={email.audiences} state={state} dated={!!day} />
 
       {email.body ? (
         <section>
@@ -161,21 +168,73 @@ async function Body({ id }: { id: string }) {
   );
 }
 
-function ResultsSection({ results, planned }: { results: EmailResults | null; planned: string[] }) {
+/**
+ * The three ways there can be no numbers, said in three different ways.
+ *
+ * Collapsing them into "no campaign matched" was the original sin here: it claims we looked and
+ * failed, so the reader goes hunting for a subject-line mismatch when the real answer is that
+ * the integration has never run.
+ */
+function NoResults({ state, dated }: { state: EmailResultsState; dated: boolean }) {
+  if (state === 'not-connected') {
+    return (
+      <div className="rounded-md border border-staged bg-staged-soft px-4 py-4">
+        <div className="text-[13.5px] font-semibold text-staged-content">Braze is not connected yet</div>
+        <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-text-muted">
+          Email results come from Braze&rsquo;s own API, and the portal has no key for it yet. Once
+          one is set, sends, open rate, CTOR and unsubscribes appear here for every list this email
+          went to — pulled nightly, alongside the social numbers on the week page.
+        </p>
+      </div>
+    );
+  }
+  if (!dated) {
+    return (
+      <div className="rounded-md border border-border-default bg-surface px-4 py-4">
+        <EmptyOwned kind="notSet" owner="no live date, so nothing to look for" />
+        <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-text-muted">
+          Results are found by matching the send date and subject line. Without a date this email
+          cannot be matched to anything Braze sent.
+        </p>
+      </div>
+    );
+  }
+  if (state === 'no-captures') {
+    return (
+      <div className="rounded-md border border-border-default bg-surface px-4 py-4">
+        <EmptyOwned kind="notSet" owner="nothing pulled for this week yet" />
+        <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-text-muted">
+          The nightly Braze pull has not covered these dates. It reaches back a fortnight, so an
+          older email will stay blank unless someone runs it for a wider window.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-md border border-border-default bg-surface px-4 py-4">
+      <EmptyOwned kind="notSet" owner="no Braze campaign matched" />
+      <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-text-muted">
+        Braze campaigns were pulled for this week, but none of them matched this email. Matching
+        is by subject line and send date — there is no shared id between the two systems — so the
+        usual cause is a subject that was changed in Braze after the email was planned here.
+      </p>
+    </div>
+  );
+}
+
+function ResultsSection({ results, planned, state, dated }: {
+  results: EmailResults | null;
+  planned: string[];
+  state: EmailResultsState;
+  dated: boolean;
+}) {
   return (
     <section>
       <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
         What it did
       </h3>
       {!results || !results.total ? (
-        <div className="rounded-md border border-border-default bg-surface px-4 py-4">
-          <EmptyOwned kind="notSet" owner="no Braze campaign matched" />
-          <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-text-muted">
-            Numbers are matched to Braze by subject line and send date — there is no shared id
-            between the two systems. A miss usually means the subject was changed in Braze after
-            the email was planned here, or the nightly pull has not run for this week yet.
-          </p>
-        </div>
+        <NoResults state={state} dated={dated} />
       ) : (
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 rounded-md border border-border-default bg-surface p-[18px] sm:grid-cols-4">

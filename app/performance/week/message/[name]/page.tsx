@@ -81,8 +81,8 @@ async function Body({ anchor, name, weekHref }: { anchor: Date; name: string; we
     const targets = emailTargets(data);
     if (targets.length) {
       const results = await getEmailResults(targets, { from: pack.week.weekStart, to: pack.week.weekEnd })
-        .catch(() => new Map());
-      data = withEmailResults(data, results);
+        .catch(() => null);
+      if (results) data = withEmailResults(data, results.byEmail, results.state);
     }
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);

@@ -14,6 +14,7 @@
 import { prisma } from '@/lib/prisma';
 import { timed } from '@/lib/perf/timed';
 import { matchEmail, MATCH_CONFIDENT, type MatchCandidate, type MatchTarget } from './match';
+import { brazeConfigured } from './client';
 
 /** Opens keep arriving for days; below this the figure is still counting and must say so. */
 const MATURITY_HOURS = 48;
@@ -42,6 +43,20 @@ export interface AudienceResult {
   /** True while the numbers are still moving — under 48h from the send. */
   maturing: boolean;
 }
+
+/**
+ * Why there are no numbers — three different facts that must not wear each other's words.
+ *
+ * Saying "no campaign matched" when no key is configured claims we looked and failed. We never
+ * looked. Whoever reads that goes hunting for a subject-line mismatch that does not exist.
+ */
+export type EmailResultsState =
+  /** No BRAZE_API_KEY. Nothing has ever been pulled. */
+  | 'not-connected'
+  /** Connected, but nothing captured for these dates yet — the nightly pull has not covered them. */
+  | 'no-captures'
+  /** Captures exist; whether this particular email matched one is per-email. */
+  | 'ok';
 
 export interface EmailResults {
   emailId: string;
@@ -118,17 +133,18 @@ export async function getEmailResults(
   emails: MatchTarget[],
   range: { from: string; to: string },
   opts: { windowDays?: number | null } = {},
-): Promise<Map<string, EmailResults>> {
+): Promise<{ byEmail: Map<string, EmailResults>; state: EmailResultsState }> {
   const out = new Map<string, EmailResults>();
-  if (!emails.length) return out;
+  const state: EmailResultsState = brazeConfigured() ? 'ok' : 'not-connected';
+  if (!emails.length) return { byEmail: out, state };
 
   let rows: MetricRow[] = [];
   try {
     rows = await timed('email.results', () => latestCaptures(range.from, range.to, opts.windowDays ?? null));
   } catch {
-    return out;
+    return { byEmail: out, state };
   }
-  if (!rows.length) return out;
+  if (!rows.length) return { byEmail: out, state: state === 'ok' ? 'no-captures' : state };
 
   const candidates: MatchCandidate[] = rows.map((r) => ({
     brazeCampaignId: r.braze_campaign_id,
@@ -221,5 +237,5 @@ export async function getEmailResults(
       unmatchedAudiences: email.audiences.filter((a) => !matchedAudiences.has(a)),
     });
   }
-  return out;
+  return { byEmail: out, state };
 }

@@ -22,7 +22,7 @@
 
 import { splitJammedName } from './derive-week';
 import type { CalendarAsset, CalendarWeek } from '@/lib/comms-calendar/types';
-import type { EmailResults } from '@/lib/braze/results';
+import type { EmailResults, EmailResultsState } from '@/lib/braze/results';
 import type { PackDay } from './week-pack';
 
 export interface MessageWeekItem extends CalendarAsset {
@@ -30,6 +30,8 @@ export interface MessageWeekItem extends CalendarAsset {
   kind: 'post' | 'email' | 'vl';
   /** Braze numbers for an email row, when a campaign matched. Attached by the page, not here. */
   emailResults?: EmailResults | null;
+  /** Why there are none, when there are none — so the row can say the true thing. */
+  emailState?: EmailResultsState;
 }
 
 export interface MessageWeekDay {
@@ -70,14 +72,24 @@ export function emailTargets(mw: MessageWeek): { id: string; title: string; subj
     .map((i) => ({ id: i.emailId!, title: i.title, subject: i.subject ?? null, liveDate: i.date, audiences: i.audiences ?? [] }));
 }
 
-/** Attach Braze results to the email rows, in place of a second pass through the tree. */
-export function withEmailResults(mw: MessageWeek, results: Map<string, EmailResults>): MessageWeek {
-  if (!results.size) return mw;
+/**
+ * Attach Braze results to the email rows, in place of a second pass through the tree.
+ *
+ * `state` rides along even when the map is empty — an email with no numbers still has to say
+ * WHY, and "no campaign matched" is the wrong answer when nothing was ever pulled.
+ */
+export function withEmailResults(
+  mw: MessageWeek,
+  results: Map<string, EmailResults>,
+  state: EmailResultsState = 'ok',
+): MessageWeek {
   return {
     ...mw,
     days: mw.days.map((d) => ({
       ...d,
-      items: d.items.map((i) => (i.kind === 'email' && i.emailId ? { ...i, emailResults: results.get(i.emailId) ?? null } : i)),
+      items: d.items.map((i) =>
+        i.kind === 'email' ? { ...i, emailResults: (i.emailId && results.get(i.emailId)) || null, emailState: state } : i,
+      ),
     })),
   };
 }
