@@ -53,6 +53,29 @@ function toNum(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Views for a metric row — read from the payload, not the column.
+ *
+ * The `views` column is deliberately left null on Perch rows. `reachOf()` in
+ * lib/metrics/social-metric-types.ts is `views ?? impressions ?? reach`, so filling that
+ * column moved every headline on the v1 /performance and /studio surfaces the team uses
+ * today — 943 of 1,588 rows, about 1.39x higher. Migration 0035 reverted the backfill, so
+ * v2 lifts the same number out of `raw` at query time instead: identical figures here, zero
+ * effect there. The column is still honoured when a source does populate it (TikTok does).
+ *
+ * Any caller that wants views MUST select `raw` alongside it.
+ */
+export function viewsOf(row: { views?: unknown; raw?: unknown }): number | null {
+  const column = toNum(row.views);
+  if (column !== null) return column;
+  const metrics = (row.raw as { details?: { metrics?: Record<string, unknown> } } | null)?.details?.metrics;
+  if (!metrics) return null;
+  const ig = metrics.instagram_metrics as { post_views?: unknown } | undefined;
+  const fb = (metrics.facebook_metrics as { insights_metrics?: { post_media_view?: unknown } } | undefined)?.insights_metrics;
+  const tt = metrics.tiktokbusiness_metrics as { video_views?: unknown } | undefined;
+  return toNum(ig?.post_views) ?? toNum(fb?.post_media_view) ?? toNum(tt?.video_views);
+}
+
 function snapshotFrom(rows: Array<{ capturedAt: Date; [k: string]: unknown }>, publishedAt: Date, window: { min: number; max: number }): Snapshot | null {
   const inWindow = rows
     .map((r) => ({ r, ageHours: (r.capturedAt.getTime() - publishedAt.getTime()) / 3_600_000 }))
@@ -62,7 +85,7 @@ function snapshotFrom(rows: Array<{ capturedAt: Date; [k: string]: unknown }>, p
   if (!hit) return null;
   const values: Partial<Record<MetricKey, number>> = {};
   for (const k of Object.keys(METRIC_LABEL) as MetricKey[]) {
-    const v = toNum(hit.r[k]);
+    const v = k === 'views' ? viewsOf(hit.r as { views?: unknown; raw?: unknown }) : toNum(hit.r[k]);
     if (v !== null) values[k] = v;
   }
   return { capturedAt: hit.r.capturedAt, ageHours: Math.round(hit.ageHours), values };
@@ -138,7 +161,7 @@ async function cohortFor(pub: PubWithMetrics): Promise<PubWithMetrics[]> {
       metrics: {
         select: {
           capturedAt: true, views: true, reach: true, engagementRate: true, saves: true,
-          shares: true, comments: true, likes: true, avgWatchSeconds: true,
+          shares: true, comments: true, likes: true, avgWatchSeconds: true, raw: true,
         },
       },
     },
@@ -154,7 +177,7 @@ export async function readoutsFor(publicationId: string): Promise<{ publication:
       metrics: {
         select: {
           capturedAt: true, views: true, reach: true, engagementRate: true, saves: true,
-          shares: true, comments: true, likes: true, avgWatchSeconds: true,
+          shares: true, comments: true, likes: true, avgWatchSeconds: true, raw: true,
         },
       },
     },
@@ -230,7 +253,15 @@ export async function coverage(): Promise<CoverageReport> {
       prisma.publication.count({ where: { confirmed: false, linkTier: { not: null } } }),
       prisma.socialMetric.count(),
       prisma.socialMetric.count({ where: { publicationId: { not: null } } }),
-      prisma.socialMetric.count({ where: { views: { not: null } } }),
+      // Counted out of the payload for the same reason viewsOf() reads it there: the column
+      // is intentionally null on Perch rows, so counting it would report 30 where the data
+      // health is actually ~1,700.
+      prisma.$queryRaw<Array<{ n: bigint }>>`
+        select count(*)::bigint as n from social_metrics
+         where views is not null
+            or raw #>> '{details,metrics,instagram_metrics,post_views}' is not null
+            or raw #>> '{details,metrics,facebook_metrics,insights_metrics,post_media_view}' is not null
+            or raw #>> '{details,metrics,tiktokbusiness_metrics,video_views}' is not null`,
       prisma.socialMetric.count({ where: { avgWatchSeconds: { not: null } } }),
       prisma.socialMetric.findFirst({ orderBy: { capturedAt: 'desc' }, select: { capturedAt: true } }),
       prisma.publication.findMany({
@@ -248,7 +279,9 @@ export async function coverage(): Promise<CoverageReport> {
     orphans: publications - linked,
     linkedWithin24h,
     linkedWithKnownTime: timed.length,
-    metricsTotal, metricsWithPublication, metricsWithViews, metricsWithWatch,
+    metricsTotal, metricsWithPublication,
+    metricsWithViews: Number(metricsWithViews[0]?.n ?? 0),
+    metricsWithWatch,
     lastCaptureAt: last?.capturedAt ?? null,
   };
 }

@@ -8,7 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { emit, type EmitReport } from '@/lib/signals/emit';
 import { gatedCtaContrast, anomalyChecks, dnaGapChecks, stuckWorkChecks, type PostFacts } from '@/lib/signals/checks/cohort';
-import { median, type MetricKey } from '@/lib/publications/repository';
+import { median, viewsOf, type MetricKey } from '@/lib/publications/repository';
 import { captionFromRaw } from '@/lib/performance/attribution';
 
 const DAY1 = { min: 6, max: 48 };
@@ -57,7 +57,8 @@ async function loadPostFacts(): Promise<PostFacts[]> {
 
     const day1: Partial<Record<MetricKey, number>> = {};
     for (const k of METRICS) {
-      const v = num((first as Record<string, unknown>)[k]);
+      // views comes out of `raw`, not the column — see viewsOf(). `raw` is already selected.
+      const v = k === 'views' ? viewsOf(first) : num((first as Record<string, unknown>)[k]);
       if (v !== null) day1[k] = v;
     }
     const collaborators = Array.isArray(first.collaborators)
