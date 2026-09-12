@@ -59,6 +59,14 @@ export interface SocialPost {
   ticketId: string | null;
   ticketStatus: string | null;
   assetLink: string | null;
+  /**
+   * True when a comms day links this post.
+   *
+   * The distinction the meeting cares about: a linked post was PLANNED, an unlinked one merely
+   * happened. 51 of w/c 7 Sep's 72 posts are unlinked, so this is the common case rather than an
+   * edge one, and it is shown rather than used to filter.
+   */
+  linkedToCommsDay?: boolean;
   /** Delivered numbers from Perch. Null means no match, NOT zero. */
   results: {
     reach: number | null;
@@ -228,6 +236,59 @@ const ID_BATCH = 40;
  * seconds on a page load that has to feel instant in a meeting. A week links a few dozen posts,
  * so one or two filtered requests cover it, and with the per-base limiter they run concurrently.
  */
+/**
+ * Every post whose Live Date falls in the week, whether or not the comms calendar links it.
+ *
+ * ── WHY THIS EXISTS ───────────────────────────────────────────────────────────────────────────
+ *
+ * The pack used to resolve posts by following `📣 Social All Assets` links from the comms days.
+ * For w/c 7 Sep that is 24 posts. **72 have a Live Date in that week** — 51 were dated, real, and
+ * invisible to every surface, which made every reach and engagement figure on the page roughly a
+ * third of the truth.
+ *
+ * So the week is now sourced from the DATE and linkage becomes an attribute of each post rather
+ * than the thing that decides whether it exists (decision AD1). The comms day stays the PLAN;
+ * `Live Date` is what actually got scheduled; and a post that is dated but unlinked is itself a
+ * finding the meeting should see, not a record to hide.
+ */
+export async function getSocialPostsForWeek(
+  startYmd: string,
+  endYmd: string,
+  linkedIds: string[] = [],
+): Promise<Map<string, SocialPost>> {
+  const linked = new Set(linkedIds);
+
+  const [perch, res] = await Promise.all([
+    perchByCaption().catch(() => EMPTY_INDEX),
+    listAll(SOCIAL.baseId, SOCIAL.tableId, {
+      // IS_AFTER/IS_BEFORE are exclusive, so widen by a day at each end to make the range inclusive.
+      filterByFormula:
+        `AND(IS_AFTER({Live Date}, "${shiftYmd(startYmd, -1)}"), IS_BEFORE({Live Date}, "${shiftYmd(endYmd, 1)}"))`,
+    }),
+  ]);
+  if (!res.ok) return new Map();
+
+  const out = new Map<string, SocialPost>();
+  for (const r of res.data) {
+    out.set(r.id, { ...toPost(r, perch), linkedToCommsDay: linked.has(r.id) });
+  }
+  // A linked post whose Live Date sits outside the week still belongs to the day that planned it.
+  const strays = linkedIds.filter((id) => !out.has(id));
+  if (strays.length) {
+    for (const [id, p] of await getSocialPosts(strays)) {
+      out.set(id, { ...p, linkedToCommsDay: true });
+    }
+  }
+  return out;
+}
+
+/** Shift a YYYY-MM-DD by whole days, without dragging in a date library. */
+function shiftYmd(ymd: string, days: number): string {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export async function getSocialPosts(ids: string[]): Promise<Map<string, SocialPost>> {
   const wanted = [...new Set(ids)];
   if (!wanted.length) return new Map();

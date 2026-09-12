@@ -22,7 +22,7 @@ import { COMMS_DAY, VL_VIDEOS, VL_MESSAGE_OF_WEEK } from '@/lib/airtable/field-m
 import { weekBounds, weekStartOf, toYmd, weekdayName, addDays } from '@/lib/mow/week';
 import { pickByCoverage, pickGoal, isPlaceholder, meaningful, type CoverageEntry } from '@/lib/mow/coverage';
 import { splitJammedName } from '@/lib/mow/derive-week';
-import { getSocialPosts, type SocialPost } from './social-posts';
+import { getSocialPostsForWeek, type SocialPost } from './social-posts';
 import { getPlannedEmails, type PlannedEmail } from './emails';
 import { deriveChannel } from '@/lib/media/vishen-videos';
 import type { BrandWeekHeader, CalendarAsset, CalendarDay, CalendarWeek } from './types';
@@ -163,8 +163,12 @@ async function buildWeek(weekStart: Date): Promise<CalendarWeek> {
   //
   // The 📣 Social resolution depends only on the comms-day rows, so it starts the moment those
   // land rather than after the slowest of the three — that alone was a full round trip of
-  // avoidable waiting. Only the target week's ids are resolved: the ±2-week window exists for
-  // span detection, and resolving all of it would be a lot of records for rows nothing renders.
+  // avoidable waiting.
+  //
+  // Posts are sourced by LIVE DATE, not by following comms-day links (AD1). Linked-only returned
+  // 24 posts for w/c 7 Sep where 72 were dated that week, so every figure on the pack was about a
+  // third of the truth. The links are still passed in, because whether a post was PLANNED is worth
+  // showing — it just no longer decides whether the post exists.
   const inWeek = (v: unknown): boolean => {
     const d = (str(v) ?? '').slice(0, 10);
     return !!d && d >= toYmd(start) && d <= toYmd(end);
@@ -172,7 +176,11 @@ async function buildWeek(weekStart: Date): Promise<CalendarWeek> {
   const mvPromise = commsDaysBetween(toYmd(from), toYmd(to));
   const inWeekRows = mvPromise.then((rows) => rows.filter((r) => inWeek(r.fields[COMMS_DAY.fields.date])));
   const postsPromise = inWeekRows.then((rows) =>
-    getSocialPosts(rows.flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets]))).catch(() => new Map<string, SocialPost>()),
+    getSocialPostsForWeek(
+      toYmd(start),
+      toYmd(end),
+      rows.flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets])),
+    ).catch(() => new Map<string, SocialPost>()),
   );
   // Emails resolve from the same comms-day rows and in the same wave as the posts — a different
   // table, so the per-base limiter runs them side by side rather than one after the other.
@@ -414,6 +422,15 @@ export function assembleWeek({
   // ── Mindvalley lane ───────────────────────────────────────────────────────
   // Linked Emails / Social arrive as recIds; resolving every title would be extra round-trips for
   // rows the meeting reads as volume, so the count shows and the titles stay one click away.
+  // Posts indexed by their own Live Date, so a day renders what actually went out that day.
+  // Built once rather than per-day: the loop runs seven times and this is a single pass.
+  const postsByDate = new Map<string, SocialPost[]>();
+  for (const p of posts.values()) {
+    if (!p.liveDate) continue;
+    postsByDate.set(p.liveDate, [...(postsByDate.get(p.liveDate) ?? []), p]);
+  }
+  const postsOnDay = (ymd: string): SocialPost[] => postsByDate.get(ymd) ?? [];
+
   const mvByDay = new Map<string, { assets: CalendarAsset[]; overflow: number }>();
   const mvWindow: MvDay[] = [];
   // Uncapped, for the post grid. The lanes below cap at MV_INLINE.
@@ -475,9 +492,11 @@ export function assembleWeek({
       });
     }
     // Real posts, one row each — title, platform, and results where Perch matched.
-    for (const id of socials) {
-      const p = posts.get(id);
-      if (!p) continue;
+    //
+    // Placed by the post's OWN Live Date rather than by which comms day links it (AD1). The two
+    // usually agree; when they do not, the date is what actually happened and the link is what was
+    // planned. Sourcing by link alone hid 51 of this week's 72 posts.
+    for (const p of postsOnDay(day)) {
       assets.push({
         id: p.id,
         title: p.title,
@@ -492,6 +511,7 @@ export function assembleWeek({
         results: p.results
           ? { reach: p.results.reach, engagements: p.results.engagements, multiAccount: p.results.multiAccount }
           : null,
+        linkedToCommsDay: p.linkedToCommsDay ?? false,
         ...perAsset,
       });
     }

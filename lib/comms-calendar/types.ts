@@ -40,6 +40,14 @@ export interface CalendarAsset {
   /** Post artwork, where the record carries an attachment (62% of them). */
   imageUrl?: string | null;
   /**
+   * True when a comms day links this post — i.e. it was PLANNED, not merely published.
+   *
+   * 51 of w/c 7 Sep's 72 posts are unlinked, so this is the common case. The page shows the
+   * distinction rather than filtering on it: the pack used to render only linked posts and
+   * therefore reported about a third of the week's real reach.
+   */
+  linkedToCommsDay?: boolean;
+  /**
    * For an EMAIL row: the 📧 Emails recId, when the day actually linked the record.
    *
    * A day can also declare emails by a bare `No. of Emails` count with nothing linked — three of

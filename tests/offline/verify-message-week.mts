@@ -34,14 +34,18 @@ const mvRows = [
     [C.fields.noOfEmails]: 1, [C.links.socialAllAssets]: ['a'] } },
 ];
 type P = import('@/lib/comms-calendar/social-posts').SocialPost;
-const post = (id: string, title: string, results: P['results'], publishedUrl: string | null = null): P => ({
-  id, title, channels: ['IG: MV'], platforms: ['Instagram'], status: null, liveDate: null, imageUrl: null,
+// Posts now carry their own Live Date, because that — not the comms-day link — is what places
+// them on a day (AD1). `liveDate` was null here while placement followed links, which is why the
+// fixture needed updating alongside the change.
+const post = (id: string, title: string, liveDate: string, results: P['results'], publishedUrl: string | null = null): P => ({
+  id, title, channels: ['IG: MV'], platforms: ['Instagram'], status: null, liveDate, imageUrl: null,
   publishedUrl, editor: null, ticketId: null, ticketStatus: null, assetLink: null, results,
+  linkedToCommsDay: true,
 });
 const posts = new Map<string, P>([
-  ['a', post('a', 'Regan Hillyer — the manifesting shift', { reach: 91700, engagements: 34600, posts: 1, multiAccount: false }, 'https://instagram.com/p/x')],
-  ['b', post('b', 'Paul McKenna — BLISS reel', null)],
-  ['c', post('c', 'Jim Kwik teaser', { reach: 500, engagements: 20, posts: 1, multiAccount: false })],
+  ['a', post('a', 'Regan Hillyer — the manifesting shift', '2026-09-07', { reach: 91700, engagements: 34600, posts: 1, multiAccount: false }, 'https://instagram.com/p/x')],
+  ['b', post('b', 'Paul McKenna — BLISS reel', '2026-09-07', null)],
+  ['c', post('c', 'Jim Kwik teaser', '2026-09-08', { reach: 500, engagements: 20, posts: 1, multiAccount: false })],
 ]);
 const week = assembleWeek({ anchor: utcDay('2026-09-09'), vlRows, msgRows, mvRows, posts });
 
@@ -52,10 +56,18 @@ ck('seven days always', ea.days.length === 7);
 ck('Mon: email first, then two resolved posts', day('2026-09-07').items.map((i) => i.kind).join(',') === 'email,post,post', day('2026-09-07').items.map((i) => i.kind).join(','));
 ck('Mon: the unresolved social id is not invented', !day('2026-09-07').items.some((i) => i.id === 'zzz'));
 ck('Tue: nothing — Jim Kwik is its own message', day('2026-09-08').items.length === 0);
-ck('Wed: count-only email, post a again, and the VL asset', day('2026-09-09').items.map((i) => i.kind).join(',') === 'email,post,vl', day('2026-09-09').items.map((i) => i.kind).join(','));
+// Wednesday's comms day ALSO links post 'a', but a post publishes once and belongs to its own
+// Live Date. Under the old link-based placement it appeared on both Monday and Wednesday, which
+// double-counted it in every figure derived from the week.
+ck('Wed: the count-only email and the VL asset — not post a for a second time',
+   day('2026-09-09').items.map((i) => i.kind).join(',') === 'email,vl', day('2026-09-09').items.map((i) => i.kind).join(','));
+ck('post a appears on exactly ONE day',
+   ea.days.filter((d) => d.items.some((i) => i.id === 'a')).length === 1,
+   ea.days.filter((d) => d.items.some((i) => i.id === 'a')).map((d) => d.date).join());
 ck('the VL asset carries its channel from the link', day('2026-09-09').items.find((i) => i.kind === 'vl')!.channel === 'LinkedIn');
-ck('counts: 3 posts, 2 emails, 1 VL', JSON.stringify([ea.counts.posts, ea.counts.emails, ea.counts.vl]) === '[3,2,1]', JSON.stringify(ea.counts));
-ck('matched counts posts with reach only', ea.counts.matched === 2, String(ea.counts.matched));
+// Two posts, not three: 'a' is no longer counted twice for being linked from two days.
+ck('counts: 2 posts, 2 emails, 1 VL', JSON.stringify([ea.counts.posts, ea.counts.emails, ea.counts.vl]) === '[2,2,1]', JSON.stringify(ea.counts));
+ck('matched counts posts with reach only', ea.counts.matched === 1, String(ea.counts.matched));
 ck('both brands present', ea.brands.sort().join(',') === 'MV,VL');
 ck('results ride along, null stays null', day('2026-09-07').items.find((i) => i.id === 'a')!.results?.reach === 91700 && day('2026-09-07').items.find((i) => i.id === 'b')!.results === null);
 ck('the live link rides along', day('2026-09-07').items.find((i) => i.id === 'a')!.publishedUrl === 'https://instagram.com/p/x');
