@@ -1,0 +1,24 @@
+name: MOW propose learnings
+on:
+  workflow_dispatch:
+    inputs:
+      weekOf: { description: 'Any date in the week', required: false }
+      dryRun: { description: 'Compose without writing', type: boolean, default: false }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Propose
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+          WEEK_OF: ${{ github.event.inputs.weekOf }}
+          DRY_RUN: ${{ github.event.inputs.dryRun }}
+        run: |
+          set -euo pipefail
+          q=""
+          [ -n "$WEEK_OF" ] && q="?weekOf=$WEEK_OF"
+          if [ "$DRY_RUN" = "true" ]; then if [ -z "$q" ]; then q="?dryRun=1"; else q="$q&dryRun=1"; fi; fi
+          code=$(curl -sS -o /tmp/r.json -w '%{http_code}' -X POST "$APP_URL/api/mow/learnings/propose$q" -H "Authorization: Bearer $SYNC_SECRET")
+          echo "HTTP $code"; cat /tmp/r.json; echo
+          [ "$code" = "200" ] || exit 1
