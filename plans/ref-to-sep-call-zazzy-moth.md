@@ -1288,84 +1288,105 @@ channels, but it must be **labelled as multi-account**, never presented as one p
 
 ---
 
-## 6G. The Monday runway — what is actually left (checked 12 Sep)
+## 6H. What the live asset page exposed (12 Sep) — and two things I had wrong
 
 ### Context
 
-Two days out. Asked what remains for Monday, I checked the deployed app, the production database,
-the workflows and the live Airtable rather than the plan's own checklist — the repo has moved on
-under a parallel workstream (email/Braze results, streaming, a message detail page) and the
-checklist no longer describes reality.
+Opening one real record — `recNzG6qKNeKwFDiR`, *"Pathway:: Manifesting - Carousel"* — produced four
+complaints: no ticket, no insights, no numbers, and a design that does not match the approved
+prototype. Investigating that single record overturned two conclusions I had reported as fact.
 
-**The surfaces are built.** The pack, the calendar (week + month), the post grid, asset and message
-detail, the not-dated tray with write-back, Vishen's card, the assets roll-up, the briefing. What is
-missing is not screens — it is **the content and the delivery**: the numbers are stale, the two
-human sections have never been used, and nothing tells anyone on Monday morning that the page is
-ready.
+### What that record actually holds, versus what the page showed
 
-### Verified state, 12 Sep
+| | In Airtable / Perch | The page showed |
+|---|---|---|
+| Reach · engagements · **views** | **658,808 · 24,173 · 1,361,619** (22 Perch rows) | — |
+| Instagram post URL | present, inside `Notes / Brief` | — |
+| Owner | `Created By` = Vidura | — |
+| Format | `💿 Social Format` = *3a. Insta: Post/Carousel* | — |
+| Purpose | `🧭 Purpose` = *💡 Educate* | — |
+| Jira ticket | `CSR-4645`, inside `Notes / Brief` | — |
 
-| | |
-|---|---|
-| Deployed | `69bfbc1`, success. One local docs commit unpushed. |
-| Figure in the pack | **883 leads — my Mon–Thu partial from 10 Sep.** The week runs to Sun 13. Stale by Monday. |
-| Learnings | **0 on every week.** The section renders its empty state. |
-| Committed weeks | **None, ever.** The commit path has not been exercised against production. |
-| `mow-figures.yml` | Exists and works — **`workflow_dispatch` only, no cron.** Nothing refreshes the figure. |
-| Slack | `SLACK_BOT_TOKEN` set, `postToChannel()` in `lib/notify/slack.ts`, and the social digest is a working route to copy. **No MOW post exists.** |
-| "Next week" | **Not built.** The data is there: 14–20 Sep holds 7 emails and 15 social under *Expert to Authority*, with genuinely thin days (16th empty). |
-| `npm run doctor` | 323 ids resolve; Perch fresh (2,343 rows, 1.8h); credentials clean. |
-| Data-entry gaps | Unchanged: `EVENT_TYPES.loadWeight` empty on all 62; Metabase and YouTube Analytics still unreachable from the app. |
+The caption matches Perch exactly (`until we rewrite the script that says i m not`), so the numbers
+resolve in production — my local probe showed a gap only because it ran without a database.
 
-**One doctor false alarm, worth fixing rather than trusting:** it reported tickets 20.4h stale and
-failed. The sync ran 1.2h ago and succeeded — the inbound pull is cursor-based, so a quiet Saturday
-touches no rows and `synced_at` stays old. The check measures *when a row last changed*, not
-*whether the sync is running*, and on that reading it will cry wolf every weekend.
+### Three findings, two of which correct me
+
+**Z-1 · 71% of the week is invisible.** The pack and calendar read posts LINKED to a comms day.
+For w/c 7 Sep that is **24 posts. 72 have a Live Date in that week** — 51 are dated, real, and
+unreachable from every surface. Every reach and engagement figure on the pack is therefore roughly
+a third of the truth. This is the single largest correctness problem in the build and it sits
+underneath all four complaints.
+
+**Z-2 · The owner column IS derivable. I said it was not.** `Created By` is populated on **285 of
+285** posts since 24 Aug — Glen 29, Philine 21, Vidura 21 for w/c 7 Sep alone. The prototype's day
+table has an OWNER column and I dismissed it as uncomputable without checking this field.
+
+**Z-3 · There is a real format field, and I used a worse one.** `💿 Social Format` is **91%**
+populated with exactly the vocabulary the meeting uses — *Reel < 1 min* 30, *Insta: Post/Carousel*
+12, *Broadcast Message* 11, *Insta: Stories* 7. I built the briefing's format mix on a **29%** title
+parse instead, after concluding no pillar field existed. I checked `🛎️ Content Type` (no variance)
+and stopped looking.
+
+Both were avoidable: I read the field map rather than the live schema, and the field map only ever
+carried the clip engine's subset of this table.
+
+**Still genuinely absent:** ticket linkage. The Jira URL on that record is 1 of 285; `Creative
+Request` sits at ~15% of recent posts. "Not linked to a ticket" is true and is an upstream gap, not
+something the page can resolve.
 
 ### Decisions
 
 | # | Decision |
 |---|---|
-| **AC1** | **Figures arrive by scheduled agent, with a manual dispatch as the fallback.** The agent is the S6 design that was specified and never set up; `mow-figures.yml` is the belt. Someone checks the pack at 07:30 MYT and dispatches if it is empty. |
-| **AC2** | **Build all four remaining gaps** — next week, the Slack post, seeded learnings with one real commit, and the assets rebuild — sequenced by what breaks Monday if it is missing, not by size. |
-| **AC3** | **The dry run is the acceptance test, not a separate task.** Seeding learnings and committing a week IS the rehearsal (S15): it fills the blank sections, proves the committer allowlist against production, and proves a committed snapshot survives a later ingest. If it fails, it fails on Saturday rather than in front of Vishen. |
-| **AC4** | **The uncommitted WIP in the tree is not mine and must not be swept into a deploy** — `lib/publications/`, `prisma/schema.prisma`, the v2 PRDs. Commit only named paths; never `git add -A`. This repo has shipped an outage from a dirty tree before. |
+| **AD1** | **Posts come from Live Date, and linkage becomes a displayed attribute.** All 72 render; the ones with no comms-day link are marked. The comms day stays the PLAN, Live Date is what was scheduled, and the difference between them is itself a finding worth showing. |
+| **AD2** | **`💿 Social Format` replaces the title parse** as the pillar signal (91% vs 29%), and `Created By` becomes the owner. `formatFromTitle` stays only as a fallback for the 9%. |
+| **AD3** | **Extend `SOCIAL` in `field-map.ts` with the fields that exist**, and let `npm run doctor` verify them. The map carried the clip engine's view of an 86-field table, which is why two signals were missed. |
+| **AD4** | **The asset detail is rebuilt to the prototype** — flat labelled field grid, Live Date top-right with `set · 1 of N` — and filled with the real fields above, including the IG link parsed out of `Notes / Brief` where the structured field is empty (14%). |
+| **AD5** | **All four `2a` sections ship**, in this order: day table PLANNED+OWNER → blockers → per-owner briefs → expanded day read. The last is knowingly partial: the CTR-against-7% half needs YouTube Analytics, which we cannot reach, so it renders the platform numbers and names the missing half. |
 
-### Order of work, by what breaks Monday
+### AD0 · Branching — MOW work stays on its own branch
 
-1. **Figures — the agent + the fallback (AC1).** Without it the pack's centrepiece is a stale
-   partial from a Thursday. The agent follows `scripts/mow-ingest-agent.md` verbatim; its four
-   guards are the difference between $6,855 and $504,748, and between a real week and a truncated
-   one. `brands:["MV"]` stays mandatory — the Metabase questions are not split by brand.
-2. **Seed learnings and commit one week (AC3).** Small, and it is the only thing that exercises
-   `commitWeek` against production. Also the first real content in the pack's two human sections.
-3. **"Next week" on the pack.** Vishen asked for it by name. A second
-   `getCalendarWeekFromAirtable(nextMonday)` read and a render — no new pipeline. Thin days render
-   as owned empties, which is the point: the 16th is blank and someone owns that.
-4. **Slack post Monday morning.** Reuse `postToChannel()` and the social-digest route shape:
-   headline number, what is blocked, a link. Guarded by `SYNC_SECRET`, dispatched on a cron, and
-   **never allowed to block a commit** (S11).
-5. **`/performance/week/assets`.** The one I still have no good answer for. It currently reports
-   which tickets changed status, which is a weaker question than "who made what and how did it do".
-   Rebuild it around that, joining to the posts and their Perch results — the same join the grid
-   already uses.
+v2 is being built in parallel, and the two must not tangle. Earlier in this session my MOW commits
+landed on `v2/slice-1-publication` by accident, which is exactly the mess this avoids.
 
-> **Scope risk, stated rather than quietly absorbed.** Five workstreams, two days, and one of them
-> (the assets rebuild) is a redesign rather than a fix. If something does not land I would expect it
-> to be **5**, and the honest fallback is to leave the page as-is with a line saying what it does
-> and does not answer. Items 1–3 are the ones that change what Vishen sees.
+- **All MOW work goes on `mow/monday-pack`, branched from `main`.** One subject per branch, so the
+  eventual merge is reviewable and nothing of v2's rides along with it.
+- Work happens in the existing `/private/tmp/mow-main` worktree, so the primary checkout stays on
+  v2 with its uncommitted PRD edits untouched.
+- **Check `git branch --show-current` before the first commit of any working session.** That one
+  omission is what caused the tangle.
+
+**The deadline constraint this creates, and how it is handled:** production auto-deploys from
+`main`, so nothing on a feature branch reaches Monday's meeting on its own. Each verified chunk is
+therefore **merged to `main` as it lands** — fast-forward where possible — rather than held until
+Monday in one large merge. The branch keeps the history clean; merging often keeps the deadline
+real. Nothing from `v2/slice-1-publication` is ever pushed to `main` as part of this work.
+
+### Order of work
+
+1. **Live Date sourcing (AD1)** — in `lib/comms-calendar/social-posts.ts` and the calendar reader.
+   Everything else inherits its numbers from this, so it goes first.
+2. **Field map + doctor (AD3)**, then **format/owner (AD2)** through `lib/mow/briefing.ts` and the
+   day table.
+3. **Asset detail rebuild (AD4)** — `app/studio/comms-calendar/asset/[id]/page.tsx`, reusing
+   `getSocialPosts`.
+4. **Blockers**, then **per-owner briefs** (staged→committed per person, reusing `StagedBlock` and
+   the `Learning` pattern), then the **expanded day read**.
+
+> **Scope risk, stated plainly.** Six workstreams against a day and a half, and three of them are
+> new surfaces rather than fixes. If something slips I would expect it to be the per-owner briefs
+> and the expanded day read — items 1–3 are what make the numbers on screen true, and a wrong
+> number in front of Vishen costs more than a missing section.
 
 ### Verification
 
-- Re-run the doctor and confirm the tickets check no longer fails on a quiet day.
-- Dispatch `mow-figures.yml` for w/c 7 Sep with the **complete** week and confirm the pack replaces
-  883 with the full-week figure, still labelled organic social, with email revenue beside it.
-- Commit that week as `ramya@mindvalley.com`; confirm the snapshot holds when a later ingest posts a
-  different number, and that an editor is refused.
-- Load `/performance/week` signed in and read it top to bottom as if it were Monday: briefing, the
-  number, what went out, day by day, learnings, next week, commit bar. One gold element.
-- Post the Slack message with `dryRun` first and read it as text — it is the only part of Monday
-  most people will actually see.
+- Count posts on the pack for w/c 7 Sep and confirm **72**, not 24, with unlinked ones marked.
+- Open `recNzG6qKNeKwFDiR` and confirm reach, engagements and views render, alongside owner
+  (Vidura), format, purpose and the Instagram link lifted from `Notes / Brief`.
+- `npm run doctor` resolves every newly mapped field id.
+- Re-run the Slack dry run and confirm the link is the deployed host, not `localhost:8080`.
+- Compare the rebuilt asset page against `screenshots/5b-asset-detail.png` side by side.
 
 ---
 
