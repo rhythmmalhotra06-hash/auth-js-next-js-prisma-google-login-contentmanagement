@@ -47,6 +47,10 @@ export interface CalendarAsset {
    * therefore reported about a third of the week's real reach.
    */
   linkedToCommsDay?: boolean;
+  /** `Created By` — who put the post into the system. 100% populated; the prototype's OWNER. */
+  owner?: string | null;
+  /** `💿 Social Format` — 91% populated. The pillar signal the briefing groups by. */
+  format?: string | null;
   /**
    * For an EMAIL row: the 📧 Emails recId, when the day actually linked the record.
    *

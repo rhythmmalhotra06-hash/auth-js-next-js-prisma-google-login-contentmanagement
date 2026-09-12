@@ -508,6 +508,8 @@ export function assembleWeek({
         live: !!p.publishedUrl || !!p.results,
         platforms: p.platforms,
         imageUrl: p.imageUrl,
+        owner: p.owner,
+        format: p.format,
         results: p.results
           ? { reach: p.results.reach, engagements: p.results.engagements, multiAccount: p.results.multiAccount }
           : null,

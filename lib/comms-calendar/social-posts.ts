@@ -56,6 +56,19 @@ export interface SocialPost {
   publishedUrl: string | null;
   /** From the linked Creative Request, when the post has one (15% of recent rows). */
   editor: string | null;
+  /**
+   * Who put this post into the system. `Created By`, populated on 285 of 285 recent posts.
+   *
+   * NOT the same claim as "who edited it" — that is `editor` above, and it is nearly always
+   * absent. This is the only per-post person the base reliably holds, and it is what the
+   * prototype's OWNER column shows.
+   */
+  owner: string | null;
+  /** `💿 Social Format` — 91% populated, and the vocabulary the meeting actually uses. */
+  format: string | null;
+  /** `🧭 Purpose` — Educate | Announcement | Launch. 75%. */
+  purpose: string | null;
+  teamAgency: string | null;
   ticketId: string | null;
   ticketStatus: string | null;
   assetLink: string | null;
@@ -86,6 +99,14 @@ const str = (v: unknown): string | null => {
   if (Array.isArray(v)) return v.length ? str(v[0]) : null;
   return null;
 };
+/** A singleSelect arrives as a bare string or as `{name}` depending on the field. */
+const selectName = (v: unknown): string | null => {
+  if (typeof v === 'string') return v.trim() || null;
+  if (Array.isArray(v)) return v.length ? selectName(v[0]) : null;
+  if (v && typeof v === 'object' && 'name' in v) return String((v as { name: unknown }).name) || null;
+  return null;
+};
+
 const strs = (v: unknown): string[] =>
   Array.isArray(v) ? v.map((x) => (typeof x === 'string' ? x : String((x as { name?: string })?.name ?? ''))).filter(Boolean) : [];
 
@@ -218,6 +239,10 @@ function toPost(r: AirtableRecord, perch: PerchIndex): SocialPost {
     imageUrl: firstImage(f[P.reference], f[P.assetsReferences]),
     publishedUrl: str(f[P.finalPublishedLink]) ?? str(f[P.instagramPublishedLink]),
     editor: str(f[P.editor]) ?? str(f[P.assignedCreative]),
+    owner: (f[P.createdBy] as { name?: string } | undefined)?.name ?? null,
+    format: selectName(f[P.socialFormat]),
+    purpose: selectName(f[P.purpose]),
+    teamAgency: selectName(f[P.teamAgency]),
     ticketId: str(f[SOCIAL.fields.creativeTicketId]),
     ticketStatus: str(f[P.ticketStatusLookup]),
     assetLink: str(f[P.assetLinkLookup]),

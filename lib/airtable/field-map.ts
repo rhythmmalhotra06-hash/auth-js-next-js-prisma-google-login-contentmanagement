@@ -550,10 +550,24 @@ export const SOCIAL = {
     prioStatusLookup: 'fld64iay3SwDuZ3hY', // "Prio. Status (from Creative Request)" (lookup)
     assetLinkLookup: 'fldul5ssC2XaZ8FRL', // "🔗 Asset Link (from Creative Request)" (lookup)
     reference: 'fldq6Q1ZGUJ0EiRkk', // "Reference" (attachments) — the post image
+    // ── Signals that were here all along and the map did not carry ──────────────────────────
+    // This table has 86 fields; the map only ever held the clip engine's slice of it, which is
+    // how two real signals got reported as "not derivable" on 12 Sep. Rates measured the same
+    // day over the 285 posts live since 24 Aug.
+    createdBy: 'fldOK5B3lze2xQUgW', // "Created By" (createdBy) — 100%. THE owner column: Glen 29,
+    // Philine 21, Vidura 21 for w/c 7 Sep. Not who edited it, but who put it into the system,
+    // which is the only per-post person we have and matches the prototype's OWNER column.
+    socialFormat: 'fldo8ICzfKnVyLcTG', // "💿 Social Format" (singleSelect) — 91%, and exactly the
+    // meeting's vocabulary: Reel < 1 min, Insta: Post/Carousel, Broadcast Message, Stories. The
+    // briefing's format mix was built on a 29% title parse before this was found.
+    purpose: 'fldQO9q4bkX3Mi1kj', // "🧭 Purpose" (singleSelect) — 75%. Educate | Announcement | Launch
+    teamAgency: 'fldUyqY0V4l4kWNVl', // "Team/Agency" (singleSelect) — 29%. Internal vs an agency
+    priority: 'fldm2xcWyyZfeyIsa', // "Priority" (rating)
     assetsReferences: 'fld36Go1x7PZ2U7iR', // "Assets/References" (attachments)
   },
   links: {
     shoots: 'fldFhwiHrpaCIgMlV', // → 📹 Shoots (optional source link)
+    mvAuthor: 'fldwpcOQouL9QJ0CU', // → ✍🏻 Authors — 36%. The speaker/author the post features.
     creativeRequest: 'flddCgrgYAcBMFcs9', // → synced mirror of the Creative Services Prio table
     officialCal: 'fld0cCEUWfE3G4iNX', // → 📅 Official Cal (same base, COMMS_OFFICIAL_CAL). Writing it
     // auto-fills the "Name of project (from 📅 Official Cal)" lookup on the row.

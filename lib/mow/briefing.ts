@@ -43,6 +43,10 @@ export interface Briefing {
   /** Format mix from post titles, with the coverage stated rather than implied. */
   formats: { name: string; count: number }[];
   formatCoverage: { named: number; total: number };
+  /** Who posted, by volume. From `Created By`, which is the only reliable per-post person. */
+  owners: { name: string; count: number }[];
+  /** Posts with a Live Date this week that no comms day plans. Dated, real, and unplanned. */
+  unlinked: number;
   /** Reach and engagement per platform, never summed across them. */
   platforms: { platform: string; posts: number; reach: number | null; engagements: number | null }[];
   /** Ready-made lines a human can turn into learnings. Facts only. */
@@ -79,13 +83,23 @@ export function buildBriefing(week: CalendarWeek, days: PackDay[]): Briefing {
     .filter((p) => p.results?.reach)
     .sort((a, b) => (b.results!.reach ?? 0) - (a.results!.reach ?? 0))[0];
 
+  // Format comes from `💿 Social Format` — 91% populated and the exact vocabulary the meeting
+  // uses. The title parse below it is the fallback for the rest, and used to be the ONLY source,
+  // which capped this at 29% coverage and invented nothing useful for the other 71%.
   const fmt = new Map<string, number>();
   let named = 0;
   for (const p of week.allPosts) {
-    const f = formatFromTitle(p.title);
+    const f = p.format ?? formatFromTitle(p.title);
     if (!f) continue;
     named++;
     fmt.set(f, (fmt.get(f) ?? 0) + 1);
+  }
+
+  // Who put the week's work into the system. `Created By`, 100% populated — the prototype's OWNER
+  // column, and the thing that makes a day-by-day table nameable rather than anonymous.
+  const owners = new Map<string, number>();
+  for (const p of week.allPosts) {
+    if (p.owner) owners.set(p.owner, (owners.get(p.owner) ?? 0) + 1);
   }
 
   const plat = new Map<string, { posts: number; reach: number; eng: number; anyReach: boolean; anyEng: boolean }>();
@@ -162,6 +176,8 @@ export function buildBriefing(week: CalendarWeek, days: PackDay[]): Briefing {
       : null,
     formats: [...fmt.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
     formatCoverage: { named, total: week.allPosts.length },
+    owners: [...owners.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+    unlinked: week.allPosts.filter((p) => !p.linkedToCommsDay).length,
     platforms: [...plat.entries()]
       .map(([platform, v]) => ({
         platform,

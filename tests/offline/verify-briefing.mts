@@ -62,5 +62,33 @@ console.log('\n6. A day that planned nothing is not a miss');
 const quiet = buildBriefing(noResults, [day('2026-09-04', 0, 0)]);
 ck('no warn fact', !quiet.facts.some((f) => f.tone === 'warn'));
 
+console.log('\n7. The real format field wins over the title parse (AD2)');
+// `💿 Social Format` is 91% populated base-wide and 70 of 72 for w/c 7 Sep; the title convention
+// is 29%. The parse stays only as the fallback for posts the field does not cover.
+const mixed = {
+  allPosts: [
+    { ...post('m1', 'no convention here at all', 100), format: '4. Reel < 1 min' },
+    { ...post('m2', 'Pathway:: Manifesting - Stage Talk - x', null), format: null },
+    { ...post('m3', 'also nothing parseable', null), format: '3a. Insta: Post/Carousel' },
+  ],
+} as unknown as CalendarWeek;
+const b3 = buildBriefing(mixed, [day('2026-09-04', 1, 1)]);
+ck('the field is used when present', b3.formats.some((f) => f.name === '4. Reel < 1 min'));
+ck('the title parse still covers the rest', b3.formats.some((f) => f.name === 'Stage Talk'));
+ck('coverage counts both sources', b3.formatCoverage.named === 3, `${b3.formatCoverage.named}/3`);
+
+console.log('\n8. Owner and unlinked counts');
+const owned = {
+  allPosts: [
+    { ...post('o1', 'a', 10), owner: 'Glen Jason Chittur', linkedToCommsDay: true },
+    { ...post('o2', 'b', null), owner: 'Glen Jason Chittur', linkedToCommsDay: false },
+    { ...post('o3', 'c', null), owner: 'Philine Unterberger', linkedToCommsDay: false },
+  ],
+} as unknown as CalendarWeek;
+const b4 = buildBriefing(owned, [day('2026-09-04', 1, 1)]);
+ck('owners tallied, busiest first', b4.owners[0]?.name === 'Glen Jason Chittur' && b4.owners[0]?.count === 2,
+   JSON.stringify(b4.owners));
+ck('unlinked counted — dated but unplanned', b4.unlinked === 2, String(b4.unlinked));
+
 console.log(`\n${fails === 0 ? 'ALL PASS' : fails + ' FAILURE(S)'}`);
 process.exit(fails === 0 ? 0 : 1);
