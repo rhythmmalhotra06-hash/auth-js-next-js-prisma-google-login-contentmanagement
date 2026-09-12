@@ -10,6 +10,8 @@ import { CommitBar, type CommitTarget } from '@/components/mow/CommitBar';
 import { NextWeek } from '@/components/mow/NextWeek';
 import { getNextWeek } from '@/lib/mow/next-week';
 import { Learnings } from '@/components/mow/Learnings';
+import { Blockers } from '@/components/mow/Blockers';
+import { blockersFor } from '@/lib/mow/blockers';
 import { PostGrid, type PostGridItem } from '@/components/mow/PostGrid';
 import { Briefing } from '@/components/mow/Briefing';
 import { WeekPackSkeleton } from '@/components/ui/Skeletons';
@@ -289,6 +291,25 @@ async function WeekPackBody({ anchor, start, meeting }: { anchor: Date; start: D
               ))}
             </section>
           ) : null}
+
+          {/* ── What is holding the week up. Warning, never red: `blocked` is upstream and
+                 `missed` is work that did not happen (see lib/mow/blockers.ts). ───────────── */}
+          <section>
+            <h2 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+              Blocked upstream
+            </h2>
+            <Blockers
+              blockers={blockersFor({
+                week: pack.week,
+                brands: pack.brandState.map((st) => ({
+                  brand: st.brand,
+                  label: pack.week.headers.find((h) => h.brand === st.brand)?.label ?? st.brand,
+                  hasFigure: (st.smartNumber as { value?: number | null } | null)?.value != null,
+                })),
+                weekHref: toYmd(start),
+              })}
+            />
+          </section>
 
           {/* ── Day by day. Summary here, Glen's read one click down. ───────── */}
           <section>
