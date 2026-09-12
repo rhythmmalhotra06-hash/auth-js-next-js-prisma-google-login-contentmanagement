@@ -571,6 +571,33 @@ unchanged: the team's portal runs the Message of the Week on **Monday 14 Sep** a
 8. **Ending it**: merge the PR and `/v2` lands on the team's URL still allowlisted and unlinked; or
    close it, and the two additive migrations drop cleanly.
 
+### D130 — an additive column is not additive if a read path already prefers it (12 Sep)
+
+D122's refinement said a brand-new nullable column may be backfilled from the row's own `raw`
+because "nothing the live app reads changes". That was wrong, and it showed up in production
+figures the same day. `reachOf()` in `lib/metrics/social-metric-types.ts` is
+`views ?? impressions ?? reach` — it *prefers* `views`. Backfilling the column therefore moved
+every headline on `/performance` and Vishen's `/studio`: 943 of 1,588 30-day rows changed,
+about 1.39x higher (208 → 310, 191 → 241, 301 → 347), and the 30-day total went
+20,719,556 → 40,080,031.
+
+**Rhythm's call: revert, restore yesterday's display exactly.** Migration
+`0035_revert_views_backfill` nulls precisely what 0032 wrote and nothing else — the 30 TikTok
+rows keep their views because they already had them (`pick()` lowercases and strips `_`, so
+`video_views` → `videoviews` matched the old key list; Instagram's `post_views` → `postviews`
+did not, which is the entire bug). Verified after applying: 30-day total back to 20,719,556,
+`views` non-null on 30 rows, watch time still on 933, saves/shares/comments/collaborators still
+on 1,702 — those columns stay because no read path prefers any of them.
+
+v2 reads views out of `raw` at query time instead, via `viewsOf()` in
+`lib/publications/repository.ts` (every caller must select `raw` beside it). The readouts are
+identical — the Manifest Love reel still reads 3,725 — while the pages the team opens on Monday
+read what they read yesterday. Nothing is lost: the numbers remain in `raw`, so 0032's UPDATE
+restores the column the day a read path stops preferring it.
+
+**The rule, corrected:** additive is about *reads*, not writes. Before backfilling any new
+column, grep for every read of that column name — a `??` chain is enough to change a headline.
+
 ### Tooling and where the intelligence actually lands (D126–D128)
 | # | Decision |
 |---|---|
