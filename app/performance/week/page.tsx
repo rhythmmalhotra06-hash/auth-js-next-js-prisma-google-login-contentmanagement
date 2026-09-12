@@ -7,6 +7,8 @@ import { EmptyOwned } from '@/components/ui/Empty';
 import { StagedBlock } from '@/components/ui/StagedBlock';
 import { BigNumber, fmt } from '@/components/ui/BigNumber';
 import { CommitBar, type CommitTarget } from '@/components/mow/CommitBar';
+import { NextWeek } from '@/components/mow/NextWeek';
+import { getNextWeek } from '@/lib/mow/next-week';
 import { Learnings } from '@/components/mow/Learnings';
 import { PostGrid, type PostGridItem } from '@/components/mow/PostGrid';
 import { Briefing } from '@/components/mow/Briefing';
@@ -38,6 +40,32 @@ import { cn } from '@/lib/cn';
 // between "a page appeared" and "the spinner is still going" is most of the perceived speed.
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Next week, streamed separately.
+ *
+ * It is a second full Airtable read, and the week just gone is what the room opens on — so it must
+ * not hold up the part of the page everyone is already looking at.
+ */
+async function NextWeekSection({ anchor }: { anchor: Date }) {
+  let next: Awaited<ReturnType<typeof getNextWeek>>;
+  try {
+    next = await getNextWeek(anchor);
+  } catch {
+    // A forward-looking section failing must never take down the retrospective one.
+    return (
+      <div className="rounded-md border border-border-default bg-surface px-4 py-3 text-xs text-text-muted">
+        Next week could not be read from Airtable just now.
+      </div>
+    );
+  }
+  return (
+    <NextWeek
+      next={next}
+      calendarHref={`/studio/comms-calendar?brand=main&week=${next.weekStart}&view=week`}
+    />
+  );
+}
 
 export default async function WeekPackPage({
   searchParams,
@@ -329,6 +357,16 @@ async function WeekPackBody({ anchor, start, meeting }: { anchor: Date; start: D
               </ul>
             </section>
           ) : null}
+
+          {/* ── Next week: the only part of the meeting that can still change anything ── */}
+          <section>
+            <h2 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+              Next week
+            </h2>
+            <Suspense fallback={<div className="h-24 animate-pulse rounded-md bg-bg-subtle" />}>
+              <NextWeekSection anchor={anchor} />
+            </Suspense>
+          </section>
 
           {pack.brandState.length ? (
             <CommitBar
