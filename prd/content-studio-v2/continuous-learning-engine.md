@@ -2,12 +2,12 @@
 title: 'E-B · Continuous learning engine — first loop: editor + asset-type DNA'
 slug: 'continuous-learning-engine'
 scope: epic
-status: discovery
+status: resolved
 parent: content-studio-v2.md
 children: []
 created: 2026-09-10
-updated: 2026-09-11
-resolution: 6/7
+updated: 2026-09-12
+resolution: 7/7
 ---
 
 # E-B · Continuous learning engine — first loop: editor + asset-type DNA
@@ -18,8 +18,15 @@ resolution: 6/7
 > D2–D9, D12, D14, D15, D17, D32–D42, D47–D50). This is the most fully decided epic in the plan;
 > the sections below write those decisions out. **Extended 2026-09-11** with the proactive
 > intelligence of §5b D81 (brief-from-what-wins at intake for every lane, the 24h anomaly nudge,
-> next-week suggestions); the extension re-opened Features (see the marker there), so the epic
-> returns to `discovery`. No code until the real-data prototype is approved [D23].
+> next-week suggestions); the extension re-opened Features, so the epic returned to `discovery`.
+> No code until the real-data prototype is approved [D23].
+
+> **Extended 2026-09-12** with the rev-4 decisions (plan §5d, §6): **D105** cohort rules, **D106**
+> rule lifecycle, **D115** measurement, **D127** the deterministic half of the engine in slice 1,
+> **D128** what slice 2 carries. Transcription only — no new decisions [D129]. The two definitions
+> the Features marker left open on 2026-09-11 are **now answered** by decisions taken in §5c: the
+> anomaly threshold by **D86** and the slot cohort by the Planning agent's check **L4**, so Features
+> returns to resolved and the epic to `resolved` (7/7).
 
 ## Purpose
 
@@ -82,6 +89,18 @@ by a machine [D67, D81].
 - Cohort = same account × same post type × same age, last 90 days. Asset type is an overlay ("and
   vs 6 other Pathway Organic Snippets"); speaker and campaign are filters, never the base cohort
   [D32].
+- **The four cohort rules that make a median honest** [D105], applied everywhere a cohort is
+  computed — readouts, proposals, anomalies, slot suggestions, agent checks (E-I):
+  1. **Exclude the post itself** from its own median. A post is never part of the number it is
+     being compared against.
+  2. **Organic only.** Boosted and paid posts are excluded, identified by Hootsuite tag or
+     ad-account origin, so an editor is never measured against spend.
+  3. **Rolling 90 days from that post's own publish date** — not from today, so a readout computed
+     later does not silently change its own peer set.
+  4. **No median at all under n = 3**, not even a fallback cohort. Below three peers the surface
+     shows the asset's own numbers and "collecting (k/8)", never a comparison [D12, D33].
+  The n ≥ 8 floor of D12/D33 continues to govern *proposals*; n ≥ 3 is the floor below which **no
+  median is shown at all**.
 - Goal from the Airtable Social *Content Pillar* via the goal map [D5, D36]: Educate → saves +
   watch · Inspire/Entertain → shares + reach · Convert/gated CTA → comments · Announce → reach ·
   caption containing `Comment "X"` overrides to Convert · unmapped → "goal not set".
@@ -114,10 +133,23 @@ by a machine [D67, D81].
 **4. Application** [D40]
 - Active rules apply in DNA review at `Review` and in the brief draft at intake (rule + top-3
   performers cited, editable). Not the clip prompt, not a My-work checklist, in v1.
+- **Activation is forward-only** [D106]: activating a rule never flags tickets already at `Review`.
+  A rule applies from its activation timestamp onward, so no editor's finished work is retroactively
+  marked non-compliant.
 
-**5. Weekly re-score** [D41]
-- Every active rule is re-scored against the last 90 days. If the delta flips sign with n ≥ 8, the
-  rule is flagged *contested* to the lead. Never auto-deactivated.
+**5. Rule lifecycle** [D106, D41] — four behaviours, all of them non-destructive:
+- **Forward-only activation** (above).
+- **Editing an active rule creates version n+1**, and the old version is retained. Past DNA reviews
+  keep citing the version they actually applied, so a review from three weeks ago still reads as it
+  did when the editor received it.
+- **Two active rules whose evidence points opposite ways surface as a conflict** on the asset type,
+  for the lead to resolve. The system does not pick a winner and does not suppress either rule.
+- **Weekly re-score** [D41]: every active rule is re-scored against the last 90 days; if the delta
+  flips sign with n ≥ 8 the rule is flagged *contested* to the lead. It is never auto-deactivated —
+  but a **contested rule nobody acts on for 4 weeks auto-archives, carrying its evidence with it**
+  [D106]. Archiving is the one automatic state change in the lifecycle: it removes the rule from
+  application without deleting it or its history, and it happens only after four weeks of a human
+  seeing the contested flag and doing nothing.
 
 **6. Delivery, built in this order** [D7]
 1. Performance band inside the ticket (readout + proposal endorse/dispute + confirm control).
@@ -143,6 +175,32 @@ all emitted as Signals/drafts by the lane's agent (E-I):
   Tue, Thu–Sun), the Planning agent drafts "what worked in this slot before" from real cohorts,
   marked drafted; a human fills the slot or leaves it an owned empty [D67].
 
+**8. Measuring the engine itself** [D115] — the success criteria below are not estimates; each is a
+query over columns this epic and E-A write.
+
+- Every Publication is stamped with **`linkedAt` and `linkTier`** when it is linked (E-A, D115).
+- A **nightly coverage snapshot** records, per account and per lane, posts published, posts linked,
+  and the split by tier. It lands in the existing `MetricSnapshot` table under the key `v2_coverage`
+  — additive, nothing else reads it [plan §6.6].
+- **"Within 24h" is defined as `linkedAt − posted_at ≤ 24h`**, measured **only on posts that have a
+  Social record**. A post with no Social record was never ticketed work, so counting it would
+  measure the social team's record-keeping rather than the matcher [D115].
+- The **two 60-day numbers** of D14 — attribution coverage ≥ 80% within 24h, and ≥ 10 rules
+  activated from numeric proposals with ≤ 30% rejected — are displayed on **Connections & data
+  health** (E-C), with the **baseline captured the day slice 1 ships** so that improvement is
+  measured from a stamped starting point, not from memory [D115].
+- **Rule acceptance comes from the Knowledge store's status history** — proposed → endorsed/disputed
+  → activated/rejected → contested/archived — not from a separate counter [D115, D106].
+
+**9. What lands when** [D127, D128] — this epic ships in two slices, and the split is by *what needs
+a model*, not by surface.
+
+| | Contents | Constraints |
+|---|---|---|
+| **Slice 1** | The **deterministic half**: cohort maths (workflow 1 with D105's four rules), edit-vs-distribution separation, the gated-CTA / collab / caption-length contrasts at n ≥ 8, the `Signal` table and the seven Signal kinds (E-I, D120), the coverage snapshot. Pure SQL/TS — it is the prototype's `derive.py` ported to TypeScript. | **No Haiku, no Slack, no writes to existing tables** [D127]. The preview link therefore shows a real Signal on a real ticket, not only a coverage number. |
+| **Slice 2** | The **Knowledge store**, the endorse / dispute / activate UI, **Haiku phrasing** [D37] and the **24h Slack nudge** [D47]. | This is where the cost ceiling [D88] and the propose-only ladder [D73] first bite [D128]. |
+| Slice 3 | Brief-from-what-wins (capability #2) and prioritisation learning (capability #3, which needs the widened `TicketEvent` of D94) [D128]. | First cut (E12) and the conversational layer (capability #5) stay on their own tracks. |
+
 ## Boundaries
 
 - Never rank people; no leaderboard anywhere; per-editor views only per D50 [D9].
@@ -150,6 +208,14 @@ all emitted as Signals/drafts by the lane's agent (E-I):
   one line; dead token ⇒ "not captured" [D15].
 - No readout before 24h; no readout on a proposed (unconfirmed) link [D6, D43].
 - No proposal from n < 8 in either quartile, or from a fallback cohort [D12, D33].
+- **No median under n = 3**, anywhere, fallback included; no post in its own cohort; no paid or
+  boosted post in an organic cohort; no cohort window measured from today rather than from the
+  post's own publish date [D105].
+- **No retroactive rule application** — activating a rule never flags work already at `Review`
+  [D106]. No rule is edited in place: an edit is version n+1 and the old version is retained [D106].
+- No automatic resolution of a rule conflict, and no auto-deactivation. The single automatic state
+  change is the 4-week auto-archive of an unattended *contested* rule [D106, D41].
+- **Slice 1 runs no model and sends no Slack**, and writes to no existing table [D127, D122].
 - No cross-account or cross-brand learning [D16]; readouts may fall back cross-account only with
   the label [D33].
 - The model never chooses the pattern and never produces a number [D37].
@@ -161,7 +227,11 @@ all emitted as Signals/drafts by the lane's agent (E-I):
 
 ## Dependencies
 
-- **E-A** — confirmed Publications with `publicationId` on metric rows; ownership per D21.
+- **E-A** — confirmed Publications with `publicationId` on metric rows; ownership per D21; the
+  `linkedAt` / `linkTier` stamps every measurement in workflow 8 reads [D115]; the D101 identity
+  rules (cross-posts as separate rows, stories excluded, orphans as peers) that decide what a cohort
+  contains; the D119 retention set, which is why day-1/7/30 evidence can still be re-read years
+  later while a rule is re-scored.
 - **E-C** — a scheduler that reliably lands the 18–36h and 6.5–7.5-day captures, the Sunday-night
   proposal run and the 24h DM; the Perch mapper fix so views/saves/shares/watch time/post_type/
   collaborators exist as columns.
@@ -197,12 +267,29 @@ all emitted as Signals/drafts by the lane's agent (E-I):
   it renders the owned empty and 0 rule text (snapshot over all lanes) [D81].
 - For each thin day 14–20 Sep the suggestion cites ≥ 1 real publication id and is labelled drafted;
   0 comms-day slots are written by the system (query) [D67, D81].
+- **Cohort integrity** [D105]: 0 cohorts contain their own subject; 0 cohorts contain a post tagged
+  boosted/paid or originating from an ad account; every cohort's window starts 90 days before its
+  subject's `posted_at`; 0 medians rendered with n < 3 (query over rendered readouts).
+- **Lifecycle integrity** [D106]: 0 tickets already at `Review` gain a flag from a rule activated
+  after they got there; every edited rule has a retained predecessor version and every past review
+  cites the version it applied; every asset type with two opposed active rules shows a conflict;
+  every rule *contested* for > 4 weeks with no human action is archived with its evidence attached,
+  and 0 rules are deactivated any other way.
+- **Measurement is queryable, not asserted** [D115]: `linkedAt` and `linkTier` are non-null on 100%
+  of linked Publications; the nightly `v2_coverage` snapshot exists for every day since slice 1
+  shipped; the baseline row carries the ship date; the "within 24h" figure recomputes from
+  `linkedAt − posted_at ≤ 24h` over posts with a Social record and matches what Connections shows.
+- **Slice 1 is model-free** [D127]: token count of the slice-1 checks is 0 on every run; 0 Slack
+  messages are sent by slice-1 code; a diff of tables written by slice 1 contains only `publications`,
+  `signals`, the new nullable `social_metrics` columns and `MetricSnapshot` [D122].
 
 ## Features
 
-In build order [D7]:
+In build order [D7]. Features 1 and 14 are **slice 1** (deterministic, no model, no Slack); features
+3, 5, 7 are **slice 2**; features 9 and 11 are **slice 3** [D127, D128].
 
-1. Cohort + goal-map service (D32–D36) with fallback labelling (D33) and "collecting (k/8)" (D12).
+1. Cohort + goal-map service (D32–D36) with D105's four cohort rules, fallback labelling (D33),
+   "collecting (k/8)" (D12) and no median under n = 3 (D105).
 2. Ticket performance band (readout, edit vs distribution signals, proposal endorse/dispute).
 3. Knowledge store: generalise `DnaReviewRule`; fold in `ClipRule` and `Learning`; scope
    `{lane, assetType, channel, owner}`; record activator.
@@ -212,7 +299,9 @@ In build order [D7]:
 7. 24h Slack DM (5 lines, per-asset-type template) (D47).
 8. Monday digest extension (D48).
 9. Rule application in DNA review at `Review` and in the intake brief draft (D40).
-10. Weekly re-score + *contested* flag (D41).
+10. Weekly re-score + *contested* flag (D41), rule versioning (edit → version n+1, predecessors
+    retained), conflict surfacing on the asset type, and the 4-week auto-archive of an unattended
+    contested rule (D106).
 11. **Brief-from-what-wins at intake for every lane** — extend feature 9's brief draft to all lanes;
     active rules + top-3 performers + subscribed cross-lane Signals; owned empty where a lane has no
     DNA (design first) (D40, D64, D81).
@@ -221,10 +310,19 @@ In build order [D7]:
     separate nudge; Manifest Love as the fixture (D15, D81).
 13. **Next-week suggestions** — for each thin comms-day slot in the coming week, a drafted "what
     worked in this slot before" from real cohorts, on the Vishen / Gareth / Glen desks (D67, D81).
+14. **Measurement plumbing** — `linkedAt` / `linkTier` read paths, the nightly `v2_coverage`
+    snapshot, the stamped baseline, and the two 60-day numbers rendered on Connections & data health
+    (D115).
 
-[UNRESOLVED] Two definitions D81 leaves open: (a) what counts as an *anomaly* at 24h — a
-deterministic flag (collab Pending, "not reported by this platform") is clear, but the numeric
-threshold that makes a below-median goal metric nudge-worthy (bottom quartile? below median with
-n ≥ 8?) is not decided; (b) the *slot cohort* for next-week suggestions — which of weekday × lane ×
-brand × account × post type define "this slot", and whether the n ≥ 8 floor of D12 applies before
-a suggestion may be drafted.
+**The two definitions the 2026-09-11 marker left open are now answered**, both by decisions in plan
+§5c, so this section is resolved:
+
+- **(a) What counts as an anomaly at 24h.** **D86**: the goal metric is **below 50% of the same-age
+  cohort median at day 1, with n ≥ 8** → nudge. The deterministic flags (collab invites Pending,
+  "not reported by this platform") continue to fire regardless of the numeric test, as distribution
+  or data-quality lines rather than anomalies.
+- **(b) The slot cohort for next-week suggestions.** The Planning agent's check **L4** (plan §5c):
+  a slot is **weekday × post type × pillar**, and the floor for drafting a suggestion is **n ≥ 3**,
+  not the n ≥ 8 of D12 — consistent with D105, which forbids a median under n = 3 but does not
+  require eight. Suggestions are drafts for a human to accept, not proposals into the Knowledge
+  store, which is why they sit at the lower floor.

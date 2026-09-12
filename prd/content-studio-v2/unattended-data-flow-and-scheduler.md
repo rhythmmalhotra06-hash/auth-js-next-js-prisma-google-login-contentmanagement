@@ -6,7 +6,7 @@ status: discovery
 parent: content-studio-v2.md
 children: []
 created: 2026-09-10
-updated: 2026-09-10
+updated: 2026-09-12
 resolution: 5/7
 ---
 
@@ -17,6 +17,11 @@ resolution: 5/7
 > Stub created 2026-09-10 from `plans/i-want-to-reimagine-velvety-falcon.md` (§1.4, §1 finding,
 > §4 data flow, §5 screen 10, §7.1–7.2, §7.8; decisions D11, D15, D25, D26, D28, D46, D51). No code
 > until the real-data prototype is approved [D23].
+
+> **Extended 2026-09-12** with the rev-4 delivery decisions (plan §5d, §6): **D117** the scheduler
+> choice that closes O6, **D108** staleness thresholds, **D118** backfill scope. Transcription only
+> — no new decisions [D129]. The scheduler and the Perch mapper fix are **steps 1 and 2 of slice 1**
+> [D104].
 
 ## Purpose
 
@@ -75,9 +80,43 @@ manual entries with "entered by". Nothing is fabricated and nothing stale is sho
 **5. Channels** [D11]: v1 = IG (all MV accounts Perch covers) + FB (Perch, clicks only). v1.1 =
 YouTube, TikTok, LinkedIn/VL — each appears only once its pull exists.
 
-[UNRESOLVED] The scheduler itself is undecided — Kessel cron vs an external scheduler (O6, owner
-Rhythm). The retry/back-off policy and the alerting path when a scheduled pull misses its window
-are not in the plan.
+**6. The scheduler — an external cron service, added alongside GitHub Actions** [D117, plan §6.1].
+O6 is closed. The choice is an **external cron service** (cron-job.org or similar) pointed at the
+**existing bearer-gated routes** — `/api/sync/push`, `/api/sync/pull`, `/api/metrics/perch-pull`.
+Three properties decided it: **zero new infrastructure**, **minute-level accuracy**, and it
+**works today**. Kessel's own scheduler can replace it later without touching application code,
+because the app's side of the contract is just an HTTP route with a secret.
+
+It is **added, not swapped**. Both paths keep running, and both are safe to run together because
+both are idempotent: `drainOutbox` groups by `(entity, entityId)` and the pull is cursored with 90s
+echo suppression. Running both **strictly improves freshness for everyone**, including the Monday
+MOW. `.github/workflows/ticket-sync.yml` is retired only **after** the 14 Sep MOW [D117, plan §6.1].
+
+**7. Staleness — the number stays, the label travels with it** [D108]. Every surface **always shows
+capture time**. Beyond that:
+
+| Age since last successful capture | State |
+|---|---|
+| within one run | normal |
+| **> 36h** (one missed run) | **amber** |
+| **> 60h** (two missed runs) | **red, labelled "not current"** |
+
+The number is **not hidden** when it goes amber or red — hiding it would just make people ask
+elsewhere. What matters is that **the label propagates**: any Signal (E-I) or Slack DM computed from
+a stale number carries the same staleness marker, so nobody receives a confident-looking message
+built on a two-day-old capture [D108, D15].
+
+**8. Backfill: everything, with no date floor** [D118]. When the matcher first runs with a real key
+it processes **every Perch post** (27 Aug onward — all Perch holds), **every `VishenVideo` with a
+published link** (185), **every Social record with a link**, plus **caption matches across all
+released Social records**. There is no "from today forward" cutoff, because a repository that starts
+empty is a repository nobody opens; this way it is useful on day one. The backfill runs behind a new
+bearer-gated route using the existing `requireSyncSecret` guard [plan §6.4].
+
+[UNRESOLVED] The retry / back-off policy when a scheduled pull fails, and how many consecutive
+misses escalate beyond the D108 red label. D108 fixes what the *user* sees and E-I fixes who gets
+told (a Signal to Rhythm when a source is stale > 36h), but the runner's own retry behaviour is not
+in the plan — owner: Rhythm (who owns the scheduler, D104 and D117).
 
 ## Boundaries
 
@@ -90,10 +129,17 @@ are not in the plan.
 - Never fabricate or interpolate a missing capture; a missed window is shown as missed [D15].
 - No new URL shortener or tracking infrastructure in this epic (post-level attribution is a
   short-code question, O2).
+- **No new scheduling infrastructure** — the external cron calls routes that already exist, and
+  GitHub Actions is not removed until after the 14 Sep MOW [D117].
+- **A stale number is never hidden and never shown bare** — it keeps its capture time and carries
+  its amber/red label into every Signal and DM derived from it [D108].
+- **No date floor on the backfill**, and no partial backfill that silently starts at "today"
+  [D118].
 
 ## Dependencies
 
-- O6 — scheduler choice (Rhythm).
+- ~~O6 — scheduler choice~~ **closed by D117**: an external cron service on the existing bearer
+  routes, added alongside GitHub Actions.
 - O5 — who owns the app-side keys for Metabase / Braze / Composio (Glen to confirm).
 - O9 — YouTube Analytics channel OAuth timing and the channel owners.
 - O10 — Braze connector authorisation for the email lane.
@@ -101,8 +147,15 @@ are not in the plan.
   `YOUTUBE_API_KEY`, `scripts/mow-ingest-agent.md` guards, the render service (for `durationSec`
   via ffprobe, D34).
 
-[UNRESOLVED] O5 and O6 are both owner-level decisions this epic cannot start without; the plan
-names candidates but records no decision.
+- The **retention / thinning job** of D119 runs here: keep day-1/7/30 snapshots forever, thin the
+  rest to weekly after 90 days, drop `raw` on thinned rows (the model is E-A's).
+- The existing bearer-gated routes `/api/sync/push`, `/api/sync/pull`, `/api/metrics/perch-pull` and
+  `lib/api/guard.ts`'s `requireSyncSecret` — what the external cron actually calls [D117].
+
+[UNRESOLVED] **O5** — who owns the app-side keys for Metabase, Braze and Composio — is an
+owner-level decision this epic's features 6, 8 and 9 cannot start without; the plan names a
+candidate but records no decision — owner: Glen. (**O6 is now closed** by D117, so the scheduler
+itself no longer blocks features 1–4.)
 
 ## Success Criteria
 
@@ -119,17 +172,34 @@ names candidates but records no decision.
 - Vishen's Monday number equals the Metabase question result for the week, with brand and source
   labelled, on every MOW run.
 - No credential is readable from client code or the repository (secret scan passes).
+- **Both schedulers run without interfering** [D117]: with the external cron and the GitHub
+  workflows both firing, `drainOutbox` produces no duplicate pushes (grouped by
+  `(entity, entityId)`) and the cursored pull's 90s echo suppression produces no duplicate rows —
+  spot-checked over a window where both fired.
+- **Staleness is labelled, not hidden** [D108]: every displayed number carries its capture time; a
+  source last captured > 36h ago renders amber and > 60h renders red with "not current"; 0 Signals
+  or DMs computed from a stale source omit that label.
+- **The backfill has no date floor** [D118]: after it runs, Publications exist for every Perch post,
+  every `VishenVideo` with a published link (185), and every Social record with a link; a query for
+  the earliest Publication returns the earliest post Perch holds, not the deploy date.
 
 ## Features
 
-1. Perch mapper lift + one-off re-map of existing rows.
-2. Scheduler migration off GitHub Actions (per O6) with per-run logging.
+1. Perch mapper lift + one-off re-map of existing rows. **Slice 1, step 2** [D104].
+2. **External cron service on the existing bearer routes, added alongside the GitHub workflows**,
+   with per-run logging; `ticket-sync.yml` retired only after the 14 Sep MOW [D117]. **Slice 1,
+   step 1.**
 3. `external_credentials` store and a pull runner with source/start/finish/rows/errors.
 4. Connections & data health screen (per source: owned / session-only / not connected, last pull,
-   rows, crons exist vs documented) — prototype screen 10.
+   rows, crons exist vs documented) — prototype screen 10 — with **D108's amber/red staleness
+   states** and the **two 60-day numbers with their stamped baseline** [D115]. **Slice 1, step 5.**
 5. YouTube public Data API pull for VL videos with a Published Link.
 6. Metabase REST pull for Q31846 / Q32044 with ingest guards.
 7. LinkedIn manual 24h/7d entry with "entered by".
 8. Braze REST pull for email sends (after O10).
 9. Composio SDK pull where an account is connected (after O5).
 10. YouTube Analytics OAuth for CTR/AVD (after O9).
+11. **No-date-floor backfill** behind a bearer-gated route using `requireSyncSecret` [D118].
+    **Slice 1, step 4.**
+12. **Metric retention job** — keep day-1/7/30 forever, thin the rest to weekly after 90 days, drop
+    `raw` on thinned rows, on the same scheduler [D119].

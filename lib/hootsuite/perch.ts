@@ -254,6 +254,34 @@ export function tagLabels(entry: unknown, depth = 0): string[] {
   return [...new Set(out)];
 }
 
+/**
+ * Post type and collaborators, read from the *structured* `<platform>_metadata` block.
+ *
+ * Deliberately not via `flattenLeaves`: that keeps only the first leaf it meets for a given
+ * key, so an array of five collaborators would collapse into one `username` and one
+ * `invite_status`. Collaborator state is the whole point here — a Pending invite is why a
+ * well-cut reel reaches one audience instead of two, and telling that apart from a weak edit
+ * is the difference between blaming the editor and fixing the distribution.
+ */
+function platformMetadata(entry: unknown): { postType: string | null; collaborators: unknown } {
+  const details = (entry as Json | null)?.details;
+  if (!details || typeof details !== 'object') return { postType: null, collaborators: null };
+  const meta = Object.entries(details as Json)
+    .find(([k]) => k.endsWith('_metadata'))?.[1] as Json | undefined;
+  if (!meta || typeof meta !== 'object') return { postType: null, collaborators: null };
+
+  const postType = typeof meta.post_type === 'string' ? meta.post_type : null;
+  const raw = meta.collaborators;
+  const collaborators = Array.isArray(raw)
+    ? raw
+        .map((c) => (c && typeof c === 'object'
+          ? { username: (c as Json).username ?? null, inviteStatus: (c as Json).invite_status ?? null }
+          : null))
+        .filter(Boolean)
+    : null;
+  return { postType, collaborators: collaborators?.length ? collaborators : null };
+}
+
 /** The first plausible post permalink anywhere in an entry. */
 function findPermalink(entry: unknown, depth = 0): string | null {
   if (depth > 6 || entry === null || typeof entry !== 'object') return null;
@@ -329,8 +357,21 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
       if (rate !== null && rate > 0 && rate <= 1) rate = Math.round(rate * 100 * 1000) / 1000; // fraction → percent
       let engagements = num(pick(flat, ['engagements', 'engagement', 'totalEngagements', 'interactions']));
       let impressions = num(pick(flat, ['impressions', 'impressionCount']));
+      // `post_views` is the Instagram key and it normalises to `postviews`, which never
+      // matched `views` — the reason `views` was null on all 1,642 stored rows while `raw`
+      // carried the number on 869 of them. Verified 11 Sep 2026 against production.
+      //
+      // The key list is deliberately NOT widened here. `reachOf()` is
+      // `views ?? impressions ?? reach`, so persisting the Instagram number into this column
+      // moves every headline on /performance and /studio — that is exactly what migration
+      // 0035 reverted. Widening it would quietly undo the revert one nightly pull at a time.
+      // The number is kept where it already lives, in `raw`, and v2 reads it with viewsOf()
+      // in lib/publications/repository.ts. The day a read path stops preferring the column,
+      // add the keys back here and re-run 0032's UPDATE.
       let views = num(pick(flat, ['views', 'videoViews', 'viewCount', 'plays']));
       let reach = num(pick(flat, ['reach', 'uniqueReach']));
+      // `post_clicks` left out for the same reason: components/mow/DayTable.tsx prints clicks
+      // on Vishen's Monday pack, so filling the column on more rows changes that page.
       let clicks = num(pick(flat, ['clicks', 'linkClicks', 'postClicks']));
 
       // A metric answering with a bare `value` tells us the field via the metric id.
@@ -359,6 +400,7 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
       }
 
       const entryChannel = pick(flat, ['channel', 'network', 'networkType', 'platform', 'socialNetwork', 'profileType']);
+      const meta = platformMetadata(entry);
       rows.push({
         source: 'hootsuite:perch',
         publishedUrl: url,
@@ -371,6 +413,14 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
         engagements,
         engagementRate: rate,
         clicks,
+        saves: num(pick(flat, ['saved', 'saves', 'savedCount'])),
+        shares: num(pick(flat, ['shares', 'shareCount'])),
+        comments: num(pick(flat, ['comments', 'commentCount'])),
+        likes: num(pick(flat, ['likes', 'likeCount', 'reactions'])),
+        avgWatchSeconds: num(pick(flat, ['ig_reels_avg_watch_time', 'average_time_watched', 'avgWatchTime'])),
+        totalWatchSeconds: num(pick(flat, ['ig_reels_video_view_total_time', 'total_time_watched'])),
+        postType: meta.postType,
+        collaborators: meta.collaborators,
         windowDays,
         raw: entry,
       });
@@ -392,6 +442,14 @@ export function extractRows(payload: unknown, windowDays: number | null, channel
       engagements: prev.engagements ?? r.engagements,
       engagementRate: prev.engagementRate ?? r.engagementRate,
       clicks: prev.clicks ?? r.clicks,
+      saves: prev.saves ?? r.saves,
+      shares: prev.shares ?? r.shares,
+      comments: prev.comments ?? r.comments,
+      likes: prev.likes ?? r.likes,
+      avgWatchSeconds: prev.avgWatchSeconds ?? r.avgWatchSeconds,
+      totalWatchSeconds: prev.totalWatchSeconds ?? r.totalWatchSeconds,
+      postType: prev.postType ?? r.postType,
+      collaborators: prev.collaborators ?? r.collaborators,
       publishedUrl: prev.publishedUrl ?? r.publishedUrl,
       channel: prev.channel ?? r.channel,
       // Tags are a SET across a post's several metric entries — union, not last-write-wins,

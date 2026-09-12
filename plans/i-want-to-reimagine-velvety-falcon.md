@@ -1,6 +1,6 @@
 # Content Studio v2 — the pivot: review, discovery record, and real-data prototype
 
-**Status:** rev 3 prototype published 11 Sep; **rev 4 planned 12 Sep — §5c agent contracts + as-is workflow map, §5d the twenty decisions that remove developer guesswork** → https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079 (awaiting Rhythm's approval). PRD written: `prd/content-studio-v2.md` + 8 epics. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
+**Status:** rev 3 prototype published 11 Sep (link below). **Now building: §6 slice 1 on a `kessel preview` link, `main` untouched.** §5c–§5d hold the agent contracts and the twenty decisions that remove developer guesswork. → https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079 (awaiting Rhythm's approval). PRD written: `prd/content-studio-v2.md` + 8 epics. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
 prototype built on REAL data is approved by Rhythm.** This plan's only outputs are (1) the product PRD
 `prd/content-studio-v2.md` (via the `/prd` protocol, discovery already run below), (2) a static
 clickable HTML prototype fed by real Postgres/Airtable exports, published as an Artifact.
@@ -533,24 +533,161 @@ not here and not in §3/§5b/§5c is genuinely open (list at the end).
 | O15 | Signal retention period (Signals are cheap; threads are the audit trail) | Rhythm |
 | O16 | Second builder, if and when | Rhythm |
 
-## 6. Order of work on approval (documents only — no production code)
+## 6. BUILD — slice 1, shipped to a preview link (12 Sep)
 
-1. **`Context/workflows-as-is.md`** — the twelve workflow sections in §5c, each row citing a file path
-   or Airtable field id, plus the schedule table and the two live Airtable automations, ending with
-   the delta (every v2 desk block mapped to the as-is row it changes).
-2. **`prd/content-studio-v2/team-agents-and-signal-bus.md`** — six agent contracts as Features using
-   the §5c template, every row filled or explicitly `n/a`; thresholds D86; Signal kinds D120;
-   lifecycle D103; cadence D89; nudges D87; cost D88; the D93–D100 as-is consequences embedded where
-   they bite. Recount resolution per the skill.
-3. **`prd/content-studio-v2.md` + child epics** — fold in D101–D120: Publication identity and
-   retention into E-A; cohorts, rule lifecycle and measurement into E-B; automations, locales,
-   sub-tasks, threads and visibility into E-D; Party, scoping and invitations into E-E; first-cut
-   pilot into the E12 reference; cutover D116 into the product PRD's Boundaries. Open Questions
-   become the O-table in §5d verbatim, with owners. Update `prd/index.md` totals.
-4. **Plan file** — mark rev 4 documents done. No prototype change in this revision.
+The ask changed from "documents only" to **build it and give me a link to test**. The constraint is
+unchanged: the team's portal runs the Message of the Week on **Monday 14 Sep** and must not move.
 
-The first code slice (D104: scheduler → Perch mapper → `Publication` → attribution backfill) starts
-only after Rhythm approves the prototype. §7 remains the honest sequence behind it.
+### Environment and rules (D121–D124)
+| # | Decision |
+|---|---|
+| D121 | Work on branch **`v2/slice-1-publication`** with an open PR, deployed via **`kessel preview`** (its own URL). `main` auto-deploys to the team's service and is **not touched**; nothing about Monday changes. |
+| D122 | **Write rule** (D-write, from §5d): new tables and new *nullable* columns only. **One refinement, flagged for your call:** a brand-new nullable column may be backfilled from that row's own `raw` payload — nothing the live app reads changes. No existing column is ever rewritten. If you'd rather not write to `social_metrics` at all, the alternative is computing views/watch-time from `raw` at read time: zero writes, slower queries. |
+| D123 | Access: every `/v2/*` route gated by `isV2Allowlisted(email)` — the same shape as `lib/studio/access.ts` (code default + `V2_ALLOWLIST_EMAILS` env override). |
+| D124 | New surfaces live under **`/v2/...`**, so merging the branch to `main` later is inert for the team — the routes exist, nothing links to them, and the allowlist still gates them. |
+
+### How the preview link actually works (verified against the CLI and the repo, 12 Sep)
+
+1. Branch → PR → `kessel preview` builds **that branch** and deploys it as its own Cloud Run
+   revision with its own URL. The team keeps hitting
+   `…auth-js-next-js-prisma-google-login-cont-73a7-…-as.a.run.app`, which auto-deploys from `main`.
+2. **Never run `kessel deploy` during this work** — it targets production *and builds from local
+   disk*, which caused an outage on 2026-08-31. `kessel preview` is the only deploy command here.
+3. The preview serves the whole app (same code, same data) **plus** `/v2/*`. No existing page is
+   modified, so a visitor sees today's portal until they open a `/v2` route.
+4. **Login needs one manual step — D125.** `lib/auth.config.ts:51` sets `trustHost: true`, so the app
+   itself copes with a new hostname; Google OAuth does not — it matches redirect URIs exactly, and the
+   preview host is new. **Agreed flow:** I deploy first, hand Rhythm the exact line
+   `https://<preview-host>/api/auth/callback/google`, and Rhythm (or IT) adds it to the OAuth client's
+   authorised redirect URIs. Production auth is untouched, and the same URI keeps working for every
+   later push to the branch. Sign-in fails with `redirect_uri_mismatch` until that is done — expected,
+   not a bug. This project hit the same thing when the app moved region.
+5. **Env vars are project-level, not per-deployment** (`AUTH_URL`, `NEXT_PUBLIC_URL` and every secret
+   are shared with production). So this slice introduces **no new required env var** except
+   `V2_ALLOWLIST_EMAILS`, which is inert for production because `main` has no `/v2` route.
+6. **Database**: same project ⇒ almost certainly the same `js_next_js_prisma_google_login_dev`.
+   Verified before any migration; this is why D122 is additive-only.
+7. **Refreshing**: push to the branch, run `kessel preview` again — same URL, new build.
+8. **Ending it**: merge the PR and `/v2` lands on the team's URL still allowlisted and unlinked; or
+   close it, and the two additive migrations drop cleanly.
+
+### D130 — an additive column is not additive if a read path already prefers it (12 Sep)
+
+D122's refinement said a brand-new nullable column may be backfilled from the row's own `raw`
+because "nothing the live app reads changes". That was wrong, and it showed up in production
+figures the same day. `reachOf()` in `lib/metrics/social-metric-types.ts` is
+`views ?? impressions ?? reach` — it *prefers* `views`. Backfilling the column therefore moved
+every headline on `/performance` and Vishen's `/studio`: 943 of 1,588 30-day rows changed,
+about 1.39x higher (208 → 310, 191 → 241, 301 → 347), and the 30-day total went
+20,719,556 → 40,080,031.
+
+**Rhythm's call: revert, restore yesterday's display exactly.** Migration
+`0035_revert_views_backfill` nulls precisely what 0032 wrote and nothing else — the 30 TikTok
+rows keep their views because they already had them (`pick()` lowercases and strips `_`, so
+`video_views` → `videoviews` matched the old key list; Instagram's `post_views` → `postviews`
+did not, which is the entire bug). Verified after applying: 30-day total back to 20,719,556,
+`views` non-null on 30 rows, watch time still on 933, saves/shares/comments/collaborators still
+on 1,702 — those columns stay because no read path prefers any of them.
+
+v2 reads views out of `raw` at query time instead, via `viewsOf()` in
+`lib/publications/repository.ts` (every caller must select `raw` beside it). The readouts are
+identical — the Manifest Love reel still reads 3,725 — while the pages the team opens on Monday
+read what they read yesterday. Nothing is lost: the numbers remain in `raw`, so 0032's UPDATE
+restores the column the day a read path stops preferring it.
+
+**The rule, corrected:** additive is about *reads*, not writes. Before backfilling any new
+column, grep for every read of that column name — a `??` chain is enough to change a headline.
+
+### Tooling and where the intelligence actually lands (D126–D128)
+| # | Decision |
+|---|---|
+| D126 | **Do not use `/build-feature`.** Verified: `skills/build-feature/SKILL.md` is hardwired to a pnpm turborepo — it writes to `packages/database/prisma/schema.prisma`, `apps/api/src/domains/`, `apps/web/src/` and verifies with `pnpm turbo build`. This repo is one Next.js app on npm with `prisma/` at the root. Build directly against this repo's own conventions: `DESIGN_SYSTEM.md`, `CLAUDE.md`, and the `backend.ts` / `data.*.ts` / `write.*.ts` dispatch pattern. |
+| D127 | **Slice 1 includes the deterministic intelligence.** Add the `Signal` table and every check that needs no model — cohort readouts, edit-vs-distribution separation, the gated-CTA / collab / caption-length contrasts at n≥8, and the seven Signal kinds (D120). Pure SQL/TS, already computed in the prototype's `derive.py`. **No Haiku, no Slack, no writes to existing tables** in this slice. The preview link therefore shows a real Signal on a real ticket, not only a coverage number. |
+| D128 | **Slice 2 = the Knowledge store + endorse/dispute/activate UI + Haiku phrasing (D37) + the 24h Slack nudge (D47).** This is where the cost ceiling (D88) and the propose-only ladder (D73) first bite. Slice 3 = brief-from-what-wins (cap #2) and prioritisation learning (cap #3, needs the widened `TicketEvent` from D94). First cut (E12) and the conversational layer (cap #5) stay on their own tracks. |
+
+### Intelligence, honestly sequenced
+| Capability (`Context/intelligence-layer.md`) | State | Lands in |
+|---|---|---|
+| #4 AI-assisted DNA feedback | **built and live** (E13 · 16 reviews · decision lock) | — |
+| Clip-rule and DNA-rule learning loops | **built and live** | — |
+| #1 Performance insight that writes back | blocked on the join | **slice 1** (the join + deterministic contrasts) → **slice 2** (proposals a lead can activate) |
+| #2 Brief generation from what wins | needs #1's contrasts + active rules | slice 3 |
+| #3 Prioritisation that learns | blocked on `TicketEvent` recording rank / assignee / prio (D94) | slice 3 |
+| #5 Conversational layer | emergent once the graph exists | last |
+| The six team agents + Signal bus | new | deterministic half in **slice 1**; drafting, nudging and approval in **slice 2** |
+
+### The steps
+
+**1 · Scheduler — added, not swapped.** Point an external cron service at the existing bearer routes
+(`/api/sync/push`, `/api/sync/pull`, `/api/metrics/perch-pull`) **alongside** the GitHub workflows.
+Both paths are idempotent — `drainOutbox` groups by `(entity, entityId)` and the pull is cursored with
+90s echo suppression — so running both is safe and strictly improves freshness for everyone, including
+Monday. Retire `.github/workflows/ticket-sync.yml` only after the MOW. *No code.*
+
+**2 · The Perch mapper — the views bug, found in the code.** `pick()` in `lib/hootsuite/perch.ts:185`
+normalises keys by lowercasing and stripping `_`, so the Instagram payload's **`post_views`** never
+matches the `['views','videoViews','viewCount','plays']` list at line 332. That — not a Hootsuite
+limitation — is why `views` is null on all 1,642 rows while `raw` carries the number on 869 of them.
+Fix: add `post_views` (plus `video_views`, `plays_count`) to that list; add picks for `saved`, `shares`,
+`comments`, `likes`, `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`; read `post_type` and
+`collaborators` from the **structured** path (`details.instagram_metadata`) rather than `flattenLeaves`,
+which keeps only the first leaf of an array and would collapse five collaborators into one.
+Migration `0032_social_metric_engagement` adds the nullable columns and backfills each row from its own
+`raw`. `lib/metrics/social-perf.ts` (`SocialMetricInput`, `ingestSocialMetrics`) carries the new fields.
+
+**3 · `Publication`.** Migration `0033_publication`, per D101: unique on
+`(accountRef, coalesce(platformPostId, normalizedUrl))`; nullable `assetRef` / `ticketAirtableId`
+(orphans are legal); `channel`, `postType`, `publishedAt`, `goal`, `tags[]`,
+`derivedFromPublicationId` (locales and re-cuts, D109), `linkedAt`, `linkTier` (D115),
+`removedFromPlatformAt`. Plus `social_metrics.publication_id` — nullable, indexed, FK.
+
+**4 · The matcher.** `lib/performance/attribution.ts` already holds `normalizeFragment`,
+`captionFingerprint`, `MIN_FRAGMENT_CHARS = 40` and `MIN_MATCH_CHARS = 80` — and has no caller. Wrap it
+in `lib/publications/resolve.ts` implementing D43's tiers: URL / `platform_post_id` → auto ·
+caption ≥ 80 shared normalized chars → auto · transcript-only or image-only → **proposed** · else
+unmatched. Stamp `linkedAt` + `linkTier` on every link. Backfill per D118 (no date floor) behind a new
+bearer route `/api/v2/publications/backfill` using `requireSyncSecret` from `lib/api/guard.ts`.
+
+**5 · The two surfaces that prove it.**
+- **`/v2/work-item/[id]`** — the ticket, plus the performance band: its publications, first-day and
+  day-7 readouts against the cohort (D105: exclude self · organic only · rolling 90 days · no median
+  under n=3), with edit and distribution signals kept apart. The cohort maths is the prototype's
+  `derive.py` ported to TypeScript; reads via `getLatestMetrics` in `lib/metrics/social-perf.ts`.
+- **`/v2/connections`** — every source with its state, last capture and staleness (D108: amber > 36h,
+  red > 60h), plus the two 60-day numbers with the baseline stamped the day this ships (D115).
+
+**5b · `Signal` — the deterministic half of the engine (D127).** Migration `0034_signal`: natural key
+`(agent, checkId, subjectType, subjectId, period)` unique (D103), `kind` constrained to the seven of
+D120, `evidence` JSON (refs · n · delta), `status` open/acknowledged/dismissed/resolved,
+`dismissedReason`, `resolvedBy` (`data` | email), `createdAt`/`updatedAt`. `lib/signals/checks/*.ts`
+holds one pure function per check — each takes the graph, returns `SignalInput[]`, and is unit-testable
+without a database. `lib/signals/emit.ts` upserts on the natural key, auto-closes a Signal whose
+condition no longer holds, and never duplicates. Rendered on the two surfaces below; **no Slack, no
+model, no writes outside the `signals` table** in this slice.
+
+**6 · Nightly coverage snapshot** into the existing `MetricSnapshot` table under a new key
+`v2_coverage` — additive, nothing else reads it.
+
+### Files
+| Change | Path |
+|---|---|
+| mapper fix + new metric fields | `lib/hootsuite/perch.ts`, `lib/metrics/social-perf.ts` |
+| schema + DDL (applied with **`kessel db migrate`**, never `prisma migrate` — the DB is reachable only through Kessel) | `prisma/schema.prisma`, `prisma/migrations/0032_social_metric_engagement/`, `0033_publication/`, `0034_signal/` |
+| new | `lib/publications/{resolve,repository}.ts`, `lib/signals/{emit,repository}.ts`, `lib/signals/checks/*.ts`, `lib/v2/access.ts` |
+| new routes | `app/v2/work-item/[id]/page.tsx`, `app/v2/connections/page.tsx`, `app/api/v2/publications/backfill/route.ts` |
+| reused, not rewritten | `lib/performance/attribution.ts` (the matcher), `lib/api/guard.ts` (bearer), `lib/studio/access.ts` (allowlist pattern), `components/ui/*` (primitives, per `DESIGN_SYSTEM.md`) |
+
+---
+
+### Running in parallel — the PRD catches up (D129)
+The nine epics under `prd/content-studio-v2/` predate today's decisions: **none of them contain
+D101–D128**. A subagent transcribes them into the right epics while the build runs — this is writing,
+not deciding, so `/prd`'s discovery conversation is not re-run; only its conventions are (template
+sections, `[UNRESOLVED]` markers, resolution counts, `prd/index.md`). Mapping: D101/D109/D119 → E-A ·
+D103/D105/D106/D115/D120/D127/D128 → E-B and E-I · D107/D111/D112/D114 → E-D · D102/D113 → E-E ·
+D110 → the E12 reference · D104/D116/D117/D118/D121–D126 → the product PRD's Boundaries and a new
+"Delivery" section. O1–O16 become the Open Questions table verbatim, owners included — they belong to
+Gareth, Glen, Moniek, Nadir, Rafi and InfoSec, not to this build.
 
 ---
 
@@ -573,16 +710,32 @@ two Airtable automations create tickets · `Employee.id` is an Airtable recId (~
 YouTube CTR/AVD need Analytics API, not Composio/Perch · Metabase allowlist stays hardcoded ·
 14 Sep MOW runs on the current portal and must not be destabilised.
 
-## 9. Verification (rev 4 — documents)
+## 9. Verification
 
-- `Context/workflows-as-is.md`: twelve workflows present; every state row cites a file path or
-  Airtable field id; the schedule table matches `.github/workflows/*`; the delta section maps each
-  v2 desk block to an as-is row.
-- E-I epic: six Features, each with all twelve contract rows answered (or `n/a`); D86 thresholds
-  present; footage and coverage thresholds carry `[UNRESOLVED]` + owner; D93–D100 referenced.
-- Every decision D101–D120 appears in exactly one epic, and the §5d open-questions table matches the
-  product PRD's Open Questions line for line (owners included).
-- `prd/index.md` totals recomputed; nothing written outside `Context/` and `prd/`.
-- Read-back test: a developer opening only `Context/workflows-as-is.md` + the E-I epic can answer,
-  without asking — what creates a ticket, who may change each status, what a Publication's key is,
-  when an agent runs, what it may write, what it must never do, and what happens when a source is stale.
+**Before any migration** — confirm what the preview is actually bound to: `kessel status` on the branch,
+and check whether the preview's `DATABASE_URL` is the shared `js_next_js_prisma_google_login_dev`. If it
+is (expected), the additive-only rule D122 is what keeps the live portal safe; if Kessel gives the
+preview its own database, say so and the backfill seeds it instead.
+
+**Build** — `npm run build`, `npm run lint`, `npm run verify` all green before the PR opens.
+
+**Data**
+- `kessel db query "select count(*) from publications"` > 0 after the backfill.
+- `views` non-null on ≈ 869 Instagram rows; `avg_watch_seconds` on ≈ 468.
+- Existing `social_metrics` columns unchanged — spot-check 20 rows captured before and after.
+- Coverage ≈ 55% on `/v2/connections`, with the baseline date stamped.
+
+**Surfaces**
+- `/v2/work-item/recfmrnlmw9pqbgO3` reproduces §2's table exactly: 3,725 views vs 9,735 median
+  (19th of 21), 8s avg watch vs 5s, both collaborator invites Pending shown as a *distribution* signal,
+  not an edit one.
+- At least one `learning` Signal exists with real evidence (the gated-CTA contrast, n=24) and one
+  `anomaly` Signal on that reel; re-running the checks twice **updates** them rather than duplicating
+  (D103's natural key), and a Signal whose condition no longer holds closes itself as *resolved by data*.
+- `lib/signals/checks/*.ts` unit-test green without a database (pure functions over fixtures).
+- A non-allowlisted `@mindvalley.com` account is refused on `/v2/*`.
+
+**Isolation**
+- The team's URL still serves `main`: `kessel status` shows the unchanged production deploy, and the
+  live `/tickets/[id]` page renders exactly as before.
+- `.github/workflows/*` untouched until after Monday.

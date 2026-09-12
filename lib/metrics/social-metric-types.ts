@@ -26,6 +26,24 @@ export interface SocialMetricInput {
   /** Percent, e.g. 5.1 — not a 0–1 fraction. */
   engagementRate?: number | null;
   clicks?: number | null;
+  /**
+   * The engagement breakdown. Perch has always returned these inside
+   * `raw.details.metrics.<platform>_metrics` — 869 of 869 Instagram rows carry `post_views`,
+   * 468 carry `ig_reels_avg_watch_time` — but `pick()` normalises keys by stripping `_`, so
+   * `post_views` never matched the `views` list and every one of them was dropped on the
+   * floor. Storing them is a mapper fix, not a new integration.
+   */
+  saves?: number | null;
+  shares?: number | null;
+  comments?: number | null;
+  likes?: number | null;
+  /** Seconds. Retention is the metric an editor actually controls. */
+  avgWatchSeconds?: number | null;
+  totalWatchSeconds?: number | null;
+  /** Platform's own shape, e.g. INSTAGRAM_REEL — cohorts compare like with like. */
+  postType?: string | null;
+  /** `[{ username, inviteStatus }]`. A Pending invite is why a good cut can miss its audience. */
+  collaborators?: unknown;
   /** 1 = 24h, 30 = last 30d, null/omitted = lifetime. */
   windowDays?: number | null;
   /** Defaults to now. */
