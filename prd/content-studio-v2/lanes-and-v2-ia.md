@@ -6,7 +6,7 @@ status: discovery
 parent: content-studio-v2.md
 children: []
 created: 2026-09-10
-updated: 2026-09-11
+updated: 2026-09-12
 resolution: 6/7
 ---
 
@@ -19,6 +19,11 @@ resolution: 6/7
 > missing workflow pieces from §5b (D69, D75–D80): copy stage, scheduling & went-live, threads, the
 > podcast Episode tree, sub-tasks. No code until the real-data prototype is approved [D23]; the
 > prototype *is* this IA, on real data.
+
+> **Extended 2026-09-12** with the rev-4 workflow decisions (plan §5d): **D107** the Airtable
+> webhook that replaces the two ticket-creating automations, **D111** sub-tasks are advisory,
+> **D112** thread mechanics, **D114** internal visibility and its three exceptions. Transcription
+> only — no new decisions [D129].
 
 ## Purpose
 
@@ -120,12 +125,46 @@ automatically** when Perch or YouTube first sees the post: the matcher (E-A, D43
 records the real first-seen time; there is no human tick. Scheduling *from* the portal (pushing to
 Hootsuite/Braze) is later and out of this epic.
 
-**Threads** [D77]: **one timeline per work item and one per version.** Human comments, approvals and
-sends-back, lane status events (real Airtable status changes while the mirror runs), DNA review
-findings, matcher links and agent Signals (E-I) appear in one stream, oldest to newest, with an
-optional timecode on any entry for video. This is the decision log; agents become visible only here
-and on the "Your agent" desk block [D78]. The `Comment` model from D54 is the human entry type;
-agency-visible threads are row-scoped per E-E.
+**Intake: the webhook replaces the two Airtable automations** [D107]. Today two live Airtable
+automations create Creative Services tickets, and they create them **differently** from the portal:
+a portal-raised ticket carries team service level *Video Team – Non Campaign*, while the
+checkbox-raised one carries *Campaign [Events, etc]* — the same request, two different values,
+depending on which button the person pressed [D96]. The fix is not to delete the checkboxes: **the
+checkboxes stay**, because the team's habit is built on them. What changes is who does the work —
+an **Airtable webhook calls an app endpoint**, and **the app owns ticket creation** for both paths,
+so both produce the same ticket. The endpoint is **idempotent on the source record id**, so a
+replayed or duplicated webhook creates nothing twice. This is also the gate on the sunset: **the
+inbound ticket pull cannot stop until this ships** (E-F) [D107].
+
+**Threads** [D77, D112]: **one timeline per work item and one per version.** Human comments,
+approvals and sends-back, lane status events (real Airtable status changes while the mirror runs),
+DNA review findings, matcher links and agent Signals (E-I) appear in one stream, oldest to newest,
+with an optional timecode on any entry for video. This is the decision log; agents become visible
+only here and on the "Your agent" desk block [D78]. The `Comment` model from D54 is the human entry
+type. The mechanics [D112]:
+
+- **Notifications go to @mentions and the item's owner** — not to everyone who ever commented.
+- **A human entry is editable for 15 minutes, then immutable.** Long enough to fix a typo, short
+  enough that the log cannot be rewritten after someone has read it.
+- **Approvals, sends-back and agent Signals are never editable at all.** They are the decision
+  record; if a decision changes, a new entry says so.
+- **No sync to Airtable record comments** — threads live only in the app, in one place, rather than
+  half here and half in a mirror.
+- **Agencies and internal people see the same thread on a shared item** — there is no hidden
+  internal sub-thread; internal-only discussion belongs on an item the agency cannot see [D102].
+
+**Internal visibility: open by default, three exceptions** [D114]. Inside Mindvalley, anyone may see
+anyone's work — the default is open, because the problem this product solves is that nobody could
+see what was being made. The exceptions are:
+
+1. **Per-editor readouts** — the editor, their asset-type leads, and managers/admins only [D50].
+2. **Agency commercial terms** — Marisha's.
+3. **Anything inside an agency's scope** — the agency's own items, per E-E's scoping predicate
+   [D102].
+
+One consequence is a defect to fix: **`/stakeholder` gets a real requester filter** with an "All
+requests" toggle. Today it is titled "My requests" and shows the whole company's, which is neither
+the default nor an exception — it is simply wrong [D114].
 
 **Podcast Episode tree** [D79]: an **Episode is a parent work item** whose children are the six
 ticket types that exist today for Scaling Wisdom / Jim Kwik — master edit · YouTube upload + show
@@ -139,16 +178,26 @@ source reaches *Clips suggested* [D65].
 checklist per asset type derived from its DNA** — deterministic, and the DNA review at `Review`
 checks the same list. (b) The Video agent **splits a lead's or Vishen's free-text instruction** into
 checklist items, marked drafted; the editor confirms before they count. Editors may add their own
-items. Sub-tasks do not change the ticket's status axes.
+items.
 
-[UNRESOLVED] The email lane is decided at the level of source tables and asset kinds (D51, D53) and
-the copy stage names the *editor* and *social manager* as the two copy roles (D75), but not as an
-email workflow: how a 📧 Send enters the queue (who raises it, which status-axis values apply on
-creation, who is the assignee), and who holds the *Copy draft* / *Polished* roles for an email send.
-Whether Shoots keep their existing board or join the unified queue as a tab is not in the plan.
-D76 auto-confirms *Live* on first sighting by the matcher, but D43 puts transcript- and image-only
-matches at the PROPOSE tier — whether a PROPOSE-tier sighting flips *Scheduled → Live* or waits for
-the confirm is not decided.
+**Sub-tasks are advisory** [D111]. An unchecked item appears as **missing** in the DNA review's
+deterministic section — where deliverable-completeness already lives — and **never blocks a status
+change**. They are **not synced to Airtable**. The checklist is a way for an editor to see what the
+asset type expects, not a second gate on top of the DNA gate; the only thing that blocks → Approved
+remains the DNA review [D93].
+
+[UNRESOLVED] Three things this epic still cannot specify:
+(a) The **email lane as a workflow** — the source tables and asset kinds are decided (D51, D53) and
+the copy stage names the *editor* and *social manager* as its two roles (D75), but not how a 📧 Send
+enters the queue (who raises it, which status-axis values apply on creation, who is the assignee),
+nor who holds *Copy draft* / *Polished* for an email send. D98 records that emails have no code at
+all today and makes reading 📧 Emails the Email agent's first job, which is a read path, not a
+workflow — owner: Ramya (with Rhythm for the queue shape).
+(b) Whether **Shoots keep their existing board or join the unified queue as a tab** — not in the
+plan — owner: Rhythm.
+(c) Whether a **PROPOSE-tier sighting flips *Scheduled → Live*** or waits for the human confirm —
+D76 auto-confirms *Live* on the matcher's first sighting, D43 puts transcript- and image-only
+matches at the PROPOSE tier, and the two have not been reconciled — owner: Rhythm (O13).
 
 ## Boundaries
 
@@ -167,6 +216,17 @@ the confirm is not decided.
 - Publications attach to Episode children, never to the Episode parent [D79].
 - Agent Signals in threads are read-only entries; nothing in a thread is committed by an agent
   [D72, D77].
+- **Thread entries are not synced to Airtable record comments**; the thread lives in one place
+  [D112].
+- **No editing a thread entry after 15 minutes**, and no editing an approval, a send-back or an
+  agent Signal at all [D112].
+- **No hidden internal sub-thread** on an item an agency can see; internal-only discussion belongs
+  on an item outside the agency's scope [D112, D102].
+- **Sub-tasks never block a status change and are never synced to Airtable** [D111].
+- **The Airtable checkboxes are not removed** — only the automation behind them is replaced, and
+  the app's endpoint is idempotent on the source record id [D107].
+- Internal visibility is open by default; the only exceptions are per-editor readouts, agency
+  commercial terms, and an agency's own scope [D114].
 
 ## Dependencies
 
@@ -208,6 +268,18 @@ the confirm is not decided.
 - On #11057 the sub-task list contains the DNA-derived standard items for *Pathway Organic –
   Snippets* plus drafted items marked "drafted by system" until confirmed; the DNA review at
   `Review` evaluates the same standard list (test) [D80].
+- **Sub-tasks are advisory** [D111]: 0 status transitions are blocked by an unchecked sub-task
+  (test over every transition with an incomplete checklist); an unchecked item appears as *missing*
+  in the DNA review's deterministic section; 0 sub-task rows appear in the Airtable push map.
+- **Both intake paths produce the same ticket** [D107]: a portal-raised and a checkbox-raised
+  request for the same asset type produce identical team-service-level values; replaying the same
+  webhook payload twice creates exactly one ticket (idempotency test on the source record id).
+- **Thread mechanics hold** [D112]: an entry is editable for 15 minutes and immutable after; 0
+  approvals, sends-back or agent Signals are editable at any point; notifications on a new entry go
+  only to @mentions and the item owner; 0 thread entries appear in Airtable record comments.
+- **Visibility holds** [D114]: `/stakeholder` defaults to the signed-in requester's own items and
+  shows the whole company only when "All requests" is selected; per-editor readouts are unreadable
+  by anyone outside D50's list; an agency's items are unreadable by another agency (E-E's test).
 
 ## Features
 
@@ -232,4 +304,10 @@ the confirm is not decided.
 15. Podcast Episode tree — parent work item, six child types, roll-up, `#/make/episode/<slug>` →
     `/v2/make/episode/<id>` [D79].
 16. Sub-tasks — DNA-derived standard checklist per asset type + drafted split of free-text
-    instructions with editor confirm; editor-added items; DNA review checks the same list [D80].
+    instructions with editor confirm; editor-added items; DNA review checks the same list and shows
+    unchecked items as *missing*; never blocking, never synced [D80, D111].
+17. **Intake webhook** — an Airtable webhook → app endpoint that replaces the two ticket-creating
+    automations, idempotent on the source record id, with both paths writing the same team service
+    level; the checkboxes stay [D107]. Gates the inbound ticket pull's retirement in E-F.
+18. **Requester filter on `/stakeholder`** — default to the signed-in requester's own items, with an
+    "All requests" toggle [D114].

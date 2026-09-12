@@ -888,6 +888,28 @@ model SocialMetric {
   engagements      Int?
   engagementRate   Decimal? @map("engagement_rate") @db.Decimal(6, 3) // percent, e.g. 5.100
   clicks           Int?
+  /**
+   * The engagement breakdown, and the reason this is a mapper fix rather than a new source.
+   * Perch has always returned these inside `raw.details.metrics.<platform>_metrics`:
+   * `post_views` on 869 of 869 stored Instagram rows, `ig_reels_avg_watch_time` on 468.
+   * None of it was ever read, because `pick()` normalises keys by stripping `_` and
+   * `post_views` therefore never matched the `views` list. Retention (`avgWatchSeconds`) is
+   * the one metric an editor actually controls, so its absence is what kept every readout
+   * about distribution rather than craft.
+   */
+  saves            Int?
+  shares           Int?
+  comments         Int?
+  likes            Int?
+  avgWatchSeconds  Decimal? @map("avg_watch_seconds") @db.Decimal(8, 2) // seconds; TikTok returns 15.63
+  totalWatchSeconds Int?    @map("total_watch_seconds")
+  /** Platform's own shape, e.g. INSTAGRAM_REEL. Cohorts compare like with like (D105). */
+  postType         String?  @map("post_type")
+  /** `[{username, inviteStatus}]`. A Pending invite is a distribution fact, not an edit one. */
+  collaborators    Json?
+  /** Set once a Publication owns this observation (D101). Null on rows that predate it. */
+  publicationId    String?  @map("publication_id") @db.Uuid
+  publication      Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
   windowDays       Int?     @map("window_days") // 1 = 24h, 30 = last 30d, null = lifetime
   capturedAt       DateTime @map("captured_at") @db.Timestamptz
   source           String
@@ -902,7 +924,118 @@ model SocialMetric {
   @@index([vishenVideoId, capturedAt], map: "idx_social_metrics_video")
   @@index([ticketAirtableId, capturedAt], map: "idx_social_metrics_ticket")
   @@index([tags], map: "idx_social_metrics_tags", type: Gin)
+  @@index([publicationId, capturedAt(sort: Desc)], map: "idx_social_metrics_publication")
   @@map("social_metrics")
+}
+
+/**
+ * Publication — the noun that was missing, and the reason `ticket_airtable_id` was set on
+ * 0 of 1,642 metric rows.
+ *
+ * Between "we planned a post" (CommsDay) and "here are its numbers" (SocialMetric) there was
+ * nothing that said *this asset went out on that account at that time*. Attribution was
+ * therefore inferred on every read, by nobody, forever. A Publication is created when the
+ * matcher recognises a post (D43) or when a human logs one, and everything downstream —
+ * readouts, cohorts, learnings — hangs off it.
+ *
+ * One row per (account × platform post), never a channel array [D101]: a cross-post to
+ * Facebook is its own row because Instagram reports reach, Facebook clicks and TikTok views,
+ * and summing them inflates by roughly 5×. A row with no asset or ticket is legal — those are
+ * the ~100 posts the social team made directly, and they stay in cohorts as peers [D45].
+ */
+model Publication {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /** Account handle as the platform reports it, e.g. 'mindvalley', 'mindvalley.de'. */
+  accountRef     String   @map("account_ref")
+  channel        String? // instagram | facebook | tiktok | youtube | linkedin
+  platformPostId String?  @map("platform_post_id")
+  /** Normalized permalink (`normalizeUrl`), so the same post always lands on one key. */
+  publishedUrl   String?  @map("published_url")
+  postType       String?  @map("post_type")
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz
+  /** From the Social record's Content Pillar until a portal field exists [D5, D36]. */
+  goal           String?
+  tags           String[]
+  /** Airtable recIds — the app's own ids for these arrive with the Asset reshape. */
+  ticketAirtableId String? @map("ticket_airtable_id")
+  socialRecordId String?  @map("social_record_id")
+  vishenVideoId  String?  @map("vishen_video_id")
+  /** Locale cuts and re-cuts point at their source [D109, D21]. */
+  derivedFromPublicationId String? @map("derived_from_publication_id") @db.Uuid
+  derivedFrom    Publication?  @relation("PublicationLineage", fields: [derivedFromPublicationId], references: [id], onDelete: SetNull)
+  derivatives    Publication[] @relation("PublicationLineage")
+  /** url | caption | transcript | image | manual — how this link was made [D43]. */
+  linkTier       String?  @map("link_tier")
+  /** When the link was established. `linkedAt − publishedAt ≤ 24h` is the 60-day target [D115]. */
+  linkedAt       DateTime? @map("linked_at") @db.Timestamptz
+  /** A proposed link waits for a human; readouts only go out on confirmed ones [D43, D44]. */
+  confirmed      Boolean  @default(false)
+  confirmedBy    String?  @map("confirmed_by")
+  /** The post is gone from the platform; its last observation stays [D101]. */
+  removedFromPlatformAt DateTime? @map("removed_from_platform_at") @db.Timestamptz
+  metrics        SocialMetric[]
+  signals        Signal[]
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([accountRef, platformPostId], map: "uq_publication_account_post")
+  @@unique([accountRef, publishedUrl], map: "uq_publication_account_url")
+  @@index([ticketAirtableId], map: "idx_publication_ticket")
+  @@index([publishedAt(sort: Desc)], map: "idx_publication_published")
+  @@index([accountRef, postType, publishedAt(sort: Desc)], map: "idx_publication_cohort")
+  @@map("publications")
+}
+
+/**
+ * Signal — how the team agents talk to each other, and the only way they talk [D71].
+ *
+ * An agent never calls another agent. It writes a typed observation onto the node it concerns,
+ * with its evidence attached; other agents subscribe by kind, and every hop is visible to the
+ * humans reading that item's thread. That is what makes an agent auditable rather than a
+ * black box, and it is why there is no agent-to-agent RPC anywhere in this system.
+ *
+ * The natural key is what stops a daily check from emitting the same "shoot not filmed"
+ * fifteen times in a fortnight [D103]: a re-run updates the open Signal, and a Signal whose
+ * condition stops holding closes itself as `resolved`, logged as resolved-by-data.
+ */
+model Signal {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /** video | social | email | production | design | planning [D70]. */
+  agent       String
+  /** Stable id of the rule that produced it, e.g. 'gated-cta-contrast'. Part of the key. */
+  checkId     String   @map("check_id")
+  /** One of seven, deliberately closed [D120]: learning, anomaly, blocker, chore, watch, gap, suggestion. */
+  kind        String
+  lane        String?
+  subjectType String   @map("subject_type") // ticket | publication | assetType | commsDay | shoot | mediaSource
+  subjectId   String   @map("subject_id")
+  /** Set when the subject is a publication, so readouts and signals share one join. */
+  publicationId String? @map("publication_id") @db.Uuid
+  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  /** Bucket for periodic checks (e.g. '2026-W37'); null when the check is not periodic. */
+  period      String?
+  title       String
+  body        String
+  /** `{ refs: [...], n, delta, cohort }` — a Signal without evidence is an opinion. */
+  evidence    Json?
+  /** Who should act. Never Vishen: his desk is the channel, he is not paged [D92]. */
+  ownerHint   String?  @map("owner_hint")
+  /** open | acknowledged | dismissed | resolved. */
+  status      String   @default("open")
+  /** Dismissal needs a reason, and suppresses this check on this subject for 30 days [D103]. */
+  dismissedReason String? @map("dismissed_reason")
+  dismissedBy String?  @map("dismissed_by")
+  suppressedUntil DateTime? @map("suppressed_until") @db.Timestamptz
+  /** 'data' when the condition stopped holding, otherwise the email that closed it. */
+  resolvedBy  String?  @map("resolved_by")
+  resolvedAt  DateTime? @map("resolved_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([agent, checkId, subjectType, subjectId, period], map: "uq_signal_natural_key")
+  @@index([status, kind, createdAt(sort: Desc)], map: "idx_signal_open")
+  @@index([subjectType, subjectId], map: "idx_signal_subject")
+  @@map("signals")
 }
 
 // The email half of the performance loop — `social_metrics` for Braze.

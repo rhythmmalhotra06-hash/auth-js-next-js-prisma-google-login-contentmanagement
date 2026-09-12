@@ -1288,6 +1288,87 @@ channels, but it must be **labelled as multi-account**, never presented as one p
 
 ---
 
+## 6G. The Monday runway — what is actually left (checked 12 Sep)
+
+### Context
+
+Two days out. Asked what remains for Monday, I checked the deployed app, the production database,
+the workflows and the live Airtable rather than the plan's own checklist — the repo has moved on
+under a parallel workstream (email/Braze results, streaming, a message detail page) and the
+checklist no longer describes reality.
+
+**The surfaces are built.** The pack, the calendar (week + month), the post grid, asset and message
+detail, the not-dated tray with write-back, Vishen's card, the assets roll-up, the briefing. What is
+missing is not screens — it is **the content and the delivery**: the numbers are stale, the two
+human sections have never been used, and nothing tells anyone on Monday morning that the page is
+ready.
+
+### Verified state, 12 Sep
+
+| | |
+|---|---|
+| Deployed | `69bfbc1`, success. One local docs commit unpushed. |
+| Figure in the pack | **883 leads — my Mon–Thu partial from 10 Sep.** The week runs to Sun 13. Stale by Monday. |
+| Learnings | **0 on every week.** The section renders its empty state. |
+| Committed weeks | **None, ever.** The commit path has not been exercised against production. |
+| `mow-figures.yml` | Exists and works — **`workflow_dispatch` only, no cron.** Nothing refreshes the figure. |
+| Slack | `SLACK_BOT_TOKEN` set, `postToChannel()` in `lib/notify/slack.ts`, and the social digest is a working route to copy. **No MOW post exists.** |
+| "Next week" | **Not built.** The data is there: 14–20 Sep holds 7 emails and 15 social under *Expert to Authority*, with genuinely thin days (16th empty). |
+| `npm run doctor` | 323 ids resolve; Perch fresh (2,343 rows, 1.8h); credentials clean. |
+| Data-entry gaps | Unchanged: `EVENT_TYPES.loadWeight` empty on all 62; Metabase and YouTube Analytics still unreachable from the app. |
+
+**One doctor false alarm, worth fixing rather than trusting:** it reported tickets 20.4h stale and
+failed. The sync ran 1.2h ago and succeeded — the inbound pull is cursor-based, so a quiet Saturday
+touches no rows and `synced_at` stays old. The check measures *when a row last changed*, not
+*whether the sync is running*, and on that reading it will cry wolf every weekend.
+
+### Decisions
+
+| # | Decision |
+|---|---|
+| **AC1** | **Figures arrive by scheduled agent, with a manual dispatch as the fallback.** The agent is the S6 design that was specified and never set up; `mow-figures.yml` is the belt. Someone checks the pack at 07:30 MYT and dispatches if it is empty. |
+| **AC2** | **Build all four remaining gaps** — next week, the Slack post, seeded learnings with one real commit, and the assets rebuild — sequenced by what breaks Monday if it is missing, not by size. |
+| **AC3** | **The dry run is the acceptance test, not a separate task.** Seeding learnings and committing a week IS the rehearsal (S15): it fills the blank sections, proves the committer allowlist against production, and proves a committed snapshot survives a later ingest. If it fails, it fails on Saturday rather than in front of Vishen. |
+| **AC4** | **The uncommitted WIP in the tree is not mine and must not be swept into a deploy** — `lib/publications/`, `prisma/schema.prisma`, the v2 PRDs. Commit only named paths; never `git add -A`. This repo has shipped an outage from a dirty tree before. |
+
+### Order of work, by what breaks Monday
+
+1. **Figures — the agent + the fallback (AC1).** Without it the pack's centrepiece is a stale
+   partial from a Thursday. The agent follows `scripts/mow-ingest-agent.md` verbatim; its four
+   guards are the difference between $6,855 and $504,748, and between a real week and a truncated
+   one. `brands:["MV"]` stays mandatory — the Metabase questions are not split by brand.
+2. **Seed learnings and commit one week (AC3).** Small, and it is the only thing that exercises
+   `commitWeek` against production. Also the first real content in the pack's two human sections.
+3. **"Next week" on the pack.** Vishen asked for it by name. A second
+   `getCalendarWeekFromAirtable(nextMonday)` read and a render — no new pipeline. Thin days render
+   as owned empties, which is the point: the 16th is blank and someone owns that.
+4. **Slack post Monday morning.** Reuse `postToChannel()` and the social-digest route shape:
+   headline number, what is blocked, a link. Guarded by `SYNC_SECRET`, dispatched on a cron, and
+   **never allowed to block a commit** (S11).
+5. **`/performance/week/assets`.** The one I still have no good answer for. It currently reports
+   which tickets changed status, which is a weaker question than "who made what and how did it do".
+   Rebuild it around that, joining to the posts and their Perch results — the same join the grid
+   already uses.
+
+> **Scope risk, stated rather than quietly absorbed.** Five workstreams, two days, and one of them
+> (the assets rebuild) is a redesign rather than a fix. If something does not land I would expect it
+> to be **5**, and the honest fallback is to leave the page as-is with a line saying what it does
+> and does not answer. Items 1–3 are the ones that change what Vishen sees.
+
+### Verification
+
+- Re-run the doctor and confirm the tickets check no longer fails on a quiet day.
+- Dispatch `mow-figures.yml` for w/c 7 Sep with the **complete** week and confirm the pack replaces
+  883 with the full-week figure, still labelled organic social, with email revenue beside it.
+- Commit that week as `ramya@mindvalley.com`; confirm the snapshot holds when a later ingest posts a
+  different number, and that an editor is refused.
+- Load `/performance/week` signed in and read it top to bottom as if it were Monday: briefing, the
+  number, what went out, day by day, learnings, next week, commit bar. One gold element.
+- Post the Slack message with `dryRun` first and read it as text — it is the only part of Monday
+  most people will actually see.
+
+---
+
 ## 7. Phasing
 
 > **Scope risk, restated after Revision 2.** Monday now carries a whole extra surface. The list:
