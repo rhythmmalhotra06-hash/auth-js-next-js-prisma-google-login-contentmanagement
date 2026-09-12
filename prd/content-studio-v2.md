@@ -15,8 +15,8 @@ children:
   - content-studio-v2/campaign-offer-loop.md
   - content-studio-v2/team-agents-and-signal-bus.md
 created: 2026-09-10
-updated: 2026-09-11
-resolution: 8/8
+updated: 2026-09-12
+resolution: 8/9
 supersedes: content-production-management.md
 ---
 
@@ -29,8 +29,10 @@ supersedes: content-production-management.md
 
 > **Source of truth for this document:** `plans/i-want-to-reimagine-velvety-falcon.md` — the full
 > code review (every route, action, API route, model, sync path, integration) and the `/prd`
-> discovery runs with Rhythm on 2026-09-10 (decisions D1–D55, open questions O1–O8) and 2026-09-11
-> (the org brief D56, persona desks D57–D68, team agents and the missing workflow pieces D69–D84).
+> discovery runs with Rhythm on 2026-09-10 (decisions D1–D55, open questions O1–O8), 2026-09-11
+> (the org brief D56, persona desks D57–D68, team agents and the missing workflow pieces D69–D84,
+> the agent contracts and the as-is map D85–D100) and 2026-09-12 (the twenty decisions that remove
+> the developer's guesswork D101–D120, the build slice and its preview environment D121–D129).
 > Decision IDs are kept in brackets throughout so every line traces back to a decision. Nothing
 > here is a new decision.
 
@@ -184,9 +186,14 @@ Measure with an "own items only" scope chip [D58].
 
 Also in the system, decided elsewhere and not among D56's ten: **Vidura**, social manager alongside
 Glen — a confirmer of proposed publication matches and co-owner of the Social agent [D44, D70];
-**Rhythm**, admin — owns the platform, scheduler and sunset, sees "Connections & data health", and
-is the sole sign-off on the prototype [D23]; the **Team Lead / Sub Lead of each asset type**, who
-activate DNA rules [D42].
+**Rhythm**, admin — owns the platform, scheduler and sunset, sees "Connections & data health", is
+the sole sign-off on the prototype [D23] and the sole builder of slice 1 [D104]; the **Team Lead /
+Sub Lead of each asset type**, who activate DNA rules [D42].
+
+[UNRESOLVED] Vidura's place in this list. He is a named confirmer of PROPOSE-tier matches [D44] and
+half the Social agent's ownership [D70], which makes him a first-class user of two surfaces — but he
+is not one of the ten personas of D56 and has no desk. Either the persona list is ten or it is
+eleven; the plan has it both ways — owner: Rhythm (O14).
 
 **Explicitly not target users.** Paid-ad buyers working in Clarisights (paid performance is not
 in this loop; per-post revenue is out of v1 [D16]). HR (employees are HR-synced upstream, not
@@ -422,14 +429,84 @@ Social day alignment [D81]. Detailed in E-I.
 - No localisation lane and no broadcasts/notifications lane [D69].
 - No human "went live" tick and no scheduling *from* the portal in v2's first cut [D76].
 
+**Schema, for as long as the live portal and v2 share a database** [D122]:
+
+- **New tables and new *nullable* columns only.** No existing column is ever rewritten.
+- One refinement, flagged for Rhythm's call and taken by the build: **a brand-new nullable column
+  may be backfilled from that row's own `raw` payload** — nothing the live app reads changes. The
+  alternative D122 records, if that is unwelcome, is to compute views and watch time from `raw` at
+  read time: zero writes, slower queries.
+
+**Tooling** [D126]: **do not use `/build-feature`.** It is hardwired to a pnpm turborepo — it writes
+to `packages/database/prisma/schema.prisma`, `apps/api/src/domains/`, `apps/web/src/` and verifies
+with `pnpm turbo build`. This repo is one Next.js app on npm with `prisma/` at the root. Build
+against this repo's own conventions: `DESIGN_SYSTEM.md`, `CLAUDE.md`, and the `backend.ts` /
+`data.*.ts` / `write.*.ts` dispatch pattern.
+
 **Allowed despite the sunset:** Airtable structure changes needed by v2 (a Goal field on Social, a
 short code field) [D16].
 
-**The hard rule.** No production code until Rhythm approves the real-data prototype [D13, D23,
-D27]. The prototype is static HTML with real numbers exported from Postgres + Airtable and baked
-in as JSON, no backend, re-export to refresh [D13]; real names and real numbers, the Artifact kept
-private to the sign-off group, editors told first [D24]; ready Fri 12 Sep with data through 11 Sep
-[D27]. The build sequence in plan §7 is recorded for honesty and is not authorised by this PRD.
+**The hard rule, and what changed it.** Through 2026-09-11 the rule was absolute: no production code
+until Rhythm approves the real-data prototype [D13, D23, D27] — static HTML with real numbers
+exported from Postgres + Airtable and baked in as JSON, no backend, re-export to refresh [D13]; real
+names and real numbers, the Artifact private to the sign-off group, editors told first [D24]; ready
+Fri 12 Sep with data through 11 Sep [D27]. On **2026-09-12 the ask changed** from "documents only"
+to "build it and give me a link to test", and D104 and D121–D125 define the only form that build may
+take: **one slice, on a branch, behind a preview URL, with `main` untouched** — see Delivery below.
+The constraint the hard rule existed to protect is unchanged and now stated as D121: the team's
+portal runs the Message of the Week on Monday 14 Sep and must not move. The full build sequence in
+plan §7 remains recorded for honesty and is still not authorised.
+
+## Delivery
+
+How the first code actually ships. This section is about mechanics, not scope; what is in each slice
+is in E-B [D127, D128].
+
+**Who and what** [D104]. **Rhythm builds alone.** **Slice 1 = the scheduler + the Perch mapper fix +
+`Publication` + the attribution backfill.** It deliberately puts the join *underneath* the portal
+that already exists, so that every later surface has real data on the day it is built rather than an
+empty table to demo against. D104 says "no new UI"; **D127 then adds the deterministic half of the
+intelligence** — the `Signal` table, the seven Signal kinds, and every check that needs no model —
+plus the two thin `/v2` surfaces that prove the join is real (`/v2/work-item/[id]` and
+`/v2/connections`). D127 is the later decision and governs: the preview link shows **a real Signal on
+a real ticket**, not only a coverage number.
+
+**Where it runs** [D121–D125].
+
+| | |
+|---|---|
+| Branch | **`v2/slice-1-publication`** with an open PR [D121] |
+| Deploy | **`kessel preview`** only — it builds *that branch* as its own Cloud Run revision with its own URL [D121] |
+| Production | **`main` is not touched.** It auto-deploys to the team's service; nothing about Monday changes [D121] |
+| Never | **`kessel deploy`** — it targets production *and builds from local disk*, which caused an outage on 2026-08-31 [plan §6] |
+| Routes | everything new lives under **`/v2/...`**, so merging to `main` later is inert for the team: the routes exist, nothing links to them, the allowlist still gates them [D124] |
+| Access | every `/v2/*` route gated by **`isV2Allowlisted(email)`** — the same shape as `lib/studio/access.ts`: code default plus a `V2_ALLOWLIST_EMAILS` env override [D123] |
+| Env | no new required env var except `V2_ALLOWLIST_EMAILS`, which is inert for production because `main` has no `/v2` route [plan §6] |
+| Database | the same Kessel project, so almost certainly the same database as production — **verified before any migration**, which is exactly why the write rule is additive-only [D122, plan §9] |
+
+**One manual step, expected and not a bug** [D125]. `trustHost: true` means the app copes with a new
+hostname; **Google OAuth does not** — it matches redirect URIs exactly, and the preview host is new.
+The agreed flow: deploy first, hand Rhythm the exact line
+`https://<preview-host>/api/auth/callback/google`, and Rhythm or IT adds it to the OAuth client's
+authorised redirect URIs. Until then sign-in fails with `redirect_uri_mismatch` — expected. The same
+URI then works for every later push to the branch. This project hit the identical thing when the app
+moved region.
+
+**Refreshing and ending it** [plan §6]. Push to the branch and run `kessel preview` again — same URL,
+new build. To finish: merge the PR and `/v2` lands on the team's URL, still allowlisted and unlinked;
+or close it, and the additive migrations drop cleanly.
+
+**Cutover, surface by surface** [D116]. The v2 route goes live behind the flag; the v1 route
+redirects **the week after each of that surface's owners has used v2 for a full cycle** — for MOW,
+after **Gareth, Glen and Ramya have each committed once from v2**. Both routes read the same tables
+throughout, so there is no data fork and no migration moment. Cutover is therefore a consequence of
+use, not a date.
+
+**The PRD runs in parallel** [D129]. The nine epics predate D101–D128; a subagent transcribes the
+decisions into the right epics **while the build runs**. That is writing, not deciding: `/prd`'s
+discovery conversation is not re-run, only its conventions are — template sections, `[UNRESOLVED]`
+markers, resolution counts, and `prd/index.md`. The O-table below belongs to Gareth, Glen, Moniek,
+Nadir, Rafi and InfoSec, not to this build.
 
 ## Success Criteria
 

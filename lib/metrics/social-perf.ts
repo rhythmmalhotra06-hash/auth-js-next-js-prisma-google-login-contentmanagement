@@ -48,7 +48,8 @@ const int = (v: number | null | undefined): number | null =>
   typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : null;
 
 function hasAnyMetric(r: SocialMetricInput): boolean {
-  return [r.impressions, r.views, r.reach, r.engagements, r.engagementRate, r.clicks]
+  return [r.impressions, r.views, r.reach, r.engagements, r.engagementRate, r.clicks,
+    r.saves, r.shares, r.comments, r.likes, r.avgWatchSeconds, r.totalWatchSeconds]
     .some((v) => typeof v === 'number' && Number.isFinite(v));
 }
 
@@ -164,6 +165,15 @@ export async function ingestSocialMetrics(rows: SocialMetricInput[]): Promise<In
       engagements: int(r.engagements),
       engagementRate: typeof r.engagementRate === 'number' && Number.isFinite(r.engagementRate) ? r.engagementRate : null,
       clicks: int(r.clicks),
+      saves: int(r.saves),
+      shares: int(r.shares),
+      comments: int(r.comments),
+      likes: int(r.likes),
+      // Seconds, not rounded to int — Perch returns 15.63 for TikTok's average watch.
+      avgWatchSeconds: typeof r.avgWatchSeconds === 'number' && Number.isFinite(r.avgWatchSeconds) ? r.avgWatchSeconds : null,
+      totalWatchSeconds: int(r.totalWatchSeconds),
+      postType: (r.postType ?? '').trim() || null,
+      collaborators: (r.collaborators ?? null) as never,
       windowDays: int(r.windowDays),
       capturedAt,
       enteredBy: (r.enteredBy ?? '').trim() || null,
