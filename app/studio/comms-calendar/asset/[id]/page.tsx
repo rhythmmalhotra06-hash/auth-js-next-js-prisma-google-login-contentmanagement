@@ -1,50 +1,94 @@
 import Link from 'next/link';
 import { AppShell } from '@/components/ui/AppShell';
 import { Badge } from '@/components/ui/Badge';
-import { buttonClass } from '@/components/ui/Button';
-import { EmptyOwned, EmptyFine } from '@/components/ui/Empty';
+import { EmptyOwned, EmptyFine, type Tier1Key } from '@/components/ui/Empty';
 import { getAssetDetail } from '@/lib/comms-calendar/asset';
 import { cn } from '@/lib/cn';
 
-// Asset detail — artboard `5b`.
+// Asset detail — artboard `5b`, rebuilt to the approved prototype.
 //
-// `Live Date` is PROMOTED to its own bordered block at 22px/700, up from 15px in a corner. That is
-// the design's single biggest change here and it is an argument about the data, not the layout:
-// this is the field the whole calendar hinges on, it has no owner, and 204 of 442 assets lack it
-// with 66 of those already published. Burying it was understating the problem.
+// ── THE LAYOUT IS THE SPEC ────────────────────────────────────────────────────────────────────
 //
-// Every absence on this page names who closes it, and none of them renders as a zero — the 24-hour
-// read in particular is empty on every published asset in the base, and "not filled" is a
-// different statement from "0".
+// One record card: the title left, LIVE DATE top-right, then a FLAT grid of labelled fields. The
+// version this replaces grouped the same fields under headings ("Who made it", "Production"),
+// which reads as a form rather than a record and is not what was signed off. The grid is the
+// point — every fact is one glance away, and an absence sits exactly where a value would.
+//
+// LIVE DATE leads because it is the field the whole calendar hinges on and the one with no owner:
+// 204 of 442 assets lack it, 66 of those already published.
+//
+// ── WHERE THE VALUES COME FROM ────────────────────────────────────────────────────────────────
+//
+// Two are lifted out of `Notes / Brief` rather than the fields designed for them, because that is
+// where the team actually puts them: `Instagram Published Link` is filled on 0.01% of rows while
+// the URL is pasted into the brief on 14%, and the Jira ticket is only ever in the brief. A link
+// nobody can see helps nobody.
+//
+// `owner` is `Created By` (100% populated) and is labelled OWNER, not EDITOR — it says who put the
+// post into the system, not who cut it. Conflating them would put the wrong name next to work.
 
 export const dynamic = 'force-dynamic';
 
-/** One labelled field. `owner` turns an absence into an action rather than a blank. */
-function Field({
+/**
+ * One cell of the grid.
+ *
+ * A cell ALWAYS renders, so the grid keeps its shape and a gap is visible as a gap. `kind` picks
+ * one of the nine canonical tier-1 strings; `fine` marks a blank that is genuinely fine and must
+ * not look like something to fix.
+ */
+function Cell({
   label,
   value,
+  href,
+  kind = 'notSet',
   owner,
   fine,
+  note,
 }: {
   label: string;
   value: string | null;
-  /** Named when someone owns filling this in; omitted when the blank is simply ordinary. */
+  href?: string | null;
+  kind?: Tier1Key;
   owner?: string | null;
-  /** True when absence is fine and must NOT look like a gap (tier 2). */
   fine?: boolean;
+  note?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">{label}</div>
       <div className="mt-1">
         {value !== null ? (
-          <span className="text-[13px] leading-snug text-pretty">{value}</span>
+          href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="break-all text-[13px] font-medium text-brand hover:underline"
+            >
+              {value}
+            </a>
+          ) : (
+            <span className="text-[13px] leading-snug text-pretty">{value}</span>
+          )
         ) : fine ? (
           <EmptyFine />
         ) : (
-          <EmptyOwned kind="notSet" owner={owner} />
+          <EmptyOwned kind={kind} owner={owner} />
         )}
       </div>
+      {note ? <div className="mt-1 text-2xs leading-snug text-text-subtle">{note}</div> : null}
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: number | null; label: string }) {
+  if (value === null) return null;
+  return (
+    <div>
+      <div className="font-display text-[22px] font-bold leading-none tabular-nums">
+        {value.toLocaleString('en-US')}
+      </div>
+      <div className="mt-0.5 text-2xs text-text-subtle">{label}</div>
     </div>
   );
 }
@@ -58,7 +102,8 @@ export default async function AssetDetailPage({
 }) {
   const { id } = await params;
   const sp = await searchParams;
-  const backHref = `/studio/comms-calendar?brand=${sp.brand ?? 'main'}${sp.week ? `&week=${sp.week}` : ''}`;
+  const qs = `brand=${sp.brand ?? 'main'}${sp.week ? `&week=${sp.week}` : ''}`;
+  const backHref = `/studio/comms-calendar?${qs}`;
 
   let asset: Awaited<ReturnType<typeof getAssetDetail>> = null;
   let error: string | null = null;
@@ -67,6 +112,11 @@ export default async function AssetDetailPage({
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
+
+  // The structured field first, the brief second. Both are the live post; only the provenance
+  // differs, and the grid says which.
+  const liveUrl = asset?.publishedUrl ?? asset?.briefPostUrl ?? null;
+  const isSocial = asset?.kind === 'social';
 
   return (
     <AppShell title="Asset" subtitle={asset?.title}>
@@ -84,226 +134,150 @@ export default async function AssetDetailPage({
           <div className="rounded-md border border-border-default bg-surface px-4 py-3">
             <div className="text-[13.5px] font-semibold">No such asset</div>
             <div className="mt-1 text-xs text-text-muted">
-              It may have been deleted in Airtable since the calendar was read.
+              It is in neither the Videos nor the Social table — deleted since the calendar was read,
+              or a link to a table this page does not render.
             </div>
           </div>
         ) : (
           <>
-            <div className="rounded-md border border-border-default bg-surface p-[18px]">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* VL teal on every surface — this is a Vishen-lane record by construction. */}
-                <Badge tone="vishen">{asset.brandLabel ?? 'Vishen Lakhiani Media'}</Badge>
-                {asset.status ? (
-                  <Badge tone={asset.published ? 'success' : 'neutral'}>{asset.status}</Badge>
+            {/* ── The record ─────────────────────────────────────────────── */}
+            <div className="rounded-md border border-border-default bg-surface p-[22px]">
+              <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-display text-xl font-bold leading-[1.25] tracking-[-.02em] text-pretty">
+                    {asset.title}
+                  </h2>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {/* VL is teal on EVERY surface. Rendering it in brand purple made the two
+                        brand pills byte-identical, which is the fault `3a` found. */}
+                    <Badge tone={isSocial ? 'brand' : 'vishen'}>
+                      {asset.brandLabel ?? (isSocial ? 'Mindvalley' : 'Vishen Lakhiani Media')}
+                    </Badge>
+                    {asset.status ? (
+                      <Badge tone={asset.published ? 'success' : 'neutral'}>{asset.status}</Badge>
+                    ) : null}
+                    {liveUrl ? (
+                      <a
+                        href={liveUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-2xs font-semibold text-brand hover:underline"
+                      >
+                        See it live ↗
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* LIVE DATE, top-right, as the prototype has it. */}
+                <div className="flex-none text-right">
+                  <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
+                    Live date
+                  </div>
+                  {asset.liveDate ? (
+                    <div className="mt-1 font-display text-[22px] font-bold leading-none tracking-[-.02em]">
+                      {new Date(`${asset.liveDate}T00:00:00Z`).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        timeZone: 'UTC',
+                      })}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-1 font-display text-[22px] font-bold leading-none tracking-[-.02em] text-staged-content">
+                        Not dated
+                      </div>
+                      <div className="mt-1 max-w-[220px] text-2xs leading-snug text-text-muted">
+                        No calendar can place this until a Live Date is set.
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-[22px] grid gap-5 border-t border-border-default pt-[18px] sm:grid-cols-2 lg:grid-cols-3">
+                <Cell label="Message of the week" value={asset.messageName} kind="noMessage" />
+                <Cell label="Goal" value={asset.goal} kind="noGoal" />
+                <Cell
+                  label="Owner"
+                  value={asset.owner}
+                  owner={isSocial ? 'nobody recorded' : 'Videos carries no owner field'}
+                  note={asset.owner ? 'Who put it into the system, not who edited it.' : undefined}
+                />
+
+                <Cell label="Format" value={asset.format ?? asset.medium} fine />
+                <Cell label="Purpose" value={asset.purpose} fine />
+                <Cell label="Team" value={asset.teamAgency ?? asset.source} fine />
+
+                <Cell label="Channels" value={asset.channel} fine />
+                <Cell
+                  label="Published link"
+                  value={liveUrl ? 'Open the post' : null}
+                  href={liveUrl}
+                  owner="no link recorded · Glen"
+                  fine={!asset.published}
+                  note={liveUrl && !asset.publishedUrl ? 'Lifted out of Notes / Brief.' : undefined}
+                />
+                <Cell
+                  label="Creative ticket"
+                  value={asset.ticketId ?? (asset.briefTicketUrl ? 'Open the ticket' : null)}
+                  href={asset.ticketId ? null : asset.briefTicketUrl}
+                  owner="not linked · Glen"
+                  fine={!isSocial}
+                  note={
+                    asset.ticketStatus ??
+                    (asset.briefTicketUrl && !asset.ticketId ? 'Lifted out of Notes / Brief.' : undefined)
+                  }
+                />
+
+                {asset.editor ? <Cell label="Editor" value={asset.editor} fine /> : null}
+                {asset.kind === 'video' ? (
+                  // Empty on EVERY published asset in the base. It says "not filled", never `0`.
+                  <Cell label="24-hour read" value={asset.read24h} kind="notFilled" />
                 ) : null}
               </div>
 
-              <h2 className="mt-3 font-display text-xl font-bold leading-[1.25] tracking-[-.02em] text-pretty">
-                {asset.title}
-              </h2>
-
-              {/* The live post, as an action rather than a URL three sections down. Only when a
-                  link exists — a published asset without one keeps its owned gap below (U8). */}
-              {asset.publishedUrl ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <a href={asset.publishedUrl} target="_blank" rel="noreferrer" className={buttonClass('primary', 'sm')}>
-                    View live post ↗
-                  </a>
-                  {asset.channel ? <span className="text-xs text-text-muted">on {asset.channel}</span> : null}
-                </div>
-              ) : null}
-
-              {/* ── THE promoted field ──────────────────────────────────────── */}
-              <div
-                className={cn(
-                  'mt-[22px] rounded-sm border p-3.5',
-                  asset.liveDate ? 'border-border-strong bg-surface' : 'border-staged bg-staged-soft',
-                )}
-              >
+              {/* ── How it did ─────────────────────────────────────────────── */}
+              <div className="mt-[18px] border-t border-border-default pt-[18px]">
                 <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                  Live date
+                  How it did
                 </div>
-                {asset.liveDate ? (
-                  <div className="mt-1 font-display text-[22px] font-bold leading-none tracking-[-.02em]">
-                    {new Date(`${asset.liveDate}T00:00:00Z`).toLocaleDateString('en-GB', {
-                      weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
-                    })}
-                  </div>
-                ) : (
+                {asset.results &&
+                (asset.results.views || asset.results.reach || asset.results.engagements) ? (
                   <>
-                    <div className="mt-1 font-display text-[22px] font-bold leading-none tracking-[-.02em] text-staged-content">
-                      Not dated
+                    <div className="mt-2 flex flex-wrap gap-8">
+                      {/* Views first — it is the largest of the three and the one social optimises
+                          for. Perch returns it inside `raw`, so it is real, not derived. */}
+                      <Stat value={asset.results.views} label="views" />
+                      <Stat value={asset.results.reach} label="reach" />
+                      <Stat value={asset.results.engagements} label="engagements" />
                     </div>
-                    <div className="mt-1.5 text-xs leading-relaxed text-text-muted">
-                      No calendar can place this asset until a Live Date is set.{' '}
-                      <span className="font-semibold">Live Date has no owner</span> — it is the single
-                      field that would empty the not-dated tray.
-                    </div>
+                    <p className="mt-2 max-w-prose text-2xs leading-relaxed text-text-subtle">
+                      Hootsuite Perch, matched to this post by its published caption. Figures move
+                      as attribution lands, so this is a read, not a final number.
+                      {asset.results.multiAccount
+                        ? ' Several accounts published this copy — these are the totals across them, not one post.'
+                        : ''}
+                    </p>
                   </>
+                ) : (
+                  <div className="mt-2">
+                    <EmptyOwned kind="notSet" owner="no published post matched this record" />
+                    <p className="mt-1 max-w-prose text-2xs leading-relaxed text-text-subtle">
+                      Results are matched from Hootsuite by caption — 63 of 110 posts inside Perch&rsquo;s
+                      window match. The rest usually carry a briefing note in the caption field rather
+                      than the copy that went out.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* ── Who made it, and how it did. Mindvalley-lane records only. ── */}
-            {asset.kind === 'social' ? (
-              <section>
-                <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                  Who made it
-                </h3>
-                <div className="rounded-md border border-border-default bg-surface p-[18px]">
-                  <div className="flex flex-wrap gap-5">
-                    {asset.imageUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element --
-                         Airtable attachment URLs are signed and expire within hours. Next's
-                         optimiser would cache the fetched bytes against a URL that soon 403s, so
-                         a plain img that simply re-requests is the correct trade here. */
-                      <img
-                        src={asset.imageUrl}
-                        alt=""
-                        className="h-28 w-28 flex-none rounded-sm border border-border-default object-cover"
-                      />
-                    ) : null}
-
-                    <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
-                      <Field
-                        label="Editor"
-                        value={asset.editor}
-                        owner="not recorded on the post"
-                      />
-                      <div>
-                        <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                          Creative ticket
-                        </div>
-                        <div className="mt-1">
-                          {asset.ticketId ? (
-                            <span className="inline-flex flex-wrap items-baseline gap-2">
-                              <span className="text-[13px] font-medium">{asset.ticketId}</span>
-                              {asset.ticketStatus ? (
-                                <Badge tone="neutral" dot={false}>{asset.ticketStatus}</Badge>
-                              ) : null}
-                            </span>
-                          ) : (
-                            // 15% of recent posts carry one, so absence is the common case and
-                            // saying who closes it is more useful than a blank.
-                            <EmptyOwned kind="notSet" owner="no ticket raised for this post" />
-                          )}
-                        </div>
-                      </div>
-                      <Field label="Delivered asset" value={asset.assetLink} owner="no asset link" />
-                    </div>
-                  </div>
-
-                  {/* Results, from Perch. Absence means NOT MATCHED, never zero. */}
-                  <div className="mt-4 border-t border-border-default pt-3.5">
-                    <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                      How it did
-                    </div>
-                    {asset.results && (asset.results.reach || asset.results.engagements) ? (
-                      <>
-                        <div className="mt-1.5 flex flex-wrap gap-8">
-                          {asset.results.reach ? (
-                            <div>
-                              <div className="font-display text-[22px] font-bold tabular-nums">
-                                {asset.results.reach.toLocaleString('en-US')}
-                              </div>
-                              <div className="text-2xs text-text-subtle">reach</div>
-                            </div>
-                          ) : null}
-                          {asset.results.engagements ? (
-                            <div>
-                              <div className="font-display text-[22px] font-bold tabular-nums">
-                                {asset.results.engagements.toLocaleString('en-US')}
-                              </div>
-                              <div className="text-2xs text-text-subtle">engagements</div>
-                            </div>
-                          ) : null}
-                        </div>
-                        <p className="mt-2 text-2xs leading-relaxed text-text-subtle">
-                          Hootsuite Perch, matched to this post by its published caption.
-                          {asset.results.multiAccount
-                            ? ' Several accounts published this copy — the figures are the total across them, not one post.'
-                            : ''}
-                        </p>
-                      </>
-                    ) : (
-                      <div className="mt-1.5">
-                        <EmptyOwned kind="notSet" owner="no published post matched this record" />
-                        <p className="mt-1 max-w-prose text-2xs leading-relaxed text-text-subtle">
-                          Results are matched from Hootsuite by caption. About 57% of posts inside
-                          Perch&rsquo;s window match; the rest usually hold a briefing note in the
-                          caption field rather than the copy that went out.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            ) : null}
-
-            {/* ── The week's message it inherits ──────────────────────────── */}
+            {/* ── Same message ───────────────────────────────────────────── */}
             <section>
               <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                Message and goal
-              </h3>
-              <div className="grid gap-3 rounded-md border border-border-default bg-surface p-[18px] sm:grid-cols-2">
-                <Field label="Message of the week" value={asset.messageName} owner="Ramya" />
-                <Field label="Goal" value={asset.goal} owner="Ramya" />
-              </div>
-            </section>
-
-            {/* ── Production and delivery ─────────────────────────────────── */}
-            <section>
-              <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                Production
-              </h3>
-              <div className="grid gap-4 rounded-md border border-border-default bg-surface p-[18px] sm:grid-cols-2 lg:grid-cols-3">
-                <Field label="Channel" value={asset.channel} fine />
-                <Field label="Format" value={asset.medium} fine />
-                <Field label="Source" value={asset.source} fine />
-                <Field label="Approval" value={asset.approval} owner="Ramya or Vishen" />
-                <div>
-                  <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                    Published link
-                  </div>
-                  <div className="mt-1">
-                    {asset.publishedUrl ? (
-                      <a
-                        href={asset.publishedUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="break-all text-[13px] font-medium text-brand hover:underline"
-                      >
-                        {asset.publishedUrl}
-                      </a>
-                    ) : asset.published ? (
-                      // Published but no link recorded — a real gap with a real owner (U8).
-                      <EmptyOwned kind="notSet" owner="no publish link recorded · Glen" />
-                    ) : (
-                      <EmptyFine>Not published yet</EmptyFine>
-                    )}
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <div className="text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                    24-hour read
-                  </div>
-                  <div className="mt-1">
-                    {asset.read24h ? (
-                      <span className="text-[13px] leading-snug text-pretty">{asset.read24h}</span>
-                    ) : (
-                      // "Not filled" is a different claim from "0". This field is empty on every
-                      // published asset in the base, so a zero here would be pure fabrication.
-                      <EmptyOwned kind="notFilled" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* ── Siblings, if the message links any ─────────────────────── */}
-            <section>
-              <h3 className="mb-[14px] text-2xs font-semibold uppercase tracking-[.08em] text-text-subtle">
-                Others on this message
+                Same message
               </h3>
               {asset.messageName === null ? (
                 <div className="rounded-md border border-border-default bg-surface px-4 py-3">
@@ -314,7 +288,6 @@ export default async function AssetDetailPage({
                 </div>
               ) : asset.siblings.length === 0 ? (
                 <div className="rounded-md border border-border-default bg-surface px-4 py-3">
-                  {/* No dashed box — it reads as a component that failed to load. */}
                   <EmptyFine>This is the only asset on this message.</EmptyFine>
                 </div>
               ) : (
@@ -322,18 +295,23 @@ export default async function AssetDetailPage({
                   {asset.siblings.map((s) => (
                     <Link
                       key={s.id}
-                      href={`/studio/comms-calendar/asset/${s.id}?brand=${sp.brand ?? 'main'}${sp.week ? `&week=${sp.week}` : ''}`}
+                      href={`/studio/comms-calendar/asset/${s.id}?${qs}`}
                       className="flex items-center gap-3 border-b border-border-default px-4 py-2.5 last:border-b-0 hover:bg-bg-subtle"
                     >
                       <span
                         aria-hidden
-                        className={cn('h-1.5 w-1.5 flex-none rounded-full', s.published ? 'bg-success' : 'bg-border-default')}
+                        className={cn(
+                          'h-1.5 w-1.5 flex-none rounded-full',
+                          s.published ? 'bg-success' : 'bg-border-default',
+                        )}
                       />
                       <span className="min-w-0 flex-1 truncate text-[13px]">{s.title}</span>
                       <span className="flex-none text-2xs text-text-subtle">
                         {s.liveDate
                           ? new Date(`${s.liveDate}T00:00:00Z`).toLocaleDateString('en-GB', {
-                              day: 'numeric', month: 'short', timeZone: 'UTC',
+                              day: 'numeric',
+                              month: 'short',
+                              timeZone: 'UTC',
                             })
                           : 'not dated'}
                       </span>
@@ -343,9 +321,7 @@ export default async function AssetDetailPage({
               )}
             </section>
 
-            <p className="text-2xs text-text-subtle">
-              Read-only. Every field here is edited in Airtable.
-            </p>
+            <p className="text-2xs text-text-subtle">Read-only. Every field here is edited in Airtable.</p>
           </>
         )}
       </div>

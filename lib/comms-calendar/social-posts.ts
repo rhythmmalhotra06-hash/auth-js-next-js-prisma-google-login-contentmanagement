@@ -84,6 +84,12 @@ export interface SocialPost {
   results: {
     reach: number | null;
     engagements: number | null;
+    /**
+     * Views. The number social actually optimises for, and the largest of the three — 1.36M on a
+     * single carousel where reach was 659k. Nullable like the others: absent means not reported,
+     * never nil.
+     */
+    views: number | null;
     posts: number;
     /**
      * True when several Perch posts matched this one row — regional accounts repost translated
@@ -145,9 +151,9 @@ const norm = (s: string): string =>
 /** How much of a caption has to agree. Long enough that two different posts cannot collide. */
 const MATCH_LEN = 45;
 
-interface PerchRow { caption: string; reach: bigint | null; eng: bigint | null }
+interface PerchRow { caption: string; reach: bigint | null; eng: bigint | null; views: bigint | null }
 
-interface PerchHit { reach: number; eng: number; posts: number }
+interface PerchHit { reach: number; eng: number; views: number; posts: number }
 
 /**
  * The caption index: exact-prefix lookup plus the ordered key list the fallback scans.
@@ -180,7 +186,7 @@ function perchByCaption(): Promise<PerchIndex> {
           and raw->'details'->'content'->>'body' is not null
         order by platform_post_id, captured_at desc
       )
-      select caption, sum(reach)::bigint as reach, sum(engagements)::bigint as eng
+      select caption, sum(reach)::bigint as reach, sum(engagements)::bigint as eng, sum(views)::bigint as views
       from latest group by caption
     `;
 
@@ -188,10 +194,11 @@ function perchByCaption(): Promise<PerchIndex> {
     for (const r of rows) {
       const key = norm(r.caption).slice(0, MATCH_LEN);
       if (key.length < 25) continue;
-      const cur = byPrefix.get(key) ?? { reach: 0, eng: 0, posts: 0 };
+      const cur = byPrefix.get(key) ?? { reach: 0, eng: 0, views: 0, posts: 0 };
       byPrefix.set(key, {
         reach: cur.reach + Number(r.reach ?? 0),
         eng: cur.eng + Number(r.eng ?? 0),
+        views: cur.views + Number(r.views ?? 0),
         posts: cur.posts + 1,
       });
     }
@@ -222,6 +229,7 @@ function toPost(r: AirtableRecord, perch: PerchIndex): SocialPost {
       results = {
         reach: hit.reach || null,
         engagements: hit.eng || null,
+        views: hit.views || null,
         posts: hit.posts,
         multiAccount: hit.posts > 1,
       };

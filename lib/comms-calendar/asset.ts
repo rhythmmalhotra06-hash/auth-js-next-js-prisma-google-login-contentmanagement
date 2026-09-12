@@ -86,7 +86,29 @@ export interface AssetDetail {
   ticketStatus: string | null;
   assetLink: string | null;
   /** Perch results, when the caption matched (57% inside its window). Null means NOT MATCHED. */
-  results: { reach: number | null; engagements: number | null; multiAccount: boolean } | null;
+  results: { reach: number | null; engagements: number | null; views: number | null; multiAccount: boolean } | null;
+  /** `Created By` — who put it into the system. The only reliable per-post person (100%). */
+  owner: string | null;
+  /** `💿 Social Format` (91%) and `🧭 Purpose` (75%) — the prototype's MEDIUM / CHANNEL row. */
+  format: string | null;
+  purpose: string | null;
+  teamAgency: string | null;
+  /**
+   * A ticket URL found inside `Notes / Brief`.
+   *
+   * The structured `Creative Request` link is ~15% on recent posts, but people paste a Jira link
+   * into the brief instead. Rare (1 of 285) — surfaced because when it IS there it is the only
+   * answer to "which ticket made this", and a link nobody can see helps nobody.
+   */
+  briefTicketUrl: string | null;
+  /**
+   * The live post URL, lifted out of `Notes / Brief` when the structured field is empty.
+   *
+   * `Instagram Published Link` is filled on 0.01% of rows; the URL is pasted into the brief on
+   * 14%. Fourteen percent is not good, but it is fourteen times better than reading the field
+   * that was designed for it.
+   */
+  briefPostUrl: string | null;
 }
 
 /**
@@ -127,8 +149,28 @@ async function buildSocialDetail(recordId: string, f: Record<string, unknown>): 
     ticketId: p?.ticketId ?? null,
     ticketStatus: p?.ticketStatus ?? null,
     assetLink: p?.assetLink ?? null,
-    results: p?.results ?? null,
+    results: p?.results
+      ? { reach: p.results.reach, engagements: p.results.engagements, views: p.results.views ?? null, multiAccount: p.results.multiAccount }
+      : null,
+    owner: p?.owner ?? null,
+    format: p?.format ?? null,
+    purpose: p?.purpose ?? null,
+    teamAgency: p?.teamAgency ?? null,
+    briefTicketUrl: firstUrl(str(f[SOCIAL.fields.notes]), /https?:\/\/[^\s>)\]]*atlassian\.net[^\s>)\]]*/i),
+    briefPostUrl: firstUrl(str(f[SOCIAL.fields.notes]), /https?:\/\/(?:www\.)?(?:instagram|facebook|linkedin|youtube|youtu)\.[^\s>)\]]*/i),
   };
+}
+
+/**
+ * First URL in a blob of rich text matching a pattern.
+ *
+ * People paste links into `Notes / Brief` surrounded by Slack-style angle brackets and markdown
+ * punctuation, so the character class stops at those rather than swallowing them into the href.
+ */
+function firstUrl(text: string | null, re: RegExp): string | null {
+  if (!text) return null;
+  const m = re.exec(text);
+  return m ? m[0].replace(/[.,>)\]]+$/, '') : null;
 }
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
@@ -221,6 +263,12 @@ export async function getAssetDetail(recordId: string): Promise<AssetDetail | nu
     ticketStatus: null,
     assetLink: null,
     results: null,
+    owner: null,
+    format: null,
+    purpose: null,
+    teamAgency: null,
+    briefTicketUrl: null,
+    briefPostUrl: null,
   };
 }
 
