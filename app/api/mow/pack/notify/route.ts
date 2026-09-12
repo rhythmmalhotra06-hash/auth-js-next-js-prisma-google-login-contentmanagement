@@ -35,7 +35,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'weekOf must be YYYY-MM-DD.' }, { status: 400 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_URL ?? url.origin;
+  // Resolving the PUBLIC url is fiddlier than it looks, and the dry run caught it: the message
+  // shipped a link to `https://localhost:8080/...`.
+  //
+  // `NEXT_PUBLIC_*` is inlined at BUILD time, so it is not reliably present in a server route at
+  // runtime; and `url.origin` on Cloud Run is the container's own internal origin, not the address
+  // anyone can click. `AUTH_URL` is a plain runtime var already set to the deployed URL — it is
+  // what OAuth callbacks use, so if it were wrong login would be broken and someone would know.
+  const appUrl =
+    process.env.NEXT_PUBLIC_URL ||
+    process.env.AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    url.origin;
 
   try {
     const msg = await composePackMessage(anchor, appUrl);
