@@ -655,6 +655,48 @@ export const COMMS_DAY = {
   lastModified: 'fldFGu7r22gvQi2qW',
 } as const;
 
+// 📧 Emails — the planned emails the comms days link to.
+//
+// READ-ONLY here. Ramya's team owns this table; the portal shows what is planned and, once the
+// Braze pull has run, what it did.
+//
+// TWO THINGS TO KNOW BEFORE USING IT:
+//
+//  1. **There is no subject field.** The subject lives inside the `email` rich text as the first
+//     line, written as `**Sub:** …` or `**Subject:** …` — both spellings are live. Since the
+//     subject is the join key to Braze, `lib/comms-calendar/emails.ts` parses it out.
+//  2. **`brazeUrl` is not a key.** It holds one dashboard link per audience list, and the 24-hex
+//     id in those URLs is Braze's dashboard ObjectId, which does NOT convert to the REST
+//     campaign id. The links are for humans; the match is subject + date.
+//
+// The sibling 📧 Sends table (tblYzLOjqNHmfuAMp) has exactly the metric columns this feature
+// needs and four rows, all from March 2025. It is dead — do not write to it.
+export const EMAILS = {
+  baseId: BASES.contentComms,
+  tableId: 'tblGeywttHc77AY1b',
+  fields: {
+    name: 'fld2on5mg30wkeYA3', // "Name" (formula) — Title + the audience list, e.g. `… ["1,2: Daily", 3: Members]`
+    title: 'fldFFOLtM6GIz4U4M', // "Title" (multilineText) — the internal name, e.g. "Email 3 - Nobody knows I exist"
+    liveDate: 'fld8o0b2G9ftbdHTt', // "Live Date" (date) — the send day
+    emailType: 'fldJoWcZykT90KfSi', // "📧 Email Type" (singleSelect) — Invite Sequence | Vishen's Newsletter | …
+    audience: 'fldtp8OS9vnPppflc', // "📧 Audience" (multipleSelects) — "1,2: Daily", "3: Members", …
+    email: 'fldNeaiWivsZlyeHU', // "📧 Email" (richText) — the copy; the SUBJECT is its first line
+    brazeUrl: 'fldPq1dsJTYr5IkaY', // "📧 Braze email URL" (multilineText) — dashboard links, one per list
+    ctaUrl: 'fldd3K0NkqHK70Ioj', // "📧 CTA (url with UTM)" (multilineText)
+    copyDoc: 'fld3wZ6YPGwkgsQGr', // "📧 Email Copy Doc" (url)
+    blogLink: 'fldmECVfm2tIFrOYG', // "Blog Link" (multilineText)
+    stage: 'fldcHfi9RL6w4RTnB', // "🕒 Stage" (singleSelect) — "5. Sent" means it went out
+    purpose: 'fldUQgJdXsl0z4jY8', // "🧭 Purpose" (singleSelect) — 🚀 Launch | 👥 Retention | …
+  },
+  links: {
+    commsCalendar: 'fldPf9Y4TQTgurRGK', // → 🗓️ Comms Calendar (the day it belongs to)
+    officialCal: 'fldnpq7aDjsclap2q', // → 📅 Official Cal
+  },
+  readOnlyFields: {
+    projectName: 'fldPWwBxbalRLObei', // lookup ← Official Cal
+  },
+} as const;
+
 // 🗓️ Message of the Week — the master MOW table Ramya started on 2026-09-09.
 //
 // SHAPE IS NOT FINAL. The 12:30 KL workshop on Thu 10 Sep settles it (plan §0.3). Today the

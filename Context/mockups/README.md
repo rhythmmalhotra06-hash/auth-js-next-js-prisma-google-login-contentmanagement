@@ -76,3 +76,15 @@ These are placeholder hex values mapped to the brand for the visual spec. In the
 real build, Claude Code should use the actual tokens from `@mindvalley-ai-advanced/ui`
 and build screens from its shadcn-style components (CVA variants, `cn()` merge,
 `forwardRef`), per the repo guardrails — NOT restyle this HTML.
+
+## v2 — Content Studio v2 prototype (2026-09-11)
+
+`v2/content-studio-v2.html` — the clickable, real-data prototype for the v2 pivot
+(plan: `plans/i-want-to-reimagine-velvety-falcon.md`, PRD: `prd/content-studio-v2.md`).
+Published Artifact: https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079
+
+Every number is exported from production Postgres (`social_metrics`, tickets, shoots…),
+Airtable (📣 Social, 🗓️ Comms Calendar, 📧 Emails, Message of the week, 🖌️ Banners), Metabase
+(Q31846 leads, Q32044 revenue filtered to organic social) and YouTube public pages on
+11 Sep 2026. Rebuild = re-run the export + `build.py` in the session scratchpad; nothing is
+hand-typed. **Rule: no production code until Rhythm approves this prototype.**

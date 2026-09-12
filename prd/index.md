@@ -40,8 +40,30 @@
 | [E13.2 · Multimodal Video Review](content-production-management/dna-feedback/multimodal-video-review.md) | feature | discovery | 6/7 | 2026-09-07 |
 | [E13.3 · Performance-Driven Post-Learning Summary](content-production-management/dna-feedback/performance-post-learning-summary.md) | feature | discovery | 6/7 | 2026-09-02 |
 | └ [Technical Design](content-production-management/dna-feedback/technical-design.md) | technical-design | discovery | — | 2026-09-07 |
+| [Content Studio v2](content-studio-v2.md) ‡ | product | discovery | 8/8 | 2026-09-11 |
+| [E-A · Content graph & Publication](content-studio-v2/content-graph-and-publication.md) | epic | discovery | 6/7 | 2026-09-10 |
+| [E-B · Continuous learning engine — first loop](content-studio-v2/continuous-learning-engine.md) § | epic | discovery | 6/7 | 2026-09-11 |
+| [E-C · Unattended data flow & scheduler](content-studio-v2/unattended-data-flow-and-scheduler.md) | epic | discovery | 5/7 | 2026-09-10 |
+| [E-D · Lanes & the v2 IA](content-studio-v2/lanes-and-v2-ia.md) | epic | discovery | 6/7 | 2026-09-11 |
+| [E-E · Agencies & access](content-studio-v2/agencies-and-access.md) | epic | discovery | 5/7 | 2026-09-10 |
+| [E-F · Airtable sunset](content-studio-v2/airtable-sunset.md) | epic | discovery | 6/7 | 2026-09-10 |
+| [E-G · Caption / distribution loop](content-studio-v2/caption-distribution-loop.md) | epic | discovery | 4/7 | 2026-09-10 |
+| [E-H · Campaign / offer loop](content-studio-v2/campaign-offer-loop.md) | epic | discovery | 4/7 | 2026-09-10 |
+| [E-I · Team agents & the Signal bus](content-studio-v2/team-agents-and-signal-bus.md) | epic | discovery | 4/7 | 2026-09-11 |
 
-_Total: 37 documents, 186/246 sections resolved (76%). E9.8 superseded by E11.C (campaign requests)._
+_Total: 47 documents, 240/317 sections resolved (76%). E9.8 superseded by E11.C (campaign requests)._
+
+‡ **Content Studio v2 supersedes the Content Production & Management System PRD** for product
+direction (2026-09-10). The June PRD and its epics stay in the index as the record of those
+decisions; its workflow decisions are inherited by v2. v2 is held at `status: discovery` despite
+8/8 because nothing in it may be built until Rhythm approves the real-data prototype (D13, D23).
+On 2026-09-11 the second discovery pass (D56–D84) added **E-I · Team agents & the Signal bus** and
+extended E-B and E-D with the missing workflow pieces and proactive intelligence.
+
+§ **E-B went from 7/7 `resolved` back to 6/7 `discovery` on 2026-09-11** — not a regression in the
+decided material but an honest recount: the D81 extension (24h anomaly nudge, next-week suggestions)
+added Features whose thresholds and slot cohort the plan does not define. The seven original
+decisions stand unchanged.
 
 † **E11 has no PRD document.** The epic is real and shipped, but its doc was never committed — the
 index row added in `6a2daa4` pointed at `prioritisation-content-engine.md`, which has never existed

@@ -26,6 +26,8 @@ imported-from: "CLAUDE.md"
 
 # Mindvalley Content Production & Management System
 
+> **Superseded (2026-09-10)** for product direction by [Content Studio v2](content-studio-v2.md). Kept as the record of the 2026-06 decisions; the workflow decisions (event→asset chain, two status axes, queue, 5-column header) remain valid and are inherited.
+
 ## Problem
 
 The Social/Ads/Content teams at Mindvalley have merged into one Creative Services team. The primary stakeholder (Vision) cannot see what is being produced, by whom, or how it performs. Work is fragmented across Jira and 4+ Airtable bases (VSSLs, masterclasses, social media, etc.), making it impossible to get a unified view of the content lifecycle.

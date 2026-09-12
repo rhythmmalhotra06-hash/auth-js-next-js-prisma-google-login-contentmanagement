@@ -23,6 +23,7 @@ import { weekBounds, weekStartOf, toYmd, weekdayName, addDays } from '@/lib/mow/
 import { pickByCoverage, pickGoal, isPlaceholder, meaningful, type CoverageEntry } from '@/lib/mow/coverage';
 import { splitJammedName } from '@/lib/mow/derive-week';
 import { getSocialPosts, type SocialPost } from './social-posts';
+import { getPlannedEmails, type PlannedEmail } from './emails';
 import { deriveChannel } from '@/lib/media/vishen-videos';
 import type { BrandWeekHeader, CalendarAsset, CalendarDay, CalendarWeek } from './types';
 
@@ -169,18 +170,22 @@ async function buildWeek(weekStart: Date): Promise<CalendarWeek> {
     return !!d && d >= toYmd(start) && d <= toYmd(end);
   };
   const mvPromise = commsDaysBetween(toYmd(from), toYmd(to));
-  const postsPromise = mvPromise.then((mvRows) => {
-    const socialIds = mvRows
-      .filter((r) => inWeek(r.fields[COMMS_DAY.fields.date]))
-      .flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets]));
-    return getSocialPosts(socialIds).catch(() => new Map<string, SocialPost>());
-  });
+  const inWeekRows = mvPromise.then((rows) => rows.filter((r) => inWeek(r.fields[COMMS_DAY.fields.date])));
+  const postsPromise = inWeekRows.then((rows) =>
+    getSocialPosts(rows.flatMap((r) => ids(r.fields[COMMS_DAY.links.socialAllAssets]))).catch(() => new Map<string, SocialPost>()),
+  );
+  // Emails resolve from the same comms-day rows and in the same wave as the posts — a different
+  // table, so the per-base limiter runs them side by side rather than one after the other.
+  const emailsPromise = inWeekRows.then((rows) =>
+    getPlannedEmails(rows.flatMap((r) => ids(r.fields[COMMS_DAY.links.emails]))).catch(() => new Map<string, PlannedEmail>()),
+  );
 
-  const [vl, msg, mvRows, posts] = await Promise.all([
+  const [vl, msg, mvRows, posts, emails] = await Promise.all([
     vlRows(),
     mowRows().then((rows) => ({ rows, error: null as string | null }), (err: unknown) => ({ rows: [] as AirtableRecord[], error: err instanceof Error ? err.message : String(err) })),
     mvPromise,
     postsPromise,
+    emailsPromise,
   ]);
 
   return assembleWeek({
@@ -190,6 +195,7 @@ async function buildWeek(weekStart: Date): Promise<CalendarWeek> {
     mvRows,
     msgError: msg.error,
     posts,
+    emails,
   });
 }
 
@@ -314,6 +320,7 @@ export function assembleWeek({
   mvRows,
   msgError = null,
   posts = new Map(),
+  emails: emailRecords = new Map(),
 }: {
   anchor: Date;
   vlRows: AirtableRecord[];
@@ -322,6 +329,8 @@ export function assembleWeek({
   msgError?: string | null;
   /** Resolved 📣 Social records, keyed by recId. Empty in tests that only exercise shapes. */
   posts?: Map<string, SocialPost>;
+  /** Resolved 📧 Emails records, keyed by recId. Empty in tests that only exercise shapes. */
+  emails?: Map<string, PlannedEmail>;
 }): CalendarWeek {
   const weekStart = weekStartOf(anchor);
   const { start, end } = weekBounds(weekStart);
@@ -433,7 +442,33 @@ export function assembleWeek({
     // Jim Kwik beat) must say so rather than inheriting the week's leader.
     const perAsset = { messageName: meaningful(dayMessage), goal: meaningful(dayGoal) };
 
-    if (emails) {
+    // One row per REAL email where the day linked the records — title, subject and audiences, so
+    // the row can be opened and its Braze numbers matched. Where the day only declares a count
+    // (three of w/c 31 Aug's four email days do), the old synthetic chip is still the honest
+    // rendering: something went out, and the base does not say what.
+    const linkedEmails = ids(f[COMMS_DAY.links.emails]);
+    const resolvedEmails = linkedEmails.map((id) => emailRecords.get(id)).filter((e): e is PlannedEmail => !!e);
+    if (resolvedEmails.length) {
+      for (const e of resolvedEmails) {
+        assets.push({
+          id: `${e.id}:email`,
+          emailId: e.id,
+          title: e.title,
+          subject: e.subject,
+          audiences: e.audiences,
+          brand: 'MV',
+          channel: 'Email',
+          platforms: ['Email'],
+          status: e.stage,
+          source: e.emailType,
+          publishedUrl: null,
+          // An email is "live" once the team moved it to Sent — there is no published URL to
+          // infer it from, the way a social post has.
+          live: (e.stage ?? '').toLowerCase().includes('sent'),
+          ...perAsset,
+        });
+      }
+    } else if (emails) {
       assets.push({
         id: `${r.id}:email`, title: emails > 1 ? `${emails} emails` : 'Email', brand: 'MV', channel: 'Email',
         status: null, source: null, publishedUrl: null, live: false, ...perAsset,

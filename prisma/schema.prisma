@@ -905,6 +905,71 @@ model SocialMetric {
   @@map("social_metrics")
 }
 
+// The email half of the performance loop — `social_metrics` for Braze.
+//
+// The pack shows Perch numbers beside every social post and, until this table existed, the
+// words "results live in Braze" beside every email. They live in Braze because that is the only
+// place they are: the team's "24h email performance" sheet is hand-copied from the Braze UI
+// (its display rounding is visible in the cells), and the Airtable 📧 Sends table that has
+// exactly these columns holds four rows, all from March 2025.
+//
+// GRAIN IS THE CAMPAIGN, which is one email to ONE audience list. A planned email goes to six
+// to eleven lists — Daily, Highlights, Weekly, Members, Coach, Events, Vishen's List, Mastery —
+// and each is its own Braze campaign with its own open rate. The app rolls them up for a
+// headline and keeps them apart underneath, because Daily and Members are different audiences
+// and the team's own benchmarks are stated per list.
+//
+// `windowDays` = 2 is the honest version of "24 hours": Braze's /campaigns/data_series returns
+// DAILY buckets, so the closest true figure is the send day plus the next one. Anything younger
+// than 48h is still counting and the UI must say so rather than presenting a verdict.
+model EmailMetric {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Braze REST campaign id. NOT the 24-hex id in the dashboard URLs the team pastes into
+  /// Airtable — those are dashboard ObjectIds and the two do not convert, which is why the
+  /// Airtable record is matched by subject + date rather than joined by key.
+  brazeCampaignId String  @map("braze_campaign_id")
+  campaignName    String  @map("campaign_name")
+  subject         String?
+  /// Daily | Highlights | Weekly | Members | Coach | Events | Vishen's List | Mastery — from the
+  /// campaign's Braze tags, falling back to its name. Null when neither says.
+  audience        String?
+  /// The 📧 Emails recId, once matched. Null means no Braze campaign matched — NEVER zero results.
+  emailAirtableId String? @map("email_airtable_id")
+  /// How the match was made: 1.00 exact subject, 0.90 subject prefix, 0.60 name overlap.
+  matchScore      Decimal? @map("match_score") @db.Decimal(3, 2)
+
+  firstSentAt DateTime? @map("first_sent_at") @db.Timestamptz
+
+  sent         Int?
+  delivered    Int?
+  uniqueOpens  Int? @map("unique_opens")
+  /// Apple Mail Privacy Protection opens. Kept separate because they inflate any open rate that
+  /// includes them, and a 60% OR that is half machine is a different fact from a 60% OR.
+  machineOpens Int? @map("machine_opens")
+  uniqueClicks Int? @map("unique_clicks")
+  unsubscribes Int?
+  reportedSpam Int? @map("reported_spam")
+  conversions  Int?
+  revenue      Decimal? @db.Decimal(12, 2)
+
+  /// 2 = the send day plus the next (the honest "24h"); null = every bucket to date.
+  windowDays Int?     @map("window_days")
+  capturedAt DateTime @map("captured_at") @db.Timestamptz
+  /// 'braze'. Reserved so an Iterable backfill of the 2025 sequences stays possible.
+  source     String
+  raw        Json?
+  /// braze:<campaignId>:<window>:<captured day> — a re-run updates today's row in place.
+  dedupeKey  String   @unique @map("dedupe_key")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([emailAirtableId, capturedAt(sort: Desc)], map: "idx_email_metrics_email")
+  @@index([brazeCampaignId, capturedAt(sort: Desc)], map: "idx_email_metrics_campaign")
+  @@index([firstSentAt], map: "idx_email_metrics_sent")
+  @@map("email_metrics")
+}
+
 // Small key→value store for sync watermarks (e.g. the ticket inbound-pull cursor:
 // the newest Airtable "Last Modified" time we've imported). Keeps the two-way pull
 // incremental instead of rescanning the whole table each cycle.

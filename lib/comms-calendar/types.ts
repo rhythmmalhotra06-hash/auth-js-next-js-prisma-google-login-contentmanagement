@@ -39,6 +39,18 @@ export interface CalendarAsset {
   results?: { reach: number | null; engagements: number | null; multiAccount: boolean } | null;
   /** Post artwork, where the record carries an attachment (62% of them). */
   imageUrl?: string | null;
+  /**
+   * For an EMAIL row: the 📧 Emails recId, when the day actually linked the record.
+   *
+   * A day can also declare emails by a bare `No. of Emails` count with nothing linked — three of
+   * w/c 31 Aug's four email days do exactly that — and those rows have a title and no id, since
+   * there is no record to open.
+   */
+  emailId?: string | null;
+  /** The email's subject line, parsed from its copy. The join key to Braze. */
+  subject?: string | null;
+  /** Which lists it went to: Daily, Members, Coach… Normalised from the Airtable option names. */
+  audiences?: string[];
 }
 
 /** One day in the week, both lanes. */

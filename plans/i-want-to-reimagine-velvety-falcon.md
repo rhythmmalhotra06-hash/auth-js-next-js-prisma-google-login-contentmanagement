@@ -1,6 +1,6 @@
 # Content Studio v2 — the pivot: review, discovery record, and real-data prototype
 
-**Status:** plan. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
+**Status:** rev 3 published 11 Sep; **rev 4 planned 12 Sep (§5c): agent contracts + as-is workflow map as documents** → https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079 (awaiting Rhythm's approval). PRD written: `prd/content-studio-v2.md` + 8 epics. **Hard rule (Rhythm, 10 Sep 2026): nothing is written in production code until a
 prototype built on REAL data is approved by Rhythm.** This plan's only outputs are (1) the product PRD
 `prd/content-studio-v2.md` (via the `/prd` protocol, discovery already run below), (2) a static
 clickable HTML prototype fed by real Postgres/Airtable exports, published as an Artifact.
@@ -130,10 +130,76 @@ class; the prototype can and must run on real numbers.
 | D22 | Editor identity | `Employee` by email, `assigneeName` snapshot on the ticket as fallback. |
 | D23 | Sign-off | **Rhythm** approves the prototype; that approval is the only thing that unlocks code. |
 
+### Second pass (rounds A–I, same day) — DECIDED
+
+**Prototype**
+| # | Decision |
+|---|---|
+| D24 | **Real names and real numbers**; the Artifact stays private, shared only with the sign-off group; editors told first. |
+| D25 | Brands: @mindvalley main IG + all other MV IG accounts Perch covers + FB MV accounts + **Vishen/VL** (Airtable-only; renders mostly as honest empty states — `24h Data` empty on every row). |
+| D26 | Vishen's "one number" = **real week figure pulled from Metabase** (Q31846 leads / Q32044 revenue) at export via the connector, applying `scripts/mow-ingest-agent.md` guards (organic-social filter, distinct `order_id`, truncation check, name the brand). Figures only, no prose. |
+| D27 | **Deadline: prototype ready Fri 12 Sep**, before the MOW go-live; export uses data through 11 Sep. |
+| D28 | YouTube in prototype: **public Data API stats (views/likes/comments) via existing `YOUTUBE_API_KEY`** for VL videos with a YouTube Published Link; CTR/AVD shown as "needs YouTube Analytics OAuth". LinkedIn in prototype: **via Composio connector if a LinkedIn account is connected, else "not connected"** — never fabricated. |
+| D29 | Audit screen ("State of the portal") = **appendix reachable from the footer**, not in the main flow. |
+| D30 | **Fully responsive everywhere** (not just editor surfaces). |
+| D31 | Design bar (checkable): every insight readable in one line — *number · vs what · n · so-what · owner*; progressive disclosure headline → evidence → raw table; one signal language — **edit = purple, distribution = neutral, data-quality = gold (max one per screen)**; skeletons, hover, keyboard nav, dark-mode parity. Build with `artifact-design` + `dataviz` + `artifact-diagramming`. |
+
+**Cohorts, metrics, goals**
+| # | Decision |
+|---|---|
+| D32 | Cohort = **same account × same post type × same age, last 90 days**; asset type is an overlay ("and vs 6 other Pathway Organic Snippets"); speaker/campaign are filters, never the base cohort. |
+| D33 | Cohort < 8: readout still shows the asset's numbers and **falls back to same post type across all MV accounts, labelled "(fallback, cross-account)"**. **Proposals never use a fallback cohort** — n≥8 within one account. Boundary D16 is thereby brand-level for readouts, account-level for learning. |
+| D34 | Definitions: Views = `post_views`; Reach = `reach`; ER = `engagement ÷ reach` (Perch `engagement_rate`); **Value = saved + shares; Conversation = comments**; **Retention = `ig_reels_avg_watch_time` seconds now, % of duration once Publication carries `durationSec`** (ffprobe on render service, or typed); compare seconds only within the same post type. |
+| D35 | Snapshot tolerance: **Day-1 = first capture 18–36h after `posted_at`; Day-7 = 6.5–7.5 days**. |
+| D36 | Goal map (Gareth may revise): Educate → saves + watch · Inspire/Entertain → shares + reach · Convert/gated CTA → comments · Announce → reach · caption containing `Comment "X"` overrides to Convert · unmapped pillar → "goal not set". |
+
+**Generation, approval, application**
+| # | Decision |
+|---|---|
+| D37 | **Deterministic stats choose the pattern** (quartile split on goal metric + attribute contrast: asset type, hook style, CTA, source=repurposed, speaker, post type); **Claude only phrases** statement/rationale from a template with numbers fixed (`claude-haiku-4-5`, as `DISTILL_MODEL`). Numbers can never be invented — honours Glen's "the AI never narrates a number". |
+| D38 | Cadence: **weekly, Sunday night, per asset type, ≤3 new proposals**, deduped against active + pending. |
+| D39 | Endorse/dispute is **advisory**: counts + dispute reasons shown to the lead, who decides regardless; a dispute requires a reason (becomes a Tier-1 signal). No veto, no auto-activation. |
+| D40 | Active rules apply in **DNA review at `Review`** and in the **brief draft at intake** (rule + top-3 performers cited, editable). Not the clip prompt, not a My-work checklist (v1). |
+| D41 | Rules are **re-scored weekly**; if evidence reverses (delta flips sign, n≥8) the rule is flagged **"contested"** to the lead — never auto-deactivated. |
+| D42 | Approver = **Team Lead OR Sub Lead** of the asset type (fix the mapping to include both Airtable fields); record who activated. |
+
+**Attribution**
+| # | Decision |
+|---|---|
+| D43 | Tiers: **auto-link** on URL/`platform_post_id`; **auto-link** on caption overlap ≥80 normalized chars; **PROPOSE (confirm needed)** on transcript- or image-only match; **UNMATCHED** otherwise. Confirmed = solid badge; proposed = dotted "likely — confirm"; **readouts go out only for confirmed links**. |
+| D44 | Confirmers: **the ticket's editor OR the social manager**, in a small "Confirm publications" inbox and on the ticket band; pending confirms listed in the Monday digest. |
+| D45 | **Unticketed** posts stay in cohorts as peers and appear in an "Unticketed" list with one-click *create ticket retroactively*; coverage % = ticketed ÷ all published, always visible. |
+| D46 | YouTube product-side: **public Data API now, Analytics OAuth follow-up**; LinkedIn product-side: **manual 24h/7d entry with "entered by"** shown. |
+
+**Delivery surfaces**
+| # | Decision |
+|---|---|
+| D47 | 24h Slack DM: **editor only**, 5 lines — title · goal metric vs cohort median (n) · retention vs median · one edit-signal line · one distribution-signal line · link. **No adjectives, no verdicts.** Mutable per asset type. |
+| D48 | Monday digest: **extend the existing social-digest cron** — per asset type top/bottom on goal metric, new proposals count, pending confirms, coverage %. **No per-editor numbers in the digest.** |
+| D49 | "My work": last 90 days of confirmed publications, day-1/day-7 columns, goal metric + retention, cohort position, proposals awaiting endorse/dispute, **deliveries not yet published/matched**, and **compare-two-of-my-edits side by side (v1)**. |
+| D50 | "My work" visibility: **the editor, their asset-type leads, admins, and any manager/approver role**. Still no leaderboard anywhere. |
+
+**Lanes, assets, statuses**
+| # | Decision |
+|---|---|
+| D51 | Email lane = **📧 Sends / 📧 Email tables** (Content & Comms base, read at export; metrics "not connected" until Braze). Podcast lane = **VL Podcast table + `media_sources` inbox** (episodes → clips; performance via YouTube public stats where a link exists). |
+| D52 | **Shared prio/ticket status axes for the unified queue; lane-native status as a secondary chip** (Social `11: Released`, Shoot 4-state) until sunset. 5-column mandate holds across lanes. |
+| D53 | Asset kinds: Email = the send (subject, body, hero, segment, CTA link; versions = drafts; publication = send event) · Podcast = the episode (master, transcript, show notes) with clips *derived from* · Social = the post (final cut/image + caption + cover; publication per channel/account) · Shoot = raw footage batch (folder link, shot list) as a source asset. |
+
+**Agencies**
+| # | Decision |
+|---|---|
+| D54 | Reference agency = **Rise Voice** — the 66 published `VL IG: Risevoice` items with no Live Date; their IG posts if Perch covers the VL account. Uploads = **paste a link as a version** (no file hosting in v1). Comments = **threaded on the work item and on each version**, visible to agency + internal team on that item, optional timecode for video (new `Comment` model). Agency sees **own items with numbers; cohort only as an anonymous account median**. |
+
+**Coexistence**
+| # | Decision |
+|---|---|
+| D55 | **Same app, new IA behind a `/v2` prefix + feature flag**; surfaces move over one by one; old routes redirect when replaced. MOW/comms calendar untouched through 14 Sep. |
+
 ### Still open (carry into the PRD's Open Questions with owners)
-- O1 Goal-metric mapping table for each Content Pillar (who decides: Gareth?).
+- O1 Goal-metric map (D36) confirmation — Gareth.
 - O2 Short-code convention if/when introduced (`MV-11057`?) and where it must appear (utm_content, Hootsuite tag, filename).
-- O3 Confidence threshold and UI for the image/transcript matcher's "ambiguous → confirm" queue; who confirms (social manager?).
+- O3 Image-similarity method/threshold for the PROPOSE tier (perceptual hash vs embedding) — engineering spike.
 - O4 Event-tier ranking (open since June) — needed before scoring learns. Owner Moniek.
 - O5 Metabase/Braze/Composio app-side credentials — who owns the keys (Glen?).
 - O6 Scheduler choice (Kessel cron vs external) — Rhythm.
@@ -173,58 +239,246 @@ with credentials in `external_credentials`, on a real scheduler. Every surface l
 
 ---
 
-## 5. The prototype (what gets built on approval of this plan)
+## 5. The prototype — REV 2: persona desks (11 Sep, after Rhythm's org brief)
 
-**Form:** one static, self-contained, hash-routed HTML file at
-`Context/mockups/v2/content-studio-v2.html`, published as an Artifact. **All numbers real**,
-exported at build time into an inline JSON block: `kessel db query` (read-only SELECTs, JSON
-output) + Airtable MCP reads → JSON in the scratchpad → embedded. Brand per `DESIGN_SYSTEM.md`
-(primary `#572280`, gold at most once per screen, Plus Jakarta Sans, 8/12px radii, light + dark),
-no horizontal body scroll, reflows to ~390px. Skills to load first: `artifact-design`, `dataviz`,
-`artifact-diagramming`.
+Rev 1 (published 11 Sep, https://claude.ai/code/artifact/13a64b57-f2fb-4710-8f3f-0393252ed079)
+was organised by loop stage with a 3-way role toggle. Rhythm's org brief showed the gap: the
+system serves **ten different jobs**, and the transcripts (`Sep Calls/*.docx`) show each person
+arrives with a different question. **Rev 2 keeps every rev-1 screen as a shared screen and puts a
+persona desk on top of them.** Same file, same URL (redeploy), same real data + a few more exports.
 
-**Real-data export list (read-only):**
-- `social_metrics` latest capture per IG post for all MV accounts: reach, views, ER, likes, saves,
-  shares, comments, avg watch, post_type, tags, posted_at, collaborators, caption head, URL.
-- Day-1 and day-7 snapshots per post (captured_at − posted_at ∈ {1, 7}).
-- 📣 Social records with Published Link + Creative Ticket + Assigned + Content Pillar + Live Date
-  (Airtable) → the attributed set; count = attribution coverage %.
-- Tickets for those Social records (asset type, event type, dimensions, editor, brief) via PG.
-- Editors with ≥1 attributed publication → "My work" data (Yuthika is the worked example).
-- Active `DnaReviewRule`s and 🧠 Clip Rules → the Knowledge/rulebook screen; MOW `Learning`s.
-- Comms calendar week of 7–13 Sep (Airtable) → Plan screens; shoots board; clip inbox.
-- Data-health facts: per-source row counts, last capture, crons that exist vs documented.
-
-**Screens (walkthrough order):**
-| # | Screen | Shows |
+### The org, as briefed (D56)
+| Person | Role | Their question |
 |---|---|---|
-| 0 | State of the portal | The audit: real / built-unwired / planned-only; 0/1,642 join; the views-mapper bug; why pivot. |
-| 1 | Today (role toggle Vishen · editor · lead) | Vishen: one number (labelled by brand + source), shipping today, blocked on him. Editor (Yuthika): next up + **24h/7d readouts of her last publications**. Lead: lane health, at-risk, capacity. |
-| 2 | Plan → Calendar | Week 7–13 Sep, lanes as rows, two brands, MOW per brand, owner-named empty states, not-dated tray count (221). |
-| 3 | Plan → Requests & Shoots | Intake chain; shoot requests; agency-originated marker. |
-| 4 | Make → Queue | 5 mandated columns; lane tabs (video/social/email/podcast/shoots); risk chips. |
-| 5 | Make → Work item #11057 | Brief; *derived from* source asset; DNA baseline; versions; DNA review; approvals; **Publication** with live day-1 metrics vs cohort; edit vs distribution signals; proposed learning with endorse/dispute. |
-| 6 | Publish → Repository | Table: asset, lane, versions, copy/transcript/hook/CTA/offer, publications, 7d metrics; filters; version-stack drawer. |
-| 7 | Measure → Performance | By lane/channel/campaign tag; **attribution coverage %**; source badges + freshness; Monday pack. |
-| 8 | Learn → Insights & Knowledge inbox | "What's working" with evidence + n; proposals from all loops; endorse/dispute/approve; rulebook by asset type; "AI-drafted" marker. |
-| 9 | Partners | Rise Voice workspace: own requests, shoot request, uploads, status, own numbers. |
-| 10 | Connections & data health | Per source: owned/session-only/not connected, last pull, rows; scheduler; Airtable sunset progress per domain. |
-| D1 | Diagram: content graph | Work item → Asset → Publication → Metric → Knowledge → Brief/Queue. |
-| D2 | Diagram: data flow + matcher | Sources → scheduled pulls → sink → multi-signal attribution → surfaces. |
+| **Vishen** | CEO | Message of the week (two brands), what went out day by day with owners, how it did ("tell Marwa how that video did"), one number, what we learnt, what's planned next week. He is also the recurring blocker (unrecorded content) and the sign-off for shoots/clips. |
+| **Gareth** | Owner of all content going out; leads Titus + team; Nadir reports to him | "What did we do last week, numbers, impact? What are we doing this week that learned from last week? Who's accountable for meditation / newsletter / quest / stage talk of the week? Blockers?" Wants tabular assets + performance = learning engine, and AI to clip long-form and deliver a **first cut**. |
+| **Marisha** | Head of marketing channels; social team reports to her | Two separate MOWs (MV vs VL); roles → results (her "MIT" system replacing OKRs); approval lane on clips (`Review - Marisha/Gareth`); gatekeeps budgets/access. |
+| **Ramya** | Email (Braze) + all Vishen Lakhiani Media channels via agencies: YouTube = Talking Heads · LinkedIn = Two Comma PR · IG = Rise Voice (formerly Kash/Simplex). Contractor. | Her metric = **active users gained via the week's cadence**, not opens. Agencies already paste publish links; 256 VL assets undated; tests scoreboard lives with Rafi. |
+| **Glen** (Glen Jason Chittur — one person) | Mindvalley social channels (Hootsuite 63 accounts, Composio), writes the weekly MOW report by hand | "If efficiency is a recommendation and that's not true it derails everything" → sections he owns and edits; campaign = Hootsuite tag × Metabase UTM; wants sentiment and an editor "what I'll improve next upload" note; "no team, just two of us". |
+| **Titus** | Video team lead; owns editing DNA per asset type | Receive requests, deliver, track the team's tickets and how they did, learn from assets. |
+| **Chee** | Design requests lead (Type of Request = Design) | Same as Titus for design; Thursday photo-collage owner; design has **0 asset types with DNA**; banners (975 rows) carry the only design metrics. |
+| **Nadir** | Production: shoots, raw files, post-production tickets, podcast edits | Shoot pipeline, footage hand-off, podcast episodes → clips → first cut. |
+| **Editors** (Yuthika, Jason Roper) | Make | As designed (My work, readouts, endorse/dispute). |
+| **Agencies** (Rise Voice, Talking Heads, Two Comma PR) | External | Own items only; paste publish links; raise requests. |
+
+### Decisions taken 11 Sep (D57–D66)
+| # | Decision |
+|---|---|
+| D57 | **Spine = persona desks first, loop screens shared underneath.** A "Viewing as" switcher (10 personas) in the top bar; persona is carried in the hash (`#/desk/gareth`) so walkthrough links are shareable. Each desk ≤ 6 blocks, blocker-first, one gold element. |
+| D58 | **Same shared rail for everyone**; agencies see it pruned (Make · Publish · Measure) with a scope chip "own items only"; every desk block deep-links into a shared screen with the persona's filters shown as removable chips. |
+| D59 | **Marisha gets her own desk** (two MOWs, review lane, roles → results, channel health by account, agencies, access requests). |
+| D60 | **Roles → results** = rows are the weekly slots/roles (MOW owner, newsletter, meditation, quest, stage talk, MV social, VL YT/LI/IG) with owner + this week's goal metric where data exists; undefined results are Marisha-owned empties; **never sortable across people** (D9 holds). |
+| D61 | **First cut (Gareth)**: the full propose-only flow on a real podcast clip, marked *mock render*. Anchor = **Jim Kwik podcast** (media source with clips suggested; "Jim Kwik Podcast Reel" tickets carry DNA reviews; Vishen's 8 Sep MOW). "Generate first cut" lives on the work item (video lane, derived from a media source) and per clip in Nadir's podcast inbox; draft shows EDL shape from `lib/auto-editing/schema.ts` (reframe mode, captions, audio), DNA applied (asset-type DNA + clip rules), provenance (dnaVersion, repaired[]); actions **Accept → Final Pass** (real status) · **Reject** with the real taxonomy (reframe / caption_position / caption_timing / audio_grade; `moment_selection` routes to the clip engine, not the agent) · **Retry with feedback**; raw-file download always visible; acceptance rate shown as "collecting — history not persisted". No video is rendered. |
+| D62 | **Ramya's desk**: VL channel board (YouTube · LinkedIn · IG with real numbers where they exist) · email cadence this week linked to campaign + MOW, with "Opens/CTR — Braze not connected" and "Active users gained this week — needs a Metabase question · Rafi/Ramya" · her two data chores with counts (256 undated, 1 publish link on 107 released). The Content-vs-Shoot-requests tab split was **not** selected — agencies remain one board with per-agency chips. |
+| D63 | **Titus's desk**: team board (per editor, 5 mandated columns, no ranking) · incoming requests to triage with the gold Assign pill · **one combined block per asset type: DNA text + numeric proposals + aggregate readout of the team's delivered work** · first cuts awaiting review. |
+| D64 | **Chee's desk**: design queue (Type = Design, 5 columns + designer) · owned empty "Design asset types have no DNA yet — Chee + Vanessa/Haley/Ziga" with first proposed types · Thursday photo-collage slot from the calendar. Banners block **not** selected. |
+| D65 | **Nadir's desk**: shoot pipeline (Needs Vishen's review → Approved → To Film → Filmed; KPI cards click-filter) · raw files per shoot as a version stack (link · who · when — labelled "today a single URL field") + post-production ticket trigger · podcast inbox New → Transcribing → Clips suggested → tickets → first cut · blocker block "Vishen has not recorded X" (planned slots with no footage). |
+| D66 | **Glen's desk**: his weekly report as editable sections he owns ("drafted by system" → "edited by Glen", numbers locked as tokens the AI never narrates) · campaign table = Hootsuite tag × Metabase utm_source · data chores with counts (102 unticketed, 2 to confirm, publish links missing, 63 vs ~10 accounts covered) · sentiment + editors' "what I'll improve" as honest empties · **the v1 propose-only Social board**: add an idea → approve → raise ticket / shoot request, marked "syncs to 📣 Social". |
+| D68 | **Vishen's desk** = the six blocks in §5 "The desks" — built from `VishenCard`, `MediaOverview`, `PipelineFunnel`, `/studio/timeline` and the Monday pack; five numbers + five sentences first, everything else one click down; the only gold is "Waiting on you". |
+| D67 | **Vishen's "next week"** = real comms calendar 14–20 Sep (summit LIVE days, 6 emails, 1 LinkedIn post) + next MOW "Be Extraordinary" from the master table, thin days as owned empties. |
+
+### The desks (≤ 6 blocks each; every number carries source · age · n)
+**Vishen — the desk, drawn from what we already built for him and what he said (D68)**
+Sources: `components/mow/VishenCard.tsx`, `components/studio/media/MediaOverview.tsx`, `PipelineFunnel`, `/studio/timeline`, the Monday pack (`BrandCard`, `DayTable`, `Learnings`, `CommitBar`), `Context/VishenStudio/STUDIO_VISHEN_VIEW.md`, and his relayed words: *"what is the one number… what are the insights and learnings"*, *"Monday, Tuesday… there is an owner for every particular thing and the owner should know how it is performing"*, *"tell me how Marwa's asset did"*, *"too many numbers, I'm not clear what this means"*, CTR vs a fixed 7%, Masterclass 20 days = *"the biggest issue in the company"*. Governing rule (§6 of the umbrella plan): **five numbers and five sentences on the first screen; everything else one click down.**
+1. **Waiting on you** — the only gold. Four sources merged into one list: shoots at *New Requests – Needs Vishen's Review* (6), proposed clips collapsed to one row, `VishenVideo.approval = To Review`, tickets at *To be reviewed by Vishen* (2). Rows: kind chip (Shoot sign-off · Clip approval · Video approval · Priority call) · title · amber date pill · `Approve` / `Send back`. Caption *"nothing moves past these until you look"*; empty *"Nothing is waiting on you right now."*; footer *"Set the order instead →"* (ranking).
+2. **This week, in two sentences** — two brand cards, deliberately different shapes (VL teal / MV purple): the message, then **The number** with target + provenance (MV: leads 1,125 of 25,000 · Metabase · brand MV; VL: *"No message committed — Ramya"*, *"No target set — Ramya"*; never a zero bar). Sub-caption when no campaign is live: *"the headline falls back to leads."* Footer *"See the whole week →"* (the Monday pack).
+3. **Day by day — and how it did** — seven rows Mon→Sun: planned · went live · owner · status (planned / shipped / off plan / missed / blocked — five states, `blocked ≠ missed`) · platforms · day-1 read where attributed. Click a day → the platform read with **CTR vs the fixed 7%** where YouTube exists, *"not reported by this platform"* never 0. Each asset row → its readout: **this is the "tell Marwa how that video did" link.** Caption: *"Planned and went-live count different populations — two facts side by side, not a completion rate."* Beneath: a 4-tile strip — reach/views · engagement · published (live link) · **top performer, named**.
+4. **What we learnt** — committed learnings (by Gareth/Glen/Ramya) above staged ones; system drafts wear *"Proposed by the system"*; lever → owner (retention → editor, thumbnail CTR → packaging, destination CTR → message owner). Empty: *"Nothing recorded yet. A learning is what changes next week — the lever and who owns it."*
+5. **Next week** — 14–20 Sep from the comms calendar (summit LIVE days, 6 emails, 1 LinkedIn post), next messages from the master table (*Be Extraordinary*, *VL: Podcast – Naveen Jain*), shoots *To Film* (13); thin days as owned empties; **"Not yet recorded"** — planned slots with no footage, since that is his own recurring blocker.
+6. **The engine, and who is making it** — one strip: In production · Awaiting sign-off · Ready to publish (click → grid) + *Avg. Requested → Published* + *Most stuck* (*"See where time is going →"*); beneath, the agency scoreboard (Rise Voice · Talking Heads · Two Comma PR · Internal: in flight · editing · live 30d · avg ★). Close with the trust footnote verbatim: **"Nothing changes without you.** Approvals, ratings and clip sign-offs you make here write straight back to Airtable. The team advances everything else — this is your window onto their work, not a second system to maintain."
+Dropped from his desk (kept one click down): the five MediaHub tabs, the KPI row except *Awaiting you*, the clips wall, the review grid, ranking, board, calendar.
+**Gareth** — his agenda verbatim: Last week numbers & impact · This week, learned from last week (honest empty: no plan item cites a learning yet) · Accountable this week (meditation / newsletter / quest / stage talk — owner + status; two Gareth-owned empties) · Blockers · First cut (D61; 23 sources "Clips Suggested") · Learning-engine health (rules, reviews, proposals, coverage %).
+**Marisha** — D59/D60.
+**Ramya** — D62 + leads by agency (2CPR 116 / 11 orders; TH; Simplex) + Rafi's test scoreboard as "not in any connected source".
+**Glen** — D66.
+**Titus** — D63 (+ team capacity totals, no per-person bars).
+**Chee** — D64 (+ design deliveries → performance from Perch image posts where any).
+**Nadir** — D65 (+ incoming shoot requests with agency marker).
+**Yuthika** — existing My work + a "what I'll improve next upload" note (mock write, feeds Glen's block).
+**Rise Voice** — own items only: 66 published-undated with "paste publish link / set live date"; my requests; raise a shoot request; my numbers "VL IG account not covered by Perch"; threaded comments per version. Also Talking Heads / Two Comma PR reachable via chips.
+
+### v1 patterns carried forward (from `components/*`, verified)
+VishenCard "Waiting on you" blocker-first block · BrandCard two brands deliberately different shapes · DayTable day rows + per-platform reads ("not reported by this platform", never 0) · Learnings staged/committed with "Proposed by the system" · CommitBar naming who can commit ("Gareth, Glen or Ramya can") · two-tier empty states naming the owner (`components/ui/Empty.tsx` strings) · shoots KPI cards that click-filter · clip engine "regenerate with feedback + remember this rule" · QueueTable gold Assign pill · sign-off as a short decision list, not a grid · AskPanel contract "I only propose; you decide" · SocialBoard propose-only numbered statuses.
+
+### Additional real-data exports (read-only) for rev 2
+- All open **video + design** tickets with assignee (not just top-80) for Titus/Chee team boards; tickets in `Review` for Marisha's lane.
+- `media_sources` with `strategy_json` clips for the Jim Kwik source (titles, timecodes, rationale) + its `Podcast Snippets` tickets and DNA reviews → first-cut draft.
+- Shoots with `raw_files`, `production_support`, `requested_by`, `asset_type_ids`, `ticket_ids`, `new_prio_ticket`.
+- Comms calendar 14–20 Sep is already exported; add VL videos live 14–20 Sep.
+- Employees: Titus/Chee/Nadir/Gareth/Marisha/Glen/Ramya rows (names, roles) for the switcher.
+
+### Screens
+Shared (kept from rev 1, gain filter chips): Calendar · Requests & shoots · Queue · Work item · Repository · Confirm publications · Performance · My work · Learn · Partners · Connections · Appendix · Diagrams. **New**: `#/desk/<persona>` ×10 · `#/make/firstcut/<source>/<clip>` · `#/measure/roles` (roles → results).
 
 ---
 
-## 6. Order of work on approval of this plan (no production code)
+## 5b. REV 3 — team agents that talk to each other, and the missing workflow pieces (11 Sep, second /prd pass)
 
-1. Write `prd/content-studio-v2.md` (product template, 8 sections) from §3–§4; link it as
-   superseding `prd/content-production-management.md`; update `prd/index.md`. Create child epic
-   stubs: E-A Content graph & Publication · E-B Continuous learning engine (first loop) · E-C
-   Unattended data flow & scheduler · E-D Lanes & v2 IA · E-E Agencies & access · E-F Airtable
-   sunset · E-G Caption/distribution loop · E-H Campaign/offer loop.
-2. Export the real data (read-only) into the scratchpad as JSON.
-3. Build the prototype, publish the Artifact, walk it with Rhythm; iterate until approved.
-4. Save memory: "no code until approved real-data prototype"; "Perch payload has views/watch time —
-   mapper gap"; "attribution = system matches (URL→caption→transcript→image), humans confirm".
+Discovery run with Rhythm (rounds on missing workflow, agent architecture, autonomy, quality, UI).
+
+### Decisions (D69–D84)
+| # | Decision |
+|---|---|
+| D69 | **Missing workflow pieces now in scope**: copy & captions stage · scheduling & went-live · comment/approval threads (decision log) · podcast end-to-end tree · brief-from-what-wins at intake for every lane · sub-tasks under a ticket (E10). **Out**: localisation lane, broadcasts/notifications lane (PRD mention only). |
+| D70 | **One agent per team, all on the same content graph**, coordinated by the shared Knowledge store and a **Signal bus**. Six agents: **Video** (Titus) · **Social** (Glen + Vidura) · **Email & VL channels** (Ramya) · **Production** (Nadir) · **Design** (Chee) · **Planning** (Vishen / Gareth / Marisha — MOW, day-by-day, learnings, next week, roles → results). No agent acts on another team's data directly. |
+| D71 | **Agents talk through the graph, not to each other.** An agent writes a typed **Signal** (subject node, kind, evidence with refs · n · delta, confidence, suggested owner, proposed action) on the item; other agents subscribe by kind/lane; humans see every Signal in the item's thread. Fully auditable; no hidden A2A calls. |
+| D72 | **Autonomy at launch** = observe/compute/post Signals · draft (briefs, captions, report sections, first cuts, learnings — always "drafted by system", never committed) · nudge (Slack DM/digest when a Signal needs a decision) · **bookkeeping actions only**: auto-link publications at the auto tiers, set Live Date from a pasted publish link, attach a first-day readout to the ticket. |
+| D73 | **Trust ladder is fixed for six months: propose-only** on every content, rule or plan decision. D72's bookkeeping actions are the sole exception — reversible, logged, no content judgement. Re-open the ladder (per agent × action type, ≥80% acceptance over 30 decisions, lead flips) in March 2027. |
+| D74 | **Agent quality** = acceptance rate of proposals (accepted ÷ accepted+rejected) per action type per 30 days, **and** cost & latency per agent (tokens, seconds to draft). Endorse/dispute counts and outcome-lift were **not** selected as quality measures (they remain learning signals). |
+| D75 | **Copy stage**: the **editor writes the caption with the cut; the social manager polishes.** States on the publication: *Copy draft (editor)* → *Polished (social)* → *Scheduled* → *Live*. The caption is part of the creative record. Social agent may draft the caption from what wins; it is marked drafted. |
+| D76 | **Scheduling & went-live**: a *Scheduled* state per publication with **channel owner** (Glen · Hootsuite / Ramya · Braze / agency · native / Talking Heads · YouTube) and planned time; **"went live" is confirmed automatically** when Perch/YouTube first sees the post (the matcher) — no human tick. Scheduling *from* the portal is "later". |
+| D77 | **Threads**: one timeline per work item and per version — human comments, approvals/sends-back, and agent Signals in one stream, optional timecode. This is the decision log Vishen and Gareth asked for and where agents become visible. |
+| D78 | **Agents in the UI** = a **"Your agent" block on every desk** (what it did this week: signals · drafts · nudges; what awaits your decision; acceptance rate; cost). A separate Agents registry screen and an Ask box were **not** selected; agent→agent hand-offs are visible **inside item threads**. |
+| D79 | **Podcast** = **Episode parent work item** with children (master edit · YouTube upload + show notes · snippets · carousels · newsletter mention), each with lane, owner, status; publications hang off children. Scaling Wisdom / Jim Kwik becomes one tree of the six ticket types that exist today. |
+| D80 | **Sub-tasks** come from two sources: the Video agent splits a lead's/Vishen's free-text instruction into checklist items (drafted, editor confirms), and a **standard checklist per asset type from its DNA** (deterministic; the DNA review checks the same list). Editors may add their own. |
+| D81 | **Proactive intelligence to demonstrate on real data**: brief drafted from what wins at intake (every lane) · **24h anomaly nudge** with edit vs distribution separated (Manifest Love: pending collab invites) · **next-week suggestions** for empty slots from what worked in that slot before (thin Tue/Thu–Sun, 14–20 Sep) · **three live cross-agent hand-offs**: Social finding → Video brief change · Production "not filmed" → Planning blocker · Email cadence → Social day alignment. |
+| D82 | Agent runtime in production: **no LLM in observe** — deterministic SQL/TS over the graph; **Haiku phrases** drafts with numbers fixed (D37); one scheduled runner per agent on the real scheduler (O6); Signals persisted in a `Signal` table (subject node type/id, lane, kind, evidence JSON, from_agent, to_agents[], status open/acknowledged/acted/dismissed, thread_id). |
+| D83 | Memory: each agent reads/writes **Knowledge scoped to its lane** plus the shared graph; nothing is remembered outside the graph (no per-agent hidden state). |
+| D84 | PRD: add epic **E-I Team agents & the Signal bus**; extend **E-D Lanes & IA** with copy stage, scheduling/went-live, threads, podcast tree, sub-tasks; extend **E-B** with brief-from-what-wins, anomaly nudge, next-week suggestions; **Users** section lists the ten personas (D56). |
+
+### The six agents — subscribe → observe → emit
+| Agent | Subscribes to | Observes (deterministic) | Emits (Signals / drafts) | Decides |
+|---|---|---|---|---|
+| **Video** | tickets in video/podcast lanes · Publications of its assets · Knowledge(assetType) · Signals from Social (caption/CTA), Production (footage ready) | day-1/7 readouts vs cohort; DNA review; retention patterns n≥8 | proposed DNA rules; brief drafts; first-cut drafts; sub-task checklists; "retention above/below median" | Titus (Team/Sub Lead) |
+| **Social** | Perch/Composio metrics · 📣 Social records · Publications · Signals from Video (delivered), Email (cadence day) | matcher tiers; cohorts; gated-CTA / collab / posting-time contrasts; coverage % | attribution links (auto tiers); caption drafts; report sections; "distribution signal: collab pending"; unticketed list | Glen / Vidura |
+| **Email & VL channels** | 📧 Emails · comms days · VL Videos · YouTube public · utm leads/orders · Signals from Planning (message), Social (day) | cadence vs message; agency deliveries vs plan; publish-link & Live Date gaps; per-agency leads | "email and social on the same day carry different messages"; chore counts; agency readouts; active-users slot when defined | Ramya |
+| **Production** | Shoots · media_sources · raw-file links · Signals from Planning (next-week slots) | pipeline ages; filmed-without-handoff; planned slots without footage | "not yet recorded" blocker → Planning + Vishen's desk; post-production ticket proposals; podcast inbox nudges | Nadir |
+| **Design** | design-lane tickets · banners CTR/CVR (later) · Signals from Planning (Thursday slot) | queue ageing (70-day tickets); DNA gap per type | "design asset types have no DNA"; queue-age nudges; banner learnings later | Chee |
+| **Planning** | MOW master · comms days · all Signals | day-by-day plan vs live; learnings staged; next-week gaps | the Monday pack draft (staged only); next-week suggestions; roles → results table; "no plan item cites a learning" | Gareth / Glen / Ramya commit; Vishen reads |
+
+### Three hand-offs to show live (real items)
+1. **Social → Video**: Signal "gated-CTA reels −27% first-day views, +52% comments (n=24, @mindvalley)" on the Snippets asset type → Video agent's next brief draft for a Snippets ticket cites it → Titus sees it in the brief; thread on ticket #11057.
+2. **Production → Planning → Vishen**: 15 shoots still "To Film" with filming dates ≤ 10 Sep → Signal "planned Mon/Tue releases 14–15 Sep have no footage" on the comms days → Planning agent adds the blocker to Vishen's *Next week* and Gareth's *Blockers*.
+3. **Email → Social**: Wed 9 Sep newsletter ("What's the one thing you're truly the best in the world at?") and the day's three Pathway reels carry different messages → Signal "email and social on the same day: different messages — by design or not? owner Ramya · Glen" on the comms day; shown as *watch*, not a fault (Ramya's own rule: don't treat it as misalignment).
+
+### Prototype rev 3 changes (same file, same URL)
+- **"Your agent" block** on all ten desks (signals this week · drafts awaiting you · nudges sent · acceptance "collecting" · cost "not measured yet").
+- **Threads** on the work item (#11057) and on the Jim Kwik reel: one timeline of Airtable status events (real), DNA review findings (real), matcher links (real), agent Signals (derived), and mock human comments clearly marked as sample.
+- **Publication states** on the work item: Copy draft → Polished → Scheduled (owner, time) → Live (matcher-confirmed, with the real first-seen time).
+- **Sub-tasks** checklist on the work item: DNA-derived standard list for Snippets + a drafted split of the ticket's WHAT TO DO lines (editor confirms).
+- **Episode tree** screen `#/make/episode/scaling-wisdom`: the six real Scaling Wisdom ticket types as children under one Episode.
+- **Next-week suggestions** on Vishen/Gareth/Glen desks: for each thin day 14–20 Sep, "what worked in this slot before" from real cohorts, marked drafted.
+- **24h anomaly nudge** on Yuthika's and Glen's desks (Manifest Love, pending collab invites — the real example).
+- Brief-from-what-wins extended to the design lane on the intake screen (cites banner CTR later — shown as "no design DNA yet").
+
+## 5c. REV 4 PLAN — agent contracts with no assumptions, and the as-is workflow map (11 Sep, third /prd pass)
+
+Deliverables (after approval): **`Context/workflows-as-is.md`** (reference: every team's status machine, actors, triggers, automations — cited to code/Airtable) and **one feature section per agent in `prd/content-studio-v2/team-agents-and-signal-bus.md`** using the contract template below. Both are documents only — no code.
+
+### Decisions (D85–D92)
+| # | Decision |
+|---|---|
+| D85 | Docs live in the repo: `Context/workflows-as-is.md` + per-agent feature sections in the E-I epic. Not in the prototype (a Workflows/Agents screen was not selected). |
+| D86 | Default thresholds proposed: **anomaly** = goal metric < 50% of the same-age cohort median at day 1 with n≥8 → nudge; **stuck work** = In Progress > 14 days (video) / > 21 days (design) with no status event → blocker Signal. **Left open** (owners): footage-risk threshold — Nadir; attribution-coverage threshold — Glen. |
+| D87 | Nudge policy: once per Signal; re-nudge after 3 working days if still open; max 2 re-nudges; everything else bundles into the Monday digest. |
+| D88 | Cost ceiling: ≤ $5 per agent per week (Haiku phrasing only; observe is free); hard stop + Signal "budget reached" to Rhythm. |
+| D89 | Cadence: Social, Video, Email & VL run **daily after the Perch pull (~04:00 UTC / 12:00 MYT)**; Production and Design **hourly**; Planning **Sunday night** (pack) + **Thursday pre-pass** (next-week suggestions). |
+| D90 | Brief-from-what-wins is **auto-filled** into the brief field when Event Type + Asset Type are chosen, marked "drafted by system"; requester edits or clears. |
+| D91 | Social agent drafts a caption **only when the editor delivers without one** (transcript + pillar + what wins); social manager polishes. Never overrides an editor's caption. |
+| D92 | Slack recipients = owners and leads only (editors, Glen, Vidura, Ramya, Titus, Chee, Nadir, Gareth, Marisha). **Vishen is never paged** — his desk is the channel. |
+
+### The agent contract template (every agent fills every row; "n/a" is an answer, blank is not)
+```
+Agent · owner · decides
+Runs            : cadence (D89) · trigger conditions · what it reads first
+Inputs          : exact tables/fields (Postgres · Airtable field ids · APIs), freshness required
+Checks          : numbered deterministic rules, each with threshold, n-floor, cohort definition, and the Signal kind it emits
+Emits           : Signal kinds (+ subject node type) · drafts (what, where they land, marker) · nudges (who, when, D87)
+Subscribes to   : Signal kinds from other agents and what it does with each
+Allowed writes  : the bookkeeping list (D72) applicable to it, nothing else
+Forbidden       : explicit list (commits, status changes, ranking people, cross-team writes, paging Vishen…)
+Human loop      : who accepts/disputes/dismisses each Signal kind; what "accept" changes
+Failure         : source down / stale (> 36h) / n too small / budget reached → exact behaviour and label
+Quality         : acceptance per action type per 30 days · cost · latency; where shown
+Cost            : ≤ $5/week (D88); what counts
+```
+
+### Agent contracts (to be written verbatim into the epic; the specifics below are the decisions, not sketches)
+
+**Video agent** · owner Titus (Team/Sub Lead of the asset type) · daily after Perch + on ticket → Review
+- Inputs: `tickets` (video/podcast lanes; `ticket_status`, `assignee`, `asset_type`, `creative_brief`, `final_*`), `Publication`/`social_metrics` for its assets (day-1/day-7 snapshots), `asset_types.dna_upstream / dna_requirements`, `DnaReviewRule` (active), `ClipRule` (active), Signals from Social (`learning`, `anomaly`), Production (`footage-ready`).
+- Checks: V1 readout per publication at 24h/7d (cohort D32, fallback D33); V2 retention contrast per asset type (top vs bottom quartile on goal metric, n≥8 both) → `learning` proposal ≤3/week (D38); V3 DNA review on → Review (existing `lib/dna-review/generate.ts`), flag-severity gates Approved; V4 stuck work In Progress > 14 days (D86) → `blocker`; V5 sub-task split of brief bullet lines + DNA standard list (D80) → draft on the ticket; V6 first cut only on the human "Generate first cut" click (D61); V7 brief-from-what-wins at intake for video/podcast asset types (D90).
+- Emits: `learning` (asset type), `blocker` (ticket), `gap` (asset type without DNA text), drafts: brief, sub-tasks, first cut, proposed DNA rule; nudges: editor 24h readout DM (D47), Titus on proposals.
+- Allowed writes: attach readout to ticket; store drafts as drafted; propose `DnaReviewRule` rows inactive. Forbidden: change `ticket_status`/`prio_status`/assignee; activate rules; render/publish video; compare editors.
+- Human loop: editor endorses/disputes proposals (D39); Titus/Sub Lead activates (D42); editor accepts/rejects first cut (D61).
+- Failure: no Perch capture → readout "not read yet"; n<8 → "collecting (x/8)"; Anthropic error → deterministic findings only (existing behaviour); budget → stop drafting, keep observing.
+
+**Social agent** · owner Glen · Vidura · daily after Perch
+- Inputs: `social_metrics` (raw payload incl. `post_views`, `saved`, `shares`, `ig_reels_avg_watch_time`, collaborators), 📣 Social records (`fldTVU4jMZW3JNswX` publish link, `fldZxIaWrFImce9H9` ticket recId, `fldQO9q4bkX3Mi1kj` pillar, caption `fldCpBMCWeGwmyYpx`, transcript `fldyonJXP12e5Sbv8`, cover attachment), Hootsuite tags, Metabase Q31846/Q32044 (session-side until app-side), Signals from Video (`delivered`), Email (`cadence-day`).
+- Checks: S1 matcher tiers (D43) → link/propose/unmatched; S2 cohorts + readouts; S3 caption/CTA/collab/posting-time contrasts n≥8 → `learning`; S4 anomaly < 50% median at day 1, n≥8 (D86) → `anomaly` with edit vs distribution separated; S5 coverage chores (thresholds open — Glen) → `chore`; S6 caption draft only when delivery has none (D91); S7 weekly report sections (numbers as locked tokens) → draft for Glen (D66); S8 campaign table Hootsuite tag × utm.
+- Emits: `learning`, `anomaly`, `chore`, `watch`; drafts: caption, report sections; nudges: Vidura/Glen on confirms and coverage; editors get the 24h DM via the Video agent.
+- Allowed writes: auto-link at auto tiers; attach readouts; create Publication rows from links; nothing on Airtable statuses. Forbidden: change 📣 Social status; schedule/publish; edit an editor's caption; rank editors.
+- Human loop: Vidura/Glen confirm PROPOSE-tier matches (D44), approve report sections (edit → "edited by Glen").
+- Failure: Perch grant dead → "not captured" on every readout + Signal to Rhythm; unmatched → cohort peer + Unticketed list (D45).
+
+**Email & VL channels agent** · owner Ramya · daily after Perch (YouTube public + utm weekly)
+- Inputs: 📧 Emails (Live Date, Stage, Purpose, Type, Campaign/Comms Calendar link), 🗓️ Comms Calendar days (message, goal, phase, emails, social), VL `Videos` (Live Date, Source, Status, Approval, Published Link, 24h Data), YouTube public stats, Metabase leads/orders by `utm_source` (agency tags), Signals from Planning (`message`), Social (`cadence-day`).
+- Checks: E1 email without Comms Calendar link / without Live Date → `chore`; E2 email and social on the same day with different messages → `watch` (never a fault — Ramya's rule); E3 VL asset published without Live Date → `chore` (256 today); E4 agency delivery without publish link > 2 days after Live Date → `chore` to the agency; E5 YouTube video first-day/7-day public views vs the channel's own median n≥8 → `learning`/`anomaly`; E6 leads & orders per agency utm weekly → readout; E7 active-users metric: **no check until the Metabase question exists** (slot labelled).
+- Emits: `chore`, `watch`, `learning`; drafts: none in v1 (email copy is human); nudges: Ramya, the agency contact (in-portal for agencies; Slack only if they have one).
+- Allowed writes: set Live Date from a pasted publish link (D72); create Publication from agency link; attach YouTube readouts. Forbidden: change email stage; send email; touch Braze; write to the agency's base.
+- Human loop: Ramya accepts chores; agency confirms links; Rafi defines the active-users question (O).
+- Failure: YouTube page unreachable → "not read"; LinkedIn → "manual entry" always; no VL message → owned empty, no Signal spam (one per week).
+
+**Production agent** · owner Nadir · hourly
+- Inputs: `shoots` (status, filming_date, raw_files, ticket_ids, new_prio_ticket, requested_by, asset_type_ids), `media_sources` (status, clip counts, error), comms days (planned releases), Signals from Planning (`next-week-slots`), Video (`first-cut-requested`).
+- Checks: P1 shoot "To Film" with filming_date < today → `blocker` (threshold open — Nadir); P2 "Done – Filmed" without raw_files link > 2 days → `chore`; P3 filmed without a post-production ticket → propose ticket (via the existing checkbox path, human clicks); P4 planned release day with no linked filmed shoot → `blocker` → Planning; P5 media_source in Error > 24h or New > 48h → `chore`; P6 podcast episode with children missing (no snippets / carousel / newsletter) → `gap` → Video/Design/Email.
+- Emits: `blocker`, `chore`, `gap`; drafts: shoot → post-production ticket proposal; nudges: Nadir; Gareth on blockers.
+- Allowed writes: none beyond attaching links a human pasted. Forbidden: tick "New Prio Ticket"; approve shoots (Vishen's); change shoot status.
+- Human loop: Nadir raises the ticket / adds footage; Vishen approves shoots on his desk.
+- Failure: shoots sync stale > 36h → Signal "shoots not synced" to Rhythm; no filming dates → count shown, no blocker.
+
+**Design agent** · owner Chee · hourly
+- Inputs: design-lane tickets, asset_types (design, 48) DNA fields, banners CTR/CVR (later), Signals from Planning (`thursday-slot`).
+- Checks: G1 stuck > 21 days (D86) → `blocker`; G2 unassigned design request > 24h → `chore` (gold Assign); G3 asset type used ≥5 times in 60 days with no DNA → `gap` to Chee; G4 Thursday collage slot without an item by Tuesday → `watch`; G5 banners: **no check until the banner lane is in scope (E14 held)**.
+- Emits: `blocker`, `chore`, `gap`, `watch`; drafts: brief-from-what-wins for design types (cites the brief only until DNA exists); nudges: Chee.
+- Allowed writes: attach readouts (image posts from Perch). Forbidden: assign designers; change status; DNA writes.
+- Human loop: Chee assigns, writes DNA, accepts gap Signals.
+- Failure: no design metrics → learning checks skipped, labelled.
+
+**Planning agent** · owners Gareth · Glen · Ramya commit; Vishen reads · Sunday night + Thursday pre-pass
+- Inputs: MOW master (`tbl3NPxLDApiIyobS`), comms days, all Signals, MowWeek/MowSlot/Learning, Metabase figures (ingest route), publications by day.
+- Checks: L1 Sunday: generate the pack staged (existing `lib/mow/pack.ts` invariants: staged only, one headline); L2 day-by-day plan vs live (five states); L3 learnings: propose ≤5 from `learning` Signals of the week, `proposed=true`; L4 Thursday: next-week slots with 0–1 items → `suggestion` from slot cohorts (weekday × post type × pillar, n≥3); L5 "no plan item cites a learning" → `watch` to Gareth/Glen; L6 roles → results rows; L7 aggregate blockers from Production/Design/Social into Vishen's *Next week* and Gareth's *Blockers*.
+- Emits: `suggestion`, `watch`, pack draft, learnings drafts; nudges: Gareth/Glen/Ramya (commit reminder Sunday 20:00 MYT); **never Vishen** (D92).
+- Allowed writes: `*Staged` fields only; `Learning.proposed=true` rows. Forbidden: commit; write MOW message/goal (Airtable owns); narrate a number (D37).
+- Human loop: Gareth/Glen/Ramya commit; Glen accepts suggestions into the plan.
+- Failure: Metabase figure missing → headline slot "not filled" with the ingest instructions; MOW row absent → owned empty.
+
+### The as-is workflow map — scope (content of `Context/workflows-as-is.md`)
+One section per workflow, each as a table **state → next state · actor · trigger · side effects**, plus the cross-team hand-offs and every cron/automation with its real cadence: 1 Creative Services tickets (two axes) · 2 Shoots (+ New Prio Ticket & post-production checkbox automations) · 3 📣 Social board (16 statuses, Raise Request automation, copy stage) · 4 Clip engine + Vishen's Clips (statuses incl. Review – Marisha/Gareth) · 5 VL Videos (numbered lane + Approval) · 6 Comms Calendar + MOW (staged/committed, committers) · 7 DNA review (trigger, decision lock, Tier 1/2) · 8 Auto-editing (accept → Final Pass, reject taxonomy) · 9 Emails (stages, owners; no metrics) · 10 Agencies (how each delivers today) · 11 Notifications & digests · 12 Sync & schedulers (what actually runs, how often). Sourced from the code-constant extraction (in progress) and the transcripts; each row cites its file or Airtable field id. Gaps between the as-is and the v2 desks are listed at the end as the "delta" that the epics close.
+
+### As-is findings (from code constants, 11 Sep) that change the contracts — folded in as D93–D100
+| # | Finding (source) | Consequence for the agents / v2 |
+|---|---|---|
+| D93 | **Tickets have no transition graph.** `updateTicket` accepts any of the 13 `ticket_status` × 6 `prio_status` values from any state; the only enforced edge is the DNA gate on → Approved (`lib/tickets/write.postgres.ts`, `app/tickets/[id]/actions.ts`). `GATED_STATUSES=['Shipping']` is declared and used nowhere. | Agents must not assume ordered stages; "stuck" (D86) is defined on **time since the last `TicketEvent`**, not on a missing transition. The v2 publication states (D75/D76) are the first ordered machine — put them on the Publication, not the ticket. |
+| D94 | **`prioStatus`, assignee and `queueRank` changes write no `TicketEvent`** — only `ticketStatus` does. | Prioritisation learning (capability #3) and the Video agent's re-rank signal need the widened event log first (build step 4). Until then the agents observe status only. |
+| D95 | **Vishen's `approveContentReview` bypasses the DNA gate** (calls `updateTicket` directly); `requestApproval`/`decideApproval` also bypass it. | The Video agent must emit a `watch` Signal when a ticket reaches Approved with a flag-severity finding still open — and the v2 build closes the bypass. |
+| D96 | **The app knows 4 of the 16 📣 Social statuses** (`1: Proposal`, `2: Approved`, `2A. Ticket Raised`, `13: Reject`); `Copy Request`/`Copy Ready`/`Scheduled`/`Released` exist only in Airtable; `SocialBoard` classifies by prefix. Portal-raised tickets use *Video Team – Non Campaign*, checkbox-raised use *Campaign [Events, etc]*. | The Social agent reads the full 16-status vocabulary from the field map (to be added) before any copy-stage or scheduling Signal; the team-service-level divergence is recorded as a defect to fix. |
+| D97 | **MowSlot `shipped / missed / blocked` have no writer** — only `planned` is ever set. | The Planning agent is the first writer of those states (bookkeeping, derived from the matcher's "went live"); `blocked ≠ missed` is now real, not a schema comment. |
+| D98 | **Emails have no code at all** — no table constant, no stage enum, no read path; `COMMS_DAY.noOfEmails` (a typed number) disagrees with the `emails` link in practice. | The Email & VL agent's first job is to read 📧 Emails (Live Date, Stage, Purpose, Type, Comms Calendar link) via a new field-map block; E1 (email without day link) is the first Signal it can emit. |
+| D99 | **"Accept → Final Pass" exists only in the PRD/plan**; `Final Pass` is a live status used for grouping only; acceptance events are in-memory. | The first-cut contract (D61) is honest as written ("mock render, history not persisted"); the build must add the durable `AcceptanceEvent` before any acceptance rate is shown. |
+| D100 | **Notification backends disagree**: Airtable path fires "asset ready" on `Done` + folder link; Postgres path fires on any delivery link. Vishen's Clips `Review – Marisha/Gareth → Marisha/Gareth Approved → Done` is human-only in Airtable and invisible to the app (allowlist `Todo / In progress / Apply Feedback`). | Agents read Marisha's approval lane from Airtable status, never write it; the Production/Video agents treat "asset ready" as the Postgres definition (any delivery link). |
+
+### `Context/workflows-as-is.md` — content (the extraction is complete; the doc transcribes it)
+Twelve sections, each a table **state → next · actor · trigger · side effects**, cited to file or Airtable field id:
+1. **Creative Services tickets** — 13 ticket statuses × 6 prio statuses, no transition graph (D93); intake → `Backlog`/`New Request` (or `To Do` when exactly one active preferred editor); → Review fires DNA review; → Approved gated (flag or missing review, fail-closed) with override note → Tier-1 rule; Vishen's sign-off paths (`approveReview` → prio In Queue; `sendBackForRevision`; `approveContentReview` bypass D95); `queueRank` 1–10 by Vishen; entitlement fails open for design.
+2. **Shoots** — 5 statuses; anyone creates; Vishen approves/declines (also ticks `vishenApproved`); any user sets To Film / Done – Filmed; `raiseNewPrioTicket` gated on Asset Library + Event Type → one-shot checkbox reset in the same transaction → Airtable automation creates the post-production ticket (script not in repo).
+3. **📣 Social** — 16 live statuses, 4 known to code (D96); clip engine → `1: Proposal`; approve/reject by Marketing division; `raiseSocialRequestAction` → CS ticket (`Non Campaign`) + `2A`; Airtable checkbox `fldrNumf2EpoRetuf` → automation `wflhKn1g3jVmS9jtI` → CS ticket (`Campaign [Events, etc]`); push map deliberately omits raiseRequest/format/type/transcript.
+4. **Clip engine** — media_sources `New → Transcribing → Clips Suggested | Error`, `Archived`; clip suggestions `Proposed → Approved | Dismissed`; convert → tickets + mirror to Vishen's Clips (`AI Suggested`, `Todo`); hourly checkbox conversion inherits taxonomy from the parent source; Vishen Clips allowlist (D100); ticket → clip status map (`Backlog/To Do/Hold → Todo`, `In Progress → In progress`, `In Revision → Apply Feedback`).
+5. **VL Videos** — Status `1. Idea … 7. Published` never written by the app; Approval `To Review / To Refine / Approved / Rejected / Parked` — app writes `Approved`, `To Refine` only; rating 1–5; `views24h` manual → `social_metrics` (source manual) mirrored only into an empty cell; `liveDate` the only scheduling field written.
+6. **Comms Calendar + MOW** — `ensureWeek` on page load; commit/reopen by Gareth/Glen/Ramya only (server-side); staged→committed snapshot in one transaction; learnings `proposed=true` cleared on human edit; MowSlot states unwritten (D97); comms-calendar code read-only except the writable-subset push.
+7. **DNA review** — trigger on → Review; lock on → Approved; override (note + `canGovern`); dismiss flag (note + `canGovern` + **not the assigned editor**); Tier 1 (override → active rule; reaction → inactive); Tier 2 aggregates last 50 overrides + 50 reactions per asset type; no cron.
+8. **Auto-editing** — decisions accepted/rejected; reject reasons `reframe / caption_position / caption_timing / audio_grade` (+ `moment_selection` routed to the clip engine); rate per asset type reset per DNA version; in-memory only (D99).
+9. **Emails** — no code (D98); 📧 Emails stages observed in Airtable: `1: Proposal`, `3: In Progress`, `5. Sent`; purposes Launch / Retention / States; types Invite / Show-up / Sales sequence, Vishen's Newsletter, Other Newsletter.
+10. **Agencies today** — Rise Voice files shoot requests *and* posts in the VL base (own base sync blocked by InfoSec); Talking Heads long-form YouTube; Two Comma PR LinkedIn (fills filming date where live date is meant); all paste publish links; briefing is ad hoc records with status `1. Idea … 7. Published`.
+11. **Notifications** — asset ready (two definitions, D100), assignment DM, social digests (silent when empty), auto-editing drift DM.
+12. **Schedulers** — nine GitHub workflows with real cadences (5-min ticket sync slipping 3–11h; hourly discover/convert/reference; nightly metrics 03:00 and Perch 03:30; Monday clip-learn 03:00, digests Mon/Wed 04:00; manual MOW figures/backfills) + two live Airtable automations + five retired ones still to be disabled.
+Closing section: **the delta** — each v2 desk block / agent check mapped to the as-is row it changes, so nothing in v2 is built on an assumed workflow.
+
+## 6. Order of work on approval (documents only — no code)
+1. Write `Context/workflows-as-is.md` from the twelve sections above (cite every row to file / field id; include the two Airtable automations and the schedule table; end with the delta).
+2. Write the six agent contracts into `prd/content-studio-v2/team-agents-and-signal-bus.md` as Features, using the template — every row filled; thresholds D86 as defaults; footage/coverage thresholds `[UNRESOLVED]` with owners; D93–D100 consequences embedded in the relevant agent. Update the epic's Workflows/Boundaries/Success Criteria; recount.
+3. Update `prd/content-studio-v2.md` Open Questions (footage threshold — Nadir; coverage threshold — Glen; Signal kinds taxonomy proposed: learning · anomaly · blocker · chore · watch · gap · suggestion) and `prd/index.md`.
+4. Plan file: mark rev 4 docs done. No prototype change in this revision.
 
 ---
 
@@ -247,8 +501,5 @@ two Airtable automations create tickets · `Employee.id` is an Airtable recId (~
 YouTube CTR/AVD need Analytics API, not Composio/Perch · Metabase allowlist stays hardcoded ·
 14 Sep MOW runs on the current portal and must not be destabilised.
 
-## 9. Verification (prototype)
-Every hash route reachable from nav and in-page links · light/dark · ≤1 gold element per screen ·
-390px no horizontal scroll · every number carries source + capture age + n · the worked example
-(#11057 / reel DdFYhV8DXTk / Yuthika) is traceable on screens 5, 6, 7, 8 with the numbers in §2 ·
-JSON block regenerates from the export queries without hand edits.
+## 9. Verification (rev 4 — documents)
+`Context/workflows-as-is.md`: every state row cites a file path or Airtable field id; the twelve workflows are present; the schedule table matches `.github/workflows/*` cadences; the delta section maps every v2 desk block to an as-is row · the E-I epic: six Features, each with all twelve contract rows filled (or `n/a`), thresholds D86 present, footage/coverage `[UNRESOLVED]` with owners, D93–D100 referenced where they bite; resolution recounted per the skill · `prd/index.md` totals recomputed · no file outside `Context/` and `prd/` touched.

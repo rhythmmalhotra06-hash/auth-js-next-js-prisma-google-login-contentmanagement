@@ -231,5 +231,25 @@ ck('Thu (count only) carries an Email slot', day('2026-09-03').mv.length === 1);
 ck('Sat (neither) is a genuine no-email day', day('2026-09-05').mv.length === 0);
 ck('Mon (no message, no count) is empty', day('2026-08-31').mv.length === 0);
 
+console.log('\n12. A linked email resolves to the real record, not a synthetic chip');
+const emailRecs = new Map([['recBH9JJo9vOiCB4l', {
+  id: 'recBH9JJo9vOiCB4l',
+  title: "Vishen's Newsletter: The 3 Keys to Manifesting",
+  subject: 'Your goal is failing on one of three things',
+  preheader: null, liveDate: '2026-09-02', emailType: "Vishen's Newsletter",
+  audiences: ['Daily', 'Members'], brazeUrls: [], ctaUrl: null, copyDoc: null,
+  blogLink: null, stage: '5. Sent', purpose: '👥 Retention', body: null,
+}]]);
+const w12 = assembleWeek({ anchor: utcDay('2026-08-31'), vlRows: [], msgRows, mvRows: mvAug, emails: emailRecs });
+const wed = w12.days.find(x => x.date === '2026-09-02')!.mv;
+ck('the row carries the real title', wed[0]?.title.startsWith("Vishen's Newsletter:") === true, wed[0]?.title);
+ck('and the recId, so it can be opened', wed[0]?.emailId === 'recBH9JJo9vOiCB4l');
+ck('and the subject, which is the Braze join key', wed[0]?.subject === 'Your goal is failing on one of three things');
+ck('Sent means live', wed[0]?.live === true);
+// The count-only days must NOT regress to nothing just because resolution is now possible.
+const tue12 = w12.days.find(x => x.date === '2026-09-01')!.mv;
+ck('a count-only day keeps its synthetic chip', tue12.length === 1 && tue12[0].title === 'Email' && !tue12[0].emailId);
+ck('emails still stay out of allPosts', !w12.allPosts.some(p => p.id.includes(':email')));
+
 console.log(`\n${fails === 0 ? 'ALL PASS' : fails + ' FAILURE(S)'}`);
 process.exit(fails === 0 ? 0 : 1);

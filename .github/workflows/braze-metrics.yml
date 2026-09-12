@@ -1,0 +1,61 @@
+name: Braze email metrics
+
+# The email half of the performance loop: pull per-campaign numbers from Braze into
+# `email_metrics`, so the Monday pack can show how an email did next to how a post did.
+#
+#   POST /api/metrics/braze-pull?sinceDays=14   — Bearer-gated (SYNC_SECRET)
+#
+# Idempotent: rows are keyed by (campaign, window, captured day), so re-running updates in place.
+# Two rows are written per campaign — the send day + the next (the honest "24h", since Braze's
+# data_series has no hourly granularity) and the to-date figure.
+#
+# A 14-day window rather than 1: opens keep arriving for days, so yesterday's email is still
+# moving and last week's has only just settled. Re-pulling the fortnight every night keeps both
+# honest for the cost of ~30 campaigns.
+#
+# Requires BRAZE_API_KEY in Kessel, carrying campaigns.list + campaigns.details +
+# campaigns.data_series. A 503 means the key is missing or wrong — that needs a human.
+#
+# Watch the `unclassified` list in the response: those are campaigns whose audience could not be
+# read from their tags, and each one is the tag map in lib/braze/pull.ts asking to be extended.
+
+on:
+  schedule:
+    - cron: '45 3 * * *' # 03:45 UTC daily, after the Perch pull at 03:30
+  workflow_dispatch:
+    inputs:
+      sinceDays:
+        description: 'How many days back to pull (1-90). Default 14.'
+        required: false
+        default: ''
+
+concurrency:
+  group: braze-metrics
+  cancel-in-progress: false
+
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull Braze metrics into email_metrics
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://auth-js-next-js-prisma-google-login-cont-73a7-jdtcvngavq-as.a.run.app' }}
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+          SINCE: ${{ github.event.inputs.sinceDays }}
+        run: |
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "::error::SYNC_SECRET is not set in repo secrets"; exit 1
+          fi
+
+          since="${SINCE:-14}"
+          echo "→ POST $APP_URL/api/metrics/braze-pull?sinceDays=$since"
+          code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            -X POST "$APP_URL/api/metrics/braze-pull?sinceDays=$since" \
+            -H "Authorization: Bearer $SYNC_SECRET")
+          echo "HTTP $code"; cat /tmp/resp.json; echo
+
+          case "$code" in
+            200) : ;;
+            503) echo "::error::BRAZE_API_KEY is missing or rejected — check it carries campaigns.list, campaigns.details and campaigns.data_series (Braze keys cannot be edited, only recreated)"; exit 1 ;;
+            *)   echo "::error::braze-pull returned HTTP $code"; exit 1 ;;
+          esac
