@@ -194,3 +194,45 @@ Modified: `prisma/schema.prisma`, `lib/comms-calendar/{data.airtable,types}.ts`,
   both surfaces.
 - Cost: `[perf] braze …` lines. A nightly pull of ~30 campaigns × 2 calls is nowhere near Braze's
   data_series limit, and the key is shared with the hub — keep concurrency at 4.
+
+---
+
+## Status — 12 Sep 2026
+
+**Built and deployed** (commits `732ba00`, `afade6f`, `98284ff`); migration `0031_email_metrics`
+applied to production. Everything works the moment `BRAZE_API_KEY` is set — until then every
+email row reads "no Braze campaign matched", which is the same information the surfaces carried
+before, better worded.
+
+Done: §1 sink, §2 pull + route + nightly workflow, §3 planned-email reader (with subject parsing),
+§4 matcher, §5 all three surfaces. 10 offline suites pass, build and lint clean.
+
+Done differently from the plan:
+- Migration is `0031`, not `0032` (the last on disk was `0030`).
+- `getEmailResults` takes match targets rather than `PlannedEmail`, so the message page can feed
+  it straight from what the calendar already carries — no second Airtable read.
+- The pull is NOT called opportunistically from the pack via `after()`. The nightly workflow
+  covers it, and a page-triggered pull would put a multi-minute Braze scan behind a page load
+  the Monday meeting is watching. Revisit if the cron proves too slow.
+- Email is excluded from the day's `delivered` count. One email to eight lists is eight
+  campaigns but one planned slot; including it would inflate the day eightfold against `planned`.
+
+Two things the build found that the plan did not anticipate:
+- **Disagreeing subjects must reject outright.** The name fallback was rescuing them, which
+  attached one sequence email's numbers to another — a launch sequence's campaign names are
+  nearly identical. Caught by the test written for it; fixed in `scoreCandidate`.
+- **A swallowed Airtable error read as "No such email"** on the detail page. The lane still
+  swallows; the detail page throws.
+
+**Still open — the gate in §4 has not been run.** The match rate is unmeasured until the key
+exists. When it lands:
+1. `kessel env secret BRAZE_API_KEY=…` then commit anything (env changes need a new build).
+2. `curl -X POST "$URL/api/metrics/braze-pull?sinceDays=14" -H "Authorization: Bearer $SYNC_SECRET"`
+3. Read `unclassified[]` — each name is the tag map in `lib/braze/pull.ts` asking to be extended.
+4. Check this week's six emails on the message page. If the rate is poor, the fix is a
+   `Braze Campaign ID` field on the Airtable Emails table filled at planning time — a workflow
+   ask for Ramya, not a cleverer string metric.
+
+Worth asking Ramya for at the same time: a **`📧 Subject` field** on the Emails table. The
+subject is currently the first line of the copy, written three different ways, and it is the key
+the whole join rests on.
