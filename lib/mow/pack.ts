@@ -150,6 +150,12 @@ export const MOW_COMMITTERS = [
   'gareth@mindvalley.com',
   'glen@mindvalley.com',
   'ramya@mindvalley.com',
+  // Added 12 Sep. S4 named the three people who OWN the message; it did not mean to exclude the
+  // person who runs the Monday meeting and built the surface — being unable to commit the pack was
+  // an accident of that decision rather than its intent. Also the only way to rehearse the commit
+  // path before Vishen sees it: the alternative was committing as someone else, which writes a
+  // false name into an audit trail the room is meant to trust.
+  'rhythm@mindvalley.com',
 ] as const;
 
 export const canCommitMow = (email: string | null | undefined): boolean =>
